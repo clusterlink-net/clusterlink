@@ -7,6 +7,8 @@ import (
 	"net"
 	"os"
 	"sync"
+
+	"github.ibm.com/ei-agent/pkg/setupFrame"
 )
 
 var (
@@ -18,13 +20,15 @@ var (
 
 func main() {
 	flag.Parse()
+	fmt.Println("********** Start Server ************")
 	fmt.Printf("Strart client listen: %v  send to server: %v \n", *listener, *servicenode)
 	if *listener == "" || *servicenode == "" {
 		fmt.Println("missing listener or service")
 		os.Exit(-1)
 	}
 
-	acceptLoop(*listener, *servicenode) // missing channel for signal handler
+	err := acceptLoop(*listener, *servicenode) // missing channel for signal handler
+	fmt.Println("Error:", err)
 }
 
 func acceptLoop(listener, servicenode string) error {
@@ -44,7 +48,13 @@ func acceptLoop(listener, servicenode string) error {
 }
 
 func dispatch(c net.Conn, servicenode string) error {
-	nodeConn, err := net.Dial("tcp", servicenode)
+
+	//choose which sevice to pass
+	setupPacket := setupFrame.GetSetupPacket(c)
+	serviceIp := setupPacket.DestIp + ":" + setupPacket.DestPort
+	println("[dispatch]: get service IP", serviceIp)
+	nodeConn, err := net.Dial("tcp", serviceIp)
+
 	if err != nil {
 		return err
 	}
@@ -58,7 +68,6 @@ func ioLoop(cl, sn net.Conn) error {
 	fmt.Println("Cient", cl.RemoteAddr().String(), "->", cl.LocalAddr().String())
 	fmt.Println("Server", sn.LocalAddr().String(), "->", sn.RemoteAddr().String())
 	done := &sync.WaitGroup{}
-	sendSetupFrame(sn)
 	done.Add(2)
 
 	go clientToServer(done, cl, sn)
@@ -98,13 +107,6 @@ func clientToServer(wg *sync.WaitGroup, cl, sn net.Conn) error {
 		return err
 	}
 
-	// allocate 64KB buffer
-	// forever {
-	// 	  numBytes = read from client to buffer
-	//    create frame with data+numBytes
-	//    send(sn, frame + buffer)
-	// }
-
 }
 
 func serverToClient(wg *sync.WaitGroup, cl, sn net.Conn) error {
@@ -143,7 +145,3 @@ func serverToClient(wg *sync.WaitGroup, cl, sn net.Conn) error {
 //	     send(cl, payload)
 //    }
 // }
-
-func sendSetupFrame(sn net.Conn) error {
-	return nil
-}

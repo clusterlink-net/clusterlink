@@ -28,7 +28,11 @@ vet-go: ; $(info $(M) vetting code...)
 
 build:
 	@echo "Start go build phase"
-	go build -o ./bin/client ./cmd/clientside/main.go
+	go build -o ./bin/client ./cmd/client/main.go
+	go build -o ./bin/server ./cmd/server/main.go
 
 run-client:
+	@./bin/client
+
+run-server:
 	@./bin/client
