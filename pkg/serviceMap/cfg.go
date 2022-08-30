@@ -8,13 +8,17 @@ type Service struct {
 }
 
 func init() {
-	m["5001"] = Service{1, "TCP-split"}
-	m["5002"] = Service{2, "Forward"}
-	m["5003"] = Service{3, "Encryption"}
+	m["Forward"] = Service{1, "Forward"}
+	m["TCP-split"] = Service{2, "TCP-split"}
+	m["Encryption"] = Service{3, "Encryption"}
 }
 
-func GetService(port string) Service {
-	return m[port]
+func GetService(k string) Service {
+	return m[k]
+}
+func CheckServiceExist(k string) bool {
+	_, flag := m[k]
+	return flag
 }
 
 func ConvertId2Name(id uint32) string {

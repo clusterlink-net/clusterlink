@@ -35,12 +35,13 @@ var (
 )
 
 /********************* SetupFrame Functions- clien side *****************/
-func SendFrame(cl, sn net.Conn, destIp, destPort string) error {
+func SendFrame(cl, sn net.Conn, destIp, destPort, serviceType string) error {
 	//destIp, destPort := netutils.GetConnIp(cl)
-	s := service.GetService(destPort)
-
+	s := service.GetService(serviceType)
+	print(s.Id, s.Name, serviceType)
 	//create frame
 	sFrame := createFrame(s, destIp, destPort)
+	sFrame.Print()
 	setupFrameBuf := convFrame2Buf(sFrame)
 
 	_, err := sn.Write(setupFrameBuf)
