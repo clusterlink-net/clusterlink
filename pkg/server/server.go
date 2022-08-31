@@ -30,7 +30,7 @@ func (s *SnServer) SrverInit(listener, servicenode string, snmode bool, client *
 
 func (s *SnServer) RunSrver() {
 	fmt.Println("********** Start Server ************")
-	fmt.Printf("Strart client listen: %v  send to server: %v \n", s.Listener, s.ServiceTarget)
+	fmt.Printf("Strart listen: %v send to: %v \n", s.Listener, s.ServiceTarget)
 
 	err := s.acceptLoop() // missing channel for signal handler
 	fmt.Println("Error:", err)
@@ -39,12 +39,14 @@ func (s *SnServer) RunSrver() {
 func (s *SnServer) acceptLoop() error {
 	// open listener
 	acceptor, err := net.Listen("tcp", s.Listener)
+
 	if err != nil {
 		return err
 	}
 	// loop until signalled to stop
 	for {
 		c, err := acceptor.Accept()
+
 		if err != nil {
 			return err
 		}
