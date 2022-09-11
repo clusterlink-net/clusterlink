@@ -39,13 +39,14 @@ func (s *SnServer) RunSrver() {
 func (s *SnServer) acceptLoop() error {
 	// open listener
 	acceptor, err := net.Listen("tcp", s.Listener)
-
+	fmt.Println("[server] acceptLoop : before accept for ip", acceptor.Addr())
 	if err != nil {
 		return err
 	}
 	// loop until signalled to stop
 	for {
 		c, err := acceptor.Accept()
+		fmt.Println("[server] acceptLoop : get accept")
 
 		if err != nil {
 			return err
@@ -58,17 +59,20 @@ func (s *SnServer) dispatch(c net.Conn, servicenode string) error {
 
 	//choose which sevice to pass
 	setupPacket := setupFrame.GetSetupPacket(c)
-	if s.SnMode {
+	if s.SnMode { //For service node update the target
 		if setupPacket.Service.Name == "Forward" {
 			s.ServiceTarget = s.SnClient.Listener
 			s.SnClient.Target = setupPacket.DestIp + ":" + setupPacket.DestPort
+		} else if setupPacket.Service.Name == "TCP-split" {
+			s.ServiceTarget = setupPacket.Service.Ip
+			s.SnClient.Target = setupPacket.DestIp + ":" + setupPacket.DestPort
+		} else {
+			s.ServiceTarget = setupPacket.DestIp + ":" + setupPacket.DestPort
 		}
-	} else { //incase for regular server forward the traffic to the app destination
-		s.ServiceTarget = setupPacket.DestIp + ":" + setupPacket.DestPort
 	}
-
+	fmt.Println("[server] before dial to:", s.ServiceTarget)
 	nodeConn, err := net.Dial("tcp", s.ServiceTarget)
-
+	fmt.Println("[server] after dial to:", s.ServiceTarget)
 	if err != nil {
 		return err
 	}
@@ -79,8 +83,8 @@ func (s *SnServer) ioLoop(cl, sn net.Conn) error {
 	defer cl.Close()
 	defer sn.Close()
 
-	fmt.Println("Cient", cl.RemoteAddr().String(), "->", cl.LocalAddr().String())
-	fmt.Println("Server", sn.LocalAddr().String(), "->", sn.RemoteAddr().String())
+	fmt.Println("[server] listen to:", cl.LocalAddr().String(), "in port:", cl.RemoteAddr().String())
+	fmt.Println("[server] send data to:", sn.RemoteAddr().String(), "from port:", sn.LocalAddr().String())
 	done := &sync.WaitGroup{}
 	done.Add(2)
 

@@ -1,0 +1,17 @@
+################################################################
+#Name:sn-client-service
+#Desc: service file for creating a load-balancer with external 
+#      port 5000  
+################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: sn-client-service
+spec:
+  #type: ClusterIP
+  selector:
+    app: servicenode
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000

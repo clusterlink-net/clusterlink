@@ -24,7 +24,7 @@ func main() {
 		os.Exit(-1)
 	}
 	//init
-	cListener := "localhost:5200"
+	cListener := ":5000"
 	c.InitClient(cListener, "", false, "", "", "")
 	s.SrverInit(*listener, "", true, &c)
 

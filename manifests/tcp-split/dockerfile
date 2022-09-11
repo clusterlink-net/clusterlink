@@ -1,0 +1,7 @@
+################################################################
+#Name: dockerfile 
+#Desc: dockerfile for creating an Haproxy container.
+#      copy pre-generate haproxy.cfg
+################################################################
+FROM haproxy
+COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg

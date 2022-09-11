@@ -38,10 +38,9 @@ var (
 func SendFrame(cl, sn net.Conn, destIp, destPort, serviceType string) error {
 	//destIp, destPort := netutils.GetConnIp(cl)
 	s := service.GetService(serviceType)
-	print(s.Id, s.Name, serviceType)
 	//create frame
 	sFrame := createFrame(s, destIp, destPort)
-	sFrame.Print()
+	sFrame.Print("[sendSetupFrame]")
 	setupFrameBuf := convFrame2Buf(sFrame)
 
 	_, err := sn.Write(setupFrameBuf)
@@ -90,7 +89,7 @@ func GetSetupPacket(cl net.Conn) setupFrameS {
 		bufReadSize += numBytes
 	}
 	sFrame := convBuf2Frame(bufData)
-	sFrame.Print()
+	sFrame.Print("[GetSetupPacket]")
 	return sFrame
 }
 
@@ -98,6 +97,7 @@ func convBuf2Frame(sFrameBuf []byte) setupFrameS {
 	var sFrame setupFrameS
 	sFrame.Service.Id = byteOrder.Uint32(sFrameBuf[ServicePos : ServicePos+ServiceSize])
 	sFrame.Service.Name = service.ConvertId2Name(sFrame.Service.Id)
+	sFrame.Service.Ip = service.ConvertId2Ip(sFrame.Service.Id)
 	sFrame.DestIp = net.IP(sFrameBuf[DestIpPos+DestIpSize-ipv4ByteSize : DestIpPos+DestIpSize]).String()
 	sFrame.DestPort = string(sFrameBuf[DestPortPos : DestPortPos+DestPortSize])
 	return sFrame
@@ -110,7 +110,7 @@ func GetServiceIp(packet []byte) string {
 	return ipS
 }
 
-func (s *setupFrameS) Print() {
-	println("setup Frame- service id:", s.Service.Id, ", service name:", s.Service.Name, ", Destination ip:", s.DestIp, ",Destination port:", s.DestPort)
+func (s *setupFrameS) Print(str string) {
+	println(str, "setup Frame- service id:", s.Service.Id, ", service name:", s.Service.Name, ", Destination ip:", s.DestIp, ",Destination port:", s.DestPort)
 
 }

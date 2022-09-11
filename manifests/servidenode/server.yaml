@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: servicenode-deployment
+  labels:
+    app: servicenode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: servicenode
+  template:
+    metadata:
+      labels:
+        app: servicenode
+    spec:
+      containers:
+      - name: servicenode
+        image: servicenode
+        imagePullPolicy: IfNotPresent
+        command: ["/server"]
+        args: ["--listen", ":5002", "--sn",":5003"]
+        ports:
+        - containerPort: 5002

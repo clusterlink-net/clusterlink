@@ -1,0 +1,30 @@
+################################################################
+#Name:  iperf3_client 
+#Desc: YAML file for creating iperf3 client to send test traffic.
+################################################################
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: iperf3-clients
+  labels:
+    app: iperf3-client
+spec:
+  selector:
+    matchLabels:
+      app: iperf3-client
+  template:
+    metadata:
+      labels:
+        app: iperf3-client
+    spec:
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+      - name: iperf3-client
+        image: networkstatic/iperf3
+        #image: mlabbe/iperf3
+        command: ['/bin/sh', '-c', 'sleep infinity']
+        # To benchmark manually: kubectl exec iperf3-clients-jlfxq -- /bin/sh -c 'iperf3 -c iperf3-server'
+      terminationGracePeriodSeconds: 0

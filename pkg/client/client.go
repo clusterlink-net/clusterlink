@@ -34,7 +34,7 @@ func (c *SnClient) InitClient(listener, target string, setupFrameFlag bool, appD
 
 func (c *SnClient) RunClient() {
 	fmt.Println("********** Start Client ************")
-	fmt.Printf("Strart client listen: %v  send to server: %v \n", c.Listener, c.Target)
+	fmt.Printf("Strart listen: %v  send to : %v \n", c.Listener, c.Target)
 
 	err := c.acceptLoop()
 	fmt.Println("Error:", err)
@@ -49,6 +49,7 @@ func (c *SnClient) acceptLoop() error {
 	// loop until signalled to stop
 	for {
 		ac, err := acceptor.Accept()
+		fmt.Println("[client]: accept connetion", ac.LocalAddr().String(), "->", ac.RemoteAddr().String())
 		if err != nil {
 			return err
 		}
@@ -57,8 +58,9 @@ func (c *SnClient) acceptLoop() error {
 }
 
 func (c *SnClient) dispatch(ac net.Conn) error {
-	fmt.Println("[ClientDispatch] Target is", c.Target)
+	fmt.Println("[client]: before dial TCP", c.Target)
 	nodeConn, err := net.Dial("tcp", c.Target)
+	fmt.Println("[client]: after dial TCP", c.Target)
 	if err != nil {
 		return err
 	}
@@ -69,8 +71,8 @@ func (c *SnClient) ioLoop(cl, sn net.Conn) error {
 	defer cl.Close()
 	defer sn.Close()
 
-	fmt.Println("Cient", cl.RemoteAddr().String(), "->", cl.LocalAddr().String())
-	fmt.Println("Server", sn.LocalAddr().String(), "->", sn.RemoteAddr().String())
+	fmt.Println("[Cient] listen to:", cl.LocalAddr().String(), "in port:", cl.RemoteAddr().String())
+	fmt.Println("[Cient] send data to:", sn.RemoteAddr().String(), "from port:", sn.LocalAddr().String())
 	done := &sync.WaitGroup{}
 	done.Add(2)
 

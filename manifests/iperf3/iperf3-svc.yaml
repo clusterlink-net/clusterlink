@@ -1,0 +1,20 @@
+################################################################
+#Name: Iperf3-svc 
+#Desc: service file for creating a load-balancer with external 
+#      port 5500 connect to iperf3-server  
+################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: iperf3-loadbalancer-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: iperf3-server
+  ports:
+      # By default and for convenience, the `targetPort` is set to the same value as the `port` field.
+    - port: 5500
+      targetPort: 5201
+      # Optional field
+      # By default and for convenience, the Kubernetes control plane will allocate a port from a range (default: 30000-32767)
+      nodePort: 30001
