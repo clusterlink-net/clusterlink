@@ -33,8 +33,8 @@ build:
 	go build -o ./bin/sn ./cmd/servicenode/main.go
 docker-build-sn:
 	docker build --progress=plain --rm --tag servicenode .
-docker-build-haproxy:
-	cd manifests/tcp-split/; docker build --progress=plain --rm --tag my-haproxy .
+docker-build-tcp-split:
+	cd manifests/tcp-split/; docker build --progress=plain --rm --tag tcp-split .
 run-client:
 	@./bin/client
 
@@ -52,4 +52,15 @@ run-kind-sn:
 	kubectl create -f manifests/servidenode/sn-client-svc.yaml
 	kubectl create -f manifests/tcp-split/haproxy.yaml
 	kubectl create -f manifests/tcp-split/split-svc.yaml
-	
+
+run-kind-host:
+	kind create cluster --config manifests/kind/config.yaml --name=ei-agent
+	kind load docker-image servicenode --name=ei-agent
+	kubectl create -f manifests/host/iperf3-client.yaml
+	kubectl create -f manifests/host/client-configmap.yaml
+	kubectl create -f manifests/host/client.yaml
+	kubectl create -f manifests/host/client-svc.yaml
+
+clean-kind-sn:
+	kind delete cluster --name=ei-agent
+

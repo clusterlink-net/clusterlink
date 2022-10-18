@@ -14,7 +14,7 @@ COPY . ./
 # Build Go model
 RUN CGO_ENABLED=0 go build -o ./bin/sn ./cmd/servicenode/main.go
 RUN CGO_ENABLED=0 go build -o ./bin/server ./cmd/server/main.go
-
+RUN CGO_ENABLED=0 go build -o ./bin/client ./cmd/client/main.go
 
 # Create dockerfile with multi-stagets :stage 1: low resources
 
@@ -23,3 +23,4 @@ FROM alpine:3.14
 WORKDIR /
 COPY --from=0  /servicenode/bin/sn /sn
 COPY --from=0  /servicenode/bin/server /server
+COPY --from=0  /servicenode/bin/client /client

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: client-config
+data:
+  app.sn_ip: "34.173.158.26:30000"
+  app.dest_ip: "34.82.6.88"
+  app.dest_port: "5500"
+  app.service: "TCP-split"

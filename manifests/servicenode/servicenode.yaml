@@ -16,9 +16,11 @@ spec:
     spec:
       containers:
       - name: servicenode
-        image: servicenode
+        image: gcr.io/multi-cloud-networks-4438/servicenode:latest
+        #image: servicenode
         imagePullPolicy: IfNotPresent
-        command: ["/server"]
-        args: ["--listen", ":5002", "--sn",":5003"]
+        
+        command: ["/sn"]
+        args: ["--listen", ":5002"]
         ports:
         - containerPort: 5002

@@ -16,9 +16,9 @@ spec:
     spec:
       containers:
       - name: servicenode
-        image: servicenode
+        image: icr.io/k8s-ns/servicenode
         imagePullPolicy: IfNotPresent
-        command: ["/sn"]
-        args: ["--listen", ":5002"]
+        command: ["/server"]
+        args: ["--listen", ":5002", "--sn",":5003"]
         ports:
         - containerPort: 5002
