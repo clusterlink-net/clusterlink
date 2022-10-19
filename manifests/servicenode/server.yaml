@@ -1,3 +1,7 @@
+################################################################
+#Name: server 
+#Desc: Run only server side of service node -Not in used 
+################################################################
 apiVersion: apps/v1
 kind: Deployment
 metadata:

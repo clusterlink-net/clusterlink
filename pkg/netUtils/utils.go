@@ -1,3 +1,8 @@
+/**********************************************************/
+/* Package netutils contain helper functions for network
+/* connection
+/**********************************************************/
+
 package netutils
 
 import (
@@ -10,6 +15,7 @@ var (
 	tcpReadTimeoutMs = uint(0)
 )
 
+//Read function with timeout
 func setReadTimeout(connRead net.Conn) error {
 	if tcpReadTimeoutMs == 0 {
 		return nil
@@ -20,6 +26,7 @@ func setReadTimeout(connRead net.Conn) error {
 	return connRead.SetReadDeadline(deadline)
 }
 
+//Return connection IP and port
 func GetConnIp(c net.Conn) (string, string) {
 	s := strings.Split(c.LocalAddr().String(), ":")
 	ip := s[0]

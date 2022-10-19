@@ -1,3 +1,7 @@
+################################################################
+#Name: serviceNode 
+#Desc: Run ServiceNode pod that listen to port 5002
+################################################################
 apiVersion: apps/v1
 kind: Deployment
 metadata:

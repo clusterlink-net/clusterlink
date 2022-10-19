@@ -1,3 +1,8 @@
+/**********************************************************/
+/* Package client contain function that run for
+/* service node client that can run inside the host, destination
+/* and service node
+/**********************************************************/
 package client
 
 import (
@@ -22,6 +27,7 @@ type SnClient struct {
 	ServiceType    string
 }
 
+//Init client fields
 func (c *SnClient) InitClient(listener, target string, setupFrameFlag bool, appDestPort, appDestIp, serviceType string) {
 	c.Listener = listener
 	c.Target = target
@@ -32,6 +38,7 @@ func (c *SnClient) InitClient(listener, target string, setupFrameFlag bool, appD
 
 }
 
+//Run client object
 func (c *SnClient) RunClient() {
 	fmt.Println("********** Start Client ************")
 	fmt.Printf("Strart listen: %v  send to : %v \n", c.Listener, c.Target)
@@ -40,6 +47,7 @@ func (c *SnClient) RunClient() {
 	fmt.Println("Error:", err)
 }
 
+//Start listen loop and pass data to destination according to setupFrame
 func (c *SnClient) acceptLoop() error {
 	// open listener
 	acceptor, err := net.Listen("tcp", c.Listener)
@@ -57,6 +65,7 @@ func (c *SnClient) acceptLoop() error {
 	}
 }
 
+//Connect to client and call ioLoop function
 func (c *SnClient) dispatch(ac net.Conn) error {
 	fmt.Println("[client]: before dial TCP", c.Target)
 	nodeConn, err := net.Dial("tcp", c.Target)
@@ -67,6 +76,7 @@ func (c *SnClient) dispatch(ac net.Conn) error {
 	return c.ioLoop(ac, nodeConn)
 }
 
+//Transfer data from server to client and back
 func (c *SnClient) ioLoop(cl, sn net.Conn) error {
 	defer cl.Close()
 	defer sn.Close()
@@ -84,8 +94,8 @@ func (c *SnClient) ioLoop(cl, sn net.Conn) error {
 	return nil
 }
 
+//Copy data from client to server and send setup frame
 func (c *SnClient) clientToServer(wg *sync.WaitGroup, cl, sn net.Conn) error {
-
 	defer wg.Done()
 	var err error
 
@@ -121,6 +131,7 @@ func (c *SnClient) clientToServer(wg *sync.WaitGroup, cl, sn net.Conn) error {
 
 }
 
+//Copy data from server to client
 func (c *SnClient) serverToClient(wg *sync.WaitGroup, cl, sn net.Conn) error {
 	defer wg.Done()
 

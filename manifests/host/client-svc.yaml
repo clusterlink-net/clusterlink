@@ -1,5 +1,5 @@
 ################################################################
-#Name:sn-client-service
+#Name: client-sn-service
 #Desc: service file for creating a load-balancer with external 
 #      port 5000  
 ################################################################

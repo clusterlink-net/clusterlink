@@ -1,3 +1,7 @@
+/**********************************************************/
+/* Package setupFrame contain all functions and control
+/* message data structure
+/**********************************************************/
 package setupFrame
 
 import (
@@ -34,7 +38,8 @@ var (
 	ipv4ByteSize = 4
 )
 
-/********************* SetupFrame Functions- clien side *****************/
+/********************* SetupFrame Functions- client side *****************/
+//Get control message fields and send TCP buffer
 func SendFrame(cl, sn net.Conn, destIp, destPort, serviceType string) error {
 	//destIp, destPort := netutils.GetConnIp(cl)
 	s := service.GetService(serviceType)
@@ -51,11 +56,12 @@ func SendFrame(cl, sn net.Conn, destIp, destPort, serviceType string) error {
 	return nil
 }
 
+//convert control field to setupframe struct
 func createFrame(s service.Service, destIp string, destPort string) setupFrameS {
 	return setupFrameS{Service: s, DestIp: destIp, DestPort: destPort}
 }
 
-//Conver setup frame to buffer for sending through connection
+//Convert setup frame to buffer for sending through connection
 func convFrame2Buf(sFrame setupFrameS) []byte {
 
 	setupFrameBuf := make([]byte, maxSetupBufferSize)
@@ -74,6 +80,7 @@ func convFrame2Buf(sFrame setupFrameS) []byte {
 }
 
 /********************* SetupFrame Functions- server side *****************/
+//listen to control message and return setupFrame struct
 func GetSetupPacket(cl net.Conn) setupFrameS {
 	bufData := make([]byte, maxSetupBufferSize)
 	bufReadSize := 0
@@ -93,6 +100,7 @@ func GetSetupPacket(cl net.Conn) setupFrameS {
 	return sFrame
 }
 
+//Convert Buffer to SetupFrame
 func convBuf2Frame(sFrameBuf []byte) setupFrameS {
 	var sFrame setupFrameS
 	sFrame.Service.Id = byteOrder.Uint32(sFrameBuf[ServicePos : ServicePos+ServiceSize])
@@ -103,13 +111,14 @@ func convBuf2Frame(sFrameBuf []byte) setupFrameS {
 	return sFrame
 }
 
+//Get IP address from buffer
 func GetServiceIp(packet []byte) string {
-
 	ip := net.IP(packet[DestIpPos+DestIpSize-ipv4ByteSize : DestIpPos+DestIpSize]) //Getting just ip addr
 	ipS := ip.String()
 	return ipS
 }
 
+//print function for setupFrame struct
 func (s *setupFrameS) Print(str string) {
 	println(str, "setup Frame- service id:", s.Service.Id, ", service name:", s.Service.Name, ", Destination ip:", s.DestIp, ",Destination port:", s.DestPort)
 

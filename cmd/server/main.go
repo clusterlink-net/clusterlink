@@ -1,3 +1,6 @@
+/**********************************************************/
+/* Package Main to run just server of servicenode -Not in used
+/**********************************************************/
 package main
 
 import (

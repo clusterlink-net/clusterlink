@@ -1,3 +1,8 @@
+################################################################
+#Name: client-sn-deployment 
+#Desc: YAML file for creating Go client to connect the service 
+#      to service node functions.
+################################################################
 apiVersion: apps/v1
 kind: Deployment
 metadata:

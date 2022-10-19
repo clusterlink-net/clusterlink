@@ -1,7 +1,7 @@
 ################################################################
 #Name:sn-client-service
-#Desc: service file for creating a load-balancer with external 
-#      port 5000  
+#Desc: service file for creating aK8s service for getting data 
+# from services back to servicenode(client)
 ################################################################
 apiVersion: v1
 kind: Service
