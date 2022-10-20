@@ -1,3 +1,3 @@
-module github.ibm.com/kfir-toledo/ei-agent
+module github.ibm.com/mbg-agent
 
-go 1.18
+go 1.17

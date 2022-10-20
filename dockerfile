@@ -1,0 +1,24 @@
+FROM golang:1.17
+
+# Create dockerfile with multi-stagets: stage 0: compile src and client
+# Set destination for COPY
+WORKDIR /mbg
+
+# Download Go modules
+COPY go.mod .
+RUN go mod download
+
+# Copy the source code.
+COPY . ./
+
+# Build Go model
+RUN CGO_ENABLED=0 go build -o ./bin/mbg ./cmd/mbg/main.go
+RUN CGO_ENABLED=0 go build -o ./bin/gateway ./cmd/gateway/main.go
+
+# Create dockerfile with multi-stagets :stage 1: low resources
+
+FROM alpine:3.14
+
+WORKDIR /
+COPY --from=0  /mbg/bin/mbg /mbg
+COPY --from=0  /mbg/bin/gateway /gateway
