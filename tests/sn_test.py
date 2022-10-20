@@ -17,10 +17,10 @@ from aux.iperf3_setup import iperf3Test
 
 host   = cluster(name="host",   zone = "us-east1-b",    platform = "gcp", type = "host")
 target = cluster(name="iperf3-target", zone = "us-west1-b",    platform = "gcp", type = "target")
-sn     = cluster(name="sn-k8s",     zone = "us-central1-b", platform = "gcp", type = "servicenode")
+mbg     = cluster(name="mbg-k8s",     zone = "us-central1-b", platform = "gcp", type = "mbg")
 
 # test setup
-#clusterSetup(host=host, target=target, sn=sn)
+#clusterSetup(host=host, target=target, mbg=mbg)
 
 #Test client connection
 checkClusterIsReady(host)
@@ -28,10 +28,10 @@ target_ip, target_port = getIpPort(file=PROJECT_PATH+"/bin/metadata.json", clust
 #iperf3Test(target_ip=target_ip, target_port=target_port, time=40)
 
 #Test service Forward
-hostServiceSetup(host=host,target=target, sn=sn, service="Forward")
+hostServiceSetup(host=host,target=target, mbg=mbg, service="Forward")
 testService(service="Forward", time=40)
 #Test service Tcp split
-hostServiceSetup(host=host,target=target, sn=sn, service="TCP-split")
+hostServiceSetup(host=host,target=target, mbg=mbg, service="TCP-split")
 testService(service="TCP-split", time=40)
 
 

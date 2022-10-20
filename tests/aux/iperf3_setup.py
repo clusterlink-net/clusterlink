@@ -58,8 +58,8 @@ def setupIperf3Target(platform):
 def setupIperf3Host(platform):
     os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/iperf3-client.yaml")
     container_reg = get_plarform_container_reg(platform)
-    os.system(f"docker tag servicenode:latest {container_reg}/servicenode:latest")
-    os.system(f"docker push {container_reg}/servicenode:latest")
+    os.system(f"docker tag mbg:latest {container_reg}/mbg:latest")
+    os.system(f"docker push {container_reg}/mbg:latest")
 
 
 

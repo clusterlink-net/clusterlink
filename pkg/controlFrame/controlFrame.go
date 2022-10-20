@@ -1,8 +1,8 @@
 /**********************************************************/
-/* Package setupFrame contain all functions and control
+/* Package controlFrame contain all functions and control
 /* message data structure
 /**********************************************************/
-package setupFrame
+package controlFrame
 
 import (
 	"encoding/binary"
@@ -10,10 +10,10 @@ import (
 	"io"
 	"net"
 
-	service "github.ibm.com/ei-agent/pkg/serviceMap"
+	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
 
-type setupFrameS struct {
+type controlFrameS struct {
 	Service  service.Service
 	DestIp   string
 	DestPort string
@@ -40,15 +40,15 @@ var (
 
 /********************* SetupFrame Functions- client side *****************/
 //Get control message fields and send TCP buffer
-func SendFrame(cl, sn net.Conn, destIp, destPort, serviceType string) error {
+func SendFrame(cl, mbg net.Conn, destIp, destPort, serviceType string) error {
 	//destIp, destPort := netutils.GetConnIp(cl)
 	s := service.GetService(serviceType)
 	//create frame
 	sFrame := createFrame(s, destIp, destPort)
 	sFrame.Print("[sendSetupFrame]")
-	setupFrameBuf := convFrame2Buf(sFrame)
+	controlFrameBuf := convFrame2Buf(sFrame)
 
-	_, err := sn.Write(setupFrameBuf)
+	_, err := mbg.Write(controlFrameBuf)
 	if err != nil {
 		fmt.Printf("[sendSetupFrame]: Write error %v\n", err)
 		return err
@@ -56,32 +56,32 @@ func SendFrame(cl, sn net.Conn, destIp, destPort, serviceType string) error {
 	return nil
 }
 
-//convert control field to setupframe struct
-func createFrame(s service.Service, destIp string, destPort string) setupFrameS {
-	return setupFrameS{Service: s, DestIp: destIp, DestPort: destPort}
+//convert control field to controlframe struct
+func createFrame(s service.Service, destIp string, destPort string) controlFrameS {
+	return controlFrameS{Service: s, DestIp: destIp, DestPort: destPort}
 }
 
-//Convert setup frame to buffer for sending through connection
-func convFrame2Buf(sFrame setupFrameS) []byte {
+//Convert control frame to buffer for sending through connection
+func convFrame2Buf(sFrame controlFrameS) []byte {
 
-	setupFrameBuf := make([]byte, maxSetupBufferSize)
+	controlFrameBuf := make([]byte, maxSetupBufferSize)
 
-	byteOrder.PutUint32(setupFrameBuf[BufSizePos:BufSizePos+BufSizeSize], uint32(maxSetupBufferSize))
-	byteOrder.PutUint32(setupFrameBuf[ServicePos:ServicePos+ServiceSize], sFrame.Service.Id)
+	byteOrder.PutUint32(controlFrameBuf[BufSizePos:BufSizePos+BufSizeSize], uint32(maxSetupBufferSize))
+	byteOrder.PutUint32(controlFrameBuf[ServicePos:ServicePos+ServiceSize], sFrame.Service.Id)
 
 	destIpB := net.ParseIP(sFrame.DestIp)
-	copy(setupFrameBuf[DestIpPos:DestIpPos+len(destIpB)], destIpB)
+	copy(controlFrameBuf[DestIpPos:DestIpPos+len(destIpB)], destIpB)
 
 	destPortB := []byte(sFrame.DestPort)
-	copy(setupFrameBuf[DestPortPos:DestPortPos+DestPortSize], destPortB)
+	copy(controlFrameBuf[DestPortPos:DestPortPos+DestPortSize], destPortB)
 
-	//fmt.Println("[SendFrame]", setupFrameBuf)
-	return setupFrameBuf
+	//fmt.Println("[SendFrame]", controlFrameBuf)
+	return controlFrameBuf
 }
 
 /********************* SetupFrame Functions- server side *****************/
-//listen to control message and return setupFrame struct
-func GetSetupPacket(cl net.Conn) setupFrameS {
+//listen to control message and return controlFrame struct
+func GetSetupPacket(cl net.Conn) controlFrameS {
 	bufData := make([]byte, maxSetupBufferSize)
 	bufReadSize := 0
 	for bufReadSize < maxSetupBufferSize {
@@ -101,8 +101,8 @@ func GetSetupPacket(cl net.Conn) setupFrameS {
 }
 
 //Convert Buffer to SetupFrame
-func convBuf2Frame(sFrameBuf []byte) setupFrameS {
-	var sFrame setupFrameS
+func convBuf2Frame(sFrameBuf []byte) controlFrameS {
+	var sFrame controlFrameS
 	sFrame.Service.Id = byteOrder.Uint32(sFrameBuf[ServicePos : ServicePos+ServiceSize])
 	sFrame.Service.Name = service.ConvertId2Name(sFrame.Service.Id)
 	sFrame.Service.Ip = service.ConvertId2Ip(sFrame.Service.Id)
@@ -118,8 +118,8 @@ func GetServiceIp(packet []byte) string {
 	return ipS
 }
 
-//print function for setupFrame struct
-func (s *setupFrameS) Print(str string) {
-	println(str, "setup Frame- service id:", s.Service.Id, ", service name:", s.Service.Name, ", Destination ip:", s.DestIp, ",Destination port:", s.DestPort)
+//print function for controlFrame struct
+func (s *controlFrameS) Print(str string) {
+	println(str, "control Frame- service id:", s.Service.Id, ", service name:", s.Service.Name, ", Destination ip:", s.DestIp, ",Destination port:", s.DestPort)
 
 }

@@ -34,37 +34,37 @@ def serviceNodeSetup(platform):
   # os.system("docker build -t my-haproxy:custom haproxy/ --no-cache")
 
   # # tag docker image and push it to image container registry
-  print("tagging servicenode image")
+  print("tagging mbg image")
   print(container_reg)
-  os.system(f"docker tag servicenode:latest {container_reg}/servicenode:latest")
+  os.system(f"docker tag mbg:latest {container_reg}/mbg:latest")
 
   # #push docker image container registry
-  print("push servicenode image to container registry")
-  print(f"docker push {container_reg}/servicenode:latest")
-  os.system(f"docker push {container_reg}/servicenode:latest")
+  print("push mbg image to container registry")
+  print(f"docker push {container_reg}/mbg:latest")
+  os.system(f"docker push {container_reg}/mbg:latest")
 
   #creating tcp-split deplyment and service
   #replace_source_image("haproxy/haproxy.yaml","my-haproxy:custom",platform)
-  print("\n\ncreate service node deploymnet")
-  os.system(f"kubectl create -f {PROJECT_PATH}/manifests/servicenode/servicenode.yaml")
+  print("\n\ncreate mbg deploymnet")
+  os.system(f"kubectl create -f {PROJECT_PATH}/manifests/mbg/mbg.yaml")
 
-  sn_start_cond=False
-  while( not sn_start_cond):
-      sn_start_cond =sp.getoutput("kubectl get pods -l app=tcp-split -o jsonpath='{.items[0].status.containerStatuses[0].ready}'")
-      print(sn_start_cond)
-      print ("Waiting for servicenode to start...")
+  mbg_start_cond=False
+  while( not mbg_start_cond):
+      mbg_start_cond =sp.getoutput("kubectl get pods -l app=tcp-split -o jsonpath='{.items[0].status.containerStatuses[0].ready}'")
+      print(mbg_start_cond)
+      print ("Waiting for mbg to start...")
       time.sleep(5)
 
-  #Creating sn-svc will be reeady
-  os.system(f"kubectl create -f  {PROJECT_PATH}/manifests/servicenode/sn-svc.yaml")
-  os.system(f"kubectl create -f  {PROJECT_PATH}/manifests/servicenode/sn-client-svc.yaml")
+  #Creating mbg-svc will be reeady
+  os.system(f"kubectl create -f  {PROJECT_PATH}/manifests/mbg/mbg-svc.yaml")
+  os.system(f"kubectl create -f  {PROJECT_PATH}/manifests/mbg/mbg-client-svc.yaml")
   external_ip=""
   while external_ip =="":
-    print("Waiting for sn ip...")
+    print("Waiting for mbg ip...")
     external_ip=sp.getoutput('kubectl get nodes -o jsonpath="{.items[*].status.addresses[?(@.type==\'ExternalIP\')].address}"')
     time.sleep(10)
 
-  print("sn-svc is ready, external_id: {}".format(external_ip))
+  print("mbg-svc is ready, external_id: {}".format(external_ip))
 
   ##Create TCP-split service
   os.system(f"docker tag tcp-split:latest {container_reg}/tcp-split:latest")

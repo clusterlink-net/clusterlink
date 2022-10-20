@@ -21,8 +21,8 @@ spec:
     spec:
       containers:
       - name: tcp-split
-        #image: tcp-split
-        image: gcr.io/multi-cloud-networks-4438/tcp-split:latest
+        #image: gcr.io/multi-cloud-networks-4438/tcp-split:latest
+        image: tcp-split
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5300

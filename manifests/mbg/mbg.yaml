@@ -1,28 +1,30 @@
 ################################################################
-#Name: server 
-#Desc: Run only server side of service node -Not in used 
+#Name: mbg 
+#Desc: Run mbg pod that listen to port 5002
 ################################################################
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: servicenode-deployment
+  name: mbg-deployment
   labels:
-    app: servicenode
+    app: mbg
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: servicenode
+      app: mbg
   template:
     metadata:
       labels:
-        app: servicenode
+        app: mbg
     spec:
       containers:
-      - name: servicenode
-        image: icr.io/k8s-ns/servicenode
+      - name: mbg
+        #image: gcr.io/multi-cloud-networks-4438/mbg:latest
+        image: mbg
         imagePullPolicy: IfNotPresent
-        command: ["/server"]
-        args: ["--listen", ":5002", "--sn",":5003"]
+        
+        command: ["/mbg"]
+        args: ["--listen", ":5002"]
         ports:
         - containerPort: 5002

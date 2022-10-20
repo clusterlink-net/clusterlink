@@ -1,6 +1,6 @@
 /**********************************************************/
 /* Package service contain all functions and data structure
-/* related to service that can run in service node
+/* related to service that can run in mbg
 /**********************************************************/
 package service
 
@@ -12,7 +12,7 @@ type Service struct {
 	Ip   string
 }
 
-//Init all services inside the service node
+//Init all services inside the mbg
 func init() {
 	m["Forward"] = Service{1, "Forward", ""} //no need port for forwarding
 	m["TCP-split"] = Service{2, "TCP-split", "split-service:5300"}

@@ -1,3 +1,3 @@
-module github.ibm.com/ei-agent
+module github.ibm.com/mbg-agent
 
 go 1.17

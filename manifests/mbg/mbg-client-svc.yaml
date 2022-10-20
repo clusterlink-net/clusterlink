@@ -1,16 +1,16 @@
 ################################################################
-#Name:sn-client-service
+#Name:mbg-client-service
 #Desc: service file for creating aK8s service for getting data 
-# from services back to servicenode(client)
+# from services back to mbg(client)
 ################################################################
 apiVersion: v1
 kind: Service
 metadata:
-  name: sn-client-service
+  name: mbg-client-service
 spec:
   #type: ClusterIP
   selector:
-    app: servicenode
+    app: mbg
   ports:
     - protocol: TCP
       port: 5000

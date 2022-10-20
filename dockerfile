@@ -2,7 +2,7 @@ FROM golang:1.17
 
 # Create dockerfile with multi-stagets: stage 0: compile src and client
 # Set destination for COPY
-WORKDIR /servicenode
+WORKDIR /mbg
 
 # Download Go modules
 COPY go.mod .
@@ -12,15 +12,13 @@ RUN go mod download
 COPY . ./
 
 # Build Go model
-RUN CGO_ENABLED=0 go build -o ./bin/sn ./cmd/servicenode/main.go
-RUN CGO_ENABLED=0 go build -o ./bin/server ./cmd/server/main.go
-RUN CGO_ENABLED=0 go build -o ./bin/client ./cmd/client/main.go
+RUN CGO_ENABLED=0 go build -o ./bin/mbg ./cmd/mbg/main.go
+RUN CGO_ENABLED=0 go build -o ./bin/gateway ./cmd/gateway/main.go
 
 # Create dockerfile with multi-stagets :stage 1: low resources
 
 FROM alpine:3.14
 
 WORKDIR /
-COPY --from=0  /servicenode/bin/sn /sn
-COPY --from=0  /servicenode/bin/server /server
-COPY --from=0  /servicenode/bin/client /client
+COPY --from=0  /mbg/bin/mbg /mbg
+COPY --from=0  /mbg/bin/gateway /gateway

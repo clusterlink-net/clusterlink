@@ -14,7 +14,7 @@ import sys
 sys.path.insert(1,os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from iperf3_setup import setupIperf3Target,setupIperf3Host
-from sn_setup import serviceNodeSetup
+from mbg_setup import serviceNodeSetup
 
 from PROJECT_PARAMS import METADATA_FILE,PROJECT_PATH
 from meta_data_func import update_metadata, getIpPort
@@ -55,13 +55,13 @@ def deployHost(cluster):
     
 def deployServiceNode(cluster):
     
-    # creating servicenode ip
-    print("\n Setup service node")
-    sn_ip=serviceNodeSetup(platform=cluster.platform)
+    # creating mbg ip
+    print("\n Setup mbg")
+    mbg_ip=serviceNodeSetup(platform=cluster.platform)
     
-    sn_port="30000"
+    mbg_port="30000"
     
-    data_dic={"servicenode_ip": sn_ip, "servicenode_port" : sn_port}
+    data_dic={"mbg_ip": mbg_ip, "mbg_port" : mbg_port}
     dicUpdate(data_dic, cluster)
     return data_dic
 
@@ -75,30 +75,30 @@ def dicUpdate(data_dic, cluster):
     update_metadata(METADATA_FILE,cluster_key ,data_dic)
 
 
-def setupClientService(sn, target,service):
+def setupClientService(mbg, target,service):
     print("\n\ncreate client configmap deploymnet and service")
     cleanService()
-    createClientConfigFile(PROJECT_PATH+"/manifests/host/client-configmap.yaml", sn, target,service)
-    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/client-configmap.yaml")
-    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/client.yaml")
-    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/client-svc.yaml")
+    createClientConfigFile(PROJECT_PATH+"/manifests/host/gateway-configmap.yaml", mbg, target,service)
+    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/gateway-configmap.yaml")
+    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/gateway.yaml")
+    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/gateway-svc.yaml")
 
 
-def createClientConfigFile(file, sn, target, service):
+def createClientConfigFile(file, mbg, target, service):
 #file creating
-    sn_ip,sn_port         = getIpPort(file=PROJECT_PATH+"/bin/metadata.json", cluster = sn)
+    mbg_ip,mbg_port         = getIpPort(file=PROJECT_PATH+"/bin/metadata.json", cluster = mbg)
     target_ip,target_port = getIpPort(file=PROJECT_PATH+"/bin/metadata.json", cluster = target)
 
 
-    print(f"Start creating cfg map sn_ip: {sn_ip} target ip: {target_ip}:{target_port}")
+    print(f"Start creating cfg map mbg_ip: {mbg_ip} target ip: {target_ip}:{target_port}")
 
     f = open(file, "w")
     f.write("apiVersion: v1\n")
     f.write("kind: ConfigMap\n")
     f.write("metadata:\n")
-    f.write("  name: client-config\n")
+    f.write("  name: gateway-config\n")
     f.write("data:\n")
-    f.write(f"  app.sn_ip: \"{sn_ip + ':' + sn_port}\"\n")
+    f.write(f"  app.mbg_ip: \"{mbg_ip + ':' + mbg_port}\"\n")
     f.write(f"  app.dest_ip: \"{target_ip}\"\n")
     f.write(f"  app.dest_port: \"{target_port}\"\n")
     f.write(f"  app.service: \"{service}\"\n")

@@ -1,7 +1,7 @@
 /**********************************************************/
 /* Package client contain function that run for
-/* service node client that can run inside the host, destination
-/* and service node
+/* mbg client that can run inside the host, destination
+/* and mbg
 /**********************************************************/
 package client
 
@@ -11,14 +11,14 @@ import (
 	"net"
 	"sync"
 
-	"github.ibm.com/ei-agent/pkg/setupFrame"
+	"github.ibm.com/mbg-agent/pkg/controlFrame"
 )
 
 var (
 	maxDataBufferSize = 64 * 1024
 )
 
-type SnClient struct {
+type MbgClient struct {
 	Listener       string
 	Target         string
 	SetupFrameFlag bool
@@ -28,10 +28,10 @@ type SnClient struct {
 }
 
 //Init client fields
-func (c *SnClient) InitClient(listener, target string, setupFrameFlag bool, appDestPort, appDestIp, serviceType string) {
+func (c *MbgClient) InitClient(listener, target string, controlFrameFlag bool, appDestPort, appDestIp, serviceType string) {
 	c.Listener = listener
 	c.Target = target
-	c.SetupFrameFlag = setupFrameFlag
+	c.SetupFrameFlag = controlFrameFlag
 	c.AppDestPort = appDestPort
 	c.AppDestIp = appDestIp
 	c.ServiceType = serviceType
@@ -39,16 +39,16 @@ func (c *SnClient) InitClient(listener, target string, setupFrameFlag bool, appD
 }
 
 //Run client object
-func (c *SnClient) RunClient() {
-	fmt.Println("********** Start Client ************")
+func (c *MbgClient) RunClient() {
+	fmt.Println("*** Start Client ***")
 	fmt.Printf("Strart listen: %v  send to : %v \n", c.Listener, c.Target)
 
 	err := c.acceptLoop()
 	fmt.Println("Error:", err)
 }
 
-//Start listen loop and pass data to destination according to setupFrame
-func (c *SnClient) acceptLoop() error {
+//Start listen loop and pass data to destination according to controlFrame
+func (c *MbgClient) acceptLoop() error {
 	// open listener
 	acceptor, err := net.Listen("tcp", c.Listener)
 	if err != nil {
@@ -66,7 +66,7 @@ func (c *SnClient) acceptLoop() error {
 }
 
 //Connect to client and call ioLoop function
-func (c *SnClient) dispatch(ac net.Conn) error {
+func (c *MbgClient) dispatch(ac net.Conn) error {
 	fmt.Println("[client]: before dial TCP", c.Target)
 	nodeConn, err := net.Dial("tcp", c.Target)
 	fmt.Println("[client]: after dial TCP", c.Target)
@@ -77,30 +77,30 @@ func (c *SnClient) dispatch(ac net.Conn) error {
 }
 
 //Transfer data from server to client and back
-func (c *SnClient) ioLoop(cl, sn net.Conn) error {
+func (c *MbgClient) ioLoop(cl, mbg net.Conn) error {
 	defer cl.Close()
-	defer sn.Close()
+	defer mbg.Close()
 
 	fmt.Println("[Cient] listen to:", cl.LocalAddr().String(), "in port:", cl.RemoteAddr().String())
-	fmt.Println("[Cient] send data to:", sn.RemoteAddr().String(), "from port:", sn.LocalAddr().String())
+	fmt.Println("[Cient] send data to:", mbg.RemoteAddr().String(), "from port:", mbg.LocalAddr().String())
 	done := &sync.WaitGroup{}
 	done.Add(2)
 
-	go c.clientToServer(done, cl, sn)
-	go c.serverToClient(done, cl, sn)
+	go c.clientToServer(done, cl, mbg)
+	go c.serverToClient(done, cl, mbg)
 
 	done.Wait()
 
 	return nil
 }
 
-//Copy data from client to server and send setup frame
-func (c *SnClient) clientToServer(wg *sync.WaitGroup, cl, sn net.Conn) error {
+//Copy data from client to server and send control frame
+func (c *MbgClient) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) error {
 	defer wg.Done()
 	var err error
 
 	if c.SetupFrameFlag {
-		setupFrame.SendFrame(cl, sn, c.AppDestIp, c.AppDestPort, c.ServiceType) //Need to check performance impact
+		controlFrame.SendFrame(cl, mbg, c.AppDestIp, c.AppDestPort, c.ServiceType) //Need to check performance impact
 		fmt.Printf("[clientToServer]: Finish send SetupFrame \n")
 	}
 	bufData := make([]byte, maxDataBufferSize)
@@ -117,7 +117,7 @@ func (c *SnClient) clientToServer(wg *sync.WaitGroup, cl, sn net.Conn) error {
 			break
 		}
 
-		_, err = sn.Write(bufData[:numBytes])
+		_, err = mbg.Write(bufData[:numBytes])
 		if err != nil {
 			fmt.Printf("[clientToServer]: Write error %v\n", err)
 			break
@@ -132,13 +132,13 @@ func (c *SnClient) clientToServer(wg *sync.WaitGroup, cl, sn net.Conn) error {
 }
 
 //Copy data from server to client
-func (c *SnClient) serverToClient(wg *sync.WaitGroup, cl, sn net.Conn) error {
+func (c *MbgClient) serverToClient(wg *sync.WaitGroup, cl, mbg net.Conn) error {
 	defer wg.Done()
 
 	bufData := make([]byte, maxDataBufferSize)
 	var err error
 	for {
-		numBytes, err := sn.Read(bufData)
+		numBytes, err := mbg.Read(bufData)
 		if err != nil {
 			if err == io.EOF {
 				err = nil //Ignore EOF error
@@ -162,7 +162,7 @@ func (c *SnClient) serverToClient(wg *sync.WaitGroup, cl, sn net.Conn) error {
 //    if frame.Type == control { // not expected yet, except for error returns from SN
 // 	     read and process control frame
 //    } else {
-// 	 	 read(sn, payload, frame.Len) // might require multiple reads and need a timeout deadline set
+// 	 	 read(mbg, payload, frame.Len) // might require multiple reads and need a timeout deadline set
 //	     send(cl, payload)
 //    }
 // }

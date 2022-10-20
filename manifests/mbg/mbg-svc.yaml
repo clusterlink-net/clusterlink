@@ -1,16 +1,16 @@
 ################################################################
-#Name:sn-svc
+#Name:mbg-svc
 #Desc: service file for connecting incoming traffic to cluster to 
-#      serviceNode 
+#      mbg 
 ################################################################
 apiVersion: v1
 kind: Service
 metadata:
-  name: servicenode-service
+  name: mbg-service
 spec:
   type: NodePort
   selector:
-    app: servicenode
+    app: mbg
   ports:
     - protocol: TCP
       port: 5002

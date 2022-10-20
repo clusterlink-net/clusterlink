@@ -12,9 +12,9 @@ This project has three main components:
 ## <ins>Run MBG in local environment (Kind)<ins>
 In this setup the host (iPrf3 client) and destination (iperf3 server) Run in the local machine and MBG run in kind cluster.
 1) Set destination server: ```iperf3 -s -p 5003```
-2) Build MBG image: ```make docker-build-sn```
-3) Run MBG in kind: ```make run-kind-sn```
-4) set the GO client for the host: ``` ./bin/client --listen=127.0.0.1:5001 --sn=127.0.0.1:30000 -destPort 5003  -destIp <local eth ip> -service "TCP-split"```  
+2) Build MBG image: ```make docker-build```
+3) Run MBG in kind: ```make run-kind-mbg```
+4) set the GO client for the host: ``` ./bin/client --listen=127.0.0.1:5001 --mbg=127.0.0.1:30000 -destPort 5003  -destIp <local eth ip> -service "TCP-split"```  
    Note: The local IP can be observed by  ```ip addr``` 
 5) Run host service: ```Iperf3 -c 127.0.0.1 -p 5001```
    

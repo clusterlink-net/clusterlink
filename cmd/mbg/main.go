@@ -1,5 +1,6 @@
 /**********************************************************/
-/* Package Main to run servicenode in the host side
+/* Package Main to run multi-cloud border gateway
+/* by tunning mbg-switch and gateway
 /**********************************************************/
 package main
 
@@ -8,8 +9,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.ibm.com/ei-agent/pkg/client"
-	"github.ibm.com/ei-agent/pkg/server"
+	"github.ibm.com/mbg-agent/pkg/client"
+	mbgSwitch "github.ibm.com/mbg-agent/pkg/mbg-switch"
 )
 
 var (
@@ -18,8 +19,8 @@ var (
 )
 
 func main() {
-	var s server.SnServer
-	var c client.SnClient
+	var s mbgSwitch.MbgSwitch
+	var c client.MbgClient
 
 	flag.Parse()
 	if *listener == "" {
@@ -29,8 +30,8 @@ func main() {
 	//init
 	cListener := ":5000"
 	c.InitClient(cListener, "", false, "", "", "")
-	s.SrverInit(*listener, "", true, &c)
+	s.InitMbgSwitch(*listener, "", true, &c)
 
 	go c.RunClient()
-	s.RunSrver()
+	s.RunMbgSwitch()
 }
