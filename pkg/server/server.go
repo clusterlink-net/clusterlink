@@ -9,9 +9,6 @@ import (
 	"io"
 	"net"
 	"sync"
-
-	"github.ibm.com/mbg-agent/pkg/client"
-	"github.ibm.com/mbg-agent/pkg/controlFrame"
 )
 
 var (
@@ -21,16 +18,13 @@ var (
 type MbgServer struct {
 	Listener      string
 	ServiceTarget string
-	MbgMode       bool
-	MbgClient     *client.MbgClient
 }
 
 //Init server fields
-func (s *MbgServer) InitServer(listener, mbg string, mbgmode bool, client *client.MbgClient) {
+func (s *MbgServer) InitServer(listener, target string) {
 	s.Listener = listener
-	s.ServiceTarget = mbg
-	s.MbgMode = mbgmode
-	s.MbgClient = client
+	s.ServiceTarget = target
+
 }
 
 //Run server object
@@ -64,19 +58,7 @@ func (s *MbgServer) acceptLoop() error {
 
 //get client data and controlFrame and connect to service/destination
 func (s *MbgServer) dispatch(c net.Conn, mbg string) error {
-	//choose which sevice to pass
-	controlPacket := controlFrame.GetSetupPacket(c)
-	if s.MbgMode { //For mbg update the target
-		if controlPacket.Service.Name == "Forward" {
-			s.ServiceTarget = s.MbgClient.Listener
-			s.MbgClient.Target = controlPacket.DestIp + ":" + controlPacket.DestPort
-		} else if controlPacket.Service.Name == "TCP-split" {
-			s.ServiceTarget = controlPacket.Service.Ip
-			s.MbgClient.Target = controlPacket.DestIp + ":" + controlPacket.DestPort
-		} else {
-			s.ServiceTarget = controlPacket.DestIp + ":" + controlPacket.DestPort
-		}
-	}
+
 	fmt.Println("[server] before dial to:", s.ServiceTarget)
 	nodeConn, err := net.Dial("tcp", s.ServiceTarget)
 	fmt.Println("[server] after dial to:", s.ServiceTarget)

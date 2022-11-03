@@ -11,7 +11,7 @@ import (
 	"net"
 	"sync"
 
-	"github.ibm.com/mbg-agent/pkg/controlFrame"
+	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
 
 var (
@@ -22,20 +22,15 @@ type MbgClient struct {
 	Listener       string
 	Target         string
 	SetupFrameFlag bool
-	AppDestPort    string
-	AppDestIp      string
-	ServiceType    string
+	setupGwMode    bool
+	hostService    service.Service
+	destService    service.Service
 }
 
 //Init client fields
-func (c *MbgClient) InitClient(listener, target string, controlFrameFlag bool, appDestPort, appDestIp, serviceType string) {
+func (c *MbgClient) InitClient(listener, target string) {
 	c.Listener = listener
 	c.Target = target
-	c.SetupFrameFlag = controlFrameFlag
-	c.AppDestPort = appDestPort
-	c.AppDestIp = appDestIp
-	c.ServiceType = serviceType
-
 }
 
 //Run client object
@@ -98,11 +93,6 @@ func (c *MbgClient) ioLoop(cl, mbg net.Conn) error {
 func (c *MbgClient) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) error {
 	defer wg.Done()
 	var err error
-
-	if c.SetupFrameFlag {
-		controlFrame.SendFrame(cl, mbg, c.AppDestIp, c.AppDestPort, c.ServiceType) //Need to check performance impact
-		fmt.Printf("[clientToServer]: Finish send SetupFrame \n")
-	}
 	bufData := make([]byte, maxDataBufferSize)
 
 	for {

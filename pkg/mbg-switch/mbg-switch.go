@@ -7,7 +7,6 @@ package mbgSwitch
 import (
 	"fmt"
 
-	"github.ibm.com/mbg-agent/pkg/client"
 	"github.ibm.com/mbg-agent/pkg/server"
 )
 
@@ -16,10 +15,10 @@ type MbgSwitch struct {
 }
 
 //Init server fields
-func (s *MbgSwitch) InitMbgSwitch(listener, mbg string, mbgmode bool, client *client.MbgClient) {
+func (s *MbgSwitch) InitMbgSwitch(listener, target string) {
 	s.server = new(server.MbgServer)
 
-	s.server.InitServer(listener, mbg, mbgmode, client)
+	s.server.InitServer(listener, target)
 }
 
 //Run server object

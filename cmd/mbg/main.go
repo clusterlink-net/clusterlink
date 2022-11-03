@@ -11,10 +11,13 @@ import (
 
 	"github.ibm.com/mbg-agent/pkg/client"
 	mbgSwitch "github.ibm.com/mbg-agent/pkg/mbg-switch"
+	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
 
 var (
-	listener          = flag.String("listen", ":5001", "listen host:port for client")
+	listener          = flag.String("listen", ":5001", "ip:port listen for host")
+	target            = flag.String("target", ":5003", "ip:port for destination")
+	policy            = flag.String("policy", "Forward", "policy for traffic pass in Mbg")
 	maxDataBufferSize = 64 * 1024
 )
 
@@ -29,9 +32,22 @@ func main() {
 	}
 	//init
 	cListener := ":5000"
-	c.InitClient(cListener, "", false, "", "", "")
-	s.InitMbgSwitch(*listener, "", true, &c)
+	var serverTarget string
+	if *policy == "Forward" {
+		serverTarget = cListener
+	} else if *policy == "TCP-split" {
+		serverTarget = service.GetPolicyIp(*policy)
+	} else {
+		fmt.Println(*policy, "- Policy  not exist use Forward")
+		serverTarget = cListener
+	}
+	s.InitMbgSwitch(*listener, serverTarget)
+	c.InitClient(cListener, *target)
 
 	go c.RunClient()
 	s.RunMbgSwitch()
+
+	// if s.MbgMode { //For mbg update the target
+	//
+
 }
