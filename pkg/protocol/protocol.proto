@@ -41,11 +41,11 @@ message ExposeReply {
 
 /***** The connect service definition. *****/
 service Connect {
-  // Sends a expose message
+  // Sends a connect message
   rpc ConnectCmd (ConnectRequest) returns (ConnectReply) {}
 }
 
-// The request message for exposing a service.
+// The request message for connecting a service.
 message ConnectRequest {
   string Name   = 1;
 	string ID     = 2;
@@ -54,7 +54,26 @@ message ConnectRequest {
 	//string Policy = 5;
 }
 
-// The response message for exposing a service
+// The response message for connecting a service
 message ConnectReply {
+  string message = 1;
+}
+
+
+/***** The hello service definition. *****/
+service Hello {
+  // Sends a Hello message
+  rpc HelloCmd (HelloRequest) returns (HelloReply) {}
+}
+
+// The request message for exposing a service.
+message HelloRequest {
+  string Name   = 1;
+	string Id     = 2;
+	string Ip     = 3;
+}
+
+// The response message for exposing a service
+message HelloReply {
   string message = 1;
 }

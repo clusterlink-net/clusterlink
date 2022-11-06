@@ -2,7 +2,6 @@ package state
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"path"
@@ -82,10 +81,8 @@ func configPath() string {
 	//usr, _ := user.Current()
 	//return path.Join(usr.HomeDir, cfgFile)
 	_, filename, _, _ := runtime.Caller(1)
-	filepath := path.Dir(filename)
 
-	fmt.Println(filepath)
-	return path.Join(filepath, cfgFile)
+	return path.Join(path.Dir(filename), cfgFile)
 
 }
 
