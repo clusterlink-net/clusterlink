@@ -1,0 +1,6 @@
+{
+	"MbgIP": "127.0.0.2",
+	"GwIP": "127.0.0.1",
+	"GwName": "local",
+	"Services": {}
+}
