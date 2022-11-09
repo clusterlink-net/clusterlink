@@ -37,6 +37,10 @@ docker-build-tcp-split:
 	cd manifests/tcp-split/; docker build --progress=plain --rm --tag tcp-split .
 
 docker-build: docker-build-mbg docker-build-tcp-split
+
+proto-build:
+	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative pkg/protocol/protocol.proto
+
 run-gateway:
 	@./bin/gateway
 

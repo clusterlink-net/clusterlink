@@ -23,6 +23,7 @@ var helloCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		state.UpdateState()
 		log.Println("Hello command called")
+		state.UpdateState()
 		MbgArr := state.GetMbgArr()
 		MyInfo := state.GetMyInfo()
 		for _, m := range MbgArr {
