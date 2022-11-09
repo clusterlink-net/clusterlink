@@ -28,9 +28,7 @@ vet-go: ; $(info $(M) vetting code...)
 
 build:
 	@echo "Start go build phase"
-	mkdir -p ./bin/gateway
-	mkdir -p ./bin/mbg
-	go build -o ./bin/gateway ./cmd/gateway/...
+	go build -o ./bin/gateway ./cmd/gateway/main.go
 	go build -o ./bin/mbg ./cmd/mbg/main.go
 
 docker-build-mbg:
