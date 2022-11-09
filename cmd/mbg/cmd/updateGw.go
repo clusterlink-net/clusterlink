@@ -17,7 +17,6 @@ var updateGwCmd = &cobra.Command{
 	Short: "Update local GW IP",
 	Long:  `Update local GW IP.`,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		ip, _ := cmd.Flags().GetString("ip")
 		state.UpdateState()
 		log.Println("Update local Gateway")
