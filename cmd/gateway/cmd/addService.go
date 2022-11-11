@@ -10,8 +10,8 @@ import (
 )
 
 // updateCmd represents the update command
-var updateCmd = &cobra.Command{
-	Use:   "update",
+var addServiceCmd = &cobra.Command{
+	Use:   "addService",
 	Short: "Add service to service list that expose to gateway",
 	Long:  `Add service to service list that expose to gateway.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -27,10 +27,10 @@ var updateCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(updateCmd)
-	updateCmd.Flags().String("serviceId", "", "service id field")
-	updateCmd.Flags().String("serviceIp", "", "service ip to connect")
-	updateCmd.Flags().String("serviceDomain", "", "service domain : inner/remote")
-	updateCmd.Flags().String("servicePolicy", "", "service policy : Forward, Tcp split and etc. ")
+	rootCmd.AddCommand(addServiceCmd)
+	addServiceCmd.Flags().String("serviceId", "", "service id field")
+	addServiceCmd.Flags().String("serviceIp", "", "service ip to connect")
+	addServiceCmd.Flags().String("serviceDomain", "", "service domain : inner/remote")
+	addServiceCmd.Flags().String("servicePolicy", "", "service policy : Forward, Tcp split and etc. ")
 
 }
