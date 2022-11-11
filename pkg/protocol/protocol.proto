@@ -26,7 +26,6 @@ service Expose {
 
 // The request message for exposing a service.
 message ExposeRequest {
-  string Name   = 1;
 	string Id     = 2;
 	string Ip     = 3;
 	string Domain = 4;
@@ -48,10 +47,8 @@ service Connect {
 
 // The request message for connecting a service.
 message ConnectRequest {
-  string Name   = 1;
-	string ID     = 2;
-	string NameDest     = 3;
-	string IdDest = 4;
+	string SourceId     = 2;
+	string DestId = 4;
 	//string Policy = 5;
 }
 
@@ -69,7 +66,6 @@ service Hello {
 
 // The request message for exposing a service.
 message HelloRequest {
-  string Name   = 1;
 	string Id     = 2;
 	string Ip     = 3;
 }

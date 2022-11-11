@@ -34,9 +34,7 @@ var (
 	destServicePos  = hostServicePos + hostServiceSize
 	destServiceSize = 256
 
-	NamePos    = 0
-	NameSize   = 64
-	IdPos      = NamePos + NameSize
+	IdPos      = 0
 	IdSize     = 32
 	IpPos      = IdPos + IdSize
 	IpSize     = 16
@@ -89,7 +87,6 @@ func convFrame2Buf(sFrame controlFrameS) []byte {
 
 func service2Buf(s service.Service) []byte {
 	serviceBuf := make([]byte, maxSetupBufferSize)
-	copy(serviceBuf[NamePos:NamePos+NameSize], []byte(s.Name))
 	copy(serviceBuf[IdPos:IdPos+IdSize], []byte(s.Id))
 	ip := strings.Split(s.Ip, ":")[0]
 	port := strings.Split(s.Ip, ":")[1]
@@ -133,7 +130,6 @@ func Buf2ControlFrame(sFrameBuf []byte) controlFrameS {
 func Buf2Service(sBuf []byte) service.Service {
 	var s service.Service
 
-	s.Name = buf2String(sBuf[NamePos : NamePos+NameSize])
 	s.Id = buf2String(sBuf[IdPos : IdPos+IdSize])
 	s.Ip = net.IP(sBuf[IpPos+IpSize-ipv4ByteSize : IpPos+IpSize]).String()
 	s.Ip = s.Ip + ":" + buf2String(sBuf[PortPos:PortPos+PortSize])

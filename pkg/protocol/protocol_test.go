@@ -5,12 +5,15 @@ import (
 	"testing"
 
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
+	"github.ibm.com/mbg-agent/cmd/gateway/state"
+
 )
 
 func TestFrame(t *testing.T) {
-	hostService := service.Service{Name: "iperf3", Id: "Lon", Ip: "127.0.0.1:5001", Domain: "Inner", Policy: "Forward"}
-	destService := service.Service{Name: "iperf3", Id: "Australia", Ip: "127.0.0.1:5001", Domain: "Inner", Policy: "Forward"}
-	Frame := createFrame(hostService, destService)
+	hostService := service.Service{Id: "iperf3Client.Lon", Ip: "127.0.0.1:5001", Domain: "Inner", Policy: "Forward"}
+	destService := service.Service{Id: "iperf3Server.Australia", Ip: "127.0.0.1:5001", Domain: "Inner", Policy: "Forward"}
+	mbgID       := "mbg.Lon"
+	Frame := createFrame(hostService, destService, mbgID)
 	buf := convFrame2Buf(Frame)
 	frame := Buf2ControlFrame(buf)
 
