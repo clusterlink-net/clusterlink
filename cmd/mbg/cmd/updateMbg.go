@@ -16,17 +16,14 @@ var updateMbgCmd = &cobra.Command{
 	Long:  `Update the list of neighbor MBGs`,
 	Run: func(cmd *cobra.Command, args []string) {
 		ip, _ := cmd.Flags().GetString("ip")
-		name, _ := cmd.Flags().GetString("name")
 		id, _ := cmd.Flags().GetString("id")
 		state.UpdateState()
-		state.UpdateMbgArr(name, id, ip)
+		state.UpdateMbgArr(id, ip)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(updateMbgCmd)
-
-	updateMbgCmd.Flags().String("name", "", "Multi-cloud Border Gateway name")
-	updateMbgCmd.Flags().String("ip", "", "Multi-cloud Border Gateway ip")
 	updateMbgCmd.Flags().String("id", "", "Multi-cloud Border Gateway id")
+	updateMbgCmd.Flags().String("ip", "", "Multi-cloud Border Gateway ip")
 }

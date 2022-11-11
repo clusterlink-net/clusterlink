@@ -27,23 +27,21 @@ var startCmd = &cobra.Command{
 			TBD now is done manually need to call some external `,
 	Run: func(cmd *cobra.Command, args []string) {
 		ip, _ := cmd.Flags().GetString("ip")
-		name, _ := cmd.Flags().GetString("name")
 		id, _ := cmd.Flags().GetString("id")
 
-		if ip == "" || name == "" || id == "" {
+		if ip == "" || id == "" {
 			log.Println("Error: please insert all flag arguments for mbg start command")
 			os.Exit(1)
 		}
-		state.SetState(name, id, ip)
+		state.SetState(id, ip)
 		startServer(ip)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(startCmd)
-	startCmd.Flags().String("name", "", "Multi-cloud Border Gateway name")
-	startCmd.Flags().String("ip", "", "Multi-cloud Border Gateway ip")
 	startCmd.Flags().String("id", "", "Multi-cloud Border Gateway id")
+	startCmd.Flags().String("ip", "", "Multi-cloud Border Gateway ip")
 
 }
 
@@ -58,17 +56,24 @@ type ExposeServer struct {
 }
 
 func (s *ExposeServer) ExposeCmd(ctx context.Context, in *pb.ExposeRequest) (*pb.ExposeReply, error) {
-	log.Printf("Received: %v", in.GetName())
-	state.UpdateService(in.GetName(), in.GetId(), in.GetIp(), in.GetDomain(), in.GetPolicy())
-	ExposeToMbg()
-	ExposeToLocalGw()
+	log.Printf("Received Expose of %v at %v ",in.GetId(), in.GetIp())
+
+	// TODO : Handle logic of receiving expose from other MBG
+	state.UpdateLocalService(in.GetId(), in.GetIp(), in.GetDomain(), in.GetPolicy())
+	ExposeToNeighborMbgs(in.GetId(), in.GetMbgID())
+	//ExposeToLocalGw()
 	return &pb.ExposeReply{Message: "Done"}, nil
 }
 
-func ExposeToMbg() {
-}
-
-func ExposeToLocalGw() {
+func ExposeToNeighborMbgs(serviceId, sourceMbgId string) {
+	state.UpdateState()
+	MbgArr := state.GetMbgArr()
+	myIp := state.GetMyIp()
+	for _, m := range MbgArr {
+		if m.Id != sourceMbgId { //Do not expose back to the source MBG
+			ExposeToMBGs(serviceId, m, myIp)
+		}
+	}
 }
 
 //Hello
@@ -78,7 +83,7 @@ type HelloServer struct {
 
 func (s *HelloServer) HelloCmd(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
 	log.Printf("Received Hello from MBG ip: %v", in.GetIp())
-	state.UpdateMbgArr(in.GetName(), in.GetId(), in.GetIp())
+	state.UpdateMbgArr(in.GetId(), in.GetIp())
 
 	return &pb.HelloReply{Message: "MBG: " + state.GetMyIp() + " get hello message"}, nil
 }
@@ -89,14 +94,14 @@ type ConnectServer struct {
 }
 
 func (s *ConnectServer) connectCmd(ctx context.Context, in *pb.ConnectRequest) (*pb.ConnectReply, error) {
-	log.Printf("Received Connect request from service: %v to service: %v", in.GetName(), in.GetNameDest())
+	log.Printf("Received Connect request from service: %v to service: %v", in.GetSourceId(), in.GetDestId())
 
-	return &pb.ConnectReply{Message: "Connect ing the services"}, nil
+	return &pb.ConnectReply{Message: "Connecting the services"}, nil
 }
 
 /******* Server **********/
 func startServer(ip string) {
-	log.Printf("Init gateway [%v] started", state.GetMyName())
+	log.Printf("MBG [%v] started", state.GetId())
 	lis, err := net.Listen("tcp", ip+port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

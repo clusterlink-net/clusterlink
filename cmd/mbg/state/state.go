@@ -11,13 +11,17 @@ import (
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
 
-type MbgService struct {
+type LocalService struct {
 	Service   service.Service
 	LocalPort string
 }
 
+type RemoteService struct {
+	Service service.Service
+	MbgId   string  // For now to identify a service to a MBG
+}
+
 type MbgInfo struct {
-	Name string
 	Id   string
 	Ip   string
 }
@@ -29,21 +33,24 @@ type mbgState struct {
 	MyInfo   MbgInfo
 	Gw       LocalGw
 	MbgArr   map[string]MbgInfo
-	Services map[string]MbgService
+	MyServices map[string]LocalService
+	RemoteServices map[string]RemoteService
 }
 
 const (
 	ConstPort = 5000
 )
 
-var s = mbgState{MyInfo: MbgInfo{}, MbgArr: make(map[string]MbgInfo), Services: make(map[string]MbgService)}
+var s = mbgState{MyInfo: MbgInfo{}, MbgArr: make(map[string]MbgInfo),
+				MyServices: make(map[string]LocalService),
+				RemoteServices: make(map[string]RemoteService)}
 
 func GetMyIp() string {
 	return s.MyInfo.Ip
 }
 
-func GetMyName() string {
-	return s.MyInfo.Name
+func GetId() string {
+	return s.MyInfo.Id
 }
 func GetMyInfo() MbgInfo {
 	return s.MyInfo
@@ -53,8 +60,7 @@ func GetMbgArr() map[string]MbgInfo {
 	return s.MbgArr
 }
 
-func SetState(name, id, ip string) {
-	s.MyInfo.Name = name
+func SetState(id, ip string) {
 	s.MyInfo.Id = id
 	s.MyInfo.Ip = ip
 	SaveState()
@@ -71,33 +77,47 @@ func UpdateState() {
 }
 
 //Return Function fields
-func GetService(name, id string) MbgService {
-	return s.Services[name+"_"+id]
+func GetLocalService(id string) LocalService {
+	return s.MyServices[id]
 }
 
-func UpdateMbgArr(name, id, ip string) {
-	s.MbgArr[name+"_"+id] = MbgInfo{Name: name, Ip: ip, Id: id}
-	log.Printf("[MBG %v] Update MBG neighbors array %v", s.MyInfo.Name, s.MbgArr[name+"_"+id])
+func GetRemoteService(id string) RemoteService {
+	return s.RemoteServices[id]
+}
+
+func UpdateMbgArr(id, ip string) {
+	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip}
+	log.Printf("[MBG %v] Update MBG neighbors array %v", s.MyInfo.Id, s.MbgArr[id])
 	s.Print()
 	SaveState()
 
 }
 
-func UpdateService(name, id, ip, domain, policy string) {
-	p := strconv.Itoa(ConstPort + len(s.Services) + 1)
-	if s.Services == nil {
-		s.Services = make(map[string]MbgService)
+func UpdateLocalService(id, ip, domain, policy string) {
+	p := strconv.Itoa(ConstPort + len(s.MyServices) + 1)
+	if s.MyServices == nil {
+		s.MyServices = make(map[string]LocalService)
 	}
 
-	s.Services[name+"_"+id] = MbgService{Service: service.Service{name, id, ip, domain, policy}, LocalPort: p}
-	log.Printf("[MBG %v] Update service %v", s.MyInfo.Name, service.GetService(name+id))
+	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain, policy}, LocalPort: p}
+	log.Printf("[MBG %v] Update Local service %v", s.MyInfo.Id, service.GetService(id))
+	s.Print()
+}
+
+func UpdateRemoteService(id, ip, domain, policy string, mbgId string) {
+	if s.RemoteServices == nil {
+		s.RemoteServices = make(map[string]RemoteService)
+	}
+
+	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain, policy}, MbgId: mbgId}
+	log.Printf("[MBG %v] Update Remote service %v -> Source MBG %v", s.MyInfo.Id, service.GetService(id), mbgId)
 	s.Print()
 }
 
 func (s *mbgState) Print() {
-	log.Printf("[MBG %v]: Name: %v Id: %v Ip: %v", s.MyInfo.Name, s.MyInfo.Id, s.MyInfo.Ip)
-	log.Printf("[MBG %v]: MBG neighbors : %v", s.MyInfo.Name, s.MbgArr)
-	log.Printf("[MBG %v]: services: %v", s.MyInfo.Name, s.Services)
+	log.Printf("[MBG %v]: Id: %v Ip: %v", s.MyInfo.Id, s.MyInfo.Ip)
+	log.Printf("[MBG %v]: MBG neighbors : %v", s.MyInfo.Id, s.MbgArr)
+	log.Printf("[MBG %v]: Local Services: %v", s.MyInfo.Id, s.MyServices)
 }
 
 /// Json code ////

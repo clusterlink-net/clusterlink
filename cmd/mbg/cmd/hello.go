@@ -51,7 +51,7 @@ func sendHello(m, MyInfo state.MbgInfo) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := c.HelloCmd(ctx, &pb.HelloRequest{Name: MyInfo.Name, Id: MyInfo.Id, Ip: MyInfo.Ip})
+	r, err := c.HelloCmd(ctx, &pb.HelloRequest{Id: MyInfo.Id, Ip: MyInfo.Ip})
 	if err != nil {
 		log.Fatalf("could not create user: %v", err)
 	}
