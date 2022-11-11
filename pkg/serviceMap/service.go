@@ -7,7 +7,6 @@ package service
 var Arr = make(map[string]Service)
 
 type Service struct {
-	Name   string
 	Id     string
 	Ip     string
 	Domain string
@@ -23,6 +22,6 @@ func GetService(s string) Service {
 	return Arr[s]
 }
 
-func UpdateService(name, id, ip, domain, policy string) {
-	Arr[name+id] = Service{name, id, ip, domain, policy}
+func UpdateService(id, ip, domain, policy string) {
+	Arr[id] = Service{id, ip, domain, policy}
 }
