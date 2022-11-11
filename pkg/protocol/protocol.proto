@@ -31,6 +31,7 @@ message ExposeRequest {
 	string Ip     = 3;
 	string Domain = 4;
 	string Policy = 5;
+    string mbgID  = 6;
 }
 
 // The response message for exposing a service
