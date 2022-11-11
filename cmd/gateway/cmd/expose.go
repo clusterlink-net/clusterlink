@@ -22,26 +22,24 @@ var exposeCmd = &cobra.Command{
 	Short: "Expose command send an expose message to Multi-cloud Border Gateway",
 	Long:  `Expose command send an expose message to Multi-cloud Border Gateway`,
 	Run: func(cmd *cobra.Command, args []string) {
-		serviceName, _ := cmd.Flags().GetString("serviceName")
 		serviceId, _ := cmd.Flags().GetString("serviceId")
 		state.UpdateState()
 
 		mbgIP := state.GetMbgIP()
-		expose(serviceName, serviceId, mbgIP)
+		expose(serviceId, mbgIP)
 
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(exposeCmd)
-	exposeCmd.Flags().String("serviceName", "", "Service name for exposing")
 	exposeCmd.Flags().String("serviceId", "", "Service Id for exposing")
 
 }
 
-func expose(serviceName, serviceId, mbgIP string) {
-	log.Printf("Start expose %v to MBG with IP address %v", serviceName, mbgIP)
-	s := state.GetService(serviceName, serviceId)
+func expose(serviceId, mbgIP string) {
+	log.Printf("Start expose %v to MBG with IP address %v", serviceId, mbgIP)
+	s := state.GetService(serviceId)
 	svcExp := s.Service
 	svcExp.Ip = state.GetGwIP() + ":" + s.LocalPort //update port to connect data
 
@@ -57,7 +55,7 @@ func expose(serviceName, serviceId, mbgIP string) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := c.ExposeCmd(ctx, &pb.ExposeRequest{Name: svcExp.Name, Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain, Policy: svcExp.Policy})
+	r, err := c.ExposeCmd(ctx, &pb.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain, Policy: svcExp.Policy, MbgID : ""})
 	if err != nil {
 		log.Fatalf("could not create user: %v", err)
 	}

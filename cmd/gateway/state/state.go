@@ -55,18 +55,18 @@ func UpdateState() {
 }
 
 //Return Function fields
-func GetService(name, id string) GwService {
-	return s.Services[name+"_"+id]
+func GetService(id string) GwService {
+	return s.Services[id]
 }
 
-func UpdateService(name, id, ip, domain, policy string) {
+func UpdateService(id, ip, domain, policy string) {
 	p := strconv.Itoa(ConstPort + len(s.Services) + 1)
 	if s.Services == nil {
 		s.Services = make(map[string]GwService)
 	}
 
-	s.Services[name+"_"+id] = GwService{Service: service.Service{name, id, ip, domain, policy}, LocalPort: p}
-	log.Printf("[Gateway %v] Update service %v", s.GwName, service.GetService(name+id))
+	s.Services[id] = GwService{Service: service.Service{id, ip, domain, policy}, LocalPort: p}
+	log.Printf("[Gateway %v] Update service %v", s.GwName, service.GetService(id))
 	s.Print()
 }
 

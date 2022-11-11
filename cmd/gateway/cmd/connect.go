@@ -19,18 +19,16 @@ var connectCmd = &cobra.Command{
 	Short: "connect flow connection to the closest MBG",
 	Long:  `connect flow connection to the closest MBG`,
 	Run: func(cmd *cobra.Command, args []string) {
-		svcName, _ := cmd.Flags().GetString("svcName")
 		svcId, _ := cmd.Flags().GetString("svcId")
-		svcNameDest, _ := cmd.Flags().GetString("svcNameDest")
 		svcIdDest, _ := cmd.Flags().GetString("svcIdDest")
 		state.UpdateState()
 
-		if svcName == "" || svcId == "" || svcNameDest == "" || svcIdDest == "" {
+		if svcId == "" || svcIdDest == "" {
 			fmt.Println("Error: please insert all flag arguments for connect command")
 			os.Exit(1)
 		}
-		svc := state.GetService(svcName, svcId)
-		destSvc := state.GetService(svcNameDest, svcIdDest)
+		svc := state.GetService(svcId)
+		destSvc := state.GetService(svcIdDest)
 
 		connectClient(svc.Service.Ip, destSvc.Service.Ip)
 
@@ -39,9 +37,7 @@ var connectCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(connectCmd)
-	connectCmd.Flags().String("svcName", "", "Service name that the gateway is listen")
 	connectCmd.Flags().String("svcId", "", "Service Id that the gateway is listen")
-	connectCmd.Flags().String("svcNameDest", "", "Destination service name the gateway is connecting")
 	connectCmd.Flags().String("svcIdDest", "", "Destination service id the gateway is connecting")
 
 }

@@ -47,8 +47,8 @@ const (
 )
 
 func (s *ExposeServer) ExposeCmd(ctx context.Context, in *pb.ExposeRequest) (*pb.ExposeReply, error) {
-	log.Printf("Received: %v", in.GetName())
-	state.UpdateService(in.GetName(), in.GetId(), in.GetIp(), in.GetDomain(), in.GetPolicy())
+	log.Printf("Received: %v", in.GetId())
+	state.UpdateService(in.GetId(), in.GetIp(), in.GetDomain(), in.GetPolicy())
 	return &pb.ExposeReply{Message: "Done"}, nil
 }
 
