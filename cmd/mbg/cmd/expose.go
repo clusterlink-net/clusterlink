@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	pb "github.ibm.com/mbg-agent/pkg/protocol"
+	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 	"google.golang.org/grpc"
 )
 
@@ -23,11 +24,7 @@ var exposeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		serviceId, _ := cmd.Flags().GetString("serviceId")
 		state.UpdateState()
-		MbgArr := state.GetMbgArr()
-		myIp := state.GetMyIp()
-		for _, m := range MbgArr {
-			ExposeToMBGs(serviceId, m, myIp)
-		}
+		ExposeToMbg(serviceId)
 
 	},
 }
@@ -38,16 +35,38 @@ func init() {
 
 }
 
-func ExposeToMBGs(serviceId string, m state.MbgInfo, myIp string) {
-	log.Printf("Start expose %v to MBG with IP address %v", serviceId, m.Ip)
+func ExposeToMbg(serviceId string) {
+	MbgArr := state.GetMbgArr()
+	myIp := state.GetMyIp()
+
 	s := state.GetLocalService(serviceId)
 	svcExp := s.Service
-	svcExp.Ip = myIp + ":" + s.LocalPort //update port to connect data
+	svcExp.Ip = myIp + ":" + s.ExposePort //update port to connect data
+	svcExp.Domain = "Remote"
+	for _, m := range MbgArr {
+		destIp := m.Ip + ":" + m.Cport
+		expose(svcExp, destIp, "MBG")
+	}
+}
 
-	log.Printf("Service %v", s)
-	address := m.Ip + ":50051"
+func ExposeToGw(serviceId string) {
+	gwArr := state.GetLocalGwArr()
+	myIp := state.GetMyIp()
+	s := state.GetRemoteService(serviceId)
+	svcExp := s.Service
+	svcExp.Ip = myIp + ":" + s.ExposePort //update port to connect data
+	svcExp.Domain = "Remote"
 
-	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+	for _, g := range gwArr {
+		destIp := g.Ip
+		expose(svcExp, destIp, "Gateway")
+	}
+}
+
+func expose(svcExp service.Service, destIp, cType string) {
+	log.Printf("Start expose %v to %v with IP address %v", svcExp.Id, cType, destIp)
+
+	conn, err := grpc.Dial(destIp, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -56,7 +75,7 @@ func ExposeToMBGs(serviceId string, m state.MbgInfo, myIp string) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := c.ExposeCmd(ctx, &pb.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain, Policy: svcExp.Policy, MbgID: m.Id})
+	r, err := c.ExposeCmd(ctx, &pb.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain, MbgID: state.GetMyId()}) //TBD- No need to expose the domains
 	if err != nil {
 		log.Fatalf("could not create user: %v", err)
 	}
