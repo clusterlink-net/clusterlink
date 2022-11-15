@@ -21,12 +21,14 @@ spec:
     spec:
       containers:
       - name: gateway-mbg
-        image: gcr.io/multi-cloud-networks-4438/mbg:latest
-        #image: mbg
+        #image: gcr.io/multi-cloud-networks-4438/mbg:latest
+        image: mbg
         imagePullPolicy: IfNotPresent
-        command: ["/gateway"]
+        #command: ["/gateway"]
         #args: ["--listen", ":5001", "--mbg","172.19.41.43:5002","-destPort","5003", "-destIp", "172.19.41.43"]
-        args: ["--listen", ":5001", "--mbg","$(MBG_IP_KEY)","-destPort","$(DEST_PORT_KEY)", "-destIp", "$(DEST_IP_KEY)",-service, "$(SERVICE)"]
+        #args: ["--listen", ":5001", "--mbg","$(MBG_IP_KEY)","-destPort","$(DEST_PORT_KEY)", "-destIp", "$(DEST_IP_KEY)",-service, "$(SERVICE)"]
+        command: [ "sleep" ]
+        args: [ "infinity" ]  
         env:
         - name: MBG_IP_KEY
           valueFrom:
@@ -50,3 +52,4 @@ spec:
               key: app.service  
         ports:
         - containerPort: 5001
+        - containerPort: 50051
