@@ -22,7 +22,6 @@ mbg     = cluster(name="mbg-k8s",     zone = "us-central1-b", platform = "gcp", 
 # test setup
 #clusterSetup(host=host, target=target, mbg=mbg)
 
-#Test client connection
 target_ip, target_port = getIpPort(file=PROJECT_PATH+"/bin/metadata.json", cluster = target)
 resFolder=getFolderRes(host,target,mbg,resBase=PROJECT_PATH+"/DB/")
 
