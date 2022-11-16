@@ -14,8 +14,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/pkg/client"
-	mbgSwitch "github.ibm.com/mbg-agent/pkg/mbg-switch"
 	pb "github.ibm.com/mbg-agent/pkg/protocol"
+	"github.ibm.com/mbg-agent/pkg/server"
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 
 	"google.golang.org/grpc"
@@ -62,9 +62,10 @@ func init() {
 
 }
 
-//Run server for connecting
+//Run server for Data connection - we have one server and client that we can add some network functions e.g: TCP-split
+//By default we just forward the data
 func ConnectService(svcListenPort, svcIp, policy string) {
-	var s mbgSwitch.MbgSwitch
+	var s server.MbgServer
 	var c client.MbgClient
 
 	srcIp := ":" + svcListenPort
@@ -80,12 +81,11 @@ func ConnectService(svcListenPort, svcIp, policy string) {
 		fmt.Println(policy, "- Policy  not exist use Forward")
 		serverTarget = cListener
 	}
-	s.InitMbgSwitch(srcIp, serverTarget)
+	s.InitServer(srcIp, serverTarget)
 	c.InitClient(cListener, destIp)
 
 	go c.RunClient()
-	s.RunMbgSwitch()
-
+	s.RunServer()
 }
 
 //Send control request to connect
