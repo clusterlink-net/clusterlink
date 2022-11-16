@@ -17,7 +17,7 @@ import (
 	pb "github.ibm.com/mbg-agent/pkg/protocol"
 )
 
-/// startCmd represents the init command
+/// startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "A start command set all parameter state of the Multi-cloud Border Gateway",
@@ -28,13 +28,15 @@ var startCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ip, _ := cmd.Flags().GetString("ip")
 		id, _ := cmd.Flags().GetString("id")
+		cport, _ := cmd.Flags().GetString("cport")
+		exposePortRange, _ := cmd.Flags().GetString("exposePortRange")
 
-		if ip == "" || id == "" {
-			log.Println("Error: please insert all flag arguments for mbg start command")
+		if ip == "" || id == "" || cport == "" {
+			log.Println("Error: please insert all flag arguments for Mbg start command")
 			os.Exit(1)
 		}
-		state.SetState(id, ip)
-		startServer(ip)
+		state.SetState(id, ip, cport, exposePortRange)
+		startServer()
 	},
 }
 
@@ -42,11 +44,13 @@ func init() {
 	rootCmd.AddCommand(startCmd)
 	startCmd.Flags().String("id", "", "Multi-cloud Border Gateway id")
 	startCmd.Flags().String("ip", "", "Multi-cloud Border Gateway ip")
+	startCmd.Flags().String("cport", "", "Multi-cloud Border Gateway control port")
+	startCmd.Flags().String("exposePortRange", "30000", " set the start port for exposing range ")
 
 }
 
 const (
-	port = ":50051"
+	serverIp = ":50051"
 )
 
 /******* Commands **********/
@@ -56,24 +60,16 @@ type ExposeServer struct {
 }
 
 func (s *ExposeServer) ExposeCmd(ctx context.Context, in *pb.ExposeRequest) (*pb.ExposeReply, error) {
-	log.Printf("Received Expose of %v at %v ",in.GetId(), in.GetIp())
-
-	// TODO : Handle logic of receiving expose from other MBG
-	state.UpdateLocalService(in.GetId(), in.GetIp(), in.GetDomain(), in.GetPolicy())
-	ExposeToNeighborMbgs(in.GetId(), in.GetMbgID())
-	//ExposeToLocalGw()
-	return &pb.ExposeReply{Message: "Done"}, nil
-}
-
-func ExposeToNeighborMbgs(serviceId, sourceMbgId string) {
+	log.Printf("Received: %v", in.GetId())
 	state.UpdateState()
-	MbgArr := state.GetMbgArr()
-	myIp := state.GetMyIp()
-	for _, m := range MbgArr {
-		if m.Id != sourceMbgId { //Do not expose back to the source MBG
-			ExposeToMBGs(serviceId, m, myIp)
-		}
+	if in.GetDomain() == "Internal" {
+		state.AddLocalService(in.GetId(), in.GetIp(), in.GetDomain())
+		ExposeToMbg(in.GetId())
+	} else { //Got the service from MBG so expose to local Gw
+		state.AddRemoteService(in.GetId(), in.GetIp(), in.GetDomain(), in.GetMbgID())
+		ExposeToGw(in.GetId())
 	}
+	return &pb.ExposeReply{Message: "Done"}, nil
 }
 
 //Hello
@@ -83,7 +79,8 @@ type HelloServer struct {
 
 func (s *HelloServer) HelloCmd(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
 	log.Printf("Received Hello from MBG ip: %v", in.GetIp())
-	state.UpdateMbgArr(in.GetId(), in.GetIp())
+	state.UpdateState()
+	state.AddMbgNbr(in.GetId(), in.GetIp(), in.GetCport())
 
 	return &pb.HelloReply{Message: "MBG: " + state.GetMyIp() + " get hello message"}, nil
 }
@@ -93,16 +90,32 @@ type ConnectServer struct {
 	pb.UnimplementedConnectServer
 }
 
-func (s *ConnectServer) connectCmd(ctx context.Context, in *pb.ConnectRequest) (*pb.ConnectReply, error) {
-	log.Printf("Received Connect request from service: %v to service: %v", in.GetSourceId(), in.GetDestId())
+func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (*pb.ConnectReply, error) {
+	log.Printf("Received Connect request from service: %v to service: %v", in.GetId(), in.GetIdDest())
+	state.UpdateState()
+	//svc := state.GetService(in.GetID())
+	var listenPort, destIp string
+	if state.IsServiceLocal(in.GetIdDest()) {
+		destSvc := state.GetLocalService(in.GetIdDest())
+		listenPort = destSvc.ListenPort
+		destIp = destSvc.Service.Ip
+	} else { //For Remtote service
+		destSvc := state.GetRemoteService(in.GetIdDest())
+		mbgIP := state.GetServiceMbgIp(destSvc.Service.Ip)
+		SendConnectReq(in.GetId(), in.GetIdDest(), in.GetPolicy(), mbgIP)
+		listenPort = destSvc.ListenPort
+		destIp = destSvc.Service.Ip
+	}
 
+	go ConnectService(listenPort, destIp, in.GetPolicy())
+	log.Printf("Send connect reply to service")
 	return &pb.ConnectReply{Message: "Connecting the services"}, nil
 }
 
-/******* Server **********/
-func startServer(ip string) {
-	log.Printf("MBG [%v] started", state.GetId())
-	lis, err := net.Listen("tcp", ip+port)
+/********************************** Server **********************************************************/
+func startServer() {
+	log.Printf("Gateway [%v] started", state.GetMyId())
+	lis, err := net.Listen("tcp", serverIp)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

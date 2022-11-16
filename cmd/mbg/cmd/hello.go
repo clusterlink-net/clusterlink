@@ -23,10 +23,10 @@ var helloCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		state.UpdateState()
 		log.Println("Hello command called")
-		state.UpdateState()
 		MbgArr := state.GetMbgArr()
 		MyInfo := state.GetMyInfo()
 		for _, m := range MbgArr {
+			log.Println(m)
 			sendHello(m, MyInfo)
 		}
 		log.Println("Finish sending Hello to all Mbgs")
@@ -40,7 +40,8 @@ func init() {
 func sendHello(m, MyInfo state.MbgInfo) {
 	log.Printf("Start Hello message to MBG with IP address %v", m.Ip)
 
-	address := m.Ip + ":50051"
+	address := m.Ip + ":" + m.Cport
+	log.Printf("Start Hello message to MBG with IP address %v", address)
 
 	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
@@ -51,7 +52,7 @@ func sendHello(m, MyInfo state.MbgInfo) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := c.HelloCmd(ctx, &pb.HelloRequest{Id: MyInfo.Id, Ip: MyInfo.Ip})
+	r, err := c.HelloCmd(ctx, &pb.HelloRequest{Id: MyInfo.Id, Ip: MyInfo.Ip, Cport: MyInfo.Cport})
 	if err != nil {
 		log.Fatalf("could not create user: %v", err)
 	}

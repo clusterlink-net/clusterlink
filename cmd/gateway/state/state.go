@@ -4,22 +4,21 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"os/user"
 	"path"
-	"runtime"
-	"strconv"
 
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
 
 type GwService struct {
-	Service   service.Service
-	LocalPort string
+	Service service.Service
 }
 
 type GatewayState struct {
 	MbgIP    string `json:"MbgIP"`
 	GwIP     string `json:"GwIP"`
-	GwName   string `json:"GwName"`
+	GwId     string `json:"GwId"`
+	GwCport  string `json:"GwCport"`
 	Services map[string]GwService
 }
 
@@ -27,7 +26,7 @@ const (
 	ConstPort = 5000
 )
 
-var s = GatewayState{MbgIP: "", GwIP: "", GwName: "", Services: make(map[string]GwService)}
+var s = GatewayState{MbgIP: "", GwIP: "", GwId: "", Services: make(map[string]GwService)}
 
 func GetMbgIP() string {
 	log.Println(s.MbgIP)
@@ -38,15 +37,17 @@ func GetGwIP() string {
 	return s.GwIP
 }
 
-func GetGwName() string {
-	return s.GwName
+func GetGwId() string {
+	return s.GwId
 }
 
-func SetState(mbgIp, ip, name string) {
+func SetState(mbgIp, ip, id, cport string) {
 	log.Println(s)
-	s.GwName = name
+	s.GwId = id
 	s.GwIP = ip
 	s.MbgIP = mbgIp
+	s.GwCport = cport
+
 	SaveState()
 }
 
@@ -59,30 +60,34 @@ func GetService(id string) GwService {
 	return s.Services[id]
 }
 
-func UpdateService(id, ip, domain, policy string) {
-	p := strconv.Itoa(ConstPort + len(s.Services) + 1)
+func AddService(id, ip, domain string) {
 	if s.Services == nil {
 		s.Services = make(map[string]GwService)
 	}
 
-	s.Services[id] = GwService{Service: service.Service{id, ip, domain, policy}, LocalPort: p}
-	log.Printf("[Gateway %v] Update service %v", s.GwName, service.GetService(id))
+	policy := "" //default:No policy
+	s.Services[id] = GwService{Service: service.Service{id, ip, domain, policy}}
+	log.Printf("[Gateway %v] Add service: %v", s.GwId, s.Services[id])
 	s.Print()
+	SaveState()
+
 }
 
 func (s *GatewayState) Print() {
-	log.Printf("[Gateway %v]: Name: %v ip: %v mbgip: %v", s.GwName, s.GwName, s.GwIP, s.MbgIP)
-	log.Printf("[Gateway %v]: services %v", s.GwName, s.Services)
+	log.Printf("[Gateway %v]: Id: %v ip: %v mbgip: %v", s.GwId, s.GwId, s.GwIP, s.MbgIP)
+	log.Printf("[Gateway %v]: services %v", s.GwId, s.Services)
 }
 
 /// Json code ////
 func configPath() string {
 	cfgFile := ".gatewayApp"
-	//usr, _ := user.Current()
-	//return path.Join(usr.HomeDir, cfgFile)
-	_, filename, _, _ := runtime.Caller(1)
+	//set cfg file in home directory
+	usr, _ := user.Current()
+	return path.Join(usr.HomeDir, cfgFile)
 
-	return path.Join(path.Dir(filename), cfgFile)
+	//set cfg file in the git
+	//_, filename, _, _ := runtime.Caller(1)
+	//return path.Join(path.Dir(filename), cfgFile)
 
 }
 

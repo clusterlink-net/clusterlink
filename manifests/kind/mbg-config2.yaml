@@ -1,0 +1,17 @@
+################################################################
+#Name:config
+#Desc: Kind config for exposing port 30000 of kind
+#      cluster
+################################################################
+# cluster-config.yml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 30000
+    hostPort: 30200
+    protocol: TCP
+  - containerPort: 30001
+    hostPort: 30201
+    protocol: TCP

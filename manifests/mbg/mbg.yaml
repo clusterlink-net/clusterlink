@@ -23,8 +23,8 @@ spec:
         #image: gcr.io/multi-cloud-networks-4438/mbg:latest
         image: mbg
         imagePullPolicy: IfNotPresent
-        
-        command: ["/mbg"]
-        args: ["--listen", ":5002"]
+        command: [ "sleep" ]
+        args: [ "infinity" ]        
         ports:
         - containerPort: 5002
+        - containerPort: 50051

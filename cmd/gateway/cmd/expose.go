@@ -41,12 +41,10 @@ func expose(serviceId, mbgIP string) {
 	log.Printf("Start expose %v to MBG with IP address %v", serviceId, mbgIP)
 	s := state.GetService(serviceId)
 	svcExp := s.Service
-	svcExp.Ip = state.GetGwIP() + ":" + s.LocalPort //update port to connect data
 
 	log.Printf("Service %v", s)
-	address := mbgIP + ":50051"
 
-	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(mbgIP, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -55,7 +53,7 @@ func expose(serviceId, mbgIP string) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := c.ExposeCmd(ctx, &pb.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain, Policy: svcExp.Policy, MbgID : ""})
+	r, err := c.ExposeCmd(ctx, &pb.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain})
 	if err != nil {
 		log.Fatalf("could not create user: %v", err)
 	}
