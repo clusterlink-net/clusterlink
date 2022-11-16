@@ -40,11 +40,11 @@ var connectCmd = &cobra.Command{
 		var listenPort, destIp string
 		if state.IsServiceLocal(svcIdDest) {
 			destSvc := state.GetLocalService(svcIdDest)
-			listenPort = destSvc.ListenPort
+			listenPort = destSvc.LocalDataPort
 			destIp = destSvc.Service.Ip
 		} else { //For Remtote service
 			destSvc := state.GetRemoteService(svcIdDest)
-			listenPort = destSvc.ListenPort
+			listenPort = destSvc.LocalDataPort
 			destIp = destSvc.Service.Ip
 		}
 

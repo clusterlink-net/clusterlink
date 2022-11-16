@@ -21,10 +21,11 @@ type mbgState struct {
 }
 
 type MbgInfo struct {
-	Id              string
-	Ip              string
-	Cport           string
-	ExposePortRange int
+	Id                  string
+	Ip                  string
+	Cport               string
+	LocalDataPortRange  int
+	ExposeDataPortRange int
 }
 
 type LocalGw struct {
@@ -33,21 +34,17 @@ type LocalGw struct {
 }
 
 type RemoteService struct {
-	Service    service.Service
-	MbgId      string // For now to identify a service to a MBG
-	ListenPort string
-	ExposePort string
+	Service        service.Service
+	MbgId          string // For now to identify a service to a MBG
+	LocalDataPort  string
+	ExposeDataPort string
 }
 
 type LocalService struct {
-	Service    service.Service
-	ListenPort string
-	ExposePort string
+	Service        service.Service
+	LocalDataPort  string
+	ExposeDataPort string
 }
-
-const (
-	ConstListenPort = 5100
-)
 
 var s = mbgState{MyInfo: MbgInfo{},
 	GwArr:          make(map[string]LocalGw),
@@ -74,11 +71,12 @@ func GetLocalGwArr() map[string]LocalGw {
 	return s.GwArr
 }
 
-func SetState(id, ip, cport, exposePortRange string) {
+func SetState(id, ip, cport string, localDataPortRange, exposeDataPortRange int) {
 	s.MyInfo.Id = id
 	s.MyInfo.Ip = ip
 	s.MyInfo.Cport = cport
-	s.MyInfo.ExposePortRange, _ = strconv.Atoi(exposePortRange)
+	s.MyInfo.LocalDataPortRange = localDataPortRange
+	s.MyInfo.ExposeDataPortRange = exposeDataPortRange
 	SaveState()
 }
 
@@ -130,18 +128,18 @@ func AddLocalService(id, ip, domain string) {
 	var lp, ep string
 
 	if val, ok := s.MyServices[id]; ok {
-		lp = val.ListenPort
-		ep = val.ExposePort
+		lp = val.LocalDataPort
+		ep = val.ExposeDataPort
 	} else { //create new allocation for the ports
-		lp = strconv.Itoa(ConstListenPort + len(s.MyServices))
-		ep = strconv.Itoa(s.MyInfo.ExposePortRange + len(s.MyServices))
+		lp = strconv.Itoa(s.MyInfo.LocalDataPortRange + len(s.MyServices))
+		ep = strconv.Itoa(s.MyInfo.ExposeDataPortRange + len(s.MyServices))
 	}
 
 	if s.MyServices == nil {
 		s.MyServices = make(map[string]LocalService)
 	}
 
-	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain, ""}, ListenPort: lp, ExposePort: ep}
+	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain, ""}, LocalDataPort: lp, ExposeDataPort: ep}
 	log.Printf("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()
@@ -151,18 +149,18 @@ func AddRemoteService(id, ip, domain, MbgId string) {
 	var lp, ep string
 
 	if val, ok := s.RemoteServices[id]; ok {
-		lp = val.ListenPort
-		ep = val.ExposePort
+		lp = val.LocalDataPort
+		ep = val.ExposeDataPort
 	} else { //create new allocation for the ports
-		lp = strconv.Itoa(ConstListenPort + len(s.RemoteServices))
-		ep = strconv.Itoa(s.MyInfo.ExposePortRange + len(s.RemoteServices))
+		lp = strconv.Itoa(s.MyInfo.LocalDataPortRange + len(s.RemoteServices))
+		ep = strconv.Itoa(s.MyInfo.ExposeDataPortRange + len(s.RemoteServices))
 	}
 
 	if s.RemoteServices == nil {
 		s.RemoteServices = make(map[string]RemoteService)
 	}
 
-	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain, "Forward"}, MbgId: MbgId, ListenPort: lp, ExposePort: ep}
+	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain, "Forward"}, MbgId: MbgId, LocalDataPort: lp, ExposeDataPort: ep}
 	log.Printf("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()

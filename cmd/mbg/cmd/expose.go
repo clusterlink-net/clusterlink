@@ -41,7 +41,7 @@ func ExposeToMbg(serviceId string) {
 
 	s := state.GetLocalService(serviceId)
 	svcExp := s.Service
-	svcExp.Ip = myIp + ":" + s.ExposePort //update port to connect data
+	svcExp.Ip = myIp + ":" + s.ExposeDataPort //update port to connect data
 	svcExp.Domain = "Remote"
 	for _, m := range MbgArr {
 		destIp := m.Ip + ":" + m.Cport
@@ -54,7 +54,7 @@ func ExposeToGw(serviceId string) {
 	myIp := state.GetMyIp()
 	s := state.GetRemoteService(serviceId)
 	svcExp := s.Service
-	svcExp.Ip = myIp + ":" + s.ExposePort //update port to connect data
+	svcExp.Ip = myIp + ":" + s.ExposeDataPort //update port to connect data
 	svcExp.Domain = "Remote"
 
 	for _, g := range gwArr {

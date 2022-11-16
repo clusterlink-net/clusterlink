@@ -29,13 +29,14 @@ var startCmd = &cobra.Command{
 		ip, _ := cmd.Flags().GetString("ip")
 		id, _ := cmd.Flags().GetString("id")
 		cport, _ := cmd.Flags().GetString("cport")
-		exposePortRange, _ := cmd.Flags().GetString("exposePortRange")
+		localDataPortRange, _ := cmd.Flags().GetInt("localDataPortRange")
+		exposeDataPortRange, _ := cmd.Flags().GetInt("exposeDataPortRange")
 
 		if ip == "" || id == "" || cport == "" {
 			log.Println("Error: please insert all flag arguments for Mbg start command")
 			os.Exit(1)
 		}
-		state.SetState(id, ip, cport, exposePortRange)
+		state.SetState(id, ip, cport, localDataPortRange, exposeDataPortRange)
 		startServer()
 	},
 }
@@ -45,7 +46,8 @@ func init() {
 	startCmd.Flags().String("id", "", "Multi-cloud Border Gateway id")
 	startCmd.Flags().String("ip", "", "Multi-cloud Border Gateway ip")
 	startCmd.Flags().String("cport", "", "Multi-cloud Border Gateway control port")
-	startCmd.Flags().String("exposePortRange", "30000", " set the start port for exposing range ")
+	startCmd.Flags().Int("localDataPortRange", 5100, "Set the port range for data connection in the MBG")
+	startCmd.Flags().Int("exposeDataPortRange", 30000, "Set the port range for exposing data connection (each expose port connect to localDataPort")
 
 }
 
@@ -97,13 +99,13 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 	var listenPort, destIp string
 	if state.IsServiceLocal(in.GetIdDest()) {
 		destSvc := state.GetLocalService(in.GetIdDest())
-		listenPort = destSvc.ListenPort
+		listenPort = destSvc.LocalDataPort
 		destIp = destSvc.Service.Ip
 	} else { //For Remtote service
 		destSvc := state.GetRemoteService(in.GetIdDest())
 		mbgIP := state.GetServiceMbgIp(destSvc.Service.Ip)
 		SendConnectReq(in.GetId(), in.GetIdDest(), in.GetPolicy(), mbgIP)
-		listenPort = destSvc.ListenPort
+		listenPort = destSvc.LocalDataPort
 		destIp = destSvc.Service.Ip
 	}
 
