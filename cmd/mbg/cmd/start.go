@@ -45,7 +45,7 @@ func init() {
 	startCmd.Flags().String("id", "", "Multi-cloud Border Gateway id")
 	startCmd.Flags().String("ip", "", "Multi-cloud Border Gateway ip")
 	startCmd.Flags().String("cport", "", "Multi-cloud Border Gateway control port")
-	startCmd.Flags().Int("localDataPortRange", 5100, "Set the port range for data connection in the MBG")
+	startCmd.Flags().Int("localDataPortRange", 5000, "Set the port range for data connection in the MBG")
 	startCmd.Flags().Int("exposeDataPortRange", 30000, "Set the port range for exposing data connection (each expose port connect to localDataPort")
 
 }

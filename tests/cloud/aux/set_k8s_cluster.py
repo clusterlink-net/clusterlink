@@ -36,7 +36,7 @@ def deployTarget(cluster):
     else:#gcp/ibm
         setupIperf3Target(cluster.platform)
         target_ip= sp.getoutput('kubectl get svc iperf3-loadbalancer-service --template="{{range .status.loadBalancer.ingress}}{{.ip}}{{end}}"')
-    target_port = "5500"
+    target_port = "5000"
     data_dic={"ip": target_ip, "port" : target_port}
     dicUpdate(data_dic, cluster)
     return data_dic

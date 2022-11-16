@@ -52,13 +52,13 @@ def hostServiceSetup(host, mbg, target ,service):
 
 def testService(service,time=10):
     print(f"Start test for service {service}")
-    iperf3Test(target_ip="client-mbg-service", target_port="5001",time=time)
+    iperf3Test(target_ip="client-mbg-service", target_port="5000",time=time)
 
 def testServiceDB(service,target_ip, target_port, resFolder,time=10):
     print(f"Start test for service {service}")
     if service != "Direct":
         target_ip="client-mbg-service"
-        target_port="5001"
+        target_port="5000"
     resFile=resFolder+f"/{service}_res.json"
     iperf3TestDB(target_ip = target_ip, target_port=target_port, resFile=resFile ,time=time)
 

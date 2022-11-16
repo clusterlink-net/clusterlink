@@ -10,8 +10,8 @@ nodes:
 - role: control-plane
   extraPortMappings:
   - containerPort: 30000
-    hostPort: 30300
+    hostPort: 20100
     protocol: TCP
   - containerPort: 30001
-    hostPort: 30301
+    hostPort: 20101
     protocol: TCP

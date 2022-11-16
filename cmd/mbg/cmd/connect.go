@@ -71,7 +71,7 @@ func ConnectService(svcListenPort, svcIp, policy string) {
 	srcIp := ":" + svcListenPort
 	destIp := svcIp
 
-	cListener := ":5000"
+	cListener := ":4000" //port the client always listen
 	var serverTarget string
 	if policy == "Forward" {
 		serverTarget = cListener

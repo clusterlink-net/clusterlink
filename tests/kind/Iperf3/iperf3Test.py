@@ -53,7 +53,7 @@ if __name__ == "__main__":
     runcmd(f'kubectl exec -i {podMbg1} -- ./mbg start --id "mbg1" --ip {ipAddr} --cport "30100" --exposeDataPortRange 30101 &')
     time.sleep(5)
     printHeader("Add host cluster to MBG1")
-    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addCluster --id "hostCluster" --ip {ipAddr}:30300')
+    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addCluster --id "hostCluster" --ip {ipAddr}:20100')
 
     ###Run Second Mbg
     printHeader("\n\nStart building MBG2")
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     printHeader("Send Hello commands")
     runcmd(f'kubectl exec -i {podMbg2} -- ./mbg hello')
     printHeader("Add Destination Cluster to MBG2")
-    runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addCluster --id "destCluster" --ip {ipAddr}:30400')
+    runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addCluster --id "destCluster" --ip {ipAddr}:20200')
 
     ###Run host
     printHeader("\n\nStart building cluster-host")
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     podhost= getPodName("cluster-mbg")
     runcmd(f'kubectl exec -i {podhost} -- ./cluster start --id "hostCluster"  --ip {ipAddr} --mbgIP {ipAddr}:30100 &')
     printHeader("Add iperfIsrael (client) service to host cluster")
-    runcmd(f'kubectl exec -i {podhost} -- ./cluster addService --serviceId iperfIsrael --serviceIp :5001')
+    runcmd(f'kubectl exec -i {podhost} -- ./cluster addService --serviceId iperfIsrael --serviceIp :5000')
 
     ###Run dest
     printHeader("\n\nStart building cluster-destination")
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     podest= getPodName("cluster-mbg")
     runcmd(f'kubectl exec -i {podest} -- ./cluster start --id "destCluster"  --ip {ipAddr} --mbgIP {ipAddr}:30200 &')
     printHeader("Add iperfIndia (server) service to destination cluster")
-    runcmd(f'kubectl exec -i {podest} -- ./cluster addService --serviceId iperfIndia --serviceIp {ipAddr}:30401')
+    runcmd(f'kubectl exec -i {podest} -- ./cluster addService --serviceId iperfIndia --serviceIp {ipAddr}:20201')
 
     # #Expose service
     printHeader("\n\nStart exposing connection")
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     time.sleep(30)
     printHeader("\n\nStart Iperf3 testing")
     podIperf3= getPodName("iperf3-clients")
-    cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c cluster-iperf3-service -p 5001'
+    cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c cluster-iperf3-service -p 5000'
     print(cmd)
     direct_output = sp.check_output(cmd,shell=True) #could be anything here.  
     printHeader(f"Iperf3 Test Results:\n") 

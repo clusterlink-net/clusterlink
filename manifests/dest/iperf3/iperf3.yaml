@@ -45,22 +45,8 @@ spec:
       - name: iperf3-server
         #image: networkstatic/iperf3
         image: mlabbe/iperf3
-        args: ['-s']
-        ports:
-        - containerPort: 5201
-          name: server
+        args: ['-s', '-p', '5000']
+        # ports:
+        # - containerPort: 50051
+        #   name: server
       terminationGracePeriodSeconds: 0
-
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: iperf3-server
-spec:
-  selector:
-    app: iperf3-server
-  ports:
-  - protocol: TCP
-    port: 5201
-    targetPort: server

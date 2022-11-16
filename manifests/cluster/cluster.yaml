@@ -28,5 +28,5 @@ spec:
         command: [ "sleep" ]
         args: [ "infinity" ]  
         ports:
-        - containerPort: 5001
+        #- containerPort: 6000
         - containerPort: 50051
