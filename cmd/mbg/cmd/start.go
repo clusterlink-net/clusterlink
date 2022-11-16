@@ -21,9 +21,8 @@ import (
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "A start command set all parameter state of the Multi-cloud Border Gateway",
-	Long: `A start command set all parameter state of the gateway-
-			1) The MBG that the gateway is connected
-			2) The IP of the gateway
+	Long: `A start command set all parameter state of the MBg-
+			The  id, IP cport(Cntrol port for grpc) and localDataPortRange,exposeDataPortRange
 			TBD now is done manually need to call some external `,
 	Run: func(cmd *cobra.Command, args []string) {
 		ip, _ := cmd.Flags().GetString("ip")
@@ -67,9 +66,9 @@ func (s *ExposeServer) ExposeCmd(ctx context.Context, in *pb.ExposeRequest) (*pb
 	if in.GetDomain() == "Internal" {
 		state.AddLocalService(in.GetId(), in.GetIp(), in.GetDomain())
 		ExposeToMbg(in.GetId())
-	} else { //Got the service from MBG so expose to local Gw
+	} else { //Got the service from MBG so expose to local Cluster
 		state.AddRemoteService(in.GetId(), in.GetIp(), in.GetDomain(), in.GetMbgID())
-		ExposeToGw(in.GetId())
+		ExposeToCluster(in.GetId())
 	}
 	return &pb.ExposeReply{Message: "Done"}, nil
 }
@@ -116,7 +115,7 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 
 /********************************** Server **********************************************************/
 func startServer() {
-	log.Printf("Gateway [%v] started", state.GetMyId())
+	log.Printf("MBG [%v] started", state.GetMyId())
 	lis, err := net.Listen("tcp", serverIp)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

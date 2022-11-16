@@ -6,14 +6,14 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.ibm.com/mbg-agent/cmd/gateway/state"
+	"github.ibm.com/mbg-agent/cmd/cluster/state"
 )
 
 // updateCmd represents the update command
 var addServiceCmd = &cobra.Command{
 	Use:   "addService",
-	Short: "Add service to service list that expose to gateway",
-	Long:  `Add service to service list that expose to gateway.`,
+	Short: "Add service to service list that expose to cluster",
+	Long:  `Add service to service list that expose to cluster.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		serviceId, _ := cmd.Flags().GetString("serviceId")
 		serviceIp, _ := cmd.Flags().GetString("serviceIp")

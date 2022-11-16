@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.ibm.com/mbg-agent/cmd/gateway/state"
+	"github.ibm.com/mbg-agent/cmd/cluster/state"
 )
 
 // applyPolicyCmd represents the applyPolicy command

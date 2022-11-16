@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.ibm.com/mbg-agent/cmd/gateway/state"
+	"github.ibm.com/mbg-agent/cmd/cluster/state"
 	"github.ibm.com/mbg-agent/pkg/client"
 	pb "github.ibm.com/mbg-agent/pkg/protocol"
 	"google.golang.org/grpc"
@@ -48,8 +48,8 @@ var connectCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(connectCmd)
-	connectCmd.Flags().String("serviceId", "", "Service Id that the gateway is listen")
-	connectCmd.Flags().String("serviceIdDest", "", "Destination service id the gateway is connecting")
+	connectCmd.Flags().String("serviceId", "", "Service Id that the cluster is listen")
+	connectCmd.Flags().String("serviceIdDest", "", "Destination service id the cluster is connecting")
 	connectCmd.Flags().String("policy", "", "Connection policy")
 	connectCmd.Flags().String("SendConnectReq", "true", "Decide if to send connection request to MBG default:True")
 

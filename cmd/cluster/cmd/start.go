@@ -6,7 +6,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.ibm.com/mbg-agent/cmd/gateway/state"
+	"github.ibm.com/mbg-agent/cmd/cluster/state"
 
 	"context"
 	"log"
@@ -19,28 +19,28 @@ import (
 // startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start",
-	Short: "A start command set all parameter state of the gateway",
-	Long: `A start command set all parameter state of the gateway-
-			1) The MBG that the gateway is connected
-			2) The IP of the gateway
+	Short: "A start command set all parameter state of the cluster",
+	Long: `A start command set all parameter state of the cluster-
+			1) The MBG that the cluster is connected
+			2) The IP of the cluster
 			TBD now is done manually need to call some external `,
 	Run: func(cmd *cobra.Command, args []string) {
-		gwIP, _ := cmd.Flags().GetString("ip")
-		gwId, _ := cmd.Flags().GetString("id")
+		ip, _ := cmd.Flags().GetString("ip")
+		id, _ := cmd.Flags().GetString("id")
 		mbgIP, _ := cmd.Flags().GetString("mbgIP")
 		cport, _ := cmd.Flags().GetString("cport")
 
-		state.SetState(mbgIP, gwIP, gwId, cport)
-		startServer(gwIP)
+		state.SetState(ip, id, mbgIP, cport)
+		startServer()
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(startCmd)
-	startCmd.Flags().String("id", "", "Gateway Id")
-	startCmd.Flags().String("ip", "", "Gateway IP")
-	startCmd.Flags().String("mbgIP", "", "IP address of the MBG connected to the gateway")
-	startCmd.Flags().String("cport", "", "Gateway control port")
+	startCmd.Flags().String("id", "", "Cluster Id")
+	startCmd.Flags().String("ip", "", "Cluster IP")
+	startCmd.Flags().String("mbgIP", "", "IP address of the MBG connected to the Cluster")
+	startCmd.Flags().String("cport", "", "Cluster control port")
 }
 
 const (
@@ -77,8 +77,8 @@ func (s *ConnectServer) connectCmd(ctx context.Context, in *pb.ConnectRequest) (
 }
 
 /********************************** Server **********************************************************/
-func startServer(gwIP string) {
-	log.Printf("start gateway [%v] started", state.GetGwId())
+func startServer() {
+	log.Printf("Cluster [%v] started", state.GetId())
 	lis, err := net.Listen("tcp", serverPort)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

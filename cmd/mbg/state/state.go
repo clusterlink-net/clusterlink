@@ -14,7 +14,7 @@ import (
 
 type mbgState struct {
 	MyInfo         MbgInfo
-	GwArr          map[string]LocalGw
+	ClusterArr     map[string]LocalCluster
 	MbgArr         map[string]MbgInfo
 	MyServices     map[string]LocalService
 	RemoteServices map[string]RemoteService
@@ -28,7 +28,7 @@ type MbgInfo struct {
 	ExposeDataPortRange int
 }
 
-type LocalGw struct {
+type LocalCluster struct {
 	Id string
 	Ip string
 }
@@ -47,7 +47,7 @@ type LocalService struct {
 }
 
 var s = mbgState{MyInfo: MbgInfo{},
-	GwArr:          make(map[string]LocalGw),
+	ClusterArr:     make(map[string]LocalCluster),
 	MbgArr:         make(map[string]MbgInfo),
 	MyServices:     make(map[string]LocalService),
 	RemoteServices: make(map[string]RemoteService)}
@@ -67,8 +67,8 @@ func GetMbgArr() map[string]MbgInfo {
 	return s.MbgArr
 }
 
-func GetLocalGwArr() map[string]LocalGw {
-	return s.GwArr
+func GetLocalClusterArr() map[string]LocalCluster {
+	return s.ClusterArr
 }
 
 func SetState(id, ip, cport string, localDataPortRange, exposeDataPortRange int) {
@@ -80,9 +80,9 @@ func SetState(id, ip, cport string, localDataPortRange, exposeDataPortRange int)
 	SaveState()
 }
 
-func SetLocalGw(id, ip string) {
+func SetLocalCluster(id, ip string) {
 	log.Println(s)
-	s.GwArr[id] = LocalGw{Id: id, Ip: ip}
+	s.ClusterArr[id] = LocalCluster{Id: id, Ip: ip}
 	SaveState()
 }
 

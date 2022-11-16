@@ -1,22 +1,18 @@
 ################################################################
-#Name: gw-mbg-service
+#Name: cluster-mbg-service
 #Desc: service file for creating a load-balancer with external 
 #      port 5000  
 ################################################################
 apiVersion: v1
 kind: Service
 metadata:
-  name: gateway-mbg-service
+  name: cluster-mbg-service
 spec:
   #type: ClusterIP
   type: NodePort
   selector:
-    app: gateway-mbg
+    app: cluster-mbg
   ports:
-    - protocol: TCP
-      port: 5001
-      targetPort: 5001
-      name: data-port
     - protocol: TCP
       port: 50051
       targetPort: 50051

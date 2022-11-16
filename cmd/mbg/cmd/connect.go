@@ -56,8 +56,8 @@ var connectCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(connectCmd)
-	connectCmd.Flags().String("serviceId", "", "Service Id that the gateway is listen")
-	connectCmd.Flags().String("serviceIdDest", "", "Destination service id the gateway is connecting")
+	connectCmd.Flags().String("serviceId", "", "Source service id for connecting ")
+	connectCmd.Flags().String("serviceIdDest", "", "Destination service id for connecting")
 	connectCmd.Flags().String("policy", "", "Policy connection")
 
 }

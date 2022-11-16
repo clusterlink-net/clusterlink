@@ -28,7 +28,7 @@ vet-go: ; $(info $(M) vetting code...)
 
 build:
 	@echo "Start go build phase"
-	go build -o ./bin/gateway ./cmd/gateway/main.go
+	go build -o ./bin/cluster ./cmd/cluster/main.go
 	go build -o ./bin/mbg ./cmd/mbg/main.go
 
 docker-build-mbg:
@@ -41,8 +41,8 @@ docker-build: docker-build-mbg docker-build-tcp-split
 proto-build:
 	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative pkg/protocol/protocol.proto
 
-run-gateway:
-	@./bin/gateway
+run-cluster:
+	@./bin/cluster
 
 run-mbg:
 	@./bin/mbg
@@ -68,25 +68,23 @@ run-kind-mbg2:
 	kubectl create -f manifests/tcp-split/tcp-split-svc.yaml
 
 run-kind-host:
-	kind create cluster --config manifests/kind/host-config.yaml --name=gw-host
-	kind load docker-image mbg --name=gw-host
+	kind create cluster --config manifests/kind/host-config.yaml --name=cluster-host
+	kind load docker-image mbg --name=cluster-host
 	kubectl create -f manifests/host/iperf3/iperf3-client.yaml
 	kubectl create -f manifests/host/iperf3/iperf3-svc.yaml
-	kubectl create -f manifests/gateway/gateway-configmap.yaml
-	kubectl create -f manifests/gateway/gateway.yaml
-	kubectl create -f manifests/gateway/gateway-svc.yaml
+	kubectl create -f manifests/cluster/cluster.yaml
+	kubectl create -f manifests/cluster/cluster-svc.yaml
 
 run-kind-dest:
-	kind create cluster --config manifests/kind/dest-config.yaml --name=gw-dest
-	kind load docker-image mbg --name=gw-dest
+	kind create cluster --config manifests/kind/dest-config.yaml --name=cluster-dest
+	kind load docker-image mbg --name=cluster-dest
 	kubectl create -f manifests/dest/iperf3/iperf3.yaml
 	kubectl create -f manifests/dest/iperf3/iperf3-svc.yaml
-	kubectl create -f manifests/gateway/gateway-configmap.yaml
-	kubectl create -f manifests/gateway/gateway.yaml
-	kubectl create -f manifests/gateway/gateway-svc.yaml
+	kubectl create -f manifests/cluster/cluster.yaml
+	kubectl create -f manifests/cluster/cluster-svc.yaml
 
 clean-kind-mbg:
 	kind delete cluster --name=mbg-agent1
 	kind delete cluster --name=mbg-agent2
-	kind delete cluster --name=gw-host
-	kind delete cluster --name=gw-dest
+	kind delete cluster --name=cluster-host
+	kind delete cluster --name=cluster-dest

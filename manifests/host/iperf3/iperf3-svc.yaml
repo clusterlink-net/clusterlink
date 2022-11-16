@@ -1,16 +1,16 @@
 ################################################################
-#Name: gw-mbg-service
-#Desc: service file for creating a load-balancer with external 
-#      port 5000  
+#Name: cluster-iperf3-service
+#Desc: service file for connecting iperf3 service
+#      port 5001  
 ################################################################
 apiVersion: v1
 kind: Service
 metadata:
-  name: gateway-iperf3-service
+  name: cluster-iperf3-service
 spec:
   type: ClusterIP
   selector:
-    app: gateway-mbg
+    app: cluster-mbg
   ports:
     - protocol: TCP
       port: 5001

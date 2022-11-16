@@ -78,10 +78,9 @@ def dicUpdate(data_dic, cluster):
 def setupClientService(mbg, target,service):
     print("\n\ncreate client configmap deploymnet and service")
     cleanService()
-    createClientConfigFile(PROJECT_PATH+"/manifests/host/gateway-configmap.yaml", mbg, target,service)
-    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/gateway-configmap.yaml")
-    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/gateway.yaml")
-    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/gateway-svc.yaml")
+    #createClientConfigFile(PROJECT_PATH+"/manifests/host/gateway-configmap.yaml", mbg, target,service)
+    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/cluster.yaml")
+    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/cluster-svc.yaml")
 
 
 def createClientConfigFile(file, mbg, target, service):

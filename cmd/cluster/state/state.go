@@ -10,43 +10,43 @@ import (
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
 
-type GwService struct {
+type ClusterService struct {
 	Service service.Service
 }
 
-type GatewayState struct {
+type ClusterState struct {
 	MbgIP    string `json:"MbgIP"`
-	GwIP     string `json:"GwIP"`
-	GwId     string `json:"GwId"`
-	GwCport  string `json:"GwCport"`
-	Services map[string]GwService
+	IP       string `json:"IP"`
+	Id       string `json:"Id"`
+	Cport    string `json:"Cport"`
+	Services map[string]ClusterService
 }
 
 const (
 	ConstPort = 5000
 )
 
-var s = GatewayState{MbgIP: "", GwIP: "", GwId: "", Services: make(map[string]GwService)}
+var s = ClusterState{MbgIP: "", IP: "", Id: "", Services: make(map[string]ClusterService)}
 
 func GetMbgIP() string {
 	log.Println(s.MbgIP)
 	return s.MbgIP
 }
 
-func GetGwIP() string {
-	return s.GwIP
+func GetIP() string {
+	return s.IP
 }
 
-func GetGwId() string {
-	return s.GwId
+func GetId() string {
+	return s.Id
 }
 
-func SetState(mbgIp, ip, id, cport string) {
+func SetState(ip, id, mbgIp, cport string) {
 	log.Println(s)
-	s.GwId = id
-	s.GwIP = ip
+	s.Id = id
+	s.IP = ip
+	s.Cport = cport
 	s.MbgIP = mbgIp
-	s.GwCport = cport
 
 	SaveState()
 }
@@ -56,31 +56,31 @@ func UpdateState() {
 }
 
 //Return Function fields
-func GetService(id string) GwService {
+func GetService(id string) ClusterService {
 	return s.Services[id]
 }
 
 func AddService(id, ip, domain string) {
 	if s.Services == nil {
-		s.Services = make(map[string]GwService)
+		s.Services = make(map[string]ClusterService)
 	}
 
 	policy := "" //default:No policy
-	s.Services[id] = GwService{Service: service.Service{id, ip, domain, policy}}
-	log.Printf("[Gateway %v] Add service: %v", s.GwId, s.Services[id])
+	s.Services[id] = ClusterService{Service: service.Service{id, ip, domain, policy}}
+	log.Printf("[Cluster %v] Add service: %v", s.Id, s.Services[id])
 	s.Print()
 	SaveState()
 
 }
 
-func (s *GatewayState) Print() {
-	log.Printf("[Gateway %v]: Id: %v ip: %v mbgip: %v", s.GwId, s.GwId, s.GwIP, s.MbgIP)
-	log.Printf("[Gateway %v]: services %v", s.GwId, s.Services)
+func (s *ClusterState) Print() {
+	log.Printf("[Cluster %v]: Id: %v ip: %v mbgip: %v", s.Id, s.Id, s.IP, s.MbgIP)
+	log.Printf("[Cluster %v]: services %v", s.Id, s.Services)
 }
 
 /// Json code ////
 func configPath() string {
-	cfgFile := ".gatewayApp"
+	cfgFile := ".clusterApp"
 	//set cfg file in home directory
 	usr, _ := user.Current()
 	return path.Join(usr.HomeDir, cfgFile)
@@ -97,9 +97,9 @@ func SaveState() {
 	ioutil.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
 }
 
-func readState() GatewayState {
+func readState() ClusterState {
 	data, _ := ioutil.ReadFile(configPath())
-	var s GatewayState
+	var s ClusterState
 	json.Unmarshal(data, &s)
 	return s
 }
