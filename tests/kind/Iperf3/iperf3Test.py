@@ -95,7 +95,7 @@ if __name__ == "__main__":
     printHeader("\n\nStart Data plan connection iperfIsrael to iperfIndia")
     runcmd(f'kubectl config use-context kind-cluster-host')
     runcmd(f'kubectl exec -i {podhost} -- ./cluster connect --serviceId iperfIsrael  --serviceIdDest iperfIndia &')
-    time.sleep(30)
+    time.sleep(40)
     printHeader("\n\nStart Iperf3 testing")
     podIperf3= getPodName("iperf3-clients")
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c cluster-iperf3-service -p 5000'
