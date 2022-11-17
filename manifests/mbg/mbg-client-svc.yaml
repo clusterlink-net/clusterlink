@@ -13,6 +13,6 @@ spec:
     app: mbg
   ports:
     - protocol: TCP
-      port: 5000
-      targetPort: 5000
+      port: 4000
+      targetPort: 4000
       

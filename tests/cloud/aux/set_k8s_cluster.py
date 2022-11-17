@@ -36,7 +36,7 @@ def deployTarget(cluster):
     else:#gcp/ibm
         setupIperf3Target(cluster.platform)
         target_ip= sp.getoutput('kubectl get svc iperf3-loadbalancer-service --template="{{range .status.loadBalancer.ingress}}{{.ip}}{{end}}"')
-    target_port = "5500"
+    target_port = "5000"
     data_dic={"ip": target_ip, "port" : target_port}
     dicUpdate(data_dic, cluster)
     return data_dic
@@ -78,10 +78,9 @@ def dicUpdate(data_dic, cluster):
 def setupClientService(mbg, target,service):
     print("\n\ncreate client configmap deploymnet and service")
     cleanService()
-    createClientConfigFile(PROJECT_PATH+"/manifests/host/gateway-configmap.yaml", mbg, target,service)
-    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/gateway-configmap.yaml")
-    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/gateway.yaml")
-    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/gateway-svc.yaml")
+    #createClientConfigFile(PROJECT_PATH+"/manifests/host/gateway-configmap.yaml", mbg, target,service)
+    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/cluster.yaml")
+    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/cluster-svc.yaml")
 
 
 def createClientConfigFile(file, mbg, target, service):

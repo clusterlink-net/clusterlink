@@ -18,8 +18,8 @@ spec:
       nodePort: 30000
       name: grpc-port
     - protocol: TCP
-      port: 5100
-      targetPort: 5100
+      port: 5000
+      targetPort: 5000
       name: data-port
       nodePort: 30001
     

@@ -13,8 +13,8 @@ spec:
     app: iperf3-server
   ports:
       # By default and for convenience, the `targetPort` is set to the same value as the `port` field.
-    - port: 5500
-      targetPort: 5201
+    - port: 5000
+      targetPort: 5000
       # Optional field
       # By default and for convenience, the Kubernetes control plane will allocate a port from a range (default: 30000-32767)
       nodePort: 30001

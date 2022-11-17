@@ -1,13 +1,14 @@
 import os,sys,time
 import subprocess as sp
 import netifaces as ni
+from colorama import Fore
+from colorama import Style
 
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 
-
 def waitPod(name):
     start_cond="false"
-    time.sleep(3) #Iinital start
+    time.sleep(3) #Initial start
     while(start_cond != "true"):
         cmd=f"kubectl get pods -l app={name} -o jsonpath" + "=\'{.items[0].status.containerStatuses[0].ready}\'"
         start_cond =sp.getoutput(cmd)
@@ -30,69 +31,85 @@ def getIp(Interface):
     ip = ni.ifaddresses(Interface)[ni.AF_INET][0]['addr']
     print(f"local Ip addrees:{ip}")
     return ip
+def printHeader(msg):
+    print(f'{Fore.BLUE}{msg} {Style.RESET_ALL}')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
-    print("\n\nStart Kind Test\n\n")
-    print("Start pre-setting")
+    printHeader("\n\nStart Kind Test\n\n")
+    printHeader("Start pre-setting")
     ipAddr=getIp("eth0")
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
     ### clean 
-    print("Clean old kinds")
+    print(f"Clean old kinds")
     os.system("make clean-kind-mbg")
 
     ###Run first Mbg
-    print("\n\nStart building MBG1")
+    printHeader("\n\nStart building MBG1")
     os.system("make run-kind-mbg1")
     waitPod("mbg")
     podMbg1= getPodName("mbg")
-    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg start --id "mbg1" --ip {ipAddr} --cport "30100" --exposePortRange "30101" &')
+    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg start --id "mbg1" --ip {ipAddr} --cport "30100" --exposeDataPortRange 30101 &')
     time.sleep(5)
-    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addGw --id "hostGw" --ip {ipAddr}:30300')
+    printHeader("Add host cluster to MBG1")
+    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addCluster --id "hostCluster" --ip {ipAddr}:20100')
 
     ###Run Second Mbg
-    print("\n\nStart building MBG2")
+    printHeader("\n\nStart building MBG2")
     os.system("make run-kind-mbg2")
     waitPod("mbg")
     podMbg2 = getPodName("mbg")
-    runcmd(f'kubectl exec -i {podMbg2} --  ./mbg start --id "mbg2" --ip {ipAddr} --cport "30200" --exposePortRange "30201" &')
+    runcmd(f'kubectl exec -i {podMbg2} --  ./mbg start --id "mbg2" --ip {ipAddr} --cport "30200" --exposeDataPortRange 30201 &')
     time.sleep(5)
+    printHeader("Add MBG1 neighbor to MBG2")
     runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addMbg --id "mbg1" --ip {ipAddr} --cport "30100"')
+    printHeader("Send Hello commands")
     runcmd(f'kubectl exec -i {podMbg2} -- ./mbg hello')
-    runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addGw --id "destGw" --ip {ipAddr}:30400')
+    printHeader("Add Destination Cluster to MBG2")
+    runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addCluster --id "destCluster" --ip {ipAddr}:20200')
 
     ###Run host
-    print("\n\nStart building Gateway-host")
+    printHeader("\n\nStart building cluster-host")
     os.system("make run-kind-host")
-    waitPod("gateway-mbg")
-    podhost= getPodName("gateway-mbg")
-    runcmd(f'kubectl exec -i {podhost} -- ./gateway start --id "hostGw"  --ip {ipAddr} --mbgIP {ipAddr}:30100 &')
-    runcmd(f'kubectl exec -i {podhost} -- ./gateway addService --serviceId iperfIsrael --serviceIp :5001')
+    waitPod("cluster-mbg")
+    podhost= getPodName("cluster-mbg")
+    runcmd(f'kubectl exec -i {podhost} -- ./cluster start --id "hostCluster"  --ip {ipAddr} --mbgIP {ipAddr}:30100 &')
+    printHeader("Add iperfIsrael (client) service to host cluster")
+    runcmd(f'kubectl exec -i {podhost} -- ./cluster addService --serviceId iperfIsrael --serviceIp :5000')
 
     ###Run dest
-    print("\n\nStart building Gateway-destination")
+    printHeader("\n\nStart building cluster-destination")
     os.system("make run-kind-dest")
-    waitPod("gateway-mbg")
-    podest= getPodName("gateway-mbg")
-    runcmd(f'kubectl exec -i {podest} -- ./gateway start --id "destGw"  --ip {ipAddr} --mbgIP {ipAddr}:30200 &')
-    runcmd(f'kubectl exec -i {podest} -- ./gateway addService --serviceId iperfIndia --serviceIp {ipAddr}:30401')
+    waitPod("cluster-mbg")
+    podest= getPodName("cluster-mbg")
+    runcmd(f'kubectl exec -i {podest} -- ./cluster start --id "destCluster"  --ip {ipAddr} --mbgIP {ipAddr}:30200 &')
+    printHeader("Add iperfIndia (server) service to destination cluster")
+    runcmd(f'kubectl exec -i {podest} -- ./cluster addService --serviceId iperfIndia --serviceIp {ipAddr}:20201')
 
     # #Expose service
-    print("\n\nStart exposing connection")
-    runcmd(f'kubectl exec -i {podest} -- ./gateway expose --serviceId iperfIndia')
+    printHeader("\n\nStart exposing connection")
+    runcmd(f'kubectl exec -i {podest} -- ./cluster expose --serviceId iperfIndia')
 
     #Connect service
-    print("\n\nStart connection")
-    runcmd(f'kubectl config use-context kind-gw-host')
-    runcmd(f'kubectl exec -i {podhost} -- ./gateway connect --serviceId iperfIsrael  --serviceIdDest iperfIndia &')
-    time.sleep(30)
-    print("\n\nStart Iperf3 testing")
+    printHeader("\n\nStart Data plan connection iperfIsrael to iperfIndia")
+    runcmd(f'kubectl config use-context kind-cluster-host')
+    runcmd(f'kubectl exec -i {podhost} -- ./cluster connect --serviceId iperfIsrael  --serviceIdDest iperfIndia &')
+    time.sleep(40)
+    printHeader("\n\nStart Iperf3 testing")
     podIperf3= getPodName("iperf3-clients")
-    runcmd(f'kubectl exec -i {podIperf3} --  iperf3 -c gateway-iperf3-service -p 5001')
+    cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c cluster-iperf3-service -p 5000'
+    print(cmd)
+    direct_output = sp.check_output(cmd,shell=True) #could be anything here.  
+    printHeader(f"Iperf3 Test Results:\n") 
+    print(f"{direct_output.decode()}")
     
-
-
+    #check results
+    print("***************************************")
+    if "iperf Done" in direct_output.decode():
+        print(f'Test Pass')
+    else:
+        print(f'Test Fail')
 
 
 

@@ -41,7 +41,7 @@ func ExposeToMbg(serviceId string) {
 
 	s := state.GetLocalService(serviceId)
 	svcExp := s.Service
-	svcExp.Ip = myIp + ":" + s.ExposePort //update port to connect data
+	svcExp.Ip = myIp + ":" + s.ExposeDataPort //update port to connect data
 	svcExp.Domain = "Remote"
 	for _, m := range MbgArr {
 		destIp := m.Ip + ":" + m.Cport
@@ -49,15 +49,15 @@ func ExposeToMbg(serviceId string) {
 	}
 }
 
-func ExposeToGw(serviceId string) {
-	gwArr := state.GetLocalGwArr()
+func ExposeToCluster(serviceId string) {
+	clusterArr := state.GetLocalClusterArr()
 	myIp := state.GetMyIp()
 	s := state.GetRemoteService(serviceId)
 	svcExp := s.Service
-	svcExp.Ip = myIp + ":" + s.ExposePort //update port to connect data
+	svcExp.Ip = myIp + ":" + s.ExposeDataPort //update port to connect data
 	svcExp.Domain = "Remote"
 
-	for _, g := range gwArr {
+	for _, g := range clusterArr {
 		destIp := g.Ip
 		expose(svcExp, destIp, "Gateway")
 	}

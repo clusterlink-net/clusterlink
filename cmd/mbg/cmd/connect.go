@@ -14,8 +14,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/pkg/client"
-	mbgSwitch "github.ibm.com/mbg-agent/pkg/mbg-switch"
 	pb "github.ibm.com/mbg-agent/pkg/protocol"
+	"github.ibm.com/mbg-agent/pkg/server"
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 
 	"google.golang.org/grpc"
@@ -40,11 +40,11 @@ var connectCmd = &cobra.Command{
 		var listenPort, destIp string
 		if state.IsServiceLocal(svcIdDest) {
 			destSvc := state.GetLocalService(svcIdDest)
-			listenPort = destSvc.ListenPort
+			listenPort = destSvc.LocalDataPort
 			destIp = destSvc.Service.Ip
 		} else { //For Remtote service
 			destSvc := state.GetRemoteService(svcIdDest)
-			listenPort = destSvc.ListenPort
+			listenPort = destSvc.LocalDataPort
 			destIp = destSvc.Service.Ip
 		}
 
@@ -56,21 +56,22 @@ var connectCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(connectCmd)
-	connectCmd.Flags().String("serviceId", "", "Service Id that the gateway is listen")
-	connectCmd.Flags().String("serviceIdDest", "", "Destination service id the gateway is connecting")
+	connectCmd.Flags().String("serviceId", "", "Source service id for connecting ")
+	connectCmd.Flags().String("serviceIdDest", "", "Destination service id for connecting")
 	connectCmd.Flags().String("policy", "", "Policy connection")
 
 }
 
-//Run server for connecting
+//Run server for Data connection - we have one server and client that we can add some network functions e.g: TCP-split
+//By default we just forward the data
 func ConnectService(svcListenPort, svcIp, policy string) {
-	var s mbgSwitch.MbgSwitch
+	var s server.MbgServer
 	var c client.MbgClient
 
 	srcIp := ":" + svcListenPort
 	destIp := svcIp
 
-	cListener := ":5000"
+	cListener := ":4000" //port the client always listen
 	var serverTarget string
 	if policy == "Forward" {
 		serverTarget = cListener
@@ -80,12 +81,11 @@ func ConnectService(svcListenPort, svcIp, policy string) {
 		fmt.Println(policy, "- Policy  not exist use Forward")
 		serverTarget = cListener
 	}
-	s.InitMbgSwitch(srcIp, serverTarget)
+	s.InitServer(srcIp, serverTarget)
 	c.InitClient(cListener, destIp)
 
 	go c.RunClient()
-	s.RunMbgSwitch()
-
+	s.RunServer()
 }
 
 //Send control request to connect
