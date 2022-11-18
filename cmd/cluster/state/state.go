@@ -41,6 +41,9 @@ func GetId() string {
 	return s.Id
 }
 
+func GetCport() string {
+	return s.Cport
+}
 func SetState(ip, id, mbgIp, cport string) {
 	log.Println(s)
 	s.Id = id

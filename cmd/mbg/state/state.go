@@ -59,6 +59,11 @@ func GetMyIp() string {
 func GetMyId() string {
 	return s.MyInfo.Id
 }
+
+func GetMyCport() string {
+	return s.MyInfo.Cport
+}
+
 func GetMyInfo() MbgInfo {
 	return s.MyInfo
 }
