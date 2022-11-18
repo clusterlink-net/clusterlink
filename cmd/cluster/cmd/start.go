@@ -43,10 +43,6 @@ func init() {
 	startCmd.Flags().String("cport", "", "Cluster control port")
 }
 
-const (
-	serverPort = ":50051"
-)
-
 /******* Commands **********/
 //Expose
 func (s *ExposeServer) ExposeCmd(ctx context.Context, in *pb.ExposeRequest) (*pb.ExposeReply, error) {
@@ -79,7 +75,8 @@ func (s *ConnectServer) connectCmd(ctx context.Context, in *pb.ConnectRequest) (
 /********************************** Server **********************************************************/
 func startServer() {
 	log.Printf("Cluster [%v] started", state.GetId())
-	lis, err := net.Listen("tcp", serverPort)
+	clusterCPort := state.GetIP() + ":" + state.GetCport()
+	lis, err := net.Listen("tcp", clusterCPort)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

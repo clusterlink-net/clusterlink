@@ -50,10 +50,6 @@ func init() {
 
 }
 
-const (
-	serverIp = ":50051"
-)
-
 /******* Commands **********/
 //Expose
 type ExposeServer struct {
@@ -92,15 +88,16 @@ type ConnectServer struct {
 }
 
 func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (*pb.ConnectReply, error) {
-	log.Printf("Received Connect request from service: %v to service: %v", in.GetId(), in.GetIdDest())
 	state.UpdateState()
 	//svc := state.GetService(in.GetID())
 	var listenPort, destIp string
 	if state.IsServiceLocal(in.GetIdDest()) {
+		log.Printf("Received Incoming Connect request from service: %v to service: %v", in.GetId(), in.GetIdDest())
 		destSvc := state.GetLocalService(in.GetIdDest())
 		listenPort = destSvc.LocalDataPort
 		destIp = destSvc.Service.Ip
 	} else { //For Remtote service
+		log.Printf("Received Outgoing Connect request from service: %v to service: %v", in.GetId(), in.GetIdDest())
 		destSvc := state.GetRemoteService(in.GetIdDest())
 		mbgIP := state.GetServiceMbgIp(destSvc.Service.Ip)
 		SendConnectReq(in.GetId(), in.GetIdDest(), in.GetPolicy(), mbgIP)
@@ -116,7 +113,8 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 /********************************** Server **********************************************************/
 func startServer() {
 	log.Printf("MBG [%v] started", state.GetMyId())
-	lis, err := net.Listen("tcp", serverIp)
+	mbgCPort := state.GetMyIp() + ":" + state.GetMyCport()
+	lis, err := net.Listen("tcp", mbgCPort)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

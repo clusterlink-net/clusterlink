@@ -50,7 +50,7 @@ func expose(serviceId, mbgIP string) {
 	}
 	defer conn.Close()
 	c := pb.NewExposeClient(conn)
-
+	log.Printf("here\n")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	r, err := c.ExposeCmd(ctx, &pb.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain})
