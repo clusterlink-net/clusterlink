@@ -112,8 +112,8 @@ func GetServiceMbgIp(Ip string) string {
 			return mbgIp
 		}
 	}
-
-	log.Panicln("[MBG %v]Error]Service %v is not defined", s.MyInfo.Id, Ip)
+	log.Printf("[MBG %v]Error Service %v is not defined", s.MyInfo.Id, Ip)
+	s.Print()
 	return ""
 }
 func IsServiceLocal(id string) bool {

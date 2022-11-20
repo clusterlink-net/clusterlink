@@ -3,9 +3,10 @@ package state
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"os/user"
 	"path"
+
+	log "github.com/sirupsen/logrus"
 
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
@@ -29,7 +30,6 @@ const (
 var s = ClusterState{MbgIP: "", IP: "", Id: "", Services: make(map[string]ClusterService)}
 
 func GetMbgIP() string {
-	log.Println(s.MbgIP)
 	return s.MbgIP
 }
 
@@ -45,7 +45,6 @@ func GetCport() string {
 	return s.Cport
 }
 func SetState(ip, id, mbgIp, cport string) {
-	log.Println(s)
 	s.Id = id
 	s.IP = ip
 	s.Cport = cport
@@ -70,15 +69,15 @@ func AddService(id, ip, domain string) {
 
 	policy := "" //default:No policy
 	s.Services[id] = ClusterService{Service: service.Service{id, ip, domain, policy}}
-	log.Printf("[Cluster %v] Add service: %v", s.Id, s.Services[id])
+	log.Infof("[Cluster %v] Add service: %v", s.Id, s.Services[id])
 	s.Print()
 	SaveState()
 
 }
 
 func (s *ClusterState) Print() {
-	log.Printf("[Cluster %v]: Id: %v ip: %v mbgip: %v", s.Id, s.Id, s.IP, s.MbgIP)
-	log.Printf("[Cluster %v]: services %v", s.Id, s.Services)
+	log.Infof("[Cluster %v]: Id: %v ip: %v mbgip: %v", s.Id, s.Id, s.IP, s.MbgIP)
+	log.Infof("[Cluster %v]: services %v", s.Id, s.Services)
 }
 
 /// Json code ////
@@ -95,7 +94,7 @@ func configPath() string {
 }
 
 func SaveState() {
-	log.Println(s)
+	log.Info(s)
 	jsonC, _ := json.MarshalIndent(s, "", "\t")
 	ioutil.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
 }

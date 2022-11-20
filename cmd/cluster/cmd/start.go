@@ -9,9 +9,9 @@ import (
 	"github.ibm.com/mbg-agent/cmd/cluster/state"
 
 	"context"
-	"log"
 	"net"
 
+	log "github.com/sirupsen/logrus"
 	pb "github.ibm.com/mbg-agent/pkg/protocol"
 	"google.golang.org/grpc"
 )
@@ -75,8 +75,7 @@ func (s *ConnectServer) connectCmd(ctx context.Context, in *pb.ConnectRequest) (
 /********************************** Server **********************************************************/
 func startServer() {
 	log.Printf("Cluster [%v] started", state.GetId())
-	clusterCPort := state.GetIP() + ":" + state.GetCport()
-	lis, err := net.Listen("tcp", clusterCPort)
+	lis, err := net.Listen("tcp", serverPort)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
