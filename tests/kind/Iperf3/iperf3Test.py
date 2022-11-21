@@ -50,7 +50,7 @@ if __name__ == "__main__":
     os.system("make run-kind-mbg1")
     waitPod("mbg")
     podMbg1= getPodName("mbg")
-    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg start --id "mbg1" --ip {ipAddr} --cport "30100" --exposeDataPortRange 30101 &')
+    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg start --id "mbg1" --ip {ipAddr} --cportExpose "30100" --exposeDataPortRange 30101 &')
     time.sleep(5)
     printHeader("Add host cluster to MBG1")
     runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addCluster --id "hostCluster" --ip {ipAddr}:20100')
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     os.system("make run-kind-mbg2")
     waitPod("mbg")
     podMbg2 = getPodName("mbg")
-    runcmd(f'kubectl exec -i {podMbg2} --  ./mbg start --id "mbg2" --ip {ipAddr} --cport "30200" --exposeDataPortRange 30201 &')
+    runcmd(f'kubectl exec -i {podMbg2} --  ./mbg start --id "mbg2" --ip {ipAddr} --cportExpose "30200" --exposeDataPortRange 30201 &')
     time.sleep(5)
     printHeader("Add MBG1 neighbor to MBG2")
     runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addMbg --id "mbg1" --ip {ipAddr} --cport "30100"')
@@ -110,6 +110,7 @@ if __name__ == "__main__":
         print(f'Test Pass')
     else:
         print(f'Test Fail')
+    print("***************************************")
 
 
 

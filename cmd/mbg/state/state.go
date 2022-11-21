@@ -21,11 +21,10 @@ type mbgState struct {
 }
 
 type MbgInfo struct {
-	Id                  string
-	Ip                  string
-	Cport               string
-	LocalDataPortRange  int
-	ExposeDataPortRange int
+	Id            string
+	Ip            string
+	Cport         ClusterPort
+	DataPortRange ClusterPort
 }
 
 type LocalCluster struct {
@@ -34,16 +33,19 @@ type LocalCluster struct {
 }
 
 type RemoteService struct {
-	Service        service.Service
-	MbgId          string // For now to identify a service to a MBG
-	LocalDataPort  string
-	ExposeDataPort string
+	Service  service.Service
+	MbgId    string // For now to identify a service to a MBG
+	DataPort ClusterPort
 }
 
 type LocalService struct {
-	Service        service.Service
-	LocalDataPort  string
-	ExposeDataPort string
+	Service  service.Service
+	DataPort ClusterPort
+}
+
+type ClusterPort struct {
+	Local    string
+	External string
 }
 
 var s = mbgState{MyInfo: MbgInfo{},
@@ -60,7 +62,7 @@ func GetMyId() string {
 	return s.MyInfo.Id
 }
 
-func GetMyCport() string {
+func GetMyCport() ClusterPort {
 	return s.MyInfo.Cport
 }
 
@@ -76,12 +78,13 @@ func GetLocalClusterArr() map[string]LocalCluster {
 	return s.ClusterArr
 }
 
-func SetState(id, ip, cport string, localDataPortRange, exposeDataPortRange int) {
+func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange string) {
 	s.MyInfo.Id = id
 	s.MyInfo.Ip = ip
-	s.MyInfo.Cport = cport
-	s.MyInfo.LocalDataPortRange = localDataPortRange
-	s.MyInfo.ExposeDataPortRange = exposeDataPortRange
+	s.MyInfo.Cport.Local = cportLocal
+	s.MyInfo.Cport.External = cportExternal
+	s.MyInfo.DataPortRange.Local = localDataPortRange
+	s.MyInfo.DataPortRange.External = externalDataPortRange
 	SaveState()
 }
 
@@ -108,7 +111,7 @@ func GetServiceMbgIp(Ip string) string {
 	svcIp := strings.Split(Ip, ":")[0]
 	for _, m := range s.MbgArr {
 		if m.Ip == svcIp {
-			mbgIp := m.Ip + ":" + m.Cport
+			mbgIp := m.Ip + ":" + m.Cport.External
 			return mbgIp
 		}
 	}
@@ -122,7 +125,7 @@ func IsServiceLocal(id string) bool {
 }
 
 func AddMbgNbr(id, ip, cport string) {
-	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: cport}
+	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ClusterPort{External: cport, Local: ""}}
 	log.Printf("[MBG %v] add MBG neighbors array %v", s.MyInfo.Id, s.MbgArr[id])
 	s.Print()
 	SaveState()
@@ -133,18 +136,20 @@ func AddLocalService(id, ip, domain string) {
 	var lp, ep string
 
 	if val, ok := s.MyServices[id]; ok {
-		lp = val.LocalDataPort
-		ep = val.ExposeDataPort
+		lp = val.DataPort.Local
+		ep = val.DataPort.External
 	} else { //create new allocation for the ports
-		lp = strconv.Itoa(s.MyInfo.LocalDataPortRange + len(s.MyServices))
-		ep = strconv.Itoa(s.MyInfo.ExposeDataPortRange + len(s.MyServices))
+		lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
+		eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
+		lp = strconv.Itoa(lval + len(s.MyServices))
+		ep = strconv.Itoa(eval + len(s.MyServices))
 	}
 
 	if s.MyServices == nil {
 		s.MyServices = make(map[string]LocalService)
 	}
 
-	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain, ""}, LocalDataPort: lp, ExposeDataPort: ep}
+	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain, ""}, DataPort: ClusterPort{Local: lp, External: ep}}
 	log.Printf("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()
@@ -154,18 +159,20 @@ func AddRemoteService(id, ip, domain, MbgId string) {
 	var lp, ep string
 
 	if val, ok := s.RemoteServices[id]; ok {
-		lp = val.LocalDataPort
-		ep = val.ExposeDataPort
+		lp = val.DataPort.Local
+		ep = val.DataPort.External
 	} else { //create new allocation for the ports
-		lp = strconv.Itoa(s.MyInfo.LocalDataPortRange + len(s.RemoteServices))
-		ep = strconv.Itoa(s.MyInfo.ExposeDataPortRange + len(s.RemoteServices))
+		lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
+		eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
+		lp = strconv.Itoa(lval + len(s.RemoteServices))
+		ep = strconv.Itoa(eval + len(s.RemoteServices))
 	}
 
 	if s.RemoteServices == nil {
 		s.RemoteServices = make(map[string]RemoteService)
 	}
 
-	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain, "Forward"}, MbgId: MbgId, LocalDataPort: lp, ExposeDataPort: ep}
+	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain, "Forward"}, MbgId: MbgId, DataPort: ClusterPort{Local: lp, External: ep}}
 	log.Printf("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()

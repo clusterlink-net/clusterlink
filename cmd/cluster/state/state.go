@@ -16,11 +16,16 @@ type ClusterService struct {
 }
 
 type ClusterState struct {
-	MbgIP    string `json:"MbgIP"`
-	IP       string `json:"IP"`
-	Id       string `json:"Id"`
-	Cport    string `json:"Cport"`
+	MbgIP    string      `json:"MbgIP"`
+	IP       string      `json:"IP"`
+	Id       string      `json:"Id"`
+	Cport    ClusterPort `json:"Cport"`
 	Services map[string]ClusterService
+}
+
+type ClusterPort struct {
+	Local    string
+	External string
 }
 
 const (
@@ -41,13 +46,14 @@ func GetId() string {
 	return s.Id
 }
 
-func GetCport() string {
+func GetCport() ClusterPort {
 	return s.Cport
 }
-func SetState(ip, id, mbgIp, cport string) {
+func SetState(ip, id, mbgIp, cportLocal, cportExternal string) {
 	s.Id = id
 	s.IP = ip
-	s.Cport = cport
+	s.Cport.Local = cportLocal
+	s.Cport.External = cportExternal
 	s.MbgIP = mbgIp
 
 	SaveState()

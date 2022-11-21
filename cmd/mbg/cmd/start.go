@@ -22,20 +22,21 @@ var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "A start command set all parameter state of the Multi-cloud Border Gateway",
 	Long: `A start command set all parameter state of the MBg-
-			The  id, IP cport(Cntrol port for grpc) and localDataPortRange,exposeDataPortRange
+			The  id, IP cport(Cntrol port for grpc) and localDataPortRange,externalDataPortRange
 			TBD now is done manually need to call some external `,
 	Run: func(cmd *cobra.Command, args []string) {
 		ip, _ := cmd.Flags().GetString("ip")
 		id, _ := cmd.Flags().GetString("id")
+		cportLocal, _ := cmd.Flags().GetString("cportLocal")
 		cport, _ := cmd.Flags().GetString("cport")
-		localDataPortRange, _ := cmd.Flags().GetInt("localDataPortRange")
-		exposeDataPortRange, _ := cmd.Flags().GetInt("exposeDataPortRange")
+		localDataPortRange, _ := cmd.Flags().GetString("localDataPortRange")
+		externalDataPortRange, _ := cmd.Flags().GetString("externalDataPortRange")
 
 		if ip == "" || id == "" || cport == "" {
 			log.Println("Error: please insert all flag arguments for Mbg start command")
 			os.Exit(1)
 		}
-		state.SetState(id, ip, cport, localDataPortRange, exposeDataPortRange)
+		state.SetState(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange)
 		startServer()
 	},
 }
@@ -44,9 +45,10 @@ func init() {
 	rootCmd.AddCommand(startCmd)
 	startCmd.Flags().String("id", "", "Multi-cloud Border Gateway id")
 	startCmd.Flags().String("ip", "", "Multi-cloud Border Gateway ip")
-	startCmd.Flags().String("cport", "", "Multi-cloud Border Gateway control port")
-	startCmd.Flags().Int("localDataPortRange", 5000, "Set the port range for data connection in the MBG")
-	startCmd.Flags().Int("exposeDataPortRange", 30000, "Set the port range for exposing data connection (each expose port connect to localDataPort")
+	startCmd.Flags().String("cportLocal", "50051", "Multi-cloud Border Gateway control local port inside the MBG")
+	startCmd.Flags().String("cport", "", "Multi-cloud Border Gateway control external port for the MBG neighbors ")
+	startCmd.Flags().String("localDataPortRange", "5000", "Set the port range for data connection in the MBG")
+	startCmd.Flags().String("externalDataPortRange", "30000", "Set the port range for exposing data connection (each expose port connect to localDataPort")
 
 }
 
@@ -94,14 +96,14 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 	if state.IsServiceLocal(in.GetIdDest()) {
 		log.Printf("Received Incoming Connect request from service: %v to service: %v", in.GetId(), in.GetIdDest())
 		destSvc := state.GetLocalService(in.GetIdDest())
-		listenPort = destSvc.LocalDataPort
+		listenPort = destSvc.DataPort.Local
 		destIp = destSvc.Service.Ip
 	} else { //For Remtote service
 		log.Printf("Received Outgoing Connect request from service: %v to service: %v", in.GetId(), in.GetIdDest())
 		destSvc := state.GetRemoteService(in.GetIdDest())
 		mbgIP := state.GetServiceMbgIp(destSvc.Service.Ip)
 		SendConnectReq(in.GetId(), in.GetIdDest(), in.GetPolicy(), mbgIP)
-		listenPort = destSvc.LocalDataPort
+		listenPort = destSvc.DataPort.Local
 		destIp = destSvc.Service.Ip
 	}
 
@@ -113,7 +115,7 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 /********************************** Server **********************************************************/
 func startServer() {
 	log.Printf("MBG [%v] started", state.GetMyId())
-	mbgCPort := state.GetMyIp() + ":" + state.GetMyCport()
+	mbgCPort := ":" + state.GetMyCport().Local //TBD - not supporting using several MBGs in same node
 	lis, err := net.Listen("tcp", mbgCPort)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
