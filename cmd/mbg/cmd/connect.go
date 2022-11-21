@@ -13,8 +13,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
+	"github.ibm.com/mbg-agent/pkg/client"
 	pb "github.ibm.com/mbg-agent/pkg/protocol"
-	"github.ibm.com/mbg-agent/pkg/mbgDataplane"
+	"github.ibm.com/mbg-agent/pkg/server"
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 
 	"google.golang.org/grpc"
@@ -64,8 +65,8 @@ func init() {
 //Run server for Data connection - we have one server and client that we can add some network functions e.g: TCP-split
 //By default we just forward the data
 func ConnectService(svcListenPort, svcIp, policy string) {
-	var s mbgDataplane.MbgServer
-	var c mbgDataplane.MbgClient
+	var s server.MbgServer
+	var c client.MbgClient
 
 	srcIp := ":" + svcListenPort
 	destIp := svcIp
