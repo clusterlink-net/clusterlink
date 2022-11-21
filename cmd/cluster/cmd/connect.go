@@ -13,7 +13,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/cluster/state"
-	"github.ibm.com/mbg-agent/pkg/clusterProxy"
+	"github.ibm.com/mbg-agent/pkg/client"
 	pb "github.ibm.com/mbg-agent/pkg/protocol"
 	"google.golang.org/grpc"
 )
@@ -56,7 +56,7 @@ func init() {
 }
 
 func connectClient(source, dest string) {
-	var c client.ProxyClient
+	var c client.MbgClient
 	//TBD add validity check for the source and dest  IP
 	c.InitClient(source, dest)
 	c.RunClient()
