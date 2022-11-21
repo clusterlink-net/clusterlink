@@ -56,7 +56,7 @@ func init() {
 }
 
 func connectClient(source, dest string) {
-	var c client.ProxyClient
+	var c clusterProxy.ProxyClient
 	//TBD add validity check for the source and dest  IP
 	c.InitClient(source, dest)
 	c.RunClient()
