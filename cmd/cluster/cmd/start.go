@@ -9,9 +9,9 @@ import (
 	"github.ibm.com/mbg-agent/cmd/cluster/state"
 
 	"context"
-	"log"
 	"net"
 
+	log "github.com/sirupsen/logrus"
 	pb "github.ibm.com/mbg-agent/pkg/protocol"
 	"google.golang.org/grpc"
 )
@@ -28,9 +28,10 @@ var startCmd = &cobra.Command{
 		ip, _ := cmd.Flags().GetString("ip")
 		id, _ := cmd.Flags().GetString("id")
 		mbgIP, _ := cmd.Flags().GetString("mbgIP")
+		cportLocal, _ := cmd.Flags().GetString("cportLocal")
 		cport, _ := cmd.Flags().GetString("cport")
 
-		state.SetState(ip, id, mbgIP, cport)
+		state.SetState(ip, id, mbgIP, cportLocal, cport)
 		startServer()
 	},
 }
@@ -40,7 +41,8 @@ func init() {
 	startCmd.Flags().String("id", "", "Cluster Id")
 	startCmd.Flags().String("ip", "", "Cluster IP")
 	startCmd.Flags().String("mbgIP", "", "IP address of the MBG connected to the Cluster")
-	startCmd.Flags().String("cport", "", "Cluster control port")
+	startCmd.Flags().String("cportLocal", "50051", "Multi-cloud Border Gateway control local port inside the MBG")
+	startCmd.Flags().String("cport", "", "Multi-cloud Border Gateway control external port for the MBG neighbors ")
 }
 
 /******* Commands **********/
@@ -75,7 +77,8 @@ func (s *ConnectServer) connectCmd(ctx context.Context, in *pb.ConnectRequest) (
 /********************************** Server **********************************************************/
 func startServer() {
 	log.Printf("Cluster [%v] started", state.GetId())
-	clusterCPort := state.GetIP() + ":" + state.GetCport()
+
+	clusterCPort := ":" + state.GetCport().Local
 	lis, err := net.Listen("tcp", clusterCPort)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

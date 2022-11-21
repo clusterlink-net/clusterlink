@@ -3,9 +3,10 @@ package state
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"os/user"
 	"path"
+
+	log "github.com/sirupsen/logrus"
 
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
@@ -15,11 +16,16 @@ type ClusterService struct {
 }
 
 type ClusterState struct {
-	MbgIP    string `json:"MbgIP"`
-	IP       string `json:"IP"`
-	Id       string `json:"Id"`
-	Cport    string `json:"Cport"`
+	MbgIP    string      `json:"MbgIP"`
+	IP       string      `json:"IP"`
+	Id       string      `json:"Id"`
+	Cport    ClusterPort `json:"Cport"`
 	Services map[string]ClusterService
+}
+
+type ClusterPort struct {
+	Local    string
+	External string
 }
 
 const (
@@ -29,7 +35,6 @@ const (
 var s = ClusterState{MbgIP: "", IP: "", Id: "", Services: make(map[string]ClusterService)}
 
 func GetMbgIP() string {
-	log.Println(s.MbgIP)
 	return s.MbgIP
 }
 
@@ -41,14 +46,14 @@ func GetId() string {
 	return s.Id
 }
 
-func GetCport() string {
+func GetCport() ClusterPort {
 	return s.Cport
 }
-func SetState(ip, id, mbgIp, cport string) {
-	log.Println(s)
+func SetState(ip, id, mbgIp, cportLocal, cportExternal string) {
 	s.Id = id
 	s.IP = ip
-	s.Cport = cport
+	s.Cport.Local = cportLocal
+	s.Cport.External = cportExternal
 	s.MbgIP = mbgIp
 
 	SaveState()
@@ -70,15 +75,15 @@ func AddService(id, ip, domain string) {
 
 	policy := "" //default:No policy
 	s.Services[id] = ClusterService{Service: service.Service{id, ip, domain, policy}}
-	log.Printf("[Cluster %v] Add service: %v", s.Id, s.Services[id])
+	log.Infof("[Cluster %v] Add service: %v", s.Id, s.Services[id])
 	s.Print()
 	SaveState()
 
 }
 
 func (s *ClusterState) Print() {
-	log.Printf("[Cluster %v]: Id: %v ip: %v mbgip: %v", s.Id, s.Id, s.IP, s.MbgIP)
-	log.Printf("[Cluster %v]: services %v", s.Id, s.Services)
+	log.Infof("[Cluster %v]: Id: %v ip: %v mbgip: %v", s.Id, s.Id, s.IP, s.MbgIP)
+	log.Infof("[Cluster %v]: services %v", s.Id, s.Services)
 }
 
 /// Json code ////
@@ -95,7 +100,7 @@ func configPath() string {
 }
 
 func SaveState() {
-	log.Println(s)
+	log.Info(s)
 	jsonC, _ := json.MarshalIndent(s, "", "\t")
 	ioutil.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
 }

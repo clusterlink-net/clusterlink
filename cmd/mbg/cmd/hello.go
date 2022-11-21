@@ -40,7 +40,7 @@ func init() {
 func sendHello(m, MyInfo state.MbgInfo) {
 	log.Printf("Start Hello message to MBG with IP address %v", m.Ip)
 
-	address := m.Ip + ":" + m.Cport
+	address := m.Ip + ":" + m.Cport.External
 	log.Printf("Start Hello message to MBG with IP address %v", address)
 
 	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
@@ -52,7 +52,7 @@ func sendHello(m, MyInfo state.MbgInfo) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := c.HelloCmd(ctx, &pb.HelloRequest{Id: MyInfo.Id, Ip: MyInfo.Ip, Cport: MyInfo.Cport})
+	r, err := c.HelloCmd(ctx, &pb.HelloRequest{Id: MyInfo.Id, Ip: MyInfo.Ip, Cport: MyInfo.Cport.External})
 	if err != nil {
 		log.Fatalf("could not create user: %v", err)
 	}

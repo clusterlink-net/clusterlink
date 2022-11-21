@@ -9,8 +9,9 @@ import (
 	"github.ibm.com/mbg-agent/cmd/cluster/state"
 
 	"context"
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	pb "github.ibm.com/mbg-agent/pkg/protocol"
 	"google.golang.org/grpc"
@@ -38,7 +39,7 @@ func init() {
 }
 
 func expose(serviceId, mbgIP string) {
-	log.Printf("Start expose %v to MBG with IP address %v", serviceId, mbgIP)
+	log.Printf("[ClsterStart expose %v to MBG with IP address %v", serviceId, mbgIP)
 	s := state.GetService(serviceId)
 	svcExp := s.Service
 
