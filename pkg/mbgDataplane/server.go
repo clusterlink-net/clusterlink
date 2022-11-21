@@ -11,10 +11,6 @@ import (
 	"sync"
 )
 
-var (
-	maxDataBufferSize = 64 * 1024
-)
-
 type MbgServer struct {
 	Listener      string
 	ServiceTarget string

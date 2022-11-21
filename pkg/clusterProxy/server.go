@@ -11,9 +11,6 @@ import (
 	"sync"
 )
 
-var (
-	maxDataBufferSize = 64 * 1024
-)
 
 type ProxyServer struct {
 	Listener      string
