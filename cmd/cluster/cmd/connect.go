@@ -42,7 +42,8 @@ var connectCmd = &cobra.Command{
 		if SendReq == "true" {
 			SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIP)
 		}
-		connectClient(svc.Service.Ip, destSvc.Service.Ip)
+		name := state.GetId() + " target: " + svcIdDest
+		connectClient(svc.Service.Ip, destSvc.Service.Ip, name)
 
 	},
 }
@@ -56,10 +57,10 @@ func init() {
 
 }
 
-func connectClient(source, dest string) {
+func connectClient(source, dest, name string) {
 	var c clusterProxy.ProxyClient
 	//TBD add validity check for the source and dest  IP
-	c.InitClient(source, dest)
+	c.InitClient(source, dest, name)
 	c.RunClient()
 }
 

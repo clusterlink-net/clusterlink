@@ -68,8 +68,8 @@ func (s *ConnectServer) connectCmd(ctx context.Context, in *pb.ConnectRequest) (
 	state.UpdateState()
 	svc := state.GetService(in.GetId())
 	destSvc := state.GetService(in.GetIdDest())
-
-	connectClient(svc.Service.Ip, destSvc.Service.Ip)
+	name := state.GetId() + " target: " + in.GetIdDest()
+	connectClient(svc.Service.Ip, destSvc.Service.Ip, name)
 
 	return &pb.ConnectReply{Message: "Connecting the services"}, nil
 }

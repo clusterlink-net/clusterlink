@@ -10,8 +10,6 @@ import (
 	"io"
 	"net"
 	"sync"
-
-	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
 
 var (
@@ -19,24 +17,21 @@ var (
 )
 
 type ProxyClient struct {
-	Listener       string
-	Target         string
-	SetupFrameFlag bool
-	setupGwMode    bool
-	hostService    service.Service
-	destService    service.Service
+	Listener string
+	Target   string
+	Name     string
 }
 
 //Init client fields
-func (c *ProxyClient) InitClient(listener, target string) {
+func (c *ProxyClient) InitClient(listener, target, name string) {
 	c.Listener = listener
 	c.Target = target
+	c.Name = name
 }
 
 //Run client object
 func (c *ProxyClient) RunClient() {
-	fmt.Println("*** Start Client ***")
-	fmt.Printf("Strart listen: %v  send to : %v \n", c.Listener, c.Target)
+	fmt.Printf("[%v] start connection : listen: %v  send to : %v \n", c.Name, c.Listener, c.Target)
 
 	err := c.acceptLoop()
 	fmt.Println("Error:", err)
