@@ -13,8 +13,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
-	pb "github.ibm.com/mbg-agent/pkg/protocol"
 	"github.ibm.com/mbg-agent/pkg/mbgDataplane"
+	pb "github.ibm.com/mbg-agent/pkg/protocol"
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 
 	"google.golang.org/grpc"
@@ -47,7 +47,7 @@ var connectCmd = &cobra.Command{
 			destIp = destSvc.Service.Ip
 		}
 
-		log.Println("Connect service %v to service %v ", svcId, svcIdDest)
+		log.Printf("Connect service %v to service %v \n", svcId, svcIdDest)
 		ConnectService(listenPort, destIp, policy)
 
 	},
@@ -80,7 +80,8 @@ func ConnectService(svcListenPort, svcIp, policy string) {
 		fmt.Println(policy, "- Policy  not exist use Forward")
 		serverTarget = cListener
 	}
-	s.InitServer(srcIp, serverTarget)
+	name1 := state.GetMyId() + " server"
+	s.InitServer(srcIp, serverTarget, name1)
 	c.InitClient(cListener, destIp)
 
 	go c.RunClient()

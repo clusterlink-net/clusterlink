@@ -14,36 +14,37 @@ import (
 type MbgServer struct {
 	Listener      string
 	ServiceTarget string
+	Name          string
 }
 
 //Init server fields
-func (s *MbgServer) InitServer(listener, target string) {
+func (s *MbgServer) InitServer(listener, target, name string) {
 	s.Listener = listener
 	s.ServiceTarget = target
+	s.Name = name
 
 }
 
 //Run server object
 func (s *MbgServer) RunServer() {
-	fmt.Println("********** Start Server ************")
-	fmt.Printf("Strart listen: %v send to: %v \n", s.Listener, s.ServiceTarget)
+	fmt.Printf("[%v] Start listen: %v send to: %v \n", s.Name, s.Listener, s.ServiceTarget)
 
 	err := s.acceptLoop() // missing channel for signal handler
-	fmt.Println("Error:", err)
+	fmt.Printf("[%v] Error: %v", s.Name, err)
 }
 
 //Start listen to client
 func (s *MbgServer) acceptLoop() error {
 	// open listener
 	acceptor, err := net.Listen("tcp", s.Listener)
-	fmt.Println("[server] acceptLoop : before accept for ip", acceptor.Addr())
+	fmt.Printf("[%v] acceptLoop : before accept for ip %v \n", s.Name, acceptor.Addr())
 	if err != nil {
 		return err
 	}
 	// loop until signalled to stop
 	for {
 		c, err := acceptor.Accept()
-		fmt.Println("[server] acceptLoop : get accept")
+		fmt.Printf("[%v] acceptLoop : get accept \n", s.Name)
 
 		if err != nil {
 			return err
@@ -55,9 +56,9 @@ func (s *MbgServer) acceptLoop() error {
 //get client data and controlFrame and connect to service/destination
 func (s *MbgServer) dispatch(c net.Conn, mbg string) error {
 
-	fmt.Println("[server] before dial to:", s.ServiceTarget)
+	fmt.Printf("[%v] before dial to: %v \n", s.Name, s.ServiceTarget)
 	nodeConn, err := net.Dial("tcp", s.ServiceTarget)
-	fmt.Println("[server] after dial to:", s.ServiceTarget)
+	fmt.Printf("[%v] after dial to: %v \n", s.Name, s.ServiceTarget)
 	if err != nil {
 		return err
 	}
@@ -69,8 +70,8 @@ func (s *MbgServer) ioLoop(cl, mbg net.Conn) error {
 	defer cl.Close()
 	defer mbg.Close()
 
-	fmt.Println("[server] listen to:", cl.LocalAddr().String(), "in port:", cl.RemoteAddr().String())
-	fmt.Println("[server] send data to:", mbg.RemoteAddr().String(), "from port:", mbg.LocalAddr().String())
+	fmt.Printf("[%v] listen to: %v in port: %v\n", s.Name, cl.LocalAddr().String(), cl.RemoteAddr().String())
+	fmt.Printf("[%v] send data to: %v from port: %v \n", s.Name, mbg.RemoteAddr().String(), mbg.LocalAddr().String())
 	done := &sync.WaitGroup{}
 	done.Add(2)
 
@@ -94,7 +95,7 @@ func (s *MbgServer) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) error {
 			if err == io.EOF {
 				err = nil //Ignore EOF error
 			} else {
-				fmt.Printf("[clientToServer]: Read error %v\n", err)
+				fmt.Printf("[%v][clientToServer]: Read error %v\n", s.Name, err)
 			}
 
 			break
@@ -102,7 +103,7 @@ func (s *MbgServer) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) error {
 
 		_, err = mbg.Write(bufData[:numBytes])
 		if err != nil {
-			fmt.Printf("[clientToServer]: Write error %v\n", err)
+			fmt.Printf("[%v][clientToServer]: Write error %v\n", s.Name, err)
 			break
 		}
 	}
@@ -126,13 +127,13 @@ func (s *MbgServer) serverToClient(wg *sync.WaitGroup, cl, mbg net.Conn) error {
 			if err == io.EOF {
 				err = nil //Ignore EOF error
 			} else {
-				fmt.Printf("[serverToClient]: Read error %v\n", err)
+				fmt.Printf("[%v][serverToClient]: Read error %v\n", s.Name, err)
 			}
 			break
 		}
 		_, err = cl.Write(bufData[:numBytes])
 		if err != nil {
-			fmt.Printf("[serverToClient]: Write error %v\n", err)
+			fmt.Printf("[%v][serverToClient]: Write error %v\n", s.Name, err)
 			break
 		}
 	}
