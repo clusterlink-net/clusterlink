@@ -6,9 +6,10 @@ package cmd
 
 import (
 	"context"
-	"log"
 	"net"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
@@ -59,7 +60,7 @@ type ExposeServer struct {
 }
 
 func (s *ExposeServer) ExposeCmd(ctx context.Context, in *pb.ExposeRequest) (*pb.ExposeReply, error) {
-	log.Printf("Received: %v", in.GetId())
+	log.Infof("Received: %v", in.GetId())
 	state.UpdateState()
 	if in.GetDomain() == "Internal" {
 		state.AddLocalService(in.GetId(), in.GetIp(), in.GetDomain())
@@ -77,7 +78,7 @@ type HelloServer struct {
 }
 
 func (s *HelloServer) HelloCmd(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
-	log.Printf("Received Hello from MBG ip: %v", in.GetIp())
+	log.Infof("Received Hello from MBG ip: %v", in.GetIp())
 	state.UpdateState()
 	state.AddMbgNbr(in.GetId(), in.GetIp(), in.GetCport())
 
@@ -94,12 +95,12 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 	//svc := state.GetService(in.GetID())
 	var listenPort, destIp string
 	if state.IsServiceLocal(in.GetIdDest()) {
-		log.Printf("Received Incoming Connect request from service: %v to service: %v", in.GetId(), in.GetIdDest())
+		log.Infof("Received Incoming Connect request from service: %v to service: %v", in.GetId(), in.GetIdDest())
 		destSvc := state.GetLocalService(in.GetIdDest())
 		listenPort = destSvc.DataPort.Local
 		destIp = destSvc.Service.Ip
 	} else { //For Remtote service
-		log.Printf("Received Outgoing Connect request from service: %v to service: %v", in.GetId(), in.GetIdDest())
+		log.Infof("Received Outgoing Connect request from service: %v to service: %v", in.GetId(), in.GetIdDest())
 		destSvc := state.GetRemoteService(in.GetIdDest())
 		mbgIP := state.GetServiceMbgIp(destSvc.Service.Ip)
 		SendConnectReq(in.GetId(), in.GetIdDest(), in.GetPolicy(), mbgIP)
@@ -108,13 +109,13 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 	}
 
 	go ConnectService(listenPort, destIp, in.GetPolicy())
-	log.Printf("Send connect reply to service")
+	log.Infof("Send connect reply to service")
 	return &pb.ConnectReply{Message: "Connecting the services"}, nil
 }
 
 /********************************** Server **********************************************************/
 func startServer() {
-	log.Printf("MBG [%v] started", state.GetMyId())
+	log.Infof("MBG [%v] started", state.GetMyId())
 	mbgCPort := ":" + state.GetMyCport().Local //TBD - not supporting using several MBGs in same node
 	lis, err := net.Listen("tcp", mbgCPort)
 	if err != nil {
@@ -126,7 +127,7 @@ func startServer() {
 	pb.RegisterConnectServer(s, &ConnectServer{})
 	pb.RegisterHelloServer(s, &HelloServer{})
 
-	log.Printf("Control channel listening at %v", lis.Addr())
+	log.Infof("Control channel listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
