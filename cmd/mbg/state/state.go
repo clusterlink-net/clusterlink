@@ -101,11 +101,20 @@ func UpdateState() {
 
 //Return Function fields
 func GetLocalService(id string) LocalService {
-	return s.MyServices[id]
+	val, ok := s.MyServices[id]
+	if !ok {
+		log.Fatalf("Service %v is not exist", id)
+	}
+	return val
 }
 
 func GetRemoteService(id string) RemoteService {
-	return s.RemoteServices[id]
+	val, ok := s.RemoteServices[id]
+	if !ok {
+		log.Fatalf("Service %v is not exist", id)
+	}
+	return val
+
 }
 
 func GetServiceMbgIp(Ip string) string {

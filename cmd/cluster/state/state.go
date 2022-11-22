@@ -65,7 +65,11 @@ func UpdateState() {
 
 //Return Function fields
 func GetService(id string) ClusterService {
-	return s.Services[id]
+	val, ok := s.Services[id]
+	if !ok {
+		log.Fatalf("Service %v is not exist", id)
+	}
+	return val
 }
 
 func AddService(id, ip, domain string) {
@@ -75,10 +79,9 @@ func AddService(id, ip, domain string) {
 
 	policy := "" //default:No policy
 	s.Services[id] = ClusterService{Service: service.Service{id, ip, domain, policy}}
+	SaveState()
 	log.Infof("[Cluster %v] Add service: %v", s.Id, s.Services[id])
 	s.Print()
-	SaveState()
-
 }
 
 func (s *ClusterState) Print() {
@@ -100,7 +103,6 @@ func configPath() string {
 }
 
 func SaveState() {
-	log.Info(s)
 	jsonC, _ := json.MarshalIndent(s, "", "\t")
 	ioutil.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
 }
