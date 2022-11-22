@@ -25,7 +25,14 @@ def getPodName(prefix):
 
 def runcmd(cmd):
     print(cmd)
+    #sp.Popen(cmd,shell=True)
     os.system(cmd)
+
+def runcmdb(cmd):
+    print(cmd)
+    #sp.Popen(cmd,shell=True)
+    os.system(cmd + ' &')
+    time.sleep(7)
 
 def getIp(Interface):
     ip = ni.ifaddresses(Interface)[ni.AF_INET][0]['addr']
@@ -33,6 +40,7 @@ def getIp(Interface):
     return ip
 def printHeader(msg):
     print(f'{Fore.BLUE}{msg} {Style.RESET_ALL}')
+    #print(msg)
 
 def iperf3Test(cmd):
     print(cmd)
@@ -66,8 +74,7 @@ if __name__ == "__main__":
     os.system("make run-kind-mbg1")
     waitPod("mbg")
     podMbg1= getPodName("mbg")
-    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg start --id "mbg1" --ip {ipAddr} --cport "30100" --externalDataPortRange {mbg1DataPort} &')
-    time.sleep(5)
+    runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg start --id "mbg1" --ip {ipAddr} --cport "30100" --externalDataPortRange {mbg1DataPort}')
     printHeader("Add host cluster to MBG1")
     runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addCluster --id "hostCluster" --ip {ipAddr}:20100')
 
@@ -76,8 +83,7 @@ if __name__ == "__main__":
     os.system("make run-kind-mbg2")
     waitPod("mbg")
     podMbg2 = getPodName("mbg")
-    runcmd(f'kubectl exec -i {podMbg2} --  ./mbg start --id "mbg2" --ip {ipAddr} --cport "30200" --externalDataPortRange {mbg2DataPort} &')
-    time.sleep(5)
+    runcmdb(f'kubectl exec -i {podMbg2} --  ./mbg start --id "mbg2" --ip {ipAddr} --cport "30200" --externalDataPortRange {mbg2DataPort}')
     printHeader("Add MBG1 neighbor to MBG2")
     runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addMbg --id "mbg1" --ip {ipAddr} --cport "30100"')
     printHeader("Send Hello commands")
@@ -90,16 +96,17 @@ if __name__ == "__main__":
     os.system("make run-kind-host")
     waitPod("cluster-mbg")
     podhost= getPodName("cluster-mbg")
-    runcmd(f'kubectl exec -i {podhost} -- ./cluster start --id "hostCluster"  --ip {ipAddr} --cport 20100 --mbgIP {ipAddr}:30100 &')
+    runcmdb(f'kubectl exec -i {podhost} -- ./cluster start --id "hostCluster"  --ip {ipAddr} --cport 20100 --mbgIP {ipAddr}:30100')
+
     printHeader("Add iperfIsrael (client) service to host cluster")
     runcmd(f'kubectl exec -i {podhost} -- ./cluster addService --serviceId iperfIsrael --serviceIp :5000')
-
+    
     ###Run dest
     printHeader("\n\nStart building cluster-destination")
     os.system("make run-kind-dest")
     waitPod("cluster-mbg")
     podest= getPodName("cluster-mbg")
-    runcmd(f'kubectl exec -i {podest} -- ./cluster start --id "destCluster"  --ip {ipAddr} --cport 20200 --mbgIP {ipAddr}:30200 &')
+    runcmdb(f'kubectl exec -i {podest} -- ./cluster start --id "destCluster"  --ip {ipAddr} --cport 20200 --mbgIP {ipAddr}:30200')
     printHeader("Add iperfIndia (server) service to destination cluster")
     runcmd(f'kubectl exec -i {podest} -- ./cluster addService --serviceId iperfIndia --serviceIp {ipAddr}:{iperf3DestPort}')
 
@@ -110,8 +117,9 @@ if __name__ == "__main__":
     #Connect service
     printHeader("\n\nStart Data plan connection iperfIsrael to iperfIndia")
     runcmd(f'kubectl config use-context kind-cluster-host')
-    runcmd(f'kubectl exec -i {podhost} -- ./cluster connect --serviceId iperfIsrael  --serviceIdDest iperfIndia &')
-    time.sleep(40)
+    #runcmd(f'kubectl exec -i {podhost} --  cat /root/.clusterApp')
+    runcmdb(f'kubectl exec -i {podhost} -- ./cluster connect --serviceId iperfIsrael  --serviceIdDest iperfIndia')
+    time.sleep(30)
     
     #Testing
     printHeader("\n\nStart Iperf3 testing")
