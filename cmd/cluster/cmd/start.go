@@ -63,6 +63,10 @@ type ConnectServer struct {
 	pb.UnimplementedConnectServer
 }
 
+type DisconnectServer struct {
+	pb.UnimplementedDisconnectServer
+}
+
 func (s *ConnectServer) connectCmd(ctx context.Context, in *pb.ConnectRequest) (*pb.ConnectReply, error) {
 	log.Printf("Received Connect request from service: %v to service: %v", in.GetId(), in.GetIdDest())
 	state.UpdateState()
@@ -86,6 +90,8 @@ func startServer() {
 	s := grpc.NewServer()
 	pb.RegisterExposeServer(s, &ExposeServer{})
 	pb.RegisterConnectServer(s, &ConnectServer{})
+	pb.RegisterDisconnectServer(s, &DisconnectServer{})
+
 	log.Printf("Control channel listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

@@ -89,12 +89,13 @@ func ConnectService(svcListenPort, svcIp, policy string) {
 }
 
 //Send control request to connect
-func SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) {
+func SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, error) {
 	log.Printf("Start connect Request to MBG%v for service %v", mbgIp, svcIdDest)
 
 	conn, err := grpc.Dial(mbgIp, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		log.Printf("Failed to connect grpc: %v", err)
+		return "","", fmt.Errorf("Connect Request Failed")
 	}
 	defer conn.Close()
 	c := pb.NewConnectClient(conn)
@@ -103,7 +104,13 @@ func SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) {
 	defer cancel()
 	r, err := c.ConnectCmd(ctx, &pb.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy})
 	if err != nil {
-		log.Fatalf("could not create user: %v", err)
+		log.Printf("Failed to send connect: %v", err)
+		return "","", fmt.Errorf("Connect Request Failed")
 	}
-	log.Printf(`Response Connect message:  %s`, r.GetMessage())
+	if r.GetMessage() == "Success" {
+		log.Printf("Successfully Connected : Using Connection:Port - %s:%s", r.GetConnectType(), r.GetConnectDest())
+		return r.GetConnectType(), r.GetConnectDest(), nil
+	}
+	log.Printf("Failed to Connect : %s", r.GetMessage())
+	return "","", fmt.Errorf("Connect Request Failed")
 }
