@@ -6,8 +6,9 @@ package cmd
 
 import (
 	"context"
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
@@ -22,14 +23,14 @@ var helloCmd = &cobra.Command{
 	Long:  `Hello command send hello message to all MBGs in thr MBG neighbor list.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		state.UpdateState()
-		log.Println("Hello command called")
+		log.Infof("Hello command called")
 		MbgArr := state.GetMbgArr()
 		MyInfo := state.GetMyInfo()
 		for _, m := range MbgArr {
-			log.Println(m)
+			log.Info(m)
 			sendHello(m, MyInfo)
 		}
-		log.Println("Finish sending Hello to all Mbgs")
+		log.Infof("Finish sending Hello to all Mbgs")
 	},
 }
 
@@ -38,10 +39,10 @@ func init() {
 }
 
 func sendHello(m, MyInfo state.MbgInfo) {
-	log.Printf("Start Hello message to MBG with IP address %v", m.Ip)
+	log.Infof("Start Hello message to MBG with IP address %v", m.Ip)
 
 	address := m.Ip + ":" + m.Cport.External
-	log.Printf("Start Hello message to MBG with IP address %v", address)
+	log.Infof("Start Hello message to MBG with IP address %v", address)
 
 	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
@@ -56,6 +57,6 @@ func sendHello(m, MyInfo state.MbgInfo) {
 	if err != nil {
 		log.Fatalf("could not create user: %v", err)
 	}
-	log.Printf(`Response message for Hello:  %s`, r.GetMessage())
+	log.Infof(`Response message for Hello:  %s`, r.GetMessage())
 
 }

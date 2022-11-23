@@ -3,11 +3,12 @@ package state
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"os/user"
 	"path"
 	"strconv"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
@@ -89,7 +90,7 @@ func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDat
 }
 
 func SetLocalCluster(id, ip string) {
-	log.Println(s)
+	log.Info(s)
 	s.ClusterArr[id] = LocalCluster{Id: id, Ip: ip}
 	SaveState()
 }
@@ -100,11 +101,20 @@ func UpdateState() {
 
 //Return Function fields
 func GetLocalService(id string) LocalService {
-	return s.MyServices[id]
+	val, ok := s.MyServices[id]
+	if !ok {
+		log.Fatalf("Service %v is not exist", id)
+	}
+	return val
 }
 
 func GetRemoteService(id string) RemoteService {
-	return s.RemoteServices[id]
+	val, ok := s.RemoteServices[id]
+	if !ok {
+		log.Fatalf("Service %v is not exist", id)
+	}
+	return val
+
 }
 
 func GetServiceMbgIp(Ip string) string {
@@ -115,7 +125,7 @@ func GetServiceMbgIp(Ip string) string {
 			return mbgIp
 		}
 	}
-	log.Printf("[MBG %v]Error Service %v is not defined", s.MyInfo.Id, Ip)
+	log.Infof("[MBG %v]Error Service %v is not defined", s.MyInfo.Id, Ip)
 	s.Print()
 	return ""
 }
@@ -126,7 +136,7 @@ func IsServiceLocal(id string) bool {
 
 func AddMbgNbr(id, ip, cport string) {
 	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ClusterPort{External: cport, Local: ""}}
-	log.Printf("[MBG %v] add MBG neighbors array %v", s.MyInfo.Id, s.MbgArr[id])
+	log.Infof("[MBG %v] add MBG neighbors array %v", s.MyInfo.Id, s.MbgArr[id])
 	s.Print()
 	SaveState()
 
@@ -150,7 +160,7 @@ func AddLocalService(id, ip, domain string) {
 	}
 
 	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain, ""}, DataPort: ClusterPort{Local: lp, External: ep}}
-	log.Printf("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
+	log.Infof("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()
 }
@@ -173,16 +183,16 @@ func AddRemoteService(id, ip, domain, MbgId string) {
 	}
 
 	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain, "Forward"}, MbgId: MbgId, DataPort: ClusterPort{Local: lp, External: ep}}
-	log.Printf("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
+	log.Infof("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()
 }
 
 func (s *mbgState) Print() {
-	log.Printf("[MBG %v]: Id: %v Ip: %v Cport %v", s.MyInfo.Id, s.MyInfo.Id, s.MyInfo.Ip, s.MyInfo.Cport)
-	log.Printf("[MBG %v]: MBG neighbors : %v", s.MyInfo.Id, s.MbgArr)
-	log.Printf("[MBG %v]: Myservices: %v", s.MyInfo.Id, s.MyServices)
-	log.Printf("[MBG %v]: Remoteservices: %v", s.MyInfo.Id, s.RemoteServices)
+	log.Infof("[MBG %v]: Id: %v Ip: %v Cport %v", s.MyInfo.Id, s.MyInfo.Id, s.MyInfo.Ip, s.MyInfo.Cport)
+	log.Infof("[MBG %v]: MBG neighbors : %v", s.MyInfo.Id, s.MbgArr)
+	log.Infof("[MBG %v]: Myservices: %v", s.MyInfo.Id, s.MyServices)
+	log.Infof("[MBG %v]: Remoteservices: %v", s.MyInfo.Id, s.RemoteServices)
 }
 
 /// Json code ////
@@ -199,9 +209,9 @@ func configPath() string {
 }
 
 func SaveState() {
-	log.Println("Update MBG state")
+	log.Infof("Update MBG state")
 	jsonC, _ := json.MarshalIndent(s, "", "\t")
-	log.Println("[DEBUG]: state save in", configPath())
+	log.Debugf("state save in", configPath())
 	ioutil.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
 }
 

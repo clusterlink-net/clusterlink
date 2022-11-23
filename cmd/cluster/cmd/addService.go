@@ -19,8 +19,6 @@ var addServiceCmd = &cobra.Command{
 		serviceIp, _ := cmd.Flags().GetString("serviceIp")
 		serviceDomain, _ := cmd.Flags().GetString("serviceDomain")
 		state.UpdateState()
-
-		defer state.SaveState()
 		state.AddService(serviceId, serviceIp, serviceDomain)
 	},
 }

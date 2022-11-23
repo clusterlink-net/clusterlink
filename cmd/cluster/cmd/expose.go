@@ -41,6 +41,7 @@ func init() {
 func expose(serviceId, mbgIP string) {
 	log.Printf("[ClsterStart expose %v to MBG with IP address %v", serviceId, mbgIP)
 	s := state.GetService(serviceId)
+
 	svcExp := s.Service
 
 	log.Printf("Service %v", s)
