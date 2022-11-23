@@ -42,7 +42,7 @@ func ExposeToMbg(serviceId string) {
 
 	s := state.GetLocalService(serviceId)
 	svcExp := s.Service
-	svcExp.Ip = myIp + ":" + s.DataPort.External //update port to connect data
+	svcExp.Ip = myIp
 	svcExp.Domain = "Remote"
 	for _, m := range MbgArr {
 		destIp := m.Ip + ":" + m.Cport.External

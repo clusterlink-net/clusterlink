@@ -7,6 +7,9 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"math/rand"
+	"fmt"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -19,6 +22,9 @@ type mbgState struct {
 	MbgArr         map[string]MbgInfo
 	MyServices     map[string]LocalService
 	RemoteServices map[string]RemoteService
+	Connections    map[string]ClusterPort
+	LocalPortMap    map[int]bool
+	ExternalPortMap map[int]bool
 }
 
 type MbgInfo struct {
@@ -26,6 +32,7 @@ type MbgInfo struct {
 	Ip            string
 	Cport         ClusterPort
 	DataPortRange ClusterPort
+	MaxPorts      int
 }
 
 type LocalCluster struct {
@@ -50,10 +57,13 @@ type ClusterPort struct {
 }
 
 var s = mbgState{MyInfo: MbgInfo{},
-	ClusterArr:     make(map[string]LocalCluster),
-	MbgArr:         make(map[string]MbgInfo),
-	MyServices:     make(map[string]LocalService),
-	RemoteServices: make(map[string]RemoteService)}
+	ClusterArr:      make(map[string]LocalCluster),
+	MbgArr:          make(map[string]MbgInfo),
+	MyServices:      make(map[string]LocalService),
+	RemoteServices:  make(map[string]RemoteService),
+	Connections:     make(map[string]ClusterPort),
+	LocalPortMap:    make(map[int]bool),
+	ExternalPortMap: make(map[int]bool)}
 
 func GetMyIp() string {
 	return s.MyInfo.Ip
@@ -86,6 +96,7 @@ func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDat
 	s.MyInfo.Cport.External = cportExternal
 	s.MyInfo.DataPortRange.Local = localDataPortRange
 	s.MyInfo.DataPortRange.External = externalDataPortRange
+	s.MyInfo.MaxPorts = 1000 // TODO
 	SaveState()
 }
 
@@ -142,6 +153,35 @@ func AddMbgNbr(id, ip, cport string) {
 
 }
 
+// Gets an available free port to use per connection
+func GetFreePorts(connectionID string) (ClusterPort, error) {
+	if port, ok := s.Connections[connectionID]; ok {
+		return port, fmt.Errorf("Connection already setup!")
+	}
+	rand.NewSource(time.Now().UnixNano())
+	if (len(s.Connections) == s.MyInfo.MaxPorts) {
+		return ClusterPort{}, fmt.Errorf("All Ports taken up, Try again after sometimes!")
+	}
+	lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
+	eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
+	for true {
+		random := rand.Intn(s.MyInfo.MaxPorts)
+		localPort := lval+random
+		externalPort := eval+random
+		if !s.LocalPortMap[localPort] {
+			log.Infof("[MBG %v] Free Local Port available at %v", s.MyInfo.Id, localPort)
+			if !s.ExternalPortMap[externalPort] {
+				log.Infof("[MBG %v] Free External Port available at %v", s.MyInfo.Id, externalPort)
+				s.LocalPortMap[localPort] = true
+				s.ExternalPortMap[externalPort] = true
+				myPort := ClusterPort{Local:strconv.Itoa(localPort), External:strconv.Itoa(externalPort)}
+				s.Connections[connectionID] = myPort
+				return myPort, nil
+			}
+		}
+	}
+	return ClusterPort{}, fmt.Errorf("All Ports taken up, Try again after sometimes!")
+}
 func AddLocalService(id, ip, domain string) {
 	var lp, ep string
 
