@@ -20,8 +20,8 @@ package protocol;
 
 /***** The expose service definition. *****/
 service Expose {
-  // Sends a expose message
-  rpc ExposeCmd (ExposeRequest) returns (ExposeReply) {}
+    // Sends a expose message
+    rpc ExposeCmd (ExposeRequest) returns (ExposeReply) {}
 }
 
 // The request message for exposing a service.
@@ -29,33 +29,34 @@ message ExposeRequest {
 	string Id     = 1;
 	string Ip     = 2;
 	string Domain = 3;
-  string MbgID  = 4;
+    string MbgID  = 4;
 }
 
 // The response message for exposing a service
 message ExposeReply {
-  string message = 1;
+    string message = 1;
 }
 
 
 /***** The connect service definition. *****/
 service Connect {
-  // Sends a connect message
-  rpc ConnectCmd (ConnectRequest) returns (ConnectReply) {}
+    // Sends a connect message
+    rpc ConnectCmd (ConnectRequest) returns (ConnectReply) {}
 }
 
-// The request message for connecting a service.
+// The request message for connecting services.
 message ConnectRequest {
-	string Id     = 1;
+    string Id     = 1;
 	string IdDest = 2;
 	string Policy = 3;
 }
 
-// The response message for connecting a service
+// The response message for connecting services
 message ConnectReply {
-  string message = 1;
+    string message     = 1;
+    string connectType = 2;
+    string connectDest = 3;
 }
-
 
 /***** The hello service definition. *****/
 service Hello {
@@ -67,7 +68,7 @@ service Hello {
 message HelloRequest {
 	string Id     = 1;
 	string Ip     = 2;
-  string Cport  = 3;
+    string Cport  = 3;
 }
 
 // The response message for exposing a service
