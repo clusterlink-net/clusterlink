@@ -139,6 +139,22 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 	}
 }
 
+//Disconnect
+type DisconnectServer struct {
+	pb.UnimplementedDisconnectServer
+}
+
+func (s *DisconnectServer) DisconnectCmd(ctx context.Context, in *pb.DisconnectRequest) (*pb.DisconnectReply, error) {
+	state.UpdateState()
+	connectionID := in.GetId() +":"+ in.GetIdDest()
+	if state.IsServiceLocal(in.GetIdDest()) {
+		state.FreeUpPorts(connectionID)
+		// Need to Kill the corresponding process
+	} else {
+		// Need to just Kill the corresponding process
+	}
+	return &pb.DisconnectReply{Message: "Success"}, nil
+}
 /********************************** Server **********************************************************/
 func startServer() {
 	log.Infof("MBG [%v] started", state.GetMyId())

@@ -182,6 +182,17 @@ func GetFreePorts(connectionID string) (ClusterPort, error) {
 	}
 	return ClusterPort{}, fmt.Errorf("All Ports taken up, Try again after sometimes!")
 }
+
+// Frees up used ports by a connection
+func FreeUpPorts(connectionID string) {
+	port, _ := s.Connections[connectionID]
+	lval, _ := strconv.Atoi(port.Local)
+	eval, _ := strconv.Atoi(port.External)
+	delete(s.LocalPortMap, lval)
+	delete(s.ExternalPortMap, eval)
+	delete(s.Connections, connectionID)
+}
+
 func AddLocalService(id, ip, domain string) {
 	var lp, ep string
 
