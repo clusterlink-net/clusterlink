@@ -58,6 +58,23 @@ message ConnectReply {
     string connectDest = 3;
 }
 
+/***** The Disconnect service definition. *****/
+service Disconnect {
+    // Sends a connect message
+    rpc DisconnectCmd (DisconnectRequest) returns (DisconnectReply) {}
+}
+
+// The request message for disconnecting an existing service connection.
+message DisconnectRequest {
+    string Id     = 1;
+    string IdDest = 2;
+}
+
+// The response message for disconnecting an existing service connection.
+message DisconnectReply {
+    string message     = 1;
+}
+
 /***** The hello service definition. *****/
 service Hello {
   // Sends a Hello message
