@@ -6,7 +6,7 @@ This project has three main components:
 2) MBG - THe Multi-cloud border gateway is a K8s cluster that allows connecting between the host service and destination service and also applies some network functions (TCP-split, etc.)
 3) Destination - K8s cluster the contain Service destination (e.g. iperf3 server) 
 
-![alt text](./tests/figures/MBG-project.png)
+![alt text](./tests/figures/mbg-proto.png)
 
 
 ## <ins>Run MBG in local environment (Kind)<ins>
