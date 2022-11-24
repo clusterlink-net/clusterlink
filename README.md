@@ -17,6 +17,9 @@ In this setup the host (iPrf3 client) and destination (iperf3 server) Run in the
 4) set the GO client for the host: ``` ./bin/client --listen=127.0.0.1:5001 --mbg=127.0.0.1:30000 -destPort 5003  -destIp <local eth ip> -service "TCP-split"```  
    Note: The local IP can be observed by  ```ip addr``` 
 5) Run host service: ```Iperf3 -c 127.0.0.1 -p 5001```
-   
+
+## <ins>Run MBG in Bare-metal environment with 2 hosts<ins> 
+Follow instructions from [Here](tests/bare-metal/commands.txt)
+
 ## <ins>Run MBG in cloud environment<ins> 
 TBD
