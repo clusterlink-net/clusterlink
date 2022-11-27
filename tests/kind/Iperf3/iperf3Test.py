@@ -62,13 +62,18 @@ if __name__ == "__main__":
     iperf3DestPort="20201"
     mbg1DataPort= "30101"
     mbg2DataPort= "30201"
+    srcSvc ="iperfIsrael"
+    destSvc ="iperfIndia"
 
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
     ### clean 
     print(f"Clean old kinds")
     os.system("make clean-kind-mbg")
-
+    
+    ### build docker environment 
+    printHeader(f"Build docker image")
+    os.system("make docker-build")
     ###Run first Mbg
     printHeader("\n\nStart building MBG1")
     os.system("make run-kind-mbg1")
@@ -98,8 +103,8 @@ if __name__ == "__main__":
     podhost= getPodName("cluster-mbg")
     runcmdb(f'kubectl exec -i {podhost} -- ./cluster start --id "hostCluster"  --ip {ipAddr} --cport 20100 --mbgIP {ipAddr}:30100')
 
-    printHeader("Add iperfIsrael (client) service to host cluster")
-    runcmd(f'kubectl exec -i {podhost} -- ./cluster addService --serviceId iperfIsrael --serviceIp :5000')
+    printHeader(f"Add {srcSvc} (client) service to host cluster")
+    runcmd(f'kubectl exec -i {podhost} -- ./cluster addService --serviceId {srcSvc} --serviceIp :5000')
     
     ###Run dest
     printHeader("\n\nStart building cluster-destination")
@@ -107,20 +112,20 @@ if __name__ == "__main__":
     waitPod("cluster-mbg")
     podest= getPodName("cluster-mbg")
     runcmdb(f'kubectl exec -i {podest} -- ./cluster start --id "destCluster"  --ip {ipAddr} --cport 20200 --mbgIP {ipAddr}:30200')
-    printHeader("Add iperfIndia (server) service to destination cluster")
-    runcmd(f'kubectl exec -i {podest} -- ./cluster addService --serviceId iperfIndia --serviceIp {ipAddr}:{iperf3DestPort}')
+    printHeader(f"Add {destSvc} (server) service to destination cluster")
+    runcmd(f'kubectl exec -i {podest} -- ./cluster addService --serviceId {destSvc} --serviceIp {ipAddr}:{iperf3DestPort}')
 
     #Expose service
     printHeader("\n\nStart exposing connection")
-    runcmd(f'kubectl exec -i {podest} -- ./cluster expose --serviceId iperfIndia')
+    runcmd(f'kubectl exec -i {podest} -- ./cluster expose --serviceId {destSvc}')
 
     #Connect service
-    printHeader("\n\nStart Data plan connection iperfIsrael to iperfIndia")
+    printHeader(f"\n\nStart Data plan connection {srcSvc} to {destSvc}")
     runcmd(f'kubectl config use-context kind-cluster-host')
+    runcmdb(f'kubectl exec -i {podhost} -- ./cluster connect --serviceId {srcSvc}  --serviceIdDest {destSvc}')
+    time.sleep(20)
     #runcmd(f'kubectl exec -i {podhost} --  cat /root/.clusterApp')
-    runcmdb(f'kubectl exec -i {podhost} -- ./cluster connect --serviceId iperfIsrael  --serviceIdDest iperfIndia')
-    time.sleep(30)
-    
+
     #Testing
     printHeader("\n\nStart Iperf3 testing")
     podIperf3= getPodName("iperf3-clients")
@@ -136,4 +141,7 @@ if __name__ == "__main__":
     printHeader("fULL Iperf3 test clinet-> MBG1-> MBG2-> dest")
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c cluster-iperf3-service -p 5000'
     iperf3Test(cmd)
-    
+
+    #Close connection
+    printHeader("\n\nClose Iperf3 connection")
+    runcmd(f'kubectl exec -i {podhost} -- ./cluster disconnect --serviceId {srcSvc} --serviceIdDest {destSvc}')

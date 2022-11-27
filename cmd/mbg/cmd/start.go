@@ -50,7 +50,6 @@ func init() {
 	startCmd.Flags().String("cport", "", "Multi-cloud Border Gateway control external port for the MBG neighbors ")
 	startCmd.Flags().String("localDataPortRange", "5000", "Set the port range for data connection in the MBG")
 	startCmd.Flags().String("externalDataPortRange", "30000", "Set the port range for exposing data connection (each expose port connect to localDataPort")
-
 }
 
 /******* Commands **********/
@@ -94,26 +93,24 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 	state.UpdateState()
 	//svc := state.GetService(in.GetID())
 	var listenPort, destIp string
-	connectionID := in.GetId() +":"+ in.GetIdDest()
+	connectionID := in.GetId() + ":" + in.GetIdDest()
 	if state.IsServiceLocal(in.GetIdDest()) {
-		log.Infof("MBG [%v] Received Incoming Connect request from service: %v to service: %v", state.GetMyId(), in.GetId(), in.GetIdDest())
+		log.Infof("[MBG %v] Received Incoming Connect request from service: %v to service: %v", state.GetMyId(), in.GetId(), in.GetIdDest())
 		// Get a free local/external port
 		// Send the external port as reply to the MBG
 		localSvc := state.GetLocalService(in.GetIdDest())
 
-		listenPort = localSvc.DataPort.Local
-		//myConnectionPort :=  listenPort
 		myConnectionPorts, err := state.GetFreePorts(connectionID)
 		if err != nil {
-			log.Infof("MBG [%v] Error getting free ports %s", state.GetMyId(), err.Error())
+			log.Infof("[MBG %v] Error getting free ports %s", state.GetMyId(), err.Error())
 			return &pb.ConnectReply{Message: err.Error()}, nil
 		}
-		log.Infof("MBG [%v] Using ConnectionPorts : %v", state.GetMyId(), myConnectionPorts)
+		log.Infof("[MBG %v] Using ConnectionPorts : %v", state.GetMyId(), myConnectionPorts)
 		clusterIpPort := localSvc.Service.Ip
 
 		go ConnectService(myConnectionPorts.Local, clusterIpPort, in.GetPolicy())
 
-		log.Infof("MBG [%v] Sending Connect reply to Connection(%v) to use Dest:%v", state.GetMyId(), connectionID, myConnectionPorts.External)
+		log.Infof("[MBG %v] Sending Connect reply to Connection(%v) to use Dest:%v", state.GetMyId(), connectionID, myConnectionPorts.External)
 		return &pb.ConnectReply{Message: "Success", ConnectType: "tcp", ConnectDest: myConnectionPorts.External}, nil
 
 		// go ConnectService(listenPort, clusterIpPort, in.GetPolicy())
@@ -122,20 +119,22 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 		// return &pb.ConnectReply{Message: "Connecting the services", ConnectType: "tcp", ConnectDest: myConnectionPort}, nil
 
 	} else { //For Remote service
-		log.Infof("MBG [%v] Received Outgoing Connect request from service: %v to service: %v", state.GetMyId(), in.GetId(), in.GetIdDest())
+		log.Infof("[MBG %v] Received Outgoing Connect request from service: %v to service: %v", state.GetMyId(), in.GetId(), in.GetIdDest())
 		destSvc := state.GetRemoteService(in.GetIdDest())
 		mbgIP := state.GetServiceMbgIp(destSvc.Service.Ip)
 		connectionType, connectionDest, err := SendConnectReq(in.GetId(), in.GetIdDest(), in.GetPolicy(), mbgIP)
 		if err != nil {
-			log.Infof("MBG [%v] Send connect failure to Cluster", state.GetMyId())
+			log.Infof("[MBG %v] Send connect failure to Cluster", state.GetMyId())
 			return &pb.ConnectReply{Message: "Failure"}, nil
 		}
-		log.Infof("MBG [%v] Using %v:%v to connect IP-%v", state.GetMyId(), connectionType, connectionDest, destSvc.Service.Ip)
+		log.Infof("[MBG %v] Using %v:%v to connect IP-%v", state.GetMyId(), connectionType, connectionDest, destSvc.Service.Ip)
+
 		listenPort = destSvc.DataPort.Local
-		destIp = destSvc.Service.Ip +":"+ connectionDest
+		destIp = destSvc.Service.Ip + ":" + connectionDest
+
 		go ConnectService(listenPort, destIp, in.GetPolicy())
-		log.Infof("MBG [%v] Send connect success to Cluster", state.GetMyId())
-		return &pb.ConnectReply{Message: "Success"}, nil
+		log.Infof("[MBG %v] Send connect success to Cluster", state.GetMyId())
+		return &pb.ConnectReply{Message: "Success", ConnectType: "tcp", ConnectDest: destSvc.DataPort.External}, nil
 	}
 }
 
@@ -146,7 +145,7 @@ type DisconnectServer struct {
 
 func (s *DisconnectServer) DisconnectCmd(ctx context.Context, in *pb.DisconnectRequest) (*pb.DisconnectReply, error) {
 	state.UpdateState()
-	connectionID := in.GetId() +":"+ in.GetIdDest()
+	connectionID := in.GetId() + ":" + in.GetIdDest()
 	if state.IsServiceLocal(in.GetIdDest()) {
 		state.FreeUpPorts(connectionID)
 		// Need to Kill the corresponding process
@@ -155,6 +154,7 @@ func (s *DisconnectServer) DisconnectCmd(ctx context.Context, in *pb.DisconnectR
 	}
 	return &pb.DisconnectReply{Message: "Success"}, nil
 }
+
 /********************************** Server **********************************************************/
 func startServer() {
 	log.Infof("MBG [%v] started", state.GetMyId())
@@ -167,6 +167,7 @@ func startServer() {
 
 	pb.RegisterExposeServer(s, &ExposeServer{})
 	pb.RegisterConnectServer(s, &ConnectServer{})
+	pb.RegisterDisconnectServer(s, &DisconnectServer{})
 	pb.RegisterHelloServer(s, &HelloServer{})
 
 	log.Infof("Control channel listening at %v", lis.Addr())
