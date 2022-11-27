@@ -1,23 +1,27 @@
 # Multi-cloud Border Gateway(MBG) project  
-This project contains all elements for creating and testing a Multi-cloud border gateway. For more details, see the document: 
-
-This project has three main components:  
-1) Host - K8s cluster that Contains the service application(e.g., iPerf3) and GO client that communicates with Go MBG
-2) MBG - THe Multi-cloud border gateway is a K8s cluster that allows connecting between the host service and destination service and also applies some network functions (TCP-split, etc.)
-3) Destination - K8s cluster the contain Service destination (e.g. iperf3 server) 
+Through the Multi-cloud border gateway, users can simplify the connection between various application services that are located in different domains, networks, and cloud infrastructures. 
+For more details, see the document: TBD 
+This project contains two main components: 
+1) MBG - THe Multi-cloud border gateway that allows secure connections between different services in different network domains.
+   The MBG has different APIs like hello, expose and connect, enabling service connectivity.  
+   The MBG can also apply some network functions (TCP-split, compression, etc.)
+2) Cluster - is K8s cluster implementation that uses MBG APIs to connect the service inside the network domain to the MBG.
+   The cluster uses commands like expose, connect and disconnect to create connectivity to service in different network domains using the MBG. 
 
 ![alt text](./tests/figures/mbg-proto.png)
 
 
 ## <ins>Run MBG in local environment (Kind)<ins>
-In this setup the host (iPrf3 client) and destination (iperf3 server) Run in the local machine and MBG run in kind cluster.
-1) Set destination server: ```iperf3 -s -p 5003```
-2) Build MBG image: ```make docker-build```
-3) Run MBG in kind: ```make run-kind-mbg```
-4) set the GO client for the host: ``` ./bin/client --listen=127.0.0.1:5001 --mbg=127.0.0.1:30000 -destPort 5003  -destIp <local eth ip> -service "TCP-split"```  
-   Note: The local IP can be observed by  ```ip addr``` 
-5) Run host service: ```Iperf3 -c 127.0.0.1 -p 5001```
+In this test we setup 4 clusters that run in local kind clusters: 
+1) host cluster (iPrf3 client) 
+2) MBG1 (the mbg connect to the host domain) 
+3) MBG2 (the mbg connect to the destination domain) 
+4) destination cluster (iperf3 server)
 
+The test check iPerf3 connectivity between the host and destination cluster
+* Check all pre-requires  are installed (Go, docker, Kubectl, Kind ): ```make prereqs```
+* Build the kind cluster and run the iPerf3 test:
+      ```python3 tests/kind/Iperf3/iperf3Test.py```
 ## <ins>Run MBG in Bare-metal environment with 2 hosts<ins> 
 Follow instructions from [Here](tests/bare-metal/commands.txt)
 

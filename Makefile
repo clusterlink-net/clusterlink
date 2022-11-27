@@ -5,13 +5,20 @@
 clean: ; $(info $(M) cleaning...)	@
 	@rm -rf ./bin
 
-#-----------------------------------------------------------------------------
-# Target: precommit
-#-----------------------------------------------------------------------------
+#------------------------------------------------------
+# Setup Targets
+#------------------------------------------------------
+
+prereqs: 											## Verify that required utilities are installed
+	echo -- $@ --
+	@go version || (echo "Please install GOLANG: https://go.dev/doc/install" && exit 1)
+#	@which goimports || (echo "Please install goimports: https://pkg.go.dev/golang.org/x/tools/cmd/goimports" && exit 1)
+	@kubectl version --client || (echo "Please install kubectl: https://kubernetes.io/docs/tasks/tools/" && exit 1)
+	@docker version --format 'Docker v{{.Server.Version}}' || (echo "Please install Docker Engine: https://docs.docker.com/engine/install" && exit 1)
+	@kind --version || (echo "Please install kind: https://kind.sigs.k8s.io/docs/user/quick-start/#installation" && exit 1)
+
 .PHONY: precommit format lint
-
 precommit: format lint
-
 format: fmt
 fmt: format-go tidy-go vet-go
 vet: vet-go
@@ -24,6 +31,10 @@ format-go: tidy-go vet-go ; $(info $(M) formatting code...)
 
 vet-go: ; $(info $(M) vetting code...)
 	@go vet ./...
+
+#------------------------------------------------------
+# Build targets
+#------------------------------------------------------
 
 
 build:
@@ -41,6 +52,10 @@ docker-build: docker-build-mbg docker-build-tcp-split
 proto-build:
 	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative pkg/protocol/protocol.proto
 
+
+#------------------------------------------------------
+# Run Targets
+#------------------------------------------------------
 run-cluster:
 	@./bin/cluster
 
@@ -83,6 +98,9 @@ run-kind-dest:
 	kubectl create -f manifests/cluster/cluster.yaml
 	kubectl create -f manifests/cluster/cluster-svc.yaml
 
+#------------------------------------------------------
+# Clena targets
+#------------------------------------------------------
 clean-kind-mbg:
 	kind delete cluster --name=mbg-agent1
 	kind delete cluster --name=mbg-agent2
