@@ -41,14 +41,12 @@ type LocalCluster struct {
 }
 
 type RemoteService struct {
-	Service  service.Service
-	MbgId    string // For now to identify a service to a MBG
-	DataPort ClusterPort
+	Service service.Service
+	MbgId   string // For now to identify a service to a MBG
 }
 
 type LocalService struct {
-	Service  service.Service
-	DataPort ClusterPort
+	Service service.Service
 }
 
 type ClusterPort struct {
@@ -195,46 +193,14 @@ func FreeUpPorts(connectionID string) {
 }
 
 func AddLocalService(id, ip, domain string) {
-	var lp, ep string
-
-	if val, ok := s.MyServices[id]; ok {
-		lp = val.DataPort.Local
-		ep = val.DataPort.External
-	} else { //create new allocation for the ports
-		lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
-		eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
-		lp = strconv.Itoa(lval + len(s.MyServices))
-		ep = strconv.Itoa(eval + len(s.MyServices))
-	}
-
-	if s.MyServices == nil {
-		s.MyServices = make(map[string]LocalService)
-	}
-
-	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain, ""}, DataPort: ClusterPort{Local: lp, External: ep}}
+	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain, ""}}
 	log.Infof("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()
 }
 
 func AddRemoteService(id, ip, domain, MbgId string) {
-	var lp, ep string
-
-	if val, ok := s.RemoteServices[id]; ok {
-		lp = val.DataPort.Local
-		ep = val.DataPort.External
-	} else { //create new allocation for the ports
-		lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
-		eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
-		lp = strconv.Itoa(lval + len(s.RemoteServices))
-		ep = strconv.Itoa(eval + len(s.RemoteServices))
-	}
-
-	if s.RemoteServices == nil {
-		s.RemoteServices = make(map[string]RemoteService)
-	}
-
-	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain, "Forward"}, MbgId: MbgId, DataPort: ClusterPort{Local: lp, External: ep}}
+	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain, "Forward"}, MbgId: MbgId}
 	log.Infof("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()

@@ -23,11 +23,12 @@ import (
 // connectCmd represents the connect command
 var connectCmd = &cobra.Command{
 	Use:   "connect",
-	Short: "connect flow connection to the closest MBG",
-	Long:  `connect flow connection to the closest MBG`,
+	Short: "Create flow connection to the MBG/cluster -for Debug only",
+	Long:  `Create flow connection to the MBG/cluster -for Debug only`,
 	Run: func(cmd *cobra.Command, args []string) {
 		svcId, _ := cmd.Flags().GetString("serviceId")
 		svcIdDest, _ := cmd.Flags().GetString("serviceIdDest")
+		localPort, _ := cmd.Flags().GetString("localPort")
 		policy, _ := cmd.Flags().GetString("policy")
 
 		state.UpdateState()
@@ -36,19 +37,17 @@ var connectCmd = &cobra.Command{
 			log.Println("Error: please insert all flag arguments for connect command")
 			os.Exit(1)
 		}
-		var listenPort, destIp string
+		var destIp string
 		if state.IsServiceLocal(svcIdDest) {
 			destSvc := state.GetLocalService(svcIdDest)
-			listenPort = destSvc.DataPort.Local
 			destIp = destSvc.Service.Ip
 		} else { //For Remote service
 			destSvc := state.GetRemoteService(svcIdDest)
-			listenPort = destSvc.DataPort.Local
 			destIp = destSvc.Service.Ip
 		}
 
 		log.Printf("Connect service %v to service %v \n", svcId, svcIdDest)
-		ConnectService(listenPort, destIp, policy)
+		ConnectService(localPort, destIp, policy)
 
 	},
 }
@@ -58,6 +57,7 @@ func init() {
 	connectCmd.Flags().String("serviceId", "", "Source service id for connecting ")
 	connectCmd.Flags().String("serviceIdDest", "", "Destination service id for connecting")
 	connectCmd.Flags().String("policy", "", "Policy connection")
+	connectCmd.Flags().String("localPort", "", "Local for open listen server")
 
 }
 
