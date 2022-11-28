@@ -10,7 +10,7 @@ clean: ; $(info $(M) cleaning...)	@
 #------------------------------------------------------
 
 prereqs: 											## Verify that required utilities are installed
-	echo -- $@ --
+	@echo -- $@ --
 	@go version || (echo "Please install GOLANG: https://go.dev/doc/install" && exit 1)
 #	@which goimports || (echo "Please install goimports: https://pkg.go.dev/golang.org/x/tools/cmd/goimports" && exit 1)
 	@kubectl version --client || (echo "Please install kubectl: https://kubernetes.io/docs/tasks/tools/" && exit 1)
@@ -94,7 +94,6 @@ run-kind-dest:
 	kind create cluster --config manifests/kind/dest-config.yaml --name=cluster-dest
 	kind load docker-image mbg --name=cluster-dest
 	kubectl create -f manifests/dest/iperf3/iperf3.yaml
-	kubectl create -f manifests/dest/iperf3/iperf3-svc.yaml
 	kubectl create -f manifests/cluster/cluster.yaml
 	kubectl create -f manifests/cluster/cluster-svc.yaml
 

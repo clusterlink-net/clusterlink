@@ -2,13 +2,13 @@ package state
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os/user"
 	"path"
 	"strconv"
 	"strings"
-	"math/rand"
-	"fmt"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -17,12 +17,12 @@ import (
 )
 
 type mbgState struct {
-	MyInfo         MbgInfo
-	ClusterArr     map[string]LocalCluster
-	MbgArr         map[string]MbgInfo
-	MyServices     map[string]LocalService
-	RemoteServices map[string]RemoteService
-	Connections    map[string]ClusterPort
+	MyInfo          MbgInfo
+	ClusterArr      map[string]LocalCluster
+	MbgArr          map[string]MbgInfo
+	MyServices      map[string]LocalService
+	RemoteServices  map[string]RemoteService
+	Connections     map[string]ClusterPort
 	LocalPortMap    map[int]bool
 	ExternalPortMap map[int]bool
 }
@@ -159,23 +159,25 @@ func GetFreePorts(connectionID string) (ClusterPort, error) {
 		return port, fmt.Errorf("Connection already setup!")
 	}
 	rand.NewSource(time.Now().UnixNano())
-	if (len(s.Connections) == s.MyInfo.MaxPorts) {
+	if len(s.Connections) == s.MyInfo.MaxPorts {
 		return ClusterPort{}, fmt.Errorf("All Ports taken up, Try again after sometimes!")
 	}
 	lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
 	eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
 	for true {
+
 		random := rand.Intn(s.MyInfo.MaxPorts)
-		localPort := lval+random
-		externalPort := eval+random
+		localPort := lval + random
+		externalPort := eval + random
 		if !s.LocalPortMap[localPort] {
 			log.Infof("[MBG %v] Free Local Port available at %v", s.MyInfo.Id, localPort)
 			if !s.ExternalPortMap[externalPort] {
 				log.Infof("[MBG %v] Free External Port available at %v", s.MyInfo.Id, externalPort)
 				s.LocalPortMap[localPort] = true
 				s.ExternalPortMap[externalPort] = true
-				myPort := ClusterPort{Local:strconv.Itoa(localPort), External:strconv.Itoa(externalPort)}
+				myPort := ClusterPort{Local: strconv.Itoa(localPort), External: strconv.Itoa(externalPort)}
 				s.Connections[connectionID] = myPort
+				SaveState()
 				return myPort, nil
 			}
 		}
