@@ -72,8 +72,8 @@ func (s *ConnectServer) connectCmd(ctx context.Context, in *pb.ConnectRequest) (
 	state.UpdateState()
 	svc := state.GetService(in.GetId())
 	destSvc := state.GetService(in.GetIdDest())
-	name := state.GetId() + " target: " + in.GetIdDest()
-	connectClient(svc.Service.Ip, destSvc.Service.Ip, name)
+	name := state.GetId() + " egress: " + in.GetIdDest()
+	connectClient(svc.Service.Id, destSvc.Service.Id, svc.Service.Ip, destSvc.Service.Ip, name)
 
 	return &pb.ConnectReply{Message: "Connecting the services"}, nil
 }

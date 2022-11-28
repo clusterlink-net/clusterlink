@@ -5,22 +5,20 @@ import (
 	"io/ioutil"
 	"os/user"
 	"path"
+	"syscall"
 
 	log "github.com/sirupsen/logrus"
 
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
 
-type ClusterService struct {
-	Service service.Service
-}
-
 type ClusterState struct {
-	MbgIP    string      `json:"MbgIP"`
-	IP       string      `json:"IP"`
-	Id       string      `json:"Id"`
-	Cport    ClusterPort `json:"Cport"`
-	Services map[string]ClusterService
+	MbgIP           string      `json:"MbgIP"`
+	IP              string      `json:"IP"`
+	Id              string      `json:"Id"`
+	Cport           ClusterPort `json:"Cport"`
+	Services        map[string]ClusterService
+	OpenConnections map[string]OpenConnection
 }
 
 type ClusterPort struct {
@@ -28,11 +26,21 @@ type ClusterPort struct {
 	External string
 }
 
+type ClusterService struct {
+	Service service.Service
+}
+
+type OpenConnection struct {
+	SvcId     string
+	SvcIdDest string
+	PId       int
+}
+
 const (
 	ConstPort = 5000
 )
 
-var s = ClusterState{MbgIP: "", IP: "", Id: "", Services: make(map[string]ClusterService)}
+var s = ClusterState{MbgIP: "", IP: "", Id: "", Services: make(map[string]ClusterService), OpenConnections: make(map[string]OpenConnection)}
 
 func GetMbgIP() string {
 	return s.MbgIP
@@ -87,6 +95,24 @@ func AddService(id, ip, domain string) {
 func (s *ClusterState) Print() {
 	log.Infof("[Cluster %v]: Id: %v ip: %v mbgip: %v", s.Id, s.Id, s.IP, s.MbgIP)
 	log.Infof("[Cluster %v]: services %v", s.Id, s.Services)
+}
+
+func AddOpenConnection(svcId, svcIdDest string, pId int) {
+	s.OpenConnections[svcId+":"+svcIdDest] = OpenConnection{SvcId: svcId, SvcIdDest: svcIdDest, PId: pId}
+	SaveState()
+	log.Info(s.OpenConnections)
+}
+
+func CloseOpenConnection(svcId, svcIdDest string) {
+	val, ok := s.OpenConnections[svcId+":"+svcIdDest]
+	if ok {
+		delete(s.OpenConnections, svcId+":"+svcIdDest)
+		syscall.Kill(val.PId, syscall.SIGINT)
+		log.Infof("[Cluster %v]: Delete connection: %v", s.Id, val)
+
+	} else {
+		log.Fatal("[Cluster %v]: connection from service %v to service %v is not exist \n", s.Id, svcId, svcIdDest)
+	}
 }
 
 /// Json code ////

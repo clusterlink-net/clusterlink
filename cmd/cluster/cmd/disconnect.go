@@ -37,22 +37,19 @@ var disconnectCmd = &cobra.Command{
 		// destSvc := state.GetService(svcIdDest)
 		mbgIP := state.GetMbgIP()
 		SendDisconnectReq(svcId, svcIdDest, mbgIP)
-		// TODO : Kill the existing connection Process
+		disconnectClient(svcId, svcIdDest)
 
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(connectCmd)
+	rootCmd.AddCommand(disconnectCmd)
 	disconnectCmd.Flags().String("serviceId", "", "Service Id that the cluster is listen")
 	disconnectCmd.Flags().String("serviceIdDest", "", "Destination service id the cluster is connecting")
-	disconnectCmd.Flags().String("policy", "", "Connection policy")
-	disconnectCmd.Flags().String("SendConnectReq", "true", "Decide if to send connection request to MBG default:True")
-
 }
 
-func disconnectClient(source, dest, name string) {
-	//
+func disconnectClient(svcId, svcIdDest string) {
+	state.CloseOpenConnection(svcId, svcIdDest)
 }
 
 func SendDisconnectReq(svcId, svcIdDest, mbgIP string) {

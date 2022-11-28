@@ -8,6 +8,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -42,8 +45,8 @@ var connectCmd = &cobra.Command{
 		if SendReq == "true" {
 			SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIP)
 		}
-		name := state.GetId() + " target: " + svcIdDest
-		connectClient(svc.Service.Ip, destSvc.Service.Ip, name)
+		name := state.GetId() + " egress: " + svcIdDest
+		connectClient(svc.Service.Id, destSvc.Service.Id, svc.Service.Ip, destSvc.Service.Ip, name)
 
 	},
 }
@@ -57,11 +60,23 @@ func init() {
 
 }
 
-func connectClient(source, dest, name string) {
+func connectClient(svcId, svcIdDest, sourceIp, destIp, connName string) {
 	var c clusterProxy.ProxyClient
-	//TBD add validity check for the source and dest  IP
-	c.InitClient(source, dest, name)
-	c.RunClient()
+	var stopChan = make(chan os.Signal, 2) //creating channel for interrupt
+	signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	state.AddOpenConnection(svcId, svcIdDest, os.Getpid())
+
+	c.InitClient(sourceIp, destIp, connName)
+	done := &sync.WaitGroup{}
+	done.Add(1)
+	go c.RunClient(done)
+
+	<-stopChan // wait for SIGINT
+	log.Infof("Receive SIGINT for connection from %v to %v \n", svcId, svcIdDest)
+	c.CloseConnection()
+	done.Wait()
+	log.Infof("Connection from %v to %v is close\n", svcId, svcIdDest)
+
 }
 
 func SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIP string) {

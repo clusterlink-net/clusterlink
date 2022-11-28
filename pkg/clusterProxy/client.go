@@ -17,9 +17,10 @@ var (
 )
 
 type ProxyClient struct {
-	Listener string
-	Target   string
-	Name     string
+	Listener  string
+	Target    string
+	Name      string
+	CloseConn chan bool
 }
 
 //Init client fields
@@ -27,29 +28,37 @@ func (c *ProxyClient) InitClient(listener, target, name string) {
 	c.Listener = listener
 	c.Target = target
 	c.Name = name
+	c.CloseConn = make(chan bool, 2)
 }
 
 //Run client object
-func (c *ProxyClient) RunClient() {
+func (c *ProxyClient) RunClient(wg *sync.WaitGroup) {
+	defer wg.Done()
 	fmt.Printf("[%v] start connection : listen: %v  send to : %v \n", c.Name, c.Listener, c.Target)
 
-	err := c.acceptLoop()
-	fmt.Println("Error:", err)
+	done := &sync.WaitGroup{}
+	done.Add(1)
+
+	go c.acceptLoop()
+	go c.waitToCloseSignal(done)
+
+	done.Wait()
+	fmt.Printf("[%v] Close connection \n", c.Name)
 }
 
 //Start listen loop and pass data to destination according to controlFrame
-func (c *ProxyClient) acceptLoop() error {
+func (c *ProxyClient) acceptLoop() {
 	// open listener
 	acceptor, err := net.Listen("tcp", c.Listener)
 	if err != nil {
-		return err
+		fmt.Println("Error:", err)
 	}
 	// loop until signalled to stop
 	for {
 		ac, err := acceptor.Accept()
-		fmt.Println("[client]: accept connetion", ac.LocalAddr().String(), "->", ac.RemoteAddr().String())
+		fmt.Printf("[%v]: accept connection %v -> %v\n", c.Name, ac.LocalAddr().String(), ac.RemoteAddr().String())
 		if err != nil {
-			return err
+			fmt.Println("Error:", err)
 		}
 		go c.dispatch(ac)
 	}
@@ -57,9 +66,9 @@ func (c *ProxyClient) acceptLoop() error {
 
 //Connect to client and call ioLoop function
 func (c *ProxyClient) dispatch(ac net.Conn) error {
-	fmt.Println("[client]: before dial TCP", c.Target)
+	fmt.Printf("[%v]: before dial TCP %v\n", c.Name, c.Target)
 	nodeConn, err := net.Dial("tcp", c.Target)
-	fmt.Println("[client]: after dial TCP", c.Target)
+	fmt.Printf("[%v]: after dial TCP %v\n", c.Name, c.Target)
 	if err != nil {
 		return err
 	}
@@ -71,8 +80,8 @@ func (c *ProxyClient) ioLoop(cl, mbg net.Conn) error {
 	defer cl.Close()
 	defer mbg.Close()
 
-	fmt.Println("[Cient] listen to:", cl.LocalAddr().String(), "in port:", cl.RemoteAddr().String())
-	fmt.Println("[Cient] send data to:", mbg.RemoteAddr().String(), "from port:", mbg.LocalAddr().String())
+	fmt.Printf("[%v] listen to: %v in port: %v \n", c.Name, cl.LocalAddr().String(), cl.RemoteAddr().String())
+	fmt.Printf("[%v] send data to: %v from port: %v\n", c.Name, mbg.RemoteAddr().String(), mbg.LocalAddr().String())
 	done := &sync.WaitGroup{}
 	done.Add(2)
 
@@ -80,7 +89,7 @@ func (c *ProxyClient) ioLoop(cl, mbg net.Conn) error {
 	go c.serverToClient(done, cl, mbg)
 
 	done.Wait()
-
+	fmt.Printf("[%v] Connection close \n", c.Name)
 	return nil
 }
 
@@ -96,7 +105,7 @@ func (c *ProxyClient) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) error
 			if err == io.EOF {
 				err = nil //Ignore EOF error
 			} else {
-				fmt.Printf("[clientToServer]: Read error %v\n", err)
+				fmt.Printf("[%v][clientToServer]: Read error %v\n", c.Name, err)
 			}
 
 			break
@@ -104,7 +113,7 @@ func (c *ProxyClient) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) error
 
 		_, err = mbg.Write(bufData[:numBytes])
 		if err != nil {
-			fmt.Printf("[clientToServer]: Write error %v\n", err)
+			fmt.Printf("[%v][clientToServer]: Write error %v\n", c.Name, err)
 			break
 		}
 	}
@@ -128,26 +137,26 @@ func (c *ProxyClient) serverToClient(wg *sync.WaitGroup, cl, mbg net.Conn) error
 			if err == io.EOF {
 				err = nil //Ignore EOF error
 			} else {
-				fmt.Printf("[serverToClient]: Read error %v\n", err)
+				fmt.Printf("[%v][serverToClient]: Read error %v\n", c.Name, err)
 			}
 			break
 		}
 		_, err = cl.Write(bufData[:numBytes])
 		if err != nil {
-			fmt.Printf("[serverToClient]: Write error %v\n", err)
+			fmt.Printf("[%v][serverToClient]: Write error %v\n", c.Name, err)
 			break
 		}
 	}
 	return err
 }
 
-// allocate 4B frame-buffer and 64KB payload buffer
-// forever {
-//    read 4B into frame-buffer
-//    if frame.Type == control { // not expected yet, except for error returns from SN
-// 	     read and process control frame
-//    } else {
-// 	 	 read(mbg, payload, frame.Len) // might require multiple reads and need a timeout deadline set
-//	     send(cl, payload)
-//    }
-// }
+func (c *ProxyClient) waitToCloseSignal(wg *sync.WaitGroup) {
+	defer wg.Done()
+	<-c.CloseConn
+	//cl.Close() ,mbg.Close()- TBD -check if need to close also the internal connections
+	fmt.Printf("[%v] Receive signal to close connection\n", c.Name)
+}
+
+func (c *ProxyClient) CloseConnection() {
+	c.CloseConn <- true
+}
