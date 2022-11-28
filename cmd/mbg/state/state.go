@@ -193,14 +193,14 @@ func FreeUpPorts(connectionID string) {
 }
 
 func AddLocalService(id, ip, domain string) {
-	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain, ""}}
+	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain}}
 	log.Infof("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()
 }
 
 func AddRemoteService(id, ip, domain, MbgId string) {
-	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain, "Forward"}, MbgId: MbgId}
+	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain}, MbgId: MbgId}
 	log.Infof("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()

@@ -8,8 +8,8 @@ import (
 )
 
 func TestFrame(t *testing.T) {
-	hostService := service.Service{Id: "iperf3Client.Lon", Ip: "127.0.0.1:5001", Domain: "Inner", Policy: "Forward"}
-	destService := service.Service{Id: "iperf3Server.Australia", Ip: "127.0.0.1:5001", Domain: "Inner", Policy: "Forward"}
+	hostService := service.Service{Id: "iperf3Client.Lon", Ip: "127.0.0.1:5001", Domain: "Inner"}
+	destService := service.Service{Id: "iperf3Server.Australia", Ip: "127.0.0.1:5001", Domain: "Inner"}
 	//mbgID := "mbg.Lon"
 	Frame := createFrame(hostService, destService)
 	buf := convFrame2Buf(Frame)

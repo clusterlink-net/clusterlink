@@ -173,7 +173,7 @@ if __name__ == "__main__":
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {mbg1Ip} -p {mbg1ExternalPort}'
     iperf3Test(cmd)
     
-    printHeader("fULL Iperf3 test clinet-> MBG1-> MBG2-> dest")
+    printHeader("Full Iperf3 test clinet-> MBG1-> MBG2-> dest")
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c cluster-iperf3-service -p 5000'
     iperf3Test(cmd)
 

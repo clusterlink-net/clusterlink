@@ -10,7 +10,6 @@ type Service struct {
 	Id     string
 	Ip     string
 	Domain string
-	Policy string `default:"Forward"`
 }
 
 //Init all Functions inside the mbg
@@ -22,6 +21,6 @@ func GetService(s string) Service {
 	return Arr[s]
 }
 
-func UpdateService(id, ip, domain, policy string) {
-	Arr[id] = Service{id, ip, domain, policy}
+func UpdateService(id, ip, domain string) {
+	Arr[id] = Service{id, ip, domain}
 }

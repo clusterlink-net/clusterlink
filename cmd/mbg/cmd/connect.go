@@ -56,7 +56,7 @@ func init() {
 	rootCmd.AddCommand(connectCmd)
 	connectCmd.Flags().String("serviceId", "", "Source service id for connecting ")
 	connectCmd.Flags().String("serviceIdDest", "", "Destination service id for connecting")
-	connectCmd.Flags().String("policy", "", "Policy connection")
+	connectCmd.Flags().String("policy", "Forward", "Policy connection")
 	connectCmd.Flags().String("localPort", "", "Local for open listen server")
 
 }

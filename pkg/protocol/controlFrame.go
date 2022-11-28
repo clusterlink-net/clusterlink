@@ -94,7 +94,6 @@ func service2Buf(s service.Service) []byte {
 	copy(serviceBuf[IpPos:IpPos+len(ipB)], ipB)
 	copy(serviceBuf[PortPos:PortPos+PortSize], []byte(port))
 	copy(serviceBuf[DomainPos:DomainPos+DomainSize], []byte(s.Domain))
-	copy(serviceBuf[PolicyPos:PolicyPos+PolicySize], []byte(s.Policy))
 	return serviceBuf
 }
 
@@ -134,7 +133,6 @@ func Buf2Service(sBuf []byte) service.Service {
 	s.Ip = net.IP(sBuf[IpPos+IpSize-ipv4ByteSize : IpPos+IpSize]).String()
 	s.Ip = s.Ip + ":" + buf2String(sBuf[PortPos:PortPos+PortSize])
 	s.Domain = buf2String(sBuf[DomainPos : DomainPos+DomainSize])
-	s.Policy = buf2String(sBuf[PolicyPos : PolicyPos+PolicySize])
 
 	return s
 }
