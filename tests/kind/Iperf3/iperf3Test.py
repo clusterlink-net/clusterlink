@@ -35,7 +35,7 @@ def runcmdb(cmd):
     time.sleep(7)
 
 def getKindIp(name):
-    clJson=json.loads (sp.getoutput(f' kubectl get nodes -o json'))
+    clJson=json.loads(sp.getoutput(f' kubectl get nodes -o json'))
     ip = clJson["items"][0]["status"]["addresses"][0]["address"]
     print(f"Kind Cluster {name} ip address:{ip}")
     return ip
@@ -55,6 +55,13 @@ def iperf3Test(cmd):
     else:
         print(f'Test Fail')
     print("***************************************")
+
+def getMbgPorts(podMbg, srcSvc, destSvc):
+    mbgJson=json.loads(sp.getoutput(f' kubectl exec -i {podMbg} -- cat ./root/.mbgApp'))
+    localPort =mbgJson["Connections"][srcSvc+ ":" + destSvc]["Local"]
+    externalPort =mbgJson["Connections"][srcSvc+ ":" + destSvc]["External"]
+    print(f"Service nodeport will use local Port: {localPort} and externalPort:{externalPort}")
+    return localPort, externalPort
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -141,14 +148,17 @@ if __name__ == "__main__":
     time.sleep(20)
     
     
-    #Create Nodeports inside mbg
+    # Create Nodeports inside mbg
     printHeader(f"\n\nCreate nodeports for data-plane connection")
     runcmd(f'kubectl config use-context kind-mbg-agent2')
-    runcmd("kubectl create service nodeport mbg --tcp=5081:5081 --node-port=30082")
-    runcmd(f'kubectl config use-context kind-mbg-agent1')
-    runcmd("kubectl create service nodeport mbg --tcp=5000:5000 --node-port=30001")
+    mbg2LocalPort, mbg2ExternalPort = getMbgPorts(podMbg2, srcSvc,destSvc)
+    runcmd(f"kubectl create service nodeport mbg --tcp={mbg2LocalPort}:{mbg2LocalPort} --node-port={mbg2ExternalPort}")
     
-    #runcmd(f'kubectl exec -i {podhost} --  cat /root/.clusterApp')
+    runcmd(f'kubectl config use-context kind-mbg-agent1')
+    mbg2LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, srcSvc,destSvc)
+    runcmd(f"kubectl create service nodeport mbg --tcp={mbg2LocalPort}:{mbg2LocalPort} --node-port={mbg1ExternalPort}")
+    
+    # #runcmd(f'kubectl exec -i {podhost} --  cat /root/.clusterApp')
 
     #Testing
     printHeader("\n\nStart Iperf3 testing")
@@ -160,7 +170,7 @@ if __name__ == "__main__":
     iperf3Test(cmd)
 
     printHeader("The Iperf3 test connects to MBG1")
-    cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {mbg1Ip} -p {mbg1DataPort}'
+    cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {mbg1Ip} -p {mbg1ExternalPort}'
     iperf3Test(cmd)
     
     printHeader("fULL Iperf3 test clinet-> MBG1-> MBG2-> dest")

@@ -165,7 +165,6 @@ func GetFreePorts(connectionID string) (ClusterPort, error) {
 	lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
 	eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
 	for true {
-
 		random := rand.Intn(s.MyInfo.MaxPorts)
 		localPort := lval + random
 		externalPort := eval + random

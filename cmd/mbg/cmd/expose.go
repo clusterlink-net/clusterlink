@@ -55,7 +55,7 @@ func ExposeToCluster(serviceId string) {
 	myIp := state.GetMyIp()
 	s := state.GetRemoteService(serviceId)
 	svcExp := s.Service
-	svcExp.Ip = myIp + ":" + s.DataPort.External //update port to connect data
+	svcExp.Ip = myIp
 	svcExp.Domain = "Remote"
 
 	for _, g := range clusterArr {

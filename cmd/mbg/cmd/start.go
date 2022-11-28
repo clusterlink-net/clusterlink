@@ -92,7 +92,6 @@ type ConnectServer struct {
 func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (*pb.ConnectReply, error) {
 	state.UpdateState()
 	//svc := state.GetService(in.GetID())
-	var listenPort, destIp string
 	connectionID := in.GetId() + ":" + in.GetIdDest()
 	if state.IsServiceLocal(in.GetIdDest()) {
 		log.Infof("[MBG %v] Received Incoming Connect request from service: %v to service: %v", state.GetMyId(), in.GetId(), in.GetIdDest())
@@ -113,28 +112,32 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 		log.Infof("[MBG %v] Sending Connect reply to Connection(%v) to use Dest:%v", state.GetMyId(), connectionID, myConnectionPorts.External)
 		return &pb.ConnectReply{Message: "Success", ConnectType: "tcp", ConnectDest: myConnectionPorts.External}, nil
 
-		// go ConnectService(listenPort, clusterIpPort, in.GetPolicy())
-		//
-		// log.Infof("MBG [%v] Sending Connect reply to Connection(%v) to use Dest:%v", state.GetMyId(), connectionID, myConnectionPort)
-		// return &pb.ConnectReply{Message: "Connecting the services", ConnectType: "tcp", ConnectDest: myConnectionPort}, nil
-
 	} else { //For Remote service
 		log.Infof("[MBG %v] Received Outgoing Connect request from service: %v to service: %v", state.GetMyId(), in.GetId(), in.GetIdDest())
 		destSvc := state.GetRemoteService(in.GetIdDest())
 		mbgIP := state.GetServiceMbgIp(destSvc.Service.Ip)
-		connectionType, connectionDest, err := SendConnectReq(in.GetId(), in.GetIdDest(), in.GetPolicy(), mbgIP)
+		//Send connection request to other MBG
+		connectType, connectDest, err := SendConnectReq(in.GetId(), in.GetIdDest(), in.GetPolicy(), mbgIP)
 		if err != nil {
 			log.Infof("[MBG %v] Send connect failure to Cluster", state.GetMyId())
 			return &pb.ConnectReply{Message: "Failure"}, nil
 		}
-		log.Infof("[MBG %v] Using %v:%v to connect IP-%v", state.GetMyId(), connectionType, connectionDest, destSvc.Service.Ip)
+		log.Infof("[MBG %v] Using %v:%v to connect IP-%v", state.GetMyId(), connectType, connectDest, destSvc.Service.Ip)
 
-		listenPort = destSvc.DataPort.Local
-		destIp = destSvc.Service.Ip + ":" + connectionDest
+		//Randomize listen ports for return
+		myConnectionPorts, err := state.GetFreePorts(connectionID)
+		if err != nil {
+			log.Infof("[MBG %v] Error getting free ports %s", state.GetMyId(), err.Error())
+			return &pb.ConnectReply{Message: err.Error()}, nil
+		}
+		log.Infof("[MBG %v] Using ConnectionPorts : %v", state.GetMyId(), myConnectionPorts)
+		//Create data connection
+		destIp := destSvc.Service.Ip + ":" + connectDest
+		go ConnectService(myConnectionPorts.Local, destIp, in.GetPolicy())
+		//Return a reply with to connect request
+		log.Infof("[MBG %v] Sending Connect reply to Connection(%v) to use Dest:%v", state.GetMyId(), connectionID, myConnectionPorts.External)
+		return &pb.ConnectReply{Message: "Success", ConnectType: "tcp", ConnectDest: myConnectionPorts.External}, nil
 
-		go ConnectService(listenPort, destIp, in.GetPolicy())
-		log.Infof("[MBG %v] Send connect success to Cluster", state.GetMyId())
-		return &pb.ConnectReply{Message: "Success", ConnectType: "tcp", ConnectDest: destSvc.DataPort.External}, nil
 	}
 }
 
