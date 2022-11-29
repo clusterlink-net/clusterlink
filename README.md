@@ -13,10 +13,10 @@ This project contains two main components:
 
 ## <ins>Run MBG in local environment (Kind)<ins>
 In this test we setup 4 clusters that run in local kind clusters: 
-1) host cluster (iPrf3 client) 
+1) Host cluster (iPrf3 client) 
 2) MBG1 (the mbg connect to the host domain) 
 3) MBG2 (the mbg connect to the destination domain) 
-4) destination cluster (iperf3 server)
+4) Destination cluster (iperf3 server)
 
 The test check iPerf3 connectivity between the host and destination cluster
 * Check all pre-requires  are installed (Go, docker, Kubectl, Kind ): ```make prereqs```
