@@ -62,46 +62,34 @@ run-cluster:
 run-mbg:
 	@./bin/mbg
 
-run-kind-mbg1:
-	kind create cluster --config manifests/kind/mbg-config1.yaml --name=mbg-agent1
-	kind load docker-image mbg --name=mbg-agent1
-	kind load docker-image tcp-split --name=mbg-agent1
-	kubectl create -f manifests/mbg/mbg.yaml
-	kubectl create -f manifests/mbg/mbg-svc.yaml
-	kubectl create -f manifests/mbg/mbg-client-svc.yaml
-	kubectl create -f manifests/tcp-split/tcp-split.yaml
-	kubectl create -f manifests/tcp-split/tcp-split-svc.yaml
 
-run-kind-mbg2:
-	kind create cluster --config manifests/kind/mbg-config2.yaml --name=mbg-agent2
-	kind load docker-image mbg --name=mbg-agent2
-	kind load docker-image tcp-split --name=mbg-agent2
-	kubectl create -f manifests/mbg/mbg.yaml
-	kubectl create -f manifests/mbg/mbg-svc.yaml
-	kubectl create -f manifests/mbg/mbg-client-svc.yaml
-	kubectl create -f manifests/tcp-split/tcp-split.yaml
-	kubectl create -f manifests/tcp-split/tcp-split-svc.yaml
+run-kind-iperf3:
+	python3 tests/iperf3/kind/test.py
 
-run-kind-host:
-	kind create cluster --config manifests/kind/host-config.yaml --name=cluster-host
-	kind load docker-image mbg --name=cluster-host
-	kubectl create -f manifests/host/iperf3/iperf3-client.yaml
-	kubectl create -f manifests/host/iperf3/iperf3-svc.yaml
-	kubectl create -f manifests/cluster/cluster.yaml
-	kubectl create -f manifests/cluster/cluster-svc.yaml
 
-run-kind-dest:
-	kind create cluster --config manifests/kind/dest-config.yaml --name=cluster-dest
-	kind load docker-image mbg --name=cluster-dest
-	kubectl create -f manifests/dest/iperf3/iperf3.yaml
-	kubectl create -f manifests/cluster/cluster.yaml
-	kubectl create -f manifests/cluster/cluster-svc.yaml
+
+run-kind-bookinfo:
+	kind create cluster --config manifests/bookinfo/product/kind-config.yaml --name=bookinfo-product
+	kubectl create -f manifests/bookinfo/product/product.yaml
+	kubectl create -f manifests/bookinfo/review/details.yaml
+	kind create cluster --config manifests/bookinfo/review/kind-config.yaml --name=bookinfo-review
+	kubectl create -f manifests/bookinfo/review/review-v3.yaml
+	kubectl create service nodeport reviews-v3 --tcp=9080:9080 --node-port=31000
+	kubectl create -f manifests/bookinfo/review/review-v2.yaml
+	kubectl create service nodeport reviews-v2 --tcp=9080:9080 --node-port=31001
+	kubectl create -f manifests/bookinfo/product/rating.yaml
+ 	
+	
 
 #------------------------------------------------------
 # Clena targets
 #------------------------------------------------------
-clean-kind-mbg:
+clean-kind-iperf3:
 	kind delete cluster --name=mbg-agent1
 	kind delete cluster --name=mbg-agent2
-	kind delete cluster --name=cluster-host
-	kind delete cluster --name=cluster-dest
+	kind delete cluster --name=host-cluster
+	kind delete cluster --name=dest-cluster
+
+clean-kind-bookinfo:
+	kind delete cluster --name=bookinfo-product
+	kind delete cluster --name=bookinfo-review

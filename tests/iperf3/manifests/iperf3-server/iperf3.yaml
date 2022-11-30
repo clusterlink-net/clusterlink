@@ -45,6 +45,7 @@ spec:
       - name: iperf3-server
         #image: networkstatic/iperf3
         image: mlabbe/iperf3
+        imagePullPolicy: IfNotPresent
         args: ['-s', '-p', '5000']
         # ports:
         # - containerPort: 50051

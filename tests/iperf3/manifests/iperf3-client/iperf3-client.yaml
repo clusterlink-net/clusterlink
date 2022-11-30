@@ -25,6 +25,7 @@ spec:
       - name: iperf3-client
         #image: networkstatic/iperf3
         image: mlabbe/iperf3
+        imagePullPolicy: IfNotPresent
         command: ['/bin/sh', '-c', 'sleep infinity']
         # To benchmark manually: kubectl exec iperf3-clients-jlfxq -- /bin/sh -c 'iperf3 -c iperf3-server'
       terminationGracePeriodSeconds: 0
