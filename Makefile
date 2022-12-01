@@ -62,24 +62,11 @@ run-cluster:
 run-mbg:
 	@./bin/mbg
 
-
 run-kind-iperf3:
 	python3 tests/iperf3/kind/test.py
 
-
-
 run-kind-bookinfo:
-	kind create cluster --config manifests/bookinfo/product/kind-config.yaml --name=bookinfo-product
-	kubectl create -f manifests/bookinfo/product/product.yaml
-	kubectl create -f manifests/bookinfo/review/details.yaml
-	kind create cluster --config manifests/bookinfo/review/kind-config.yaml --name=bookinfo-review
-	kubectl create -f manifests/bookinfo/review/review-v3.yaml
-	kubectl create service nodeport reviews-v3 --tcp=9080:9080 --node-port=31000
-	kubectl create -f manifests/bookinfo/review/review-v2.yaml
-	kubectl create service nodeport reviews-v2 --tcp=9080:9080 --node-port=31001
-	kubectl create -f manifests/bookinfo/product/rating.yaml
- 	
-	
+	python3 tests/bookinfo/kind/test.py
 
 #------------------------------------------------------
 # Clena targets
@@ -91,5 +78,7 @@ clean-kind-iperf3:
 	kind delete cluster --name=dest-cluster
 
 clean-kind-bookinfo:
-	kind delete cluster --name=bookinfo-product
-	kind delete cluster --name=bookinfo-review
+	kind delete cluster --name=mbg-agent1
+	kind delete cluster --name=mbg-agent2
+	kind delete cluster --name=product-cluster
+	kind delete cluster --name=review-cluster

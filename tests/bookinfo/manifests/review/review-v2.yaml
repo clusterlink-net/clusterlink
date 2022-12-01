@@ -1,0 +1,42 @@
+##################################################################################################
+# Reviews service
+##################################################################################################
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: reviews
+#   labels:
+#     app: reviews
+#     service: reviews
+# spec:
+#   ports:
+#   - port: 9080
+#     name: http
+#   selector:
+#     app: reviews
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reviews-v2
+  labels:
+    app: reviews-v2
+    version: v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reviews-v2
+  template:
+    metadata:
+      labels:
+        app: reviews-v2
+        version: v2
+    spec:
+      containers:
+      - name: reviews-v2
+        image: docker.io/maistra/examples-bookinfo-reviews-v2
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9080
+---

@@ -1,0 +1,50 @@
+##################################################################################################
+# Productpage services
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: productpage
+  labels:
+    app: productpage
+    service: productpage
+spec:
+  ports:
+  - port: 9080
+    #targetPort: 9080
+    nodePort: 30001
+    #protocol: TCP
+    name: http
+  selector:
+    app: productpage
+  type: LoadBalancer
+  #type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: productpage-v1
+  labels:
+    app: productpage
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: productpage
+  template:
+    metadata:
+      labels:
+        app: productpage
+        version: v1
+    spec:
+      containers:
+      - name: productpage
+        image: docker.io/maistra/examples-bookinfo-productpage-v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9080
+        # env:
+        # - name: REVIEWS_HOSTNAME
+        #   value: "cluster-mbg" #172.17.232.60
+---

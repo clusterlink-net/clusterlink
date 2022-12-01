@@ -1,0 +1,42 @@
+##################################################################################################
+# Ratings service
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: ratings
+  labels:
+    app: ratings
+    service: ratings
+spec:
+  ports:
+  - port: 9080
+    name: http
+  selector:
+    app: ratings
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ratings-v1
+  labels:
+    app: ratings
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ratings
+  template:
+    metadata:
+      labels:
+        app: ratings
+        version: v1
+    spec:
+      containers:
+      - name: ratings
+        image: docker.io/maistra/examples-bookinfo-ratings-v1:0.12.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9080
+---
