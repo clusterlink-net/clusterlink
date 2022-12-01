@@ -83,6 +83,9 @@ func GetMbgArr() map[string]MbgInfo {
 	return s.MbgArr
 }
 
+func GetConnectionArr() map[string]ClusterPort {
+	return s.Connections
+}
 func GetLocalClusterArr() map[string]LocalCluster {
 	return s.ClusterArr
 }
