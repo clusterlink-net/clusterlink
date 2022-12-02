@@ -110,7 +110,7 @@ func CloseOpenConnection(svcId, svcIdDest string) {
 		log.Infof("[Cluster %v]: Delete connection: %v", s.Id, val)
 		SaveState()
 	} else {
-		log.Fatal("[Cluster %v]: connection from service %v to service %v is not exist \n", s.Id, svcId, svcIdDest)
+		log.Fatalf("[Cluster %v]: connection from service %v to service %v is not exist \n", s.Id, svcId, svcIdDest)
 	}
 }
 

@@ -112,6 +112,10 @@ func SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, 
 		log.Printf("Successfully Connected : Using Connection:Port - %s:%s", r.GetConnectType(), r.GetConnectDest())
 		return r.GetConnectType(), r.GetConnectDest(), nil
 	}
-	log.Printf("Failed to Connect : %s", r.GetMessage())
-	return "", "", fmt.Errorf("Connect Request Failed")
+	log.Printf("[MBG %v] Failed to Connect : %s", state.GetMyId(), r.GetMessage())
+	if "Connection already setup!" == r.GetMessage() {
+		return r.GetConnectType(), r.GetConnectDest(), fmt.Errorf("Connection already setup!")
+	} else {
+		return "", "", fmt.Errorf("Connect Request Failed")
+	}
 }
