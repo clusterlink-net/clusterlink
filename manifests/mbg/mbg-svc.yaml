@@ -6,7 +6,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: mbg-service
+  name: mbg-control-service
 spec:
   type: NodePort
   selector:
@@ -17,9 +17,4 @@ spec:
       targetPort: 50051
       nodePort: 30000
       name: grpc-port
-    - protocol: TCP
-      port: 5000
-      targetPort: 5000
-      name: data-port
-      nodePort: 30001
     

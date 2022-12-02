@@ -2,13 +2,13 @@ package state
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os/user"
 	"path"
 	"strconv"
 	"strings"
-	"math/rand"
-	"fmt"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -17,12 +17,12 @@ import (
 )
 
 type mbgState struct {
-	MyInfo         MbgInfo
-	ClusterArr     map[string]LocalCluster
-	MbgArr         map[string]MbgInfo
-	MyServices     map[string]LocalService
-	RemoteServices map[string]RemoteService
-	Connections    map[string]ClusterPort
+	MyInfo          MbgInfo
+	ClusterArr      map[string]LocalCluster
+	MbgArr          map[string]MbgInfo
+	MyServices      map[string]LocalService
+	RemoteServices  map[string]RemoteService
+	Connections     map[string]ClusterPort
 	LocalPortMap    map[int]bool
 	ExternalPortMap map[int]bool
 }
@@ -41,14 +41,12 @@ type LocalCluster struct {
 }
 
 type RemoteService struct {
-	Service  service.Service
-	MbgId    string // For now to identify a service to a MBG
-	DataPort ClusterPort
+	Service service.Service
+	MbgId   string // For now to identify a service to a MBG
 }
 
 type LocalService struct {
-	Service  service.Service
-	DataPort ClusterPort
+	Service service.Service
 }
 
 type ClusterPort struct {
@@ -159,23 +157,24 @@ func GetFreePorts(connectionID string) (ClusterPort, error) {
 		return port, fmt.Errorf("Connection already setup!")
 	}
 	rand.NewSource(time.Now().UnixNano())
-	if (len(s.Connections) == s.MyInfo.MaxPorts) {
+	if len(s.Connections) == s.MyInfo.MaxPorts {
 		return ClusterPort{}, fmt.Errorf("All Ports taken up, Try again after sometimes!")
 	}
 	lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
 	eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
 	for true {
 		random := rand.Intn(s.MyInfo.MaxPorts)
-		localPort := lval+random
-		externalPort := eval+random
+		localPort := lval + random
+		externalPort := eval + random
 		if !s.LocalPortMap[localPort] {
 			log.Infof("[MBG %v] Free Local Port available at %v", s.MyInfo.Id, localPort)
 			if !s.ExternalPortMap[externalPort] {
 				log.Infof("[MBG %v] Free External Port available at %v", s.MyInfo.Id, externalPort)
 				s.LocalPortMap[localPort] = true
 				s.ExternalPortMap[externalPort] = true
-				myPort := ClusterPort{Local:strconv.Itoa(localPort), External:strconv.Itoa(externalPort)}
+				myPort := ClusterPort{Local: strconv.Itoa(localPort), External: strconv.Itoa(externalPort)}
 				s.Connections[connectionID] = myPort
+				SaveState()
 				return myPort, nil
 			}
 		}
@@ -194,46 +193,14 @@ func FreeUpPorts(connectionID string) {
 }
 
 func AddLocalService(id, ip, domain string) {
-	var lp, ep string
-
-	if val, ok := s.MyServices[id]; ok {
-		lp = val.DataPort.Local
-		ep = val.DataPort.External
-	} else { //create new allocation for the ports
-		lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
-		eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
-		lp = strconv.Itoa(lval + len(s.MyServices))
-		ep = strconv.Itoa(eval + len(s.MyServices))
-	}
-
-	if s.MyServices == nil {
-		s.MyServices = make(map[string]LocalService)
-	}
-
-	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain, ""}, DataPort: ClusterPort{Local: lp, External: ep}}
+	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain}}
 	log.Infof("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()
 }
 
 func AddRemoteService(id, ip, domain, MbgId string) {
-	var lp, ep string
-
-	if val, ok := s.RemoteServices[id]; ok {
-		lp = val.DataPort.Local
-		ep = val.DataPort.External
-	} else { //create new allocation for the ports
-		lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
-		eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
-		lp = strconv.Itoa(lval + len(s.RemoteServices))
-		ep = strconv.Itoa(eval + len(s.RemoteServices))
-	}
-
-	if s.RemoteServices == nil {
-		s.RemoteServices = make(map[string]RemoteService)
-	}
-
-	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain, "Forward"}, MbgId: MbgId, DataPort: ClusterPort{Local: lp, External: ep}}
+	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain}, MbgId: MbgId}
 	log.Infof("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()

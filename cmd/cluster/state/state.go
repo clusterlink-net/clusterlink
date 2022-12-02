@@ -85,8 +85,7 @@ func AddService(id, ip, domain string) {
 		s.Services = make(map[string]ClusterService)
 	}
 
-	policy := "" //default:No policy
-	s.Services[id] = ClusterService{Service: service.Service{id, ip, domain, policy}}
+	s.Services[id] = ClusterService{Service: service.Service{id, ip, domain}}
 	SaveState()
 	log.Infof("[Cluster %v] Add service: %v", s.Id, s.Services[id])
 	s.Print()

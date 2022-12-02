@@ -43,11 +43,17 @@ var connectCmd = &cobra.Command{
 		destSvc := state.GetService(svcIdDest)
 		mbgIP := state.GetMbgIP()
 		if SendReq == "true" {
-			SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIP)
-		}
-		name := state.GetId() + " egress: " + svcIdDest
-		connectClient(svc.Service.Id, destSvc.Service.Id, svc.Service.Ip, destSvc.Service.Ip, name)
+			connectType, DestPort, err := SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIP)
 
+			if err != nil {
+				log.Infof("[Cluster %v] Send connect failure to MBG", state.GetId())
+			}
+			log.Infof("[Cluster %v] Using %v:%v to connect IP-%v", state.GetId(), connectType, DestPort, destSvc.Service.Ip)
+			name := state.GetId() + " egress: " + svcIdDest
+			srcIp := svc.Service.Ip
+			destIp := destSvc.Service.Ip + ":" + DestPort
+			connectClient(svc.Service.Id, destSvc.Service.Id, srcIp, destIp, name)
+		}
 	},
 }
 
@@ -79,7 +85,7 @@ func connectClient(svcId, svcIdDest, sourceIp, destIp, connName string) {
 
 }
 
-func SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIP string) {
+func SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIP string) (string, string, error) {
 	log.Printf("Start connect Request to MBG %v for service %v", svcIdDest, mbgIP)
 
 	conn, err := grpc.Dial(mbgIP, grpc.WithInsecure(), grpc.WithBlock())
@@ -95,5 +101,11 @@ func SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIP string) {
 	if err != nil {
 		log.Fatalf("could not create user: %v", err)
 	}
-	log.Printf(`Response Connect message:  %s`, r.GetMessage())
+	if r.GetMessage() == "Success" {
+		log.Printf("Successfully Connected : Using Connection:Port - %s:%s", r.GetConnectType(), r.GetConnectDest())
+		return r.GetConnectType(), r.GetConnectDest(), nil
+	}
+
+	log.Printf("Failed to Connect : %s", r.GetMessage())
+	return "", "", fmt.Errorf("Connect Request Failed")
 }
