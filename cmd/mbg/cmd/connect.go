@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -69,8 +70,8 @@ func ConnectService(svcListenPort, svcIp, policy string) {
 
 	srcIp := ":" + svcListenPort
 	destIp := svcIp
-
-	cListener := ":4000" //port the client always listen
+	policyPort := strconv.Itoa(4000 + len(state.GetConnectionArr())) //TODO- Change to randomize port assignment
+	cListener := ":" + policyPort                                    //port the client always listen
 	var serverTarget string
 	if policy == "Forward" {
 		serverTarget = cListener

@@ -51,7 +51,7 @@ func (c *ProxyClient) acceptLoop() {
 	// open listener
 	acceptor, err := net.Listen("tcp", c.Listener)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Printf("[%v] Error: %v\n", c.Name, err)
 	}
 	// loop until signalled to stop
 	for {
