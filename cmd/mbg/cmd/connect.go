@@ -9,14 +9,13 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/pkg/mbgDataplane"
+	"github.ibm.com/mbg-agent/pkg/policyEngine"
 	pb "github.ibm.com/mbg-agent/pkg/protocol"
-	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 
 	"google.golang.org/grpc"
 )
@@ -48,7 +47,8 @@ var connectCmd = &cobra.Command{
 		}
 
 		log.Printf("Connect service %v to service %v \n", svcId, svcIdDest)
-		ConnectService(localPort, destIp, policy)
+		connID := svcId + ":" + svcIdDest
+		ConnectService(localPort, destIp, policy, connID)
 
 	},
 }
@@ -64,29 +64,28 @@ func init() {
 
 //Run server for Data connection - we have one server and client that we can add some network functions e.g: TCP-split
 //By default we just forward the data
-func ConnectService(svcListenPort, svcIp, policy string) {
-	var s mbgDataplane.MbgServer
-	var c mbgDataplane.MbgClient
+func ConnectService(svcListenPort, svcIp, policy, connName string) {
 
 	srcIp := ":" + svcListenPort
 	destIp := svcIp
-	policyPort := strconv.Itoa(4000 + len(state.GetConnectionArr())) //TODO- Change to randomize port assignment
-	cListener := ":" + policyPort                                    //port the client always listen
-	var serverTarget string
-	if policy == "Forward" {
-		serverTarget = cListener
-	} else if policy == "TCP-split" {
-		serverTarget = service.GetPolicyIp(policy)
-	} else {
-		fmt.Println(policy, "- Policy  not exist use Forward")
-		serverTarget = cListener
-	}
-	name1 := state.GetMyId() + " server"
-	s.InitServer(srcIp, serverTarget, name1)
-	c.InitClient(cListener, destIp)
 
-	go c.RunClient()
-	s.RunServer()
+	policyTarget := policyEngine.GetPolicyTarget(policy)
+	if policyTarget == "" {
+		// No Policy to be applied
+		var forward mbgDataplane.MbgTcpForwarder
+
+		forward.InitTcpForwarder(srcIp, destIp, connName)
+		forward.RunTcpForwarder()
+	} else {
+		var ingress mbgDataplane.MbgTcpForwarder
+		var egress mbgDataplane.MbgTcpForwarder
+
+		ingress.InitTcpForwarder(srcIp, policyTarget, connName)
+		egress.InitTcpForwarder(policyTarget, destIp, connName)
+		ingress.RunTcpForwarder()
+		egress.RunTcpForwarder()
+	}
+
 }
 
 //Send control request to connect

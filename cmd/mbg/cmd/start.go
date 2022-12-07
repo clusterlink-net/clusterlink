@@ -106,9 +106,10 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 		}
 		log.Infof("[MBG %v] Using ConnectionPorts : %v", state.GetMyId(), myConnectionPorts)
 		clusterIpPort := localSvc.Service.Ip
-
-		go ConnectService(myConnectionPorts.Local, clusterIpPort, in.GetPolicy())
-
+		// TODO Need to check Policy before accepting connections
+		//ApplyGlobalPolicies
+		//ApplyServicePolicies
+		go ConnectService(myConnectionPorts.Local, clusterIpPort, in.GetPolicy(), connectionID)
 		log.Infof("[MBG %v] Sending Connect reply to Connection(%v) to use Dest:%v", state.GetMyId(), connectionID, myConnectionPorts.External)
 		return &pb.ConnectReply{Message: "Success", ConnectType: "tcp", ConnectDest: myConnectionPorts.External}, nil
 
@@ -133,7 +134,7 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 		log.Infof("[MBG %v] Using ConnectionPorts : %v", state.GetMyId(), myConnectionPorts)
 		//Create data connection
 		destIp := destSvc.Service.Ip + ":" + connectDest
-		go ConnectService(myConnectionPorts.Local, destIp, in.GetPolicy())
+		go ConnectService(myConnectionPorts.Local, destIp, in.GetPolicy(), connectionID)
 		//Return a reply with to connect request
 		log.Infof("[MBG %v] Sending Connect reply to Connection(%v) to use Dest:%v", state.GetMyId(), connectionID, myConnectionPorts.External)
 		return &pb.ConnectReply{Message: "Success", ConnectType: "tcp", ConnectDest: myConnectionPorts.External}, nil
