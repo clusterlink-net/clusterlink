@@ -12,7 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
-	pb "github.ibm.com/mbg-agent/pkg/protocol"
+	pb "github.ibm.com/mbg-agent/pkg/protocol/grpc"
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 	"google.golang.org/grpc"
 )

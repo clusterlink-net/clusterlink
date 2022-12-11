@@ -12,8 +12,7 @@ import (
 	"net"
 
 	log "github.com/sirupsen/logrus"
-	pb "github.ibm.com/mbg-agent/pkg/protocol"
-	"google.golang.org/grpc"
+	pb "github.ibm.com/mbg-agent/pkg/protocol/grpc"
 )
 
 // startCmd represents the start command

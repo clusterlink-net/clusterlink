@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/cluster/state"
 	"github.ibm.com/mbg-agent/pkg/clusterProxy"
-	pb "github.ibm.com/mbg-agent/pkg/protocol"
+	pb "github.ibm.com/mbg-agent/pkg/protocol/grpc"
 	"google.golang.org/grpc"
 )
 

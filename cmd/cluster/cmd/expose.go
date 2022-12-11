@@ -13,7 +13,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	pb "github.ibm.com/mbg-agent/pkg/protocol"
+	pb "github.ibm.com/mbg-agent/pkg/protocol/grpc"
 	"google.golang.org/grpc"
 )
 

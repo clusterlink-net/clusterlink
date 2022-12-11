@@ -15,7 +15,7 @@ import (
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/pkg/mbgDataplane"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
-	pb "github.ibm.com/mbg-agent/pkg/protocol"
+	pb "github.ibm.com/mbg-agent/pkg/protocol/grpc"
 
 	"google.golang.org/grpc"
 )
