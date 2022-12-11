@@ -13,7 +13,7 @@ type MbgHandler struct{}
 func (m MbgHandler) Routes() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/", m.mbgWelcome())
+	r.Get("/", m.mbgWelcome)
 
 	r.Route("/hello", func(r chi.Router) {
 		//r.Use(PostCtx)
@@ -22,16 +22,14 @@ func (m MbgHandler) Routes() chi.Router {
 	})
 
 	r.Route("/expose", func(r chi.Router) {
-		r.Post("/", m.exposePost()) // Post /expose  - Expose mbg service
+		r.Post("/", m.exposePost) // Post /expose  - Expose mbg service
 	})
 	return r
 }
 
-func (m MbgHandler) mbgWelcome() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		_, err := w.Write([]byte("Welcome to Multi-cloud Boarder Gateway"))
-		if err != nil {
-			log.Println(err)
-		}
+func (m MbgHandler) mbgWelcome(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write([]byte("Welcome to Multi-cloud Boarder Gateway"))
+	if err != nil {
+		log.Println(err)
 	}
 }
