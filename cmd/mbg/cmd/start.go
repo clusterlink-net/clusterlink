@@ -5,16 +5,16 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"net"
+	"net/http"
 	"os"
 
+	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
-	"google.golang.org/grpc"
 
-	pb "github.ibm.com/mbg-agent/pkg/protocol"
+	handler "github.ibm.com/mbg-agent/pkg/protocol/http/mbg"
 )
 
 /// startCmd represents the start command
@@ -54,21 +54,17 @@ func init() {
 /********************************** Server **********************************************************/
 func startServer() {
 	log.Infof("MBG [%v] started", state.GetMyId())
-	mbgCPort := ":" + state.GetMyCport().Local //TBD - not supporting using several MBGs in same node
-	lis, err := net.Listen("tcp", mbgCPort)
+
+	//Create a new router
+	r := chi.NewRouter()
+	r.Mount("/", handler.MbgHandler{}.Routes())
+
+	//Use router to start the server
+	mbgCPort := ":" + state.GetMyCport().Local
+	log.Infof("Control channel listening at %v", mbgCPort)
+	err := http.ListenAndServe(mbgCPort, r)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer()
-
-	pb.RegisterExposeServer(s, &ExposeServer{})
-	pb.RegisterConnectServer(s, &ConnectServer{})
-	pb.RegisterDisconnectServer(s, &DisconnectServer{})
-	pb.RegisterHelloServer(s, &HelloServer{})
-
-	log.Infof("Control channel listening at %v", lis.Addr())
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		log.Println(err)
 	}
 
 }
