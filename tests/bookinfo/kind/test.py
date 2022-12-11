@@ -10,12 +10,12 @@ from aux.kindAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getKi
 
 
 
-def connectSvc(srcSvc,destSvc):
+def connectSvc(srcSvc,destSvc,policy):
     printHeader(f"\n\nStart Data plan connection {srcSvc} to {destSvc}")
     runcmd(f'kubectl config use-context kind-product-cluster')
     podhost= getPodName("cluster-mbg")
     runcmdb(f'kubectl exec -i {podhost} -- ./cluster connect --serviceId {srcSvc}  --serviceIdDest {destSvc}')
-    time.sleep(10)
+    time.sleep(1)
     
     
     # Create Nodeports inside mbg
@@ -51,14 +51,15 @@ if __name__ == "__main__":
     printHeader("Start pre-setting")
 
     review2DestPort="30001"
-    review2svc="review2"
+    review2svc="review-v2"
     review3DestPort="30002"
-    review3svc="review3"
+    review3svc="review-v3"
     
     mbg1DataPort= "30001"
     mbg2DataPort= "30001"
     srcSvc="review"
     srcsvcIp=":9080"
+    svcpolicy ="Forward"
 
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
@@ -68,7 +69,7 @@ if __name__ == "__main__":
         printHeader("\n\nClose Iperf3 connection")
         runcmd(f'kubectl exec -i {podhost} -- ./cluster disconnect --serviceId {args["src"]} --serviceIdDest {args["dest"]}')
     elif args["command"] == "connect":
-        connectSvc(args["src"],args["dest"])
+        connectSvc(args["src"],args["dest"],svcpolicy)
     else:
         ### clean 
         print(f"Clean old kinds")
@@ -146,4 +147,4 @@ if __name__ == "__main__":
         runcmd(f'kubectl exec -i {podest} -- ./cluster expose --serviceId {review3svc}')
 
         #connect cluster
-        connectSvc(srcSvc,review2svc)
+        connectSvc(srcSvc,review2svc,svcpolicy)

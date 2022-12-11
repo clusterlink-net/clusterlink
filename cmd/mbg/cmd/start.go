@@ -102,7 +102,7 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 		myConnectionPorts, err := state.GetFreePorts(connectionID)
 		if err != nil {
 			log.Infof("[MBG %v] Error getting free ports %s", state.GetMyId(), err.Error())
-			return &pb.ConnectReply{Message: err.Error()}, nil
+			return &pb.ConnectReply{Message: err.Error(), ConnectType: "tcp", ConnectDest: myConnectionPorts.External}, nil
 		}
 		log.Infof("[MBG %v] Using ConnectionPorts : %v", state.GetMyId(), myConnectionPorts)
 		clusterIpPort := localSvc.Service.Ip
@@ -119,9 +119,9 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 		mbgIP := state.GetServiceMbgIp(destSvc.Service.Ip)
 		//Send connection request to other MBG
 		connectType, connectDest, err := SendConnectReq(in.GetId(), in.GetIdDest(), in.GetPolicy(), mbgIP)
-		if err != nil {
-			log.Infof("[MBG %v] Send connect failure to Cluster", state.GetMyId())
-			return &pb.ConnectReply{Message: "Failure"}, nil
+		if err != nil && err.Error() != "Connection already setup!" {
+			log.Infof("[MBG %v] Send connect failure to Cluster =%v ", state.GetMyId(), err.Error())
+			return &pb.ConnectReply{Message: "Failure", ConnectType: "tcp", ConnectDest: connectDest}, nil
 		}
 		log.Infof("[MBG %v] Using %v:%v to connect IP-%v", state.GetMyId(), connectType, connectDest, destSvc.Service.Ip)
 
@@ -129,7 +129,7 @@ func (s *ConnectServer) ConnectCmd(ctx context.Context, in *pb.ConnectRequest) (
 		myConnectionPorts, err := state.GetFreePorts(connectionID)
 		if err != nil {
 			log.Infof("[MBG %v] Error getting free ports %s", state.GetMyId(), err.Error())
-			return &pb.ConnectReply{Message: err.Error()}, nil
+			return &pb.ConnectReply{Message: err.Error(), ConnectType: "tcp", ConnectDest: myConnectionPorts.External}, nil
 		}
 		log.Infof("[MBG %v] Using ConnectionPorts : %v", state.GetMyId(), myConnectionPorts)
 		//Create data connection

@@ -46,7 +46,7 @@ var connectCmd = &cobra.Command{
 			connectType, DestPort, err := SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIP)
 
 			if err != nil {
-				log.Infof("[Cluster %v] Send connect failure to MBG", state.GetId())
+				log.Infof("[Cluster %v]: Connection request to MBG fail- %v", state.GetId(), err.Error())
 			}
 			log.Infof("[Cluster %v] Using %v:%v to connect IP-%v", state.GetId(), connectType, DestPort, destSvc.Service.Ip)
 			name := state.GetId() + " egress: " + svcIdDest
@@ -61,7 +61,7 @@ func init() {
 	rootCmd.AddCommand(connectCmd)
 	connectCmd.Flags().String("serviceId", "", "Service Id that the cluster is listen")
 	connectCmd.Flags().String("serviceIdDest", "", "Destination service id the cluster is connecting")
-	connectCmd.Flags().String("policy", "", "Connection policy")
+	connectCmd.Flags().String("policy", "Forward", "Connection policy")
 	connectCmd.Flags().String("SendConnectReq", "true", "Decide if to send connection request to MBG default:True")
 
 }
@@ -106,6 +106,10 @@ func SendConnectReq(svcId, svcIdDest, svcPolicy, mbgIP string) (string, string, 
 		return r.GetConnectType(), r.GetConnectDest(), nil
 	}
 
-	log.Printf("Failed to Connect : %s", r.GetMessage())
-	return "", "", fmt.Errorf("Connect Request Failed")
+	log.Printf("[Cluster %v] Failed to Connect : %s port %s", state.GetId(), r.GetMessage(), r.GetConnectDest())
+	if "Connection already setup!" == r.GetMessage() {
+		return r.GetConnectType(), r.GetConnectDest(), fmt.Errorf(r.GetMessage())
+	} else {
+		return "", "", fmt.Errorf("Connect Request Failed")
+	}
 }
