@@ -19,3 +19,16 @@ type HelloRequest struct {
 	Ip    string
 	Cport string
 }
+
+//Connect
+type ConnectRequest struct {
+	Id     string
+	IdDest string
+	Policy string
+}
+
+type ConnectReply struct {
+	Message     string
+	ConnectType string
+	ConnectDest string
+}

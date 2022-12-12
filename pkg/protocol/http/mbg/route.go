@@ -24,6 +24,11 @@ func (m MbgHandler) Routes() chi.Router {
 	r.Route("/expose", func(r chi.Router) {
 		r.Post("/", m.exposePost) // Post /expose  - Expose mbg service
 	})
+
+	r.Route("/connect", func(r chi.Router) {
+		r.Post("/", m.connectPost) // Post /connect  - Connect mbg service
+	})
+
 	return r
 }
 
