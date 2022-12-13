@@ -39,3 +39,23 @@ func HttpPost(url string, jsonData []byte) []byte {
 
 	return body
 }
+
+func HttpDelete(url string, jsonData []byte) []byte {
+
+	req, err := http.NewRequest(http.MethodDelete, url, bytes.NewBuffer(jsonData))
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return body
+}

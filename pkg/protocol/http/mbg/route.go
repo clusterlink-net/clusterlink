@@ -26,14 +26,15 @@ func (m MbgHandler) Routes() chi.Router {
 	})
 
 	r.Route("/connect", func(r chi.Router) {
-		r.Post("/", m.connectPost) // Post /connect  - Connect mbg service
+		r.Post("/", m.connectPost)     // Post /connect  - Connect mbg service
+		r.Delete("/", m.connectDelete) // Disconnect /connect  - Disconnect mbg service
 	})
 
 	return r
 }
 
 func (m MbgHandler) mbgWelcome(w http.ResponseWriter, r *http.Request) {
-	_, err := w.Write([]byte("Welcome to Multi-cloud Boarder Gateway"))
+	_, err := w.Write([]byte("Welcome to Multi-cloud Border Gateway"))
 	if err != nil {
 		log.Println(err)
 	}
