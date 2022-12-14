@@ -7,14 +7,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/cluster/state"
-
-	"context"
-	"time"
-
-	log "github.com/sirupsen/logrus"
-
-	pb "github.ibm.com/mbg-agent/pkg/protocol"
-	"google.golang.org/grpc"
+	handler "github.ibm.com/mbg-agent/pkg/protocol/http/cluster"
 )
 
 // exposeCmd represents the expose command
@@ -27,7 +20,7 @@ var exposeCmd = &cobra.Command{
 		state.UpdateState()
 
 		mbgIP := state.GetMbgIP()
-		expose(serviceId, mbgIP)
+		handler.ExposeReq(serviceId, mbgIP)
 
 	},
 }
@@ -35,30 +28,5 @@ var exposeCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(exposeCmd)
 	exposeCmd.Flags().String("serviceId", "", "Service Id for exposing")
-
-}
-
-func expose(serviceId, mbgIP string) {
-	log.Printf("[ClsterStart expose %v to MBG with IP address %v", serviceId, mbgIP)
-	s := state.GetService(serviceId)
-
-	svcExp := s.Service
-
-	log.Printf("Service %v", s)
-
-	conn, err := grpc.Dial(mbgIP, grpc.WithInsecure(), grpc.WithBlock())
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
-	}
-	defer conn.Close()
-	c := pb.NewExposeClient(conn)
-	log.Printf("here\n")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	r, err := c.ExposeCmd(ctx, &pb.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain})
-	if err != nil {
-		log.Fatalf("could not create user: %v", err)
-	}
-	log.Printf(`Response message:  %s`, r.GetMessage())
 
 }

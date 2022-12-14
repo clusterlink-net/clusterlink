@@ -5,15 +5,14 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"net/http"
+
+	"github.com/go-chi/chi"
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/cluster/state"
 
-	"context"
-	"net"
-
 	log "github.com/sirupsen/logrus"
-	pb "github.ibm.com/mbg-agent/pkg/protocol"
-	"google.golang.org/grpc"
+	handler "github.ibm.com/mbg-agent/pkg/protocol/http/cluster"
 )
 
 // startCmd represents the start command
@@ -45,56 +44,18 @@ func init() {
 	startCmd.Flags().String("cport", "", "Multi-cloud Border Gateway control external port for the MBG neighbors ")
 }
 
-/******* Commands **********/
-//Expose
-func (s *ExposeServer) ExposeCmd(ctx context.Context, in *pb.ExposeRequest) (*pb.ExposeReply, error) {
-	log.Printf("Received: %v", in.GetId())
-	state.UpdateState()
-	state.AddService(in.GetId(), in.GetIp(), in.GetDomain())
-	return &pb.ExposeReply{Message: "Done"}, nil
-}
-
-type ExposeServer struct {
-	pb.UnimplementedExposeServer
-}
-
-//Connect
-type ConnectServer struct {
-	pb.UnimplementedConnectServer
-}
-
-type DisconnectServer struct {
-	pb.UnimplementedDisconnectServer
-}
-
-func (s *ConnectServer) connectCmd(ctx context.Context, in *pb.ConnectRequest) (*pb.ConnectReply, error) {
-	log.Printf("Received Connect request from service: %v to service: %v", in.GetId(), in.GetIdDest())
-	state.UpdateState()
-	svc := state.GetService(in.GetId())
-	destSvc := state.GetService(in.GetIdDest())
-	name := state.GetId() + " egress: " + in.GetIdDest()
-	connectClient(svc.Service.Id, destSvc.Service.Id, svc.Service.Ip, destSvc.Service.Ip, name)
-
-	return &pb.ConnectReply{Message: "Connecting the services"}, nil
-}
-
 /********************************** Server **********************************************************/
 func startServer() {
 	log.Printf("Cluster [%v] started", state.GetId())
 
+	//Create a new router
+	r := chi.NewRouter()
+	r.Mount("/", handler.ClusterHandler{}.Routes())
+	//Use router to start the server
 	clusterCPort := ":" + state.GetCport().Local
-	lis, err := net.Listen("tcp", clusterCPort)
+	err := http.ListenAndServe(clusterCPort, r)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer()
-	pb.RegisterExposeServer(s, &ExposeServer{})
-	pb.RegisterConnectServer(s, &ConnectServer{})
-	pb.RegisterDisconnectServer(s, &DisconnectServer{})
-
-	log.Printf("Control channel listening at %v", lis.Addr())
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		log.Println(err)
 	}
 
 }

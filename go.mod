@@ -3,6 +3,8 @@ module github.ibm.com/mbg-agent
 go 1.17
 
 require (
+	github.com/go-chi/chi v1.5.4 // indirect
+	github.com/go-chi/chi/v5 v5.0.8 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
