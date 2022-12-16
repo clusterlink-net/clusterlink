@@ -13,16 +13,10 @@ import (
 	"crypto/x509"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/sirupsen/logrus"
-)
-
-var (
-	maxDataBufferSize = 64 * 1024
 )
 
 type mTlsForwarder struct {
@@ -147,7 +141,7 @@ func (m *mTlsForwarder) CloseConnection() {
 	m.Connection.Close()
 }
 
-// Start a Cluster Service which is a proxy for  remote service
+// Start a Cluster Service which is a proxy for remote service
 // It receives connections from local service and performs Connect API
 // and sets up an mTLS forwarding to the remote service upon accepted (policy checks, etc)
 func StartClusterService(serviceName, clusterServicePort, targetMbg, certificate, key string) error {
@@ -166,60 +160,9 @@ func StartClusterService(serviceName, clusterServicePort, targetMbg, certificate
 		// Ideally do a control plane connect API, Policy checks, and then create a mTLS forwarder
 		// RemoteEndPoint has to be in the connect Request/Response
 		var mtlsForward mTlsForwarder
-		var remoteEndPoint string
+		var remoteEndPoint = "serviceConnector" // hack for now
 		mtlsForward.InitmTlsForwarder(targetMbg, remoteEndPoint, certificate, key)
 		mtlsForward.setSocketConnection(ac)
 		go mtlsForward.dispatch(ac)
 	}
 }
-
-func testsendClusterData(clusterIn string, data []byte) {
-	nodeConn, err := net.Dial("tcp", clusterIn)
-	if err != nil {
-		log.Fatalf("Failed to connect to socket %+v", err)
-	}
-	go testrecvClusterData(nodeConn)
-	for {
-		nodeConn.Write(data)
-		time.Sleep(1 * time.Second)
-	}
-}
-
-func testrecvClusterData(conn net.Conn) {
-	bufData := make([]byte, maxDataBufferSize)
-	for {
-		numBytes, err := conn.Read(bufData)
-		if err != nil {
-			if err == io.EOF {
-				err = nil //Ignore EOF error
-			} else {
-				mlog.Infof("Read error %v\n", err)
-			}
-			break
-		}
-		mlog.Infof("Received %s in Socket Connection", bufData[:numBytes])
-	}
-}
-
-////// Tests - TODO: Move this to tests
-//run in tcnode6
-// func tcnode6() {
-// 	go StartMtlsServer("10.20.20.1", "/home/pravein/mtls/tcnode6_cert.pem", "/home/pravein/mtls/tcnode6_key.pem")
-// 	go StartClusterService("testService1", ":9000", "https://10.20.20.2:8443/mbgData", "/home/pravein/mtls/tcnode7_cert.pem", "/home/pravein/mtls/tcnode7_key.pem")
-
-// 	time.Sleep(1 * time.Second)
-// 	testsendClusterData(":9000", []byte("I am tcnode6-test1 cluster"))
-// }
-
-// //run in tcnode7
-// func tcnode7() {
-// 	go StartMtlsServer("10.20.20.2", "/home/pravein/mtls/tcnode7_cert.pem", "/home/pravein/mtls/tcnode7_key.pem")
-// 	go StartClusterService("testService2", ":9000", "https://10.20.20.1:8443/mbgData", "/home/pravein/mtls/tcnode6_cert.pem", "/home/pravein/mtls/tcnode6_key.pem")
-
-// 	time.Sleep(1 * time.Second)
-// 	testsendClusterData(":9000", []byte("I am tcnode7-test1 cluster"))
-// }
-
-// func main() {
-// 	tcnode7()
-// }
