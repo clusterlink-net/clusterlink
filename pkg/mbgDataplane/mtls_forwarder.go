@@ -106,7 +106,7 @@ func (m *mTlsForwarder) mbgDataHandler(mbgResp http.ResponseWriter, mbgR *http.R
 	} else {
 		mlog.Errorf("Received message before active connection")
 	}
-	mbgResp.WriteHeader(200)
+	mbgResp.WriteHeader(http.StatusOK)
 }
 
 //Connect to client and call ioLoop function
