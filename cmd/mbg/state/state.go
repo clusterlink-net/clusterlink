@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"os/user"
 	"path"
 	"strconv"
@@ -17,22 +18,27 @@ import (
 )
 
 type mbgState struct {
-	MyInfo          MbgInfo
-	ClusterArr      map[string]LocalCluster
-	MbgArr          map[string]MbgInfo
-	MyServices      map[string]LocalService
-	RemoteServices  map[string]RemoteService
-	Connections     map[string]ClusterPort
-	LocalPortMap    map[int]bool
-	ExternalPortMap map[int]bool
+	MyInfo                MbgInfo
+	ClusterArr            map[string]LocalCluster
+	MbgArr                map[string]MbgInfo
+	MyServices            map[string]LocalService
+	RemoteServices        map[string]RemoteService
+	Connections           map[string]ClusterPort
+	LocalServiceEndpoints map[string]string
+	LocalPortMap          map[int]bool
+	ExternalPortMap       map[int]bool
 }
 
 type MbgInfo struct {
-	Id            string
-	Ip            string
-	Cport         ClusterPort
-	DataPortRange ClusterPort
-	MaxPorts      int
+	Id              string
+	Ip              string
+	Cport           ClusterPort
+	DataPortRange   ClusterPort
+	MaxPorts        int
+	CertificateFile string
+	KeyFile         string
+	CertData        []byte
+	KeyData         []byte
 }
 
 type LocalCluster struct {
@@ -90,7 +96,7 @@ func GetLocalClusterArr() map[string]LocalCluster {
 	return s.ClusterArr
 }
 
-func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange string) {
+func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, certificate, key string) {
 	s.MyInfo.Id = id
 	s.MyInfo.Ip = ip
 	s.MyInfo.Cport.Local = cportLocal
@@ -98,6 +104,17 @@ func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDat
 	s.MyInfo.DataPortRange.Local = localDataPortRange
 	s.MyInfo.DataPortRange.External = externalDataPortRange
 	s.MyInfo.MaxPorts = 1000 // TODO
+	s.MyInfo.CertificateFile = certificate
+	s.MyInfo.KeyFile = key
+	var err error
+	s.MyInfo.CertData, err = os.ReadFile(certificate)
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.MyInfo.KeyData, err = os.ReadFile(key)
+	if err != nil {
+		log.Fatal(err)
+	}
 	SaveState()
 }
 
@@ -146,43 +163,85 @@ func IsServiceLocal(id string) bool {
 	return exist
 }
 
-func AddMbgNbr(id, ip, cport string) {
-	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ClusterPort{External: cport, Local: ""}}
+func AddMbgNbr(id, ip, cport, certFile, keyFile string) {
+	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ClusterPort{External: cport, Local: ""}, CertificateFile: certFile, KeyFile: keyFile}
 	log.Infof("[MBG %v] add MBG neighbors array %v", s.MyInfo.Id, s.MbgArr[id])
 	s.Print()
 	SaveState()
+}
 
+func UpdateMbgCerts(id, certFile, keyFile string) {
+	mbgInfo := s.MbgArr[id]
+	mbgInfo.CertificateFile = certFile
+	mbgInfo.KeyFile = keyFile
 }
 
 // Gets an available free port to use per connection
 func GetFreePorts(connectionID string) (ClusterPort, error) {
 	if port, ok := s.Connections[connectionID]; ok {
-		return port, fmt.Errorf("Connection already setup!")
+		return port, fmt.Errorf("connection already setup")
 	}
 	rand.NewSource(time.Now().UnixNano())
 	if len(s.Connections) == s.MyInfo.MaxPorts {
-		return ClusterPort{}, fmt.Errorf("All Ports taken up, Try again after sometimes!")
+		return ClusterPort{}, fmt.Errorf("all Ports taken up, Try again after sometimes")
 	}
 	lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
 	eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
-	for true {
-		random := rand.Intn(s.MyInfo.MaxPorts)
-		localPort := lval + random
-		externalPort := eval + random
-		if !s.LocalPortMap[localPort] {
-			log.Infof("[MBG %v] Free Local Port available at %v", s.MyInfo.Id, localPort)
-			if !s.ExternalPortMap[externalPort] {
-				log.Infof("[MBG %v] Free External Port available at %v", s.MyInfo.Id, externalPort)
+	timeout := time.After(10 * time.Second)
+	for {
+		select {
+		// Got a timeout! fail with a timeout error
+		case <-timeout:
+			return ClusterPort{}, fmt.Errorf("all Ports taken up, Try again after sometimes")
+		default:
+			random := rand.Intn(s.MyInfo.MaxPorts)
+			localPort := lval + random
+			externalPort := eval + random
+			if !s.LocalPortMap[localPort] {
+				log.Infof("[MBG %v] Free Local Port available at %v", s.MyInfo.Id, localPort)
+				if !s.ExternalPortMap[externalPort] {
+					log.Infof("[MBG %v] Free External Port available at %v", s.MyInfo.Id, externalPort)
+					s.LocalPortMap[localPort] = true
+					s.ExternalPortMap[externalPort] = true
+					myPort := ClusterPort{Local: strconv.Itoa(localPort), External: strconv.Itoa(externalPort)}
+					s.Connections[connectionID] = myPort
+					SaveState()
+					return myPort, nil
+				}
+			}
+		}
+	}
+}
+
+// Gets an available free port to be used within the cluster for a remote service endpoint
+func GetFreeLocalPort(serviceName string) (string, error) {
+	if port, ok := s.LocalServiceEndpoints[serviceName]; ok {
+		return port, fmt.Errorf("connection already setup")
+	}
+	rand.NewSource(time.Now().UnixNano())
+	if len(s.LocalServiceEndpoints) == s.MyInfo.MaxPorts {
+		return "", fmt.Errorf("all ports taken up, Try again after sometimes")
+	}
+	lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
+	timeout := time.After(10 * time.Second)
+	for {
+		select {
+		// Got a timeout! fail with a timeout error
+		case <-timeout:
+			return "", fmt.Errorf("all Ports taken up, Try again after sometimes")
+		default:
+			random := rand.Intn(s.MyInfo.MaxPorts)
+			localPort := lval + random
+			if !s.LocalPortMap[localPort] {
+				log.Infof("[MBG %v] Free Local Port available at %v", s.MyInfo.Id, localPort)
 				s.LocalPortMap[localPort] = true
-				s.ExternalPortMap[externalPort] = true
-				myPort := ClusterPort{Local: strconv.Itoa(localPort), External: strconv.Itoa(externalPort)}
-				s.Connections[connectionID] = myPort
+				myPort := strconv.Itoa(localPort)
+				s.LocalServiceEndpoints[serviceName] = ":" + myPort
 				SaveState()
 				return myPort, nil
 			}
 		}
 	}
-	return ClusterPort{}, fmt.Errorf("All Ports taken up, Try again after sometimes!")
 }
 
 // Frees up used ports by a connection

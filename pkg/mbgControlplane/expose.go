@@ -20,6 +20,8 @@ func Expose(e protocol.ExposeRequest) {
 	} else { //Got the service from MBG so expose to local Cluster
 		state.AddRemoteService(e.Id, e.Ip, e.Domain, e.MbgID)
 		ExposeToCluster(e.Id)
+		// myServicePort, err := state.GetFreeLocalPort(e.Id)
+		//md.StartClusterService()
 	}
 
 }
