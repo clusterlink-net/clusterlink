@@ -3,13 +3,17 @@ package mbgControlplane
 import (
 	"encoding/json"
 
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
+	md "github.ibm.com/mbg-agent/pkg/mbgDataplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
+
+var mlog = logrus.WithField("component", "mbgControlPlane/Expose")
 
 func Expose(e protocol.ExposeRequest) {
 	//Update MBG state
@@ -20,8 +24,15 @@ func Expose(e protocol.ExposeRequest) {
 	} else { //Got the service from MBG so expose to local Cluster
 		state.AddRemoteService(e.Id, e.Ip, e.Domain, e.MbgID)
 		ExposeToCluster(e.Id)
-		// myServicePort, err := state.GetFreeLocalPort(e.Id)
-		//md.StartClusterService()
+		myServicePort, err := state.GetFreeLocalPort(e.Id)
+		if err != nil {
+			mlog.Infof("")
+		}
+		targetMbgIP := state.GetMbgIP(e.MbgID)
+		certFile, keyFile := state.GetMbgCerts(e.MbgID)
+		mbgTarget := "https://" + targetMbgIP + ":8443/mbgData"
+		mlog.Infof("Starting a Cluster Service for remote service %s at %s->%s with certs(%s,%s)", e.Id, myServicePort, mbgTarget, certFile, keyFile)
+		go md.StartClusterService(e.Id, myServicePort, mbgTarget, certFile, keyFile)
 	}
 
 }

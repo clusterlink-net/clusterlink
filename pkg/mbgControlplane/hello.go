@@ -3,7 +3,6 @@ package mbgControlplane
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -15,7 +14,6 @@ import (
 func Hello(h protocol.HelloRequest) {
 	//Update MBG state
 	state.UpdateState()
-	fmt.Printf(string(h.CertData))
 	certFile := "cert_" + h.Id + ".pem"
 	keyFile := "key_" + h.Id + ".pem"
 	err := os.WriteFile(certFile, h.CertData, 0644)
@@ -26,7 +24,6 @@ func Hello(h protocol.HelloRequest) {
 	if err != nil {
 		log.Infof("Failed to write key : %+v", err)
 	}
-	fmt.Printf(string(h.KeyData))
 	state.AddMbgNbr(h.Id, h.Ip, h.Cport, certFile, keyFile)
 
 }
@@ -59,6 +56,5 @@ func HelloReq(m, myInfo state.MbgInfo) {
 	if err != nil {
 		log.Infof("Failed to write key : %+v", err)
 	}
-	fmt.Printf(string(h.KeyData))
 	state.UpdateMbgCerts(m.Id, certFile, keyFile)
 }

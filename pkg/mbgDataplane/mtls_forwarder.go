@@ -25,6 +25,7 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
+	"github.ibm.com/mbg-agent/cmd/mbg/state"
 )
 
 type MbgMtlsForwarder struct {
@@ -113,8 +114,6 @@ func (m *MbgMtlsForwarder) mbgDataHandler(mbgResp http.ResponseWriter, mbgR *htt
 		log.Fatal(err)
 	}
 	// Send to the active TCP Connection
-	//mlog.Infof("mbgDataHandler: Received at %s, and sending to connection %s\n", m.Name, m.Connection.LocalAddr().String())
-
 	if m.Connection != nil {
 		_, err = m.Connection.Write(mbgData)
 		if err != nil {
@@ -140,7 +139,6 @@ func (m *MbgMtlsForwarder) dispatch(ac net.Conn) error {
 			}
 			break
 		}
-		//mlog.Infof("Got a message from Cluster and sending to MBG %s", m.TargetMbg)
 		m.TlsClient.Post(m.TargetMbg, "application/octet-stream", bytes.NewBuffer(bufData[:numBytes]))
 	}
 	if err == io.EOF {
@@ -169,29 +167,47 @@ func (m *MbgMtlsForwarder) CloseConnection() {
 // Start a Cluster Service which is a proxy for remote service
 // It receives connections from local service and performs Connect API
 // and sets up an mTLS forwarding to the remote service upon accepted (policy checks, etc)
-func StartClusterService(clusterServicePort, targetMbg, certificate, key string) error {
-	mlog.Infof("Waiting for connection at %s", clusterServicePort)
+func StartClusterService(serviceId, clusterServicePort, targetMbg, certificate, key string) error {
 	acceptor, err := net.Listen("tcp", clusterServicePort)
 	if err != nil {
 		return err
 	}
 	// loop until signalled to stop
-	num := 1
 	for {
 		ac, err := acceptor.Accept()
-		mlog.Infof("Accept connection %s->%s ", ac.LocalAddr().String(), ac.RemoteAddr().String())
+		state.UpdateState()
+		mlog.Infof("Receiving Outgoing connection %s->%s ", ac.RemoteAddr().String(), ac.LocalAddr().String())
 		if err != nil {
 			return err
 		}
+
 		// Ideally do a control plane connect API, Policy checks, and then create a mTLS forwarder
 		// RemoteEndPoint has to be in the connect Request/Response
+
+		localSvc, err := state.LookupLocalService(ac.RemoteAddr().String())
+		if err != nil {
+			log.Infof("Denying Outgoing connection%v", err)
+			ac.Close()
+			continue
+		}
+		log.Infof("[MBG %v] Accepting Outgoing Connect request from service: %v to service: %v", state.GetMyId(), localSvc.Service.Id, serviceId)
+
+		destSvc := state.GetRemoteService(serviceId)
+		mbgIP := state.GetServiceMbgIp(destSvc.Service.Ip)
+		//Send connection request to other MBG
+		connectType, connectDest, err := ConnectReq(localSvc.Service.Id, serviceId, "forward", mbgIP)
+		if err != nil && err.Error() != "Connection already setup!" {
+			log.Infof("[MBG %v] Send connect failure to Cluster = %v ", state.GetMyId(), err.Error())
+			ac.Close()
+			continue
+		}
+		log.Infof("[MBG %v] Using %s for  %s/%s to connect to Service-%v", state.GetMyId(), connectType, targetMbg, connectDest, destSvc.Service.Id)
+
 		var mtlsForward MbgMtlsForwarder
-		remoteEndPoint := "serviceConnector" // hack for now
-		mtlsForward.InitmTlsForwarder(targetMbg, remoteEndPoint, certificate, key)
+		mtlsForward.InitmTlsForwarder(targetMbg, connectDest, certificate, key)
 
 		mtlsForward.setSocketConnection(ac)
 		go mtlsForward.dispatch(ac)
-		num++
 	}
 }
 
@@ -201,9 +217,9 @@ func StartReceiverService(clusterServicePort, targetMbg, remoteEndPoint, certifi
 	if err != nil {
 		return err
 	}
-	mlog.Infof("Connection connection at %s, %s", conn.LocalAddr().String(), remoteEndPoint)
+	mlog.Infof("Receiver Connection at %s, %s", conn.LocalAddr().String(), remoteEndPoint)
 	var mtlsForward MbgMtlsForwarder
-	mtlsForward.InitmTlsForwarder(targetMbg, remoteEndPoint, certificate, key, true)
+	mtlsForward.InitmTlsForwarder(targetMbg, remoteEndPoint, certificate, key)
 	mtlsForward.setSocketConnection(conn)
 	go mtlsForward.dispatch(conn)
 	return nil

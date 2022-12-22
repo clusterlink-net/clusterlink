@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -20,7 +21,7 @@ import (
 type mbgState struct {
 	MyInfo                MbgInfo
 	ClusterArr            map[string]LocalCluster
-	MbgArr                map[string]MbgInfo
+	MbgArr                map[string]*MbgInfo
 	MyServices            map[string]LocalService
 	RemoteServices        map[string]RemoteService
 	Connections           map[string]ClusterPort
@@ -39,6 +40,7 @@ type MbgInfo struct {
 	KeyFile         string
 	CertData        []byte
 	KeyData         []byte
+	Dataplane       string
 }
 
 type LocalCluster struct {
@@ -61,13 +63,14 @@ type ClusterPort struct {
 }
 
 var s = mbgState{MyInfo: MbgInfo{},
-	ClusterArr:      make(map[string]LocalCluster),
-	MbgArr:          make(map[string]MbgInfo),
-	MyServices:      make(map[string]LocalService),
-	RemoteServices:  make(map[string]RemoteService),
-	Connections:     make(map[string]ClusterPort),
-	LocalPortMap:    make(map[int]bool),
-	ExternalPortMap: make(map[int]bool)}
+	ClusterArr:            make(map[string]LocalCluster),
+	MbgArr:                make(map[string]*MbgInfo),
+	MyServices:            make(map[string]LocalService),
+	RemoteServices:        make(map[string]RemoteService),
+	Connections:           make(map[string]ClusterPort),
+	LocalServiceEndpoints: make(map[string]string),
+	LocalPortMap:          make(map[int]bool),
+	ExternalPortMap:       make(map[int]bool)}
 
 func GetMyIp() string {
 	return s.MyInfo.Ip
@@ -85,7 +88,7 @@ func GetMyInfo() MbgInfo {
 	return s.MyInfo
 }
 
-func GetMbgArr() map[string]MbgInfo {
+func GetMbgArr() map[string]*MbgInfo {
 	return s.MbgArr
 }
 
@@ -96,7 +99,10 @@ func GetLocalClusterArr() map[string]LocalCluster {
 	return s.ClusterArr
 }
 
-func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, certificate, key string) {
+func GetDataplane() string {
+	return s.MyInfo.Dataplane
+}
+func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, certificate, key, dataplane string) {
 	s.MyInfo.Id = id
 	s.MyInfo.Ip = ip
 	s.MyInfo.Cport.Local = cportLocal
@@ -106,6 +112,7 @@ func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDat
 	s.MyInfo.MaxPorts = 1000 // TODO
 	s.MyInfo.CertificateFile = certificate
 	s.MyInfo.KeyFile = key
+	s.MyInfo.Dataplane = dataplane
 	var err error
 	s.MyInfo.CertData, err = os.ReadFile(certificate)
 	if err != nil {
@@ -146,6 +153,18 @@ func GetRemoteService(id string) RemoteService {
 
 }
 
+func LookupLocalService(network string) (LocalService, error) {
+
+	serviceNetwork := strings.Split(network, ":")
+	for _, service := range s.MyServices {
+		// Compare Service IPs
+		fmt.Printf("Comparing %s, %s \n", strings.Split(service.Service.Ip, ":")[0], serviceNetwork[0])
+		if strings.Split(service.Service.Ip, ":")[0] == serviceNetwork[0] {
+			return service, nil
+		}
+	}
+	return LocalService{}, errors.New("unable to find local service")
+}
 func GetServiceMbgIp(Ip string) string {
 	svcIp := strings.Split(Ip, ":")[0]
 	for _, m := range s.MbgArr {
@@ -158,13 +177,32 @@ func GetServiceMbgIp(Ip string) string {
 	s.Print()
 	return ""
 }
+
+func GetMbgIP(id string) string {
+	mbgI := s.MbgArr[id]
+	return mbgI.Ip
+}
+
+func GetMbgCerts(id string) (string, string) {
+	mbgI := s.MbgArr[id]
+	return mbgI.CertificateFile, mbgI.KeyFile
+}
+
+func GetMbgCertsFromIp(ip string) (string, string) {
+	for _, mbgI := range s.MbgArr {
+		if mbgI.Ip == ip {
+			return mbgI.CertificateFile, mbgI.KeyFile
+		}
+	}
+	return "", ""
+}
 func IsServiceLocal(id string) bool {
 	_, exist := s.MyServices[id]
 	return exist
 }
 
 func AddMbgNbr(id, ip, cport, certFile, keyFile string) {
-	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ClusterPort{External: cport, Local: ""}, CertificateFile: certFile, KeyFile: keyFile}
+	s.MbgArr[id] = &MbgInfo{Id: id, Ip: ip, Cport: ClusterPort{External: cport, Local: ""}, CertificateFile: certFile, KeyFile: keyFile}
 	log.Infof("[MBG %v] add MBG neighbors array %v", s.MyInfo.Id, s.MbgArr[id])
 	s.Print()
 	SaveState()
@@ -174,6 +212,8 @@ func UpdateMbgCerts(id, certFile, keyFile string) {
 	mbgInfo := s.MbgArr[id]
 	mbgInfo.CertificateFile = certFile
 	mbgInfo.KeyFile = keyFile
+	log.Infof("[MBG %v] Updated %s certs :%s, %s", s.MyInfo.Id, mbgInfo.Id, mbgInfo.CertificateFile, mbgInfo.KeyFile)
+	SaveState()
 }
 
 // Gets an available free port to use per connection
@@ -235,8 +275,8 @@ func GetFreeLocalPort(serviceName string) (string, error) {
 			if !s.LocalPortMap[localPort] {
 				log.Infof("[MBG %v] Free Local Port available at %v", s.MyInfo.Id, localPort)
 				s.LocalPortMap[localPort] = true
-				myPort := strconv.Itoa(localPort)
-				s.LocalServiceEndpoints[serviceName] = ":" + myPort
+				myPort := ":" + strconv.Itoa(localPort)
+				s.LocalServiceEndpoints[serviceName] = myPort
 				SaveState()
 				return myPort, nil
 			}
