@@ -5,21 +5,29 @@
 // openssl req -newkey rsa:2048   -new -nodes -x509   -days 3650   -out ~/mtls/tcnode7_cert.pem   -keyout ~/mtls/tcnode7_key.pem   -subj "/C=US/ST=California/L=mbg/O=ibm/OU=dev/CN=tcnode7" -addext "subjectAltName = IP:10.20.20.2"
 // openssl req -newkey rsa:2048   -new -nodes -x509   -days 3650   -out ~/mtls/tcnode6_cert.pem   -keyout ~/mtls/tcnode6_key.pem   -subj "/C=US/ST=California/L=mbg/O=ibm/OU=dev/CN=tcnode6" -addext "subjectAltName = IP:10.20.20.1"
 
+// Workflow of mTLS forwarder usage
+// After Expose of a service at Cluster 1 run the following APIs :
+//    1) StartClusterService for the exported service at other remote Clusters (for e.g. Cluster 2)
+//    2) When ClusterService receives an accepted connection from Cluster 2, Do an Connect API to Cluster 1
+//    3) Cluster1 starts a StartReceiverService with the necessary details such as endpoint, and sends it as Connect Response
+
 package mbgDataplane
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 )
 
-type mTlsForwarder struct {
+type MbgMtlsForwarder struct {
 	TargetMbg  string
 	Name       string
 	TlsClient  *http.Client
@@ -30,7 +38,9 @@ type mTlsForwarder struct {
 var mlog = logrus.WithField("component", "mbgDataplane/mTLSForwarder")
 
 //Init client fields
-func (m *mTlsForwarder) InitmTlsForwarder(target, name, certificate, key string) {
+func (m *MbgMtlsForwarder) InitmTlsForwarder(target, name, certificate, key string) {
+	mlog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
+
 	m.TargetMbg = target + "/" + name
 	m.Name = name
 	// Read the key pair to create certificate
@@ -59,9 +69,15 @@ func (m *mTlsForwarder) InitmTlsForwarder(target, name, certificate, key string)
 	// Register function for handling the dataplane traffic
 	http.HandleFunc("/mbgData/"+m.Name, m.mbgDataHandler)
 	mlog.Infof("Starting mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
-
 }
 
+func CloseMtlsServer(mbgIP string) {
+	// Create a Server instance to listen on port 8443 with the TLS config
+	server := &http.Server{
+		Addr: mbgIP + ":8443",
+	}
+	server.Shutdown(context.Background())
+}
 func StartMtlsServer(mbgIP, certificate, key string) {
 	// Create the TLS Config with the CA pool and enable Client certificate validation
 
@@ -89,7 +105,7 @@ func StartMtlsServer(mbgIP, certificate, key string) {
 	log.Fatal(server.ListenAndServeTLS(certificate, key))
 }
 
-func (m *mTlsForwarder) mbgDataHandler(mbgResp http.ResponseWriter, mbgR *http.Request) {
+func (m *MbgMtlsForwarder) mbgDataHandler(mbgResp http.ResponseWriter, mbgR *http.Request) {
 	// Read the response body
 	defer mbgR.Body.Close()
 	mbgData, err := ioutil.ReadAll(mbgR.Body)
@@ -98,7 +114,6 @@ func (m *mTlsForwarder) mbgDataHandler(mbgResp http.ResponseWriter, mbgR *http.R
 	}
 	// Send to the active TCP Connection
 	if m.Connection != nil {
-		//mlog.Infof("mbgDataHandler: Received %s, and sending to cluster %s\n", mbgData, m.Connection.LocalAddr().String())
 		_, err = m.Connection.Write(mbgData)
 		if err != nil {
 			mlog.Infof("mbgDataHandler: Write error %v\n", err)
@@ -110,7 +125,7 @@ func (m *mTlsForwarder) mbgDataHandler(mbgResp http.ResponseWriter, mbgR *http.R
 }
 
 //Connect to client and call ioLoop function
-func (m *mTlsForwarder) dispatch(ac net.Conn) error {
+func (m *MbgMtlsForwarder) dispatch(ac net.Conn) error {
 	bufData := make([]byte, maxDataBufferSize)
 	var err error
 	for {
@@ -123,8 +138,7 @@ func (m *mTlsForwarder) dispatch(ac net.Conn) error {
 			}
 			break
 		}
-		//mlog.Infof("Got a message %s from Cluster and sending to MBG", bufData[:numBytes])
-		m.TlsClient.Post(m.TargetMbg, "text/plain", bytes.NewBuffer(bufData[:numBytes]))
+		m.TlsClient.Post(m.TargetMbg, "application/octet-stream", bytes.NewBuffer(bufData[:numBytes]))
 	}
 	if err == io.EOF {
 		return nil
@@ -133,36 +147,18 @@ func (m *mTlsForwarder) dispatch(ac net.Conn) error {
 	}
 }
 
-func (m *mTlsForwarder) setSocketConnection(ac net.Conn) {
+func (m *MbgMtlsForwarder) setSocketConnection(ac net.Conn) {
 	m.Connection = ac
 }
 
-func (m *mTlsForwarder) CloseConnection() {
-	m.Connection.Close()
+func (m *MbgMtlsForwarder) waitToCloseSignal(wg *sync.WaitGroup) {
+	defer wg.Done()
+	<-m.CloseConn
+	//cl.Close() ,mbg.Close()- TBD -check if need to close also the internal connections
+	mlog.Infof("[%v] Receive signal to close connection\n", m.Name)
 }
 
-// Start a Cluster Service which is a proxy for remote service
-// It receives connections from local service and performs Connect API
-// and sets up an mTLS forwarding to the remote service upon accepted (policy checks, etc)
-func StartClusterService(serviceName, clusterServicePort, targetMbg, certificate, key string) error {
-	mlog.Infof("Waiting for connection at %s", clusterServicePort)
-	acceptor, err := net.Listen("tcp", clusterServicePort)
-	if err != nil {
-		return err
-	}
-	// loop until signalled to stop
-	for {
-		ac, err := acceptor.Accept()
-		mlog.Infof("Accept connection %s->%s ", ac.LocalAddr().String(), ac.RemoteAddr().String())
-		if err != nil {
-			return err
-		}
-		// Ideally do a control plane connect API, Policy checks, and then create a mTLS forwarder
-		// RemoteEndPoint has to be in the connect Request/Response
-		var mtlsForward mTlsForwarder
-		var remoteEndPoint = "serviceConnector" // hack for now
-		mtlsForward.InitmTlsForwarder(targetMbg, remoteEndPoint, certificate, key)
-		mtlsForward.setSocketConnection(ac)
-		go mtlsForward.dispatch(ac)
-	}
+func (m *MbgMtlsForwarder) CloseConnection() {
+	m.CloseConn <- true
+	m.Connection.Close()
 }

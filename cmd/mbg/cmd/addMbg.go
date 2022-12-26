@@ -19,7 +19,7 @@ var addMbgCmd = &cobra.Command{
 		id, _ := cmd.Flags().GetString("id")
 		cport, _ := cmd.Flags().GetString("cport")
 		state.UpdateState()
-		state.AddMbgNbr(id, ip, cport)
+		state.AddMbgNbr(id, ip, cport, "", "")
 	},
 }
 
@@ -29,5 +29,4 @@ func init() {
 	addMbgCmd.Flags().String("id", "", "MBG neighbor id")
 	addMbgCmd.Flags().String("ip", "", "MBG neighbor ip")
 	addMbgCmd.Flags().String("cport", "", "MBG neighbor control port")
-
 }

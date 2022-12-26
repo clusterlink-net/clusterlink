@@ -15,9 +15,17 @@ type ExposeRequest struct {
 
 //Hello
 type HelloRequest struct {
-	Id    string
-	Ip    string
-	Cport string
+	Id       string
+	Ip       string
+	Cport    string
+	CertData []byte
+	KeyData  []byte
+}
+
+type HelloResponse struct {
+	Status   string
+	CertData []byte
+	KeyData  []byte
 }
 
 //Connect

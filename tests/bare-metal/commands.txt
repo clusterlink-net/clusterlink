@@ -30,3 +30,28 @@ iperf3 -s -p 8000
 
 ## Cluster 2 (tcnode7)
 iperf3 -c 127.0.0.1 -p 8000
+
+
+
+----for mtls ----
+##tcnode6
+./bin/mbg start --ip 10.20.20.1 --id mbg1 --cport 50051 --cportLocal 50051 --localDataPortRange 10000 --externalDataPortRange 10000 --certificate /home/pravein/mtls/tcnode6_cert.pem --key /home/pravein/mtls/tcnode6_key.pem --dataplane mtls
+
+##tcnode7 
+./bin/mbg start --id mbg2 --ip 10.20.20.2 --cport 50051 --cportLocal 50051 --localDataPortRange 10000 --externalDataPortRange 10000 --certificate /home/pravein/mtls/tcnode7_cert.pem --key /home/pravein/mtls/tcnode7_key.pem --dataplane mtls
+./bin/mbg addMbg --id mbg1 --ip 10.20.20.1 --cport 50051
+./bin/mbg hello
+
+## Cluster 1 (tcnode6)
+./bin/cluster addService --serviceId test-d --serviceIp 127.0.0.1:8000
+./bin/cluster expose --serviceId test-d
+
+## Cluster 2 (tcnode7)
+./bin/cluster addService --serviceId test-s --serviceIp 127.0.0.1:8000
+./bin/cluster expose --serviceId test-s
+
+## Cluster 1 (tcnode6)
+go run testservice.go --type server --port 8000
+
+## Cluster 2 (tcnode7) Change 10081 according to the exposed cluster service port
+go run testservice.go --type client --port 10081

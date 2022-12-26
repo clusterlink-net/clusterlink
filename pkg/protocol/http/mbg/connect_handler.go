@@ -3,10 +3,11 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
+	"github.ibm.com/mbg-agent/pkg/mbgDataplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
@@ -20,9 +21,10 @@ func (m MbgHandler) connectPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Connect control plane logic
-	log.Infof("Received connect to service: %v", c.Id)
-	message, connectType, connectDest := mbgControlplane.Connect(c)
+	//Connect data plane logic
+	mbgIP := strings.Split(r.RemoteAddr, ":")
+	log.Infof("Received connect to service %s from MBG: %s", c.Id, mbgIP[0])
+	message, connectType, connectDest := mbgDataplane.Connect(c, mbgIP[0])
 
 	//Set Connect response
 	respJson, err := json.Marshal(protocol.ConnectReply{Message: message, ConnectType: connectType, ConnectDest: connectDest})

@@ -2,9 +2,11 @@ package state
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"os/user"
 	"path"
 	"strconv"
@@ -17,22 +19,28 @@ import (
 )
 
 type mbgState struct {
-	MyInfo          MbgInfo
-	ClusterArr      map[string]LocalCluster
-	MbgArr          map[string]MbgInfo
-	MyServices      map[string]LocalService
-	RemoteServices  map[string]RemoteService
-	Connections     map[string]ClusterPort
-	LocalPortMap    map[int]bool
-	ExternalPortMap map[int]bool
+	MyInfo                MbgInfo
+	ClusterArr            map[string]LocalCluster
+	MbgArr                map[string]*MbgInfo
+	MyServices            map[string]LocalService
+	RemoteServices        map[string]RemoteService
+	Connections           map[string]ClusterPort
+	LocalServiceEndpoints map[string]string
+	LocalPortMap          map[int]bool
+	ExternalPortMap       map[int]bool
 }
 
 type MbgInfo struct {
-	Id            string
-	Ip            string
-	Cport         ClusterPort
-	DataPortRange ClusterPort
-	MaxPorts      int
+	Id              string
+	Ip              string
+	Cport           ClusterPort
+	DataPortRange   ClusterPort
+	MaxPorts        int
+	CertificateFile string
+	KeyFile         string
+	CertData        []byte
+	KeyData         []byte
+	Dataplane       string
 }
 
 type LocalCluster struct {
@@ -55,13 +63,14 @@ type ClusterPort struct {
 }
 
 var s = mbgState{MyInfo: MbgInfo{},
-	ClusterArr:      make(map[string]LocalCluster),
-	MbgArr:          make(map[string]MbgInfo),
-	MyServices:      make(map[string]LocalService),
-	RemoteServices:  make(map[string]RemoteService),
-	Connections:     make(map[string]ClusterPort),
-	LocalPortMap:    make(map[int]bool),
-	ExternalPortMap: make(map[int]bool)}
+	ClusterArr:            make(map[string]LocalCluster),
+	MbgArr:                make(map[string]*MbgInfo),
+	MyServices:            make(map[string]LocalService),
+	RemoteServices:        make(map[string]RemoteService),
+	Connections:           make(map[string]ClusterPort),
+	LocalServiceEndpoints: make(map[string]string),
+	LocalPortMap:          make(map[int]bool),
+	ExternalPortMap:       make(map[int]bool)}
 
 func GetMyIp() string {
 	return s.MyInfo.Ip
@@ -79,7 +88,7 @@ func GetMyInfo() MbgInfo {
 	return s.MyInfo
 }
 
-func GetMbgArr() map[string]MbgInfo {
+func GetMbgArr() map[string]*MbgInfo {
 	return s.MbgArr
 }
 
@@ -90,7 +99,10 @@ func GetLocalClusterArr() map[string]LocalCluster {
 	return s.ClusterArr
 }
 
-func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange string) {
+func GetDataplane() string {
+	return s.MyInfo.Dataplane
+}
+func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, certificate, key, dataplane string) {
 	s.MyInfo.Id = id
 	s.MyInfo.Ip = ip
 	s.MyInfo.Cport.Local = cportLocal
@@ -98,6 +110,18 @@ func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDat
 	s.MyInfo.DataPortRange.Local = localDataPortRange
 	s.MyInfo.DataPortRange.External = externalDataPortRange
 	s.MyInfo.MaxPorts = 1000 // TODO
+	s.MyInfo.CertificateFile = certificate
+	s.MyInfo.KeyFile = key
+	s.MyInfo.Dataplane = dataplane
+	var err error
+	s.MyInfo.CertData, err = os.ReadFile(certificate)
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.MyInfo.KeyData, err = os.ReadFile(key)
+	if err != nil {
+		log.Fatal(err)
+	}
 	SaveState()
 }
 
@@ -129,6 +153,18 @@ func GetRemoteService(id string) RemoteService {
 
 }
 
+func LookupLocalService(network string) (LocalService, error) {
+
+	serviceNetwork := strings.Split(network, ":")
+	for _, service := range s.MyServices {
+		// Compare Service IPs
+		fmt.Printf("Comparing %s, %s \n", strings.Split(service.Service.Ip, ":")[0], serviceNetwork[0])
+		if strings.Split(service.Service.Ip, ":")[0] == serviceNetwork[0] {
+			return service, nil
+		}
+	}
+	return LocalService{}, errors.New("unable to find local service")
+}
 func GetServiceMbgIp(Ip string) string {
 	svcIp := strings.Split(Ip, ":")[0]
 	for _, m := range s.MbgArr {
@@ -141,48 +177,111 @@ func GetServiceMbgIp(Ip string) string {
 	s.Print()
 	return ""
 }
+
+func GetMbgIP(id string) string {
+	mbgI := s.MbgArr[id]
+	return mbgI.Ip
+}
+
+func GetMbgCerts(id string) (string, string) {
+	mbgI := s.MbgArr[id]
+	return mbgI.CertificateFile, mbgI.KeyFile
+}
+
+func GetMbgCertsFromIp(ip string) (string, string) {
+	for _, mbgI := range s.MbgArr {
+		if mbgI.Ip == ip {
+			return mbgI.CertificateFile, mbgI.KeyFile
+		}
+	}
+	return "", ""
+}
 func IsServiceLocal(id string) bool {
 	_, exist := s.MyServices[id]
 	return exist
 }
 
-func AddMbgNbr(id, ip, cport string) {
-	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ClusterPort{External: cport, Local: ""}}
+func AddMbgNbr(id, ip, cport, certFile, keyFile string) {
+	s.MbgArr[id] = &MbgInfo{Id: id, Ip: ip, Cport: ClusterPort{External: cport, Local: ""}, CertificateFile: certFile, KeyFile: keyFile}
 	log.Infof("[MBG %v] add MBG neighbors array %v", s.MyInfo.Id, s.MbgArr[id])
 	s.Print()
 	SaveState()
+}
 
+func UpdateMbgCerts(id, certFile, keyFile string) {
+	mbgInfo := s.MbgArr[id]
+	mbgInfo.CertificateFile = certFile
+	mbgInfo.KeyFile = keyFile
+	log.Infof("[MBG %v] Updated %s certs :%s, %s", s.MyInfo.Id, mbgInfo.Id, mbgInfo.CertificateFile, mbgInfo.KeyFile)
+	SaveState()
 }
 
 // Gets an available free port to use per connection
 func GetFreePorts(connectionID string) (ClusterPort, error) {
 	if port, ok := s.Connections[connectionID]; ok {
-		return port, fmt.Errorf("Connection already setup!")
+		return port, fmt.Errorf("connection already setup")
 	}
 	rand.NewSource(time.Now().UnixNano())
 	if len(s.Connections) == s.MyInfo.MaxPorts {
-		return ClusterPort{}, fmt.Errorf("All Ports taken up, Try again after sometimes!")
+		return ClusterPort{}, fmt.Errorf("all Ports taken up, Try again after sometimes")
 	}
 	lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
 	eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
-	for true {
-		random := rand.Intn(s.MyInfo.MaxPorts)
-		localPort := lval + random
-		externalPort := eval + random
-		if !s.LocalPortMap[localPort] {
-			log.Infof("[MBG %v] Free Local Port available at %v", s.MyInfo.Id, localPort)
-			if !s.ExternalPortMap[externalPort] {
-				log.Infof("[MBG %v] Free External Port available at %v", s.MyInfo.Id, externalPort)
+	timeout := time.After(10 * time.Second)
+	for {
+		select {
+		// Got a timeout! fail with a timeout error
+		case <-timeout:
+			return ClusterPort{}, fmt.Errorf("all Ports taken up, Try again after sometimes")
+		default:
+			random := rand.Intn(s.MyInfo.MaxPorts)
+			localPort := lval + random
+			externalPort := eval + random
+			if !s.LocalPortMap[localPort] {
+				log.Infof("[MBG %v] Free Local Port available at %v", s.MyInfo.Id, localPort)
+				if !s.ExternalPortMap[externalPort] {
+					log.Infof("[MBG %v] Free External Port available at %v", s.MyInfo.Id, externalPort)
+					s.LocalPortMap[localPort] = true
+					s.ExternalPortMap[externalPort] = true
+					myPort := ClusterPort{Local: strconv.Itoa(localPort), External: strconv.Itoa(externalPort)}
+					s.Connections[connectionID] = myPort
+					SaveState()
+					return myPort, nil
+				}
+			}
+		}
+	}
+}
+
+// Gets an available free port to be used within the cluster for a remote service endpoint
+func GetFreeLocalPort(serviceName string) (string, error) {
+	if port, ok := s.LocalServiceEndpoints[serviceName]; ok {
+		return port, fmt.Errorf("connection already setup")
+	}
+	rand.NewSource(time.Now().UnixNano())
+	if len(s.LocalServiceEndpoints) == s.MyInfo.MaxPorts {
+		return "", fmt.Errorf("all ports taken up, Try again after sometimes")
+	}
+	lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
+	timeout := time.After(10 * time.Second)
+	for {
+		select {
+		// Got a timeout! fail with a timeout error
+		case <-timeout:
+			return "", fmt.Errorf("all Ports taken up, Try again after sometimes")
+		default:
+			random := rand.Intn(s.MyInfo.MaxPorts)
+			localPort := lval + random
+			if !s.LocalPortMap[localPort] {
+				log.Infof("[MBG %v] Free Local Port available at %v", s.MyInfo.Id, localPort)
 				s.LocalPortMap[localPort] = true
-				s.ExternalPortMap[externalPort] = true
-				myPort := ClusterPort{Local: strconv.Itoa(localPort), External: strconv.Itoa(externalPort)}
-				s.Connections[connectionID] = myPort
+				myPort := ":" + strconv.Itoa(localPort)
+				s.LocalServiceEndpoints[serviceName] = myPort
 				SaveState()
 				return myPort, nil
 			}
 		}
 	}
-	return ClusterPort{}, fmt.Errorf("All Ports taken up, Try again after sometimes!")
 }
 
 // Frees up used ports by a connection

@@ -24,7 +24,7 @@ var helloCmd = &cobra.Command{
 		MyInfo := state.GetMyInfo()
 		for _, m := range MbgArr {
 			log.Info(m)
-			mbgControlplane.HelloReq(m, MyInfo)
+			mbgControlplane.HelloReq(*m, MyInfo)
 		}
 		log.Infof("Finish sending Hello to all Mbgs")
 	},

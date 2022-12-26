@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
-	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
+	"github.ibm.com/mbg-agent/pkg/mbgDataplane"
 )
 
 // connectCmd represents the connect command
@@ -41,7 +41,7 @@ var connectCmd = &cobra.Command{
 
 		log.Printf("Connect service %v to service %v \n", svcId, svcIdDest)
 		connID := svcId + ":" + svcIdDest
-		mbgControlplane.ConnectService(localPort, destIp, policy, connID)
+		mbgDataplane.ConnectService(localPort, destIp, policy, connID)
 
 	},
 }
