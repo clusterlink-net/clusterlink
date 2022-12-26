@@ -82,3 +82,5 @@ clean-kind-bookinfo:
 	kind delete cluster --name=mbg-agent2
 	kind delete cluster --name=product-cluster
 	kind delete cluster --name=review-cluster
+
+clean-kind: clean-kind-iperf3 clean-kind-bookinfo
