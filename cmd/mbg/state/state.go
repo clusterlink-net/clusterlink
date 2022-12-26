@@ -113,14 +113,16 @@ func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDat
 	s.MyInfo.CertificateFile = certificate
 	s.MyInfo.KeyFile = key
 	s.MyInfo.Dataplane = dataplane
-	var err error
-	s.MyInfo.CertData, err = os.ReadFile(certificate)
-	if err != nil {
-		log.Fatal(err)
-	}
-	s.MyInfo.KeyData, err = os.ReadFile(key)
-	if err != nil {
-		log.Fatal(err)
+	if dataplane == "mtls" {
+		var err error
+		s.MyInfo.CertData, err = os.ReadFile(certificate)
+		if err != nil {
+			log.Fatal(err)
+		}
+		s.MyInfo.KeyData, err = os.ReadFile(key)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	SaveState()
 }
@@ -202,6 +204,7 @@ func IsServiceLocal(id string) bool {
 }
 
 func AddMbgNbr(id, ip, cport, certFile, keyFile string) {
+	log.Info("AddMbgNbr ", id, ip, cport, certFile, keyFile)
 	s.MbgArr[id] = &MbgInfo{Id: id, Ip: ip, Cport: ClusterPort{External: cport, Local: ""}, CertificateFile: certFile, KeyFile: keyFile}
 	log.Infof("[MBG %v] add MBG neighbors array %v", s.MyInfo.Id, s.MbgArr[id])
 	s.Print()
