@@ -40,7 +40,9 @@ var startCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		state.SetState(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, certificateFile, keyFile, dataplane)
-		go md.StartMtlsServer(ip, certificateFile, keyFile)
+		if dataplane == "mtls" {
+			go md.StartMtlsServer(ip, certificateFile, keyFile)
+		}
 		startHttpServer()
 	},
 }
