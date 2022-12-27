@@ -41,7 +41,7 @@ var connectCmd = &cobra.Command{
 
 		log.Printf("Connect service %v to service %v \n", svcId, svcIdDest)
 		connID := svcId + ":" + svcIdDest
-		mbgDataplane.ConnectService(localPort, destIp, policy, connID)
+		mbgDataplane.ConnectService(localPort, destIp, policy, connID, nil, nil)
 
 	},
 }

@@ -23,8 +23,7 @@ var connectCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		svcId, _ := cmd.Flags().GetString("serviceId")
 		svcIdDest, _ := cmd.Flags().GetString("serviceIdDest")
-		svcPolicy, _ := cmd.Flags().GetString("policy")
-		SendReq, _ := cmd.Flags().GetString("SendConnectReq")
+		//svcPolicy, _ := cmd.Flags().GetString("policy")
 
 		state.UpdateState()
 
@@ -34,19 +33,12 @@ var connectCmd = &cobra.Command{
 		}
 		svc := state.GetService(svcId)
 		destSvc := state.GetService(svcIdDest)
-		mbgIP := state.GetMbgIP()
-		if SendReq == "true" {
-			connectType, DestPort, err := handler.ConnectReq(svcId, svcIdDest, svcPolicy, mbgIP)
+		name := state.GetId() + " egress: " + svcIdDest
+		srcIp := svc.Service.Ip
+		destIp := destSvc.Service.Ip
+		log.Infof("[Cluster %v] Using %v:%v to connect IP-%v", state.GetId(), "TCP", destIp, destSvc.Service.Ip)
+		handler.ConnectClient(svc.Service.Id, destSvc.Service.Id, srcIp, destIp, name)
 
-			if err != nil {
-				log.Infof("[Cluster %v]: Connection request to MBG fail- %v", state.GetId(), err.Error())
-			}
-			log.Infof("[Cluster %v] Using %v:%v to connect IP-%v", state.GetId(), connectType, DestPort, destSvc.Service.Ip)
-			name := state.GetId() + " egress: " + svcIdDest
-			srcIp := svc.Service.Ip
-			destIp := destSvc.Service.Ip + ":" + DestPort
-			handler.ConnectClient(svc.Service.Id, destSvc.Service.Id, srcIp, destIp, name)
-		}
 	},
 }
 
@@ -55,6 +47,4 @@ func init() {
 	connectCmd.Flags().String("serviceId", "", "Service Id that the cluster is listen")
 	connectCmd.Flags().String("serviceIdDest", "", "Destination service id the cluster is connecting")
 	connectCmd.Flags().String("policy", "Forward", "Connection policy")
-	connectCmd.Flags().String("SendConnectReq", "true", "Decide if to send connection request to MBG default:True")
-
 }
