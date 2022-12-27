@@ -14,7 +14,7 @@ def waitPod(name):
         cmd=f"kubectl get pods -l app={name} -o jsonpath" + "=\'{.items[0].status.containerStatuses[0].ready}\'"
         start_cond =sp.getoutput(cmd)
         if (start_cond != "true"):
-            print (f"Waiting for pod  {name} to start")
+            print (f"Waiting for pod {name} to start")
             time.sleep(7)
         else:
             time.sleep(5)
@@ -28,7 +28,7 @@ def runcmd(cmd):
     print(cmd)
     #sp.Popen(cmd,shell=True)
     os.system(cmd)
-
+    
 def runcmdb(cmd):
     print(cmd)
     #sp.Popen(cmd,shell=True)
@@ -47,8 +47,8 @@ def printHeader(msg):
 
 def getMbgPorts(podMbg, srcSvc, destSvc):
     mbgJson=json.loads(sp.getoutput(f' kubectl exec -i {podMbg} -- cat ./root/.mbgApp'))
-    localPort =mbgJson["Connections"][srcSvc+ ":" + destSvc]["Local"]
-    externalPort =mbgJson["Connections"][srcSvc+ ":" + destSvc]["External"]
+    localPort =(mbgJson["Connections"][destSvc]["Local"]).split(":")[1]
+    externalPort =(mbgJson["Connections"][destSvc]["External"]).split(":")[1]
     print(f"Service nodeport will use local Port: {localPort} and externalPort:{externalPort}")
     return localPort, externalPort
 

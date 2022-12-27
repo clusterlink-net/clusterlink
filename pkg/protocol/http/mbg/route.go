@@ -26,9 +26,9 @@ func (m MbgHandler) Routes() chi.Router {
 	})
 
 	r.Route("/connect", func(r chi.Router) {
-		r.Post("/", m.connectPost)       // Post /connect  - Connect mbg service
-		r.Connect("/", m.connectConnect) // Connect /connect  - Connect mbg service
-		r.Delete("/", m.connectDelete)   // Disconnect /connect  - Disconnect mbg service
+		r.Post("/", m.connectPost)      // Post /connect  - Connect mbg service
+		r.Connect("/", m.handleConnect) // Connect /connect  - Connect mbg service
+		r.Delete("/", m.connectDelete)  // Disconnect /connect  - Disconnect mbg service
 
 	})
 

@@ -18,14 +18,14 @@ def connectSvc(srcSvc,destSvc,policy):
     time.sleep(1)
     
     
-    # Create Nodeports inside mbg
-    printHeader(f"\n\nCreate nodeports for data-plane connection")
-    runcmd(f'kubectl config use-context kind-mbg-agent2')
-    podMbg2=getPodName("mbg")
-    mbg2LocalPort, mbg2ExternalPort = getMbgPorts(podMbg2, srcSvc, destSvc)
-    svcName=f"svc{destSvc}"
-    runcmd(f"kubectl create service nodeport {svcName} --tcp={mbg2LocalPort}:{mbg2LocalPort} --node-port={mbg2ExternalPort}")
-    runcmd(f"kubectl patch service {svcName} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'")
+    # # Create Nodeports inside mbg
+    # printHeader(f"\n\nCreate nodeports for data-plane connection")
+    # runcmd(f'kubectl config use-context kind-mbg-agent2')
+    # podMbg2=getPodName("mbg")
+    # mbg2LocalPort, mbg2ExternalPort = getMbgPorts(podMbg2, srcSvc, destSvc)
+    # svcName=f"svc{destSvc}"
+    # runcmd(f"kubectl create service nodeport {svcName} --tcp={mbg2LocalPort}:{mbg2LocalPort} --node-port={mbg2ExternalPort}")
+    # runcmd(f"kubectl patch service {svcName} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'")
     
     runcmd(f'kubectl config use-context kind-mbg-agent1')
     podMbg1= getPodName("mbg")
@@ -60,6 +60,8 @@ if __name__ == "__main__":
     srcSvc="review"
     srcsvcIp=":9080"
     svcpolicy ="Forward"
+    podDefaultGW="10.244.0.1"
+
 
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
@@ -139,6 +141,11 @@ if __name__ == "__main__":
         runcmd(f'kubectl config use-context kind-mbg-agent2')
         printHeader("Add dest cluster to MBG2")
         runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addCluster --id "reviewCluster" --ip {destIp}:30000')
+        
+        #Add local service to MBG1
+        runcmd(f'kubectl config use-context kind-mbg-agent1')
+        printHeader("Add host cluster to MBG1")
+        runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addService --id {srcSvc} --ip {podDefaultGW}')
 
         #Expose service
         runcmd(f'kubectl config use-context kind-review-cluster')

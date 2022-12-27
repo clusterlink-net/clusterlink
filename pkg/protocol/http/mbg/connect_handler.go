@@ -40,7 +40,7 @@ func (m MbgHandler) connectPost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (m MbgHandler) connectConnect(w http.ResponseWriter, r *http.Request) {
+func (m MbgHandler) handleConnect(w http.ResponseWriter, r *http.Request) {
 	//Phrase struct from request
 	var c protocol.ConnectRequest
 	err := json.NewDecoder(r.Body).Decode(&c)

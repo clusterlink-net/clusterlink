@@ -299,7 +299,7 @@ func FreeUpPorts(connectionID string) {
 
 func AddLocalService(id, ip, domain string) {
 	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain}}
-	log.Infof("[MBG %v] adddservice %v", s.MyInfo.Id, service.GetService(id))
+	log.Infof("[MBG %v] add service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()
 }
