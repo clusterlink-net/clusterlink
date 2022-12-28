@@ -246,7 +246,7 @@ func GetFreePorts(connectionID string) (ClusterPort, error) {
 					log.Infof("[MBG %v] Free External Port available at %v", s.MyInfo.Id, externalPort)
 					s.LocalPortMap[localPort] = true
 					s.ExternalPortMap[externalPort] = true
-					myPort := ClusterPort{Local: strconv.Itoa(localPort), External: strconv.Itoa(externalPort)}
+					myPort := ClusterPort{Local: ":" + strconv.Itoa(localPort), External: ":" + strconv.Itoa(externalPort)}
 					s.Connections[connectionID] = myPort
 					SaveState()
 					return myPort, nil
@@ -299,7 +299,7 @@ func FreeUpPorts(connectionID string) {
 
 func AddLocalService(id, ip, domain string) {
 	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain}}
-	log.Infof("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
+	log.Infof("[MBG %v] add service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()
 }

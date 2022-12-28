@@ -30,7 +30,8 @@ if __name__ == "__main__":
     mbg2DataPort= "30001"
     srcSvc ="iperfIsrael"
     destSvc ="iperfIndia"
-
+    podDefaultGW="10.244.0.1"
+    
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
     ### clean 
@@ -89,29 +90,27 @@ if __name__ == "__main__":
     printHeader("Add dest cluster to MBG2")
     runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addCluster --id "destCluster" --ip {destIp}:30000')
 
-    #Expose service
+    #Expose destination service
     runcmd(f'kubectl config use-context kind-dest-cluster')
     printHeader("\n\nStart exposing connection")
-    runcmd(f'kubectl exec -i {podest} -- ./cluster expose --serviceId {destSvc}')
+    runcmdb(f'kubectl exec -i {podest} -- ./cluster expose --serviceId {destSvc}')
 
-    #Connect service
+    #Add local service to MBG1
+    runcmd(f'kubectl config use-context kind-mbg-agent1')
+    printHeader("Add host cluster to MBG1")
+    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addService --id {srcSvc} --ip {podDefaultGW}')
+
+    # Create Nodeports inside mbg1
+    runcmd(f'kubectl config use-context kind-mbg-agent1')
+    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, srcSvc,destSvc)
+    runcmd(f"kubectl create service nodeport mbg --tcp={mbg1LocalPort}:{mbg1LocalPort} --node-port={mbg1ExternalPort}")
+
+    
+    # Create connect from cluster to MBG
     printHeader(f"\n\nStart Data plan connection {srcSvc} to {destSvc}")
     runcmd(f'kubectl config use-context kind-host-cluster')
     runcmdb(f'kubectl exec -i {podhost} -- ./cluster connect --serviceId {srcSvc}  --serviceIdDest {destSvc}')
-    time.sleep(20)
     
-    
-    # Create Nodeports inside mbg
-    printHeader(f"\n\nCreate nodeports for data-plane connection")
-    runcmd(f'kubectl config use-context kind-mbg-agent2')
-    mbg2LocalPort, mbg2ExternalPort = getMbgPorts(podMbg2, srcSvc,destSvc)
-    runcmd(f"kubectl create service nodeport mbg --tcp={mbg2LocalPort}:{mbg2LocalPort} --node-port={mbg2ExternalPort}")
-    
-    runcmd(f'kubectl config use-context kind-mbg-agent1')
-    mbg2LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, srcSvc,destSvc)
-    runcmd(f"kubectl create service nodeport mbg --tcp={mbg2LocalPort}:{mbg2LocalPort} --node-port={mbg1ExternalPort}")
-    
-    # #runcmd(f'kubectl exec -i {podhost} --  cat /root/.clusterApp')
     #Testing
     printHeader("\n\nStart Iperf3 testing")
     runcmd(f'kubectl config use-context kind-dest-cluster')
@@ -132,6 +131,6 @@ if __name__ == "__main__":
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c cluster-iperf3-service -p 5000'
     iperf3Test(cmd)
 
-    #Close connection
-    printHeader("\n\nClose Iperf3 connection")
-    runcmd(f'kubectl exec -i {podhost} -- ./cluster disconnect --serviceId {srcSvc} --serviceIdDest {destSvc}')
+    # #Close connection
+    # printHeader("\n\nClose Iperf3 connection")
+    # runcmd(f'kubectl exec -i {podhost} -- ./cluster disconnect --serviceId {srcSvc} --serviceIdDest {destSvc}')

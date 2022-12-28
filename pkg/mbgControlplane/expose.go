@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	md "github.ibm.com/mbg-agent/pkg/mbgDataplane"
@@ -23,16 +22,16 @@ func Expose(e protocol.ExposeRequest) {
 		ExposeToMbg(e.Id)
 	} else { //Got the service from MBG so expose to local Cluster
 		state.AddRemoteService(e.Id, e.Ip, e.Domain, e.MbgID)
-		ExposeToCluster(e.Id)
-		myServicePort, err := state.GetFreeLocalPort(e.Id)
+		myServicePort, err := state.GetFreePorts(e.Id)
 		if err != nil {
 			mlog.Infof("")
 		}
+		ExposeToCluster(e.Id, myServicePort.External)
 		targetMbgIP := state.GetMbgIP(e.MbgID)
 		certFile, keyFile := state.GetMbgCerts(e.MbgID)
 		mbgTarget := "https://" + targetMbgIP + ":8443/mbgData"
-		mlog.Infof("Starting a Cluster Service for remote service %s at %s->%s with certs(%s,%s)", e.Id, myServicePort, mbgTarget, certFile, keyFile)
-		go md.StartClusterService(e.Id, myServicePort, mbgTarget, certFile, keyFile)
+		mlog.Infof("Starting a Cluster Service for remote service %s at %s->%s with certs(%s,%s)", e.Id, myServicePort.Local, mbgTarget, certFile, keyFile)
+		go md.StartClusterService(e.Id, myServicePort.Local, mbgTarget, certFile, keyFile)
 	}
 
 }
@@ -51,12 +50,12 @@ func ExposeToMbg(serviceId string) {
 	}
 }
 
-func ExposeToCluster(serviceId string) {
+func ExposeToCluster(serviceId, externalPort string) {
 	clusterArr := state.GetLocalClusterArr()
 	myIp := state.GetMyIp()
 	s := state.GetRemoteService(serviceId)
 	svcExp := s.Service
-	svcExp.Ip = myIp
+	svcExp.Ip = myIp + externalPort
 	svcExp.Domain = "Remote"
 
 	for _, g := range clusterArr {
@@ -66,14 +65,14 @@ func ExposeToCluster(serviceId string) {
 }
 
 func ExposeReq(svcExp service.Service, destIp, cType string) {
-	log.Printf("Start expose %v to %v with IP address %v", svcExp.Id, cType, destIp)
+	mlog.Printf("Start expose %v to %v with IP address %v", svcExp.Id, cType, destIp)
 	address := "http://" + destIp + "/expose"
 
 	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain, MbgID: state.GetMyId()})
 	if err != nil {
-		log.Fatal(err)
+		mlog.Fatal(err)
 	}
 	//Send expose
 	resp := httpAux.HttpPost(address, j)
-	log.Infof(`Response message for serive %s expose :  %s`, svcExp.Id, string(resp))
+	mlog.Infof(`Response message for serive %s expose :  %s`, svcExp.Id, string(resp))
 }

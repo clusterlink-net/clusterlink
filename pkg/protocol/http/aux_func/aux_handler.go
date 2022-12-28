@@ -3,9 +3,13 @@ package httpAux
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
+	"net"
 	"net/http"
+
+	"github.com/sirupsen/logrus"
 )
+
+var log = logrus.WithField("component", "httpHandler")
 
 //Helper gunction for get response
 func HttpGet(url string) []byte {
@@ -58,4 +62,40 @@ func HttpDelete(url string, jsonData []byte) []byte {
 	}
 
 	return body
+}
+
+func HttpConnect(address, url string, jsonData string) (net.Conn, error) {
+	c, err := dial(address)
+	//defer c.Close()
+
+	log.Infof("Send Connect request to url: %v", url)
+	client := http.Client{Transport: &http.Transport{Dial: connDialer{c}.Dial}}
+	req, err := http.NewRequest(http.MethodConnect, url, bytes.NewBuffer([]byte(jsonData)))
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	log.Println("Connect resp: ", resp.StatusCode)
+
+	return c, nil
+}
+
+func dial(addr string) (net.Conn, error) {
+	log.Info("Start dial to address: %v", addr)
+	c, err := net.Dial("tcp", addr)
+
+	if err != nil {
+		return nil, err
+	}
+	log.Info("Finish dial to address: %v", addr)
+
+	return c, err
+}
+
+type connDialer struct {
+	c net.Conn
+}
+
+func (cd connDialer) Dial(network, addr string) (net.Conn, error) {
+	return cd.c, nil
 }

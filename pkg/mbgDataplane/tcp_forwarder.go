@@ -6,7 +6,6 @@
 package mbgDataplane
 
 import (
-	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -21,10 +20,12 @@ var (
 )
 
 type MbgTcpForwarder struct {
-	Listener  string
-	Target    string
-	Name      string
-	CloseConn chan bool
+	Listener   string
+	Target     string
+	Name       string
+	SeverConn  net.Conn //getting server handle incase of http connect
+	ClientConn net.Conn //getting client handle incase of http connect
+	CloseConn  chan bool
 }
 
 //Init client fields
@@ -34,40 +35,57 @@ func (c *MbgTcpForwarder) InitTcpForwarder(listener, target, name string) {
 	c.Name = name
 }
 
+func (c *MbgTcpForwarder) SetServerConnection(SeverConn net.Conn) {
+	c.SeverConn = SeverConn
+}
+func (c *MbgTcpForwarder) SetClientConnection(ClientConn net.Conn) {
+	c.ClientConn = ClientConn
+}
+
 //Run client object
 func (c *MbgTcpForwarder) RunTcpForwarder() {
 	log.Infof("*** Start TCP Forwarder ***")
-	log.Infof("Start listen: %v  send to : %v \n", c.Listener, c.Target)
+	log.Infof("[%v] Start listen: %v  send to : %v \n", c.Name, c.Listener, c.Target)
 
-	err := c.acceptLoop()
-	fmt.Println("Error:", err)
+	c.acceptLoop()
+
 }
 
 //Start listen loop and pass data to destination according to controlFrame
-func (c *MbgTcpForwarder) acceptLoop() error {
-	// open listener
-	acceptor, err := net.Listen("tcp", c.Listener)
-	if err != nil {
-		return err
-	}
-	// loop until signalled to stop
-	for {
-		ac, err := acceptor.Accept()
-		log.Debugf("[client]: accept connetion", ac.LocalAddr().String(), "->", ac.RemoteAddr().String())
+func (c *MbgTcpForwarder) acceptLoop() {
+	if c.SeverConn != nil {
+		c.dispatch(c.SeverConn)
+	} else {
+		// open listener
+		acceptor, err := net.Listen("tcp", c.Listener)
 		if err != nil {
-			return err
+			log.Errorln("Error:", err)
 		}
-		go c.dispatch(ac)
+		// loop until signalled to stop
+		for {
+			ac, err := acceptor.Accept()
+			log.Info("[", c.Name, "]: accept connetion", ac.LocalAddr().String(), "->", ac.RemoteAddr().String())
+			if err != nil {
+				log.Errorln("Error:", err)
+			}
+			go c.dispatch(ac)
+		}
 	}
 }
 
 //Connect to client and call ioLoop function
 func (c *MbgTcpForwarder) dispatch(ac net.Conn) error {
-	log.Debugf("[client]: before dial TCP", c.Target)
-	nodeConn, err := net.Dial("tcp", c.Target)
-	log.Debugf("[client]: after dial TCP", c.Target)
-	if err != nil {
-		return err
+	var nodeConn net.Conn
+	if c.ClientConn == nil {
+		var err error
+		log.Info("[", c.Name, "]: before dial TCP", c.Target)
+		nodeConn, err = net.Dial("tcp", c.Target)
+		log.Info("[", c.Name, "]: after dial TCP", c.Target)
+		if err != nil {
+			return err
+		}
+	} else {
+		nodeConn = c.ClientConn
 	}
 	return c.ioLoop(ac, nodeConn)
 }
