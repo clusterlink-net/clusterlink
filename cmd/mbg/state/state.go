@@ -35,6 +35,7 @@ type MbgInfo struct {
 	Ip              string
 	Cport           ClusterPort
 	DataPortRange   ClusterPort
+	MtlsPort        ClusterPort
 	MaxPorts        int
 	CertificateFile string
 	KeyFile         string
@@ -84,6 +85,10 @@ func GetMyCport() ClusterPort {
 	return s.MyInfo.Cport
 }
 
+func GetMyMtlsPort() ClusterPort {
+	return s.MyInfo.MtlsPort
+}
+
 func GetMyInfo() MbgInfo {
 	return s.MyInfo
 }
@@ -102,13 +107,15 @@ func GetLocalClusterArr() map[string]LocalCluster {
 func GetDataplane() string {
 	return s.MyInfo.Dataplane
 }
-func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, certificate, key, dataplane string) {
+func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, certificate, key, dataplane, mtlsPortLocal, mtlsPort string) {
 	s.MyInfo.Id = id
 	s.MyInfo.Ip = ip
 	s.MyInfo.Cport.Local = cportLocal
 	s.MyInfo.Cport.External = cportExternal
 	s.MyInfo.DataPortRange.Local = localDataPortRange
 	s.MyInfo.DataPortRange.External = externalDataPortRange
+	s.MyInfo.MtlsPort.Local = ":" + mtlsPortLocal
+	s.MyInfo.MtlsPort.External = ":" + mtlsPort
 	s.MyInfo.MaxPorts = 1000 // TODO
 	s.MyInfo.CertificateFile = certificate
 	s.MyInfo.KeyFile = key

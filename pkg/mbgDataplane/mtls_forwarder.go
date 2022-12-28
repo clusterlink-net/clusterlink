@@ -71,16 +71,15 @@ func (m *MbgMtlsForwarder) InitmTlsForwarder(target, name, certificate, key stri
 	mlog.Infof("Starting mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
 }
 
-func CloseMtlsServer(mbgIP string) {
+func CloseMtlsServer(ip string) {
 	// Create a Server instance to listen on port 8443 with the TLS config
 	server := &http.Server{
-		Addr: mbgIP + ":8443",
+		Addr: ip,
 	}
 	server.Shutdown(context.Background())
 }
-func StartMtlsServer(mbgIP, certificate, key string) {
+func StartMtlsServer(ip, certificate, key string) {
 	// Create the TLS Config with the CA pool and enable Client certificate validation
-
 	caCert, err := ioutil.ReadFile(certificate)
 	if err != nil {
 		log.Fatal(err)
@@ -96,7 +95,7 @@ func StartMtlsServer(mbgIP, certificate, key string) {
 
 	// Create a Server instance to listen on port 8443 with the TLS config
 	server := &http.Server{
-		Addr:      mbgIP + ":8443",
+		Addr:      ip,
 		TLSConfig: tlsConfig,
 	}
 
