@@ -22,6 +22,7 @@ var connectCmd = &cobra.Command{
 	Long:  `connect flow connection to the closest MBG`,
 	Run: func(cmd *cobra.Command, args []string) {
 		svcId, _ := cmd.Flags().GetString("serviceId")
+		svcIp, _ := cmd.Flags().GetString("serviceIp")
 		svcIdDest, _ := cmd.Flags().GetString("serviceIdDest")
 		//svcPolicy, _ := cmd.Flags().GetString("policy")
 
@@ -35,7 +36,11 @@ var connectCmd = &cobra.Command{
 		destSvc := state.GetService(svcIdDest)
 		name := state.GetId() + " egress: " + svcIdDest
 		srcIp := svc.Service.Ip
+		if svcIp != "" {
+			srcIp = svcIp
+		}
 		destIp := destSvc.Service.Ip
+
 		log.Infof("[Cluster %v] Using %v:%v to connect IP-%v", state.GetId(), "TCP", destIp, destSvc.Service.Ip)
 		handler.ConnectClient(svc.Service.Id, destSvc.Service.Id, srcIp, destIp, name)
 
@@ -45,6 +50,7 @@ var connectCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(connectCmd)
 	connectCmd.Flags().String("serviceId", "", "Service Id that the cluster is listen")
+	connectCmd.Flags().String("serviceIp", "", "Service Id that the cluster is listen")
 	connectCmd.Flags().String("serviceIdDest", "", "Destination service id the cluster is connecting")
 	connectCmd.Flags().String("policy", "Forward", "Connection policy")
 }

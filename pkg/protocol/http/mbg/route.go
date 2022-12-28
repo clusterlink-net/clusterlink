@@ -21,6 +21,10 @@ func (m MbgHandler) Routes() chi.Router {
 		r.Post("/", m.helloPost) // Post /hello  - Post MBG Id
 	})
 
+	r.Route("/addservice", func(r chi.Router) {
+		r.Post("/", m.addServicePost) // Post /expose  - Expose mbg service
+	})
+
 	r.Route("/expose", func(r chi.Router) {
 		r.Post("/", m.exposePost) // Post /expose  - Expose mbg service
 	})

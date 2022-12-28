@@ -14,28 +14,14 @@ def connectSvc(srcSvc,destSvc,policy):
     printHeader(f"\n\nStart Data plan connection {srcSvc} to {destSvc}")
     runcmd(f'kubectl config use-context kind-product-cluster')
     podhost= getPodName("cluster-mbg")
-    runcmdb(f'kubectl exec -i {podhost} -- ./cluster connect --serviceId {srcSvc}  --serviceIdDest {destSvc}')
-    time.sleep(1)
-    
-    
-    # # Create Nodeports inside mbg
-    # printHeader(f"\n\nCreate nodeports for data-plane connection")
-    # runcmd(f'kubectl config use-context kind-mbg-agent2')
-    # podMbg2=getPodName("mbg")
-    # mbg2LocalPort, mbg2ExternalPort = getMbgPorts(podMbg2, srcSvc, destSvc)
-    # svcName=f"svc{destSvc}"
-    # runcmd(f"kubectl create service nodeport {svcName} --tcp={mbg2LocalPort}:{mbg2LocalPort} --node-port={mbg2ExternalPort}")
-    # runcmd(f"kubectl patch service {svcName} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'")
-    
+    runcmdb(f'kubectl exec -i {podhost} -- ./cluster connect --serviceId {srcSvc}  --serviceIp {srcSvcIp} --serviceIdDest {destSvc}')
+
     runcmd(f'kubectl config use-context kind-mbg-agent1')
     podMbg1= getPodName("mbg")
     mbg2LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, srcSvc, destSvc)
     svcName=f"svc{destSvc}"
     runcmd(f"kubectl create service nodeport {svcName} --tcp={mbg2LocalPort}:{mbg2LocalPort} --node-port={mbg1ExternalPort}")
     runcmd(f"kubectl patch service {svcName} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
-    #Testing
-    printHeader("\n\nStart bookinfo testing")
-    runcmd(f'kubectl config use-context kind-product-cluster')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -58,9 +44,9 @@ if __name__ == "__main__":
     mbg1DataPort= "30001"
     mbg2DataPort= "30001"
     srcSvc="review"
-    srcsvcIp=":9080"
+    srcSvcIp=":9080"
+    srcDefaultGW="10.244.0.1"
     svcpolicy ="Forward"
-    podDefaultGW="10.244.0.1"
 
 
     print(f'Working directory {proj_dir}')
@@ -109,7 +95,7 @@ if __name__ == "__main__":
         podhost, hostIp= buildCluster("product Cluster")
         runcmdb(f'kubectl exec -i {podhost} -- ./cluster start --id "productCluster"  --ip {hostIp} --cport 30000 --mbgIP {mbg1Ip}:30000')
         printHeader(f"Add {srcSvc} (client) service to host cluster")
-        runcmd(f'kubectl exec -i {podhost} -- ./cluster addService --serviceId {srcSvc} --serviceIp {srcsvcIp}')
+        runcmd(f'kubectl exec -i {podhost} -- ./cluster addService --serviceId {srcSvc} --serviceIp {srcDefaultGW}')
         
         ###Run dest
         printHeader("\n\nStart building review-cluster")
@@ -142,11 +128,6 @@ if __name__ == "__main__":
         printHeader("Add dest cluster to MBG2")
         runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addCluster --id "reviewCluster" --ip {destIp}:30000')
         
-        #Add local service to MBG1
-        runcmd(f'kubectl config use-context kind-mbg-agent1')
-        printHeader("Add host cluster to MBG1")
-        runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addService --id {srcSvc} --ip {podDefaultGW}')
-
         #Expose service
         runcmd(f'kubectl config use-context kind-review-cluster')
         printHeader("\n\nStart exposing connection")

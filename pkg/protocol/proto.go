@@ -5,6 +5,13 @@ Desc: protocol package contain all struct for communicate (Request and Response)
 */
 package protocol
 
+//AddService
+type AddServiceRequest struct {
+	Id     string
+	Ip     string
+	Domain string
+}
+
 //Expose
 type ExposeRequest struct {
 	Id     string
