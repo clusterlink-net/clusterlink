@@ -14,8 +14,8 @@ import (
 // addServiceCmd represents the addService command
 var addServiceCmd = &cobra.Command{
 	Use:   "addService",
-	Short: "Add local CLuster Ip to MBG",
-	Long:  `Add local CLuster Ip to MBG.`,
+	Short: "Add local service to the MBG -Use for Debug",
+	Long:  `Add local service to the MBG -Use for Debug.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		id, _ := cmd.Flags().GetString("id")
 		ip, _ := cmd.Flags().GetString("ip")
@@ -29,7 +29,7 @@ var addServiceCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(addServiceCmd)
-	addServiceCmd.Flags().String("id", "", "Local cluster id")
-	addServiceCmd.Flags().String("ip", "", "Local cluster ip")
+	addServiceCmd.Flags().String("id", "", "Service id")
+	addServiceCmd.Flags().String("ip", "", "Service ip")
 	addServiceCmd.Flags().String("domain", "internal", "Local cluster domain")
 }

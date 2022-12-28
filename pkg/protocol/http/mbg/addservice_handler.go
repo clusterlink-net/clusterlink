@@ -10,10 +10,10 @@ import (
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
-func (m MbgHandler) exposePost(w http.ResponseWriter, r *http.Request) {
+func (m MbgHandler) addServicePost(w http.ResponseWriter, r *http.Request) {
 
-	//phrase expose struct from request
-	var e protocol.ExposeRequest
+	//phrase add service struct from request
+	var e protocol.AddServiceRequest
 	err := json.NewDecoder(r.Body).Decode(&e)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -21,12 +21,12 @@ func (m MbgHandler) exposePost(w http.ResponseWriter, r *http.Request) {
 
 	}
 	//Expose control plane logic
-	log.Infof("Received expose to service: %v", e.Id)
-	mbgControlplane.Expose(e)
+	log.Infof("Received Add service command to service: %v", e.Id)
+	mbgControlplane.AddService(e)
 
 	//Response
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write([]byte("Expose succeed"))
+	_, err = w.Write([]byte("Add Service to MBG succeed"))
 	if err != nil {
 		log.Println(err)
 	}
