@@ -18,11 +18,11 @@ var clog = logrus.WithField("component", "mbgDataplane/Connect")
 const TCP_TYPE = "tcp"
 const MTLS_TYPE = "mtls"
 
-func Connect(c protocol.ConnectRequest, conn net.Conn) (string, string, string) {
+func Connect(c protocol.ConnectRequest, targetMbgIP string, conn net.Conn) (string, string, string) {
 	//Update MBG state
 	state.UpdateState()
 	if state.IsServiceLocal(c.IdDest) {
-		return ConnectLocalService(c, conn)
+		return ConnectLocalService(c, targetMbgIP, conn)
 	} else { //For Remote service
 		// This condition is applicable only for explicit connection request from a cluster.
 		// Moving on, this condition would be deprecated since we would start a Cluster Service for every remote service
@@ -31,12 +31,11 @@ func Connect(c protocol.ConnectRequest, conn net.Conn) (string, string, string) 
 	}
 }
 
-func ConnectLocalService(c protocol.ConnectRequest, conn net.Conn) (string, string, string) {
+func ConnectLocalService(c protocol.ConnectRequest, targetMbgIP string, conn net.Conn) (string, string, string) {
 	clog.Infof("[MBG %v] Received Incoming Connect request from service: %v to service: %v", state.GetMyId(), c.Id, c.IdDest)
 	connectionID := c.Id + ":" + c.IdDest
 	dataplane := state.GetDataplane()
 	localSvc := state.GetLocalService(c.IdDest)
-	mbgIP := state.GetMyIp()
 	switch dataplane {
 	case TCP_TYPE:
 		clog.Infof("[MBG %v] Sending Connect reply to Connection(%v) to use Dest:%v", state.GetMyId(), connectionID, "use connect hijack")
@@ -45,8 +44,8 @@ func ConnectLocalService(c protocol.ConnectRequest, conn net.Conn) (string, stri
 	case MTLS_TYPE:
 		uid := ksuid.New()
 		remoteEndPoint := connectionID + "-" + uid.String()
-		mbgTarget := "https://" + mbgIP + ":8443/mbgData"
-		certFile, keyFile := state.GetMbgCertsFromIp(mbgIP)
+		mbgTarget := "https://" + targetMbgIP + ":8443/mbgData"
+		certFile, keyFile := state.GetMbgCertsFromIp(targetMbgIP)
 		clog.Infof("[MBG %v] Starting a Receiver service for %s Using RemoteEndpoint : %s/%s Certs(%s,%s)", state.GetMyId(),
 			localSvc.Service.Ip, mbgTarget, remoteEndPoint, certFile, keyFile)
 

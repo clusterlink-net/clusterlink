@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -21,9 +22,9 @@ func (m MbgHandler) connectPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Connect data plane logic
-	//mbgIP := strings.Split(r.RemoteAddr, ":")
-	//log.Infof("Received connect to service %s from MBG: %s", c.Id, mbgIP[0])
-	message, connectType, connectDest := mbgDataplane.Connect(c, nil)
+	mbgIP := strings.Split(r.RemoteAddr, ":")[0]
+	log.Infof("Received connect to service %s from MBG: %s", c.Id, mbgIP)
+	message, connectType, connectDest := mbgDataplane.Connect(c, mbgIP, nil)
 
 	//Set Connect response
 	respJson, err := json.Marshal(protocol.ConnectReply{Message: message, ConnectType: connectType, ConnectDest: connectDest})
@@ -62,7 +63,9 @@ func (m MbgHandler) handleConnect(w http.ResponseWriter, r *http.Request) {
 	//Hijack the connection
 	conn, _, err := hj.Hijack()
 	//connection logic
-	message, connectType, connectDest := mbgDataplane.Connect(c, conn)
+	mbgIP := strings.Split(r.RemoteAddr, ":")[0]
+	log.Infof("Received connect to service %s from MBG: %s", c.Id, mbgIP)
+	message, connectType, connectDest := mbgDataplane.Connect(c, mbgIP, conn)
 
 	log.Info("Result from connect handler:", message, connectType, connectDest)
 
