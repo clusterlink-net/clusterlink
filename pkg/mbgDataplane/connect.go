@@ -44,7 +44,8 @@ func ConnectLocalService(c protocol.ConnectRequest, targetMbgIP string, conn net
 	case MTLS_TYPE:
 		uid := ksuid.New()
 		remoteEndPoint := connectionID + "-" + uid.String()
-		mbgTarget := "https://" + targetMbgIP + ":8443/mbgData"
+		mtlsPort := (state.GetMyMtlsPort()).External
+		mbgTarget := "https://" + targetMbgIP + mtlsPort + "/mbgData"
 		certFile, keyFile := state.GetMbgCertsFromIp(targetMbgIP)
 		clog.Infof("[MBG %v] Starting a Receiver service for %s Using RemoteEndpoint : %s/%s Certs(%s,%s)", state.GetMyId(),
 			localSvc.Service.Ip, mbgTarget, remoteEndPoint, certFile, keyFile)
