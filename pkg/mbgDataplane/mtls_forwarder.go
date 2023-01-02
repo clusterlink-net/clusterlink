@@ -80,6 +80,7 @@ func (m *MbgMtlsForwarder) InitmTlsForwarder(targetIPPort, name, certificate, ke
 
 	// Trying out Connect Method
 	if connect {
+		// Reference : https://tip.golang.org/src/net/http/transport_test.go
 
 		// Create a HTTPS client and supply the created CA pool and certificate
 		// Below Snippets tries different methods :
