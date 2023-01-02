@@ -18,7 +18,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net"
@@ -26,7 +25,6 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
-	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
 type MbgMtlsForwarder struct {
@@ -90,8 +88,7 @@ func (m *MbgMtlsForwarder) InitmTlsForwarder(targetIPPort, name, certificate, ke
 		// Outcome :
 		// Encountered following error:
 		// INFO   [2023-01-02 10:47:03] Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/  component=mbgDataplane/mTLSForwarder
-		// INFO   [2023-01-02 10:47:03] Connect resp:  400                            component=mbgDataplane/TCPForwarder
-
+		// Stuck Here..
 		TLSClientConfig := &tls.Config{
 			RootCAs:      caCertPool,
 			Certificates: []tls.Certificate{cert},
@@ -142,15 +139,39 @@ func (m *MbgMtlsForwarder) InitmTlsForwarder(targetIPPort, name, certificate, ke
 		// 	},
 		// }
 
-		req, err := http.NewRequest(http.MethodConnect, connectMbg, bytes.NewBuffer([]byte("jsonData")))
+		req, err := http.NewRequest(http.MethodGet, connectMbg, nil)
 		if err != nil {
 			mlog.Infof("Failed to create new request %v", err)
 		}
+		mlog.Infof("TLS connection Initiating..%v", req)
 		resp, err := TlsConnectClient.Do(req)
 		if err != nil {
 			mlog.Infof("Error in Tls Connection %v", err)
 		}
-		log.Println("Connect resp: ", resp.StatusCode)
+
+		// Method 3:
+		// TLSClientConfig := &tls.Config{
+		// 	RootCAs:            caCertPool,
+		// 	Certificates:       []tls.Certificate{cert},
+		// 	InsecureSkipVerify: true,
+		// }
+		// req, err := http.NewRequest(http.MethodGet, connectMbg, nil)
+		// if err != nil {
+		// 	mlog.Infof("Failed to create new request %v", err)
+		// }
+		// conn, err := net.Dial("tcp", targetIPPort)
+		// if err != nil {
+		// 	mlog.Infof("Failed to dial %v", targetIPPort)
+		// }
+		// tlsConn := tls.Client(conn, TLSClientConfig)
+
+		// clientConn := httputil.NewClientConn(tlsConn, nil)
+		// resp, err := clientConn.Do(req)
+		// if err != nil {
+		// 	mlog.Infof("Error in Tls Connection %v", err)
+		// }
+		mlog.Infof("Connect resp: ", resp.StatusCode)
+
 	}
 	// Register function for handling the dataplane traffic
 	http.HandleFunc("/mbgData/"+m.Name, m.mbgDataHandler)
@@ -194,14 +215,7 @@ func StartMtlsServer(ip, certificate, key string) {
 
 func mbgConnectHandler(w http.ResponseWriter, r *http.Request) {
 	//Phrase struct from request
-	log.Infof("Received HTTP connect to service:")
-
-	var c protocol.ConnectRequest
-	err := json.NewDecoder(r.Body).Decode(&c)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+	mlog.Infof("Received HTTP connect to service:")
 
 	//Connect control plane logic
 	//Check if we can hijack connection
@@ -213,10 +227,13 @@ func mbgConnectHandler(w http.ResponseWriter, r *http.Request) {
 	//Write response
 	//Hijack the connection
 	conn, _, err := hj.Hijack()
+	if err != nil {
+		mlog.Infof("Hijacking failed %v", err)
+	}
 	//connection logic
 	w.WriteHeader(http.StatusOK)
 
-	log.Info("Connection Hijacked  %s->%s", conn.RemoteAddr().String(), conn.RemoteAddr().String())
+	mlog.Info("Connection Hijacked  %v->%v", conn.RemoteAddr().String(), conn.LocalAddr().String())
 }
 
 func (m *MbgMtlsForwarder) mbgDataHandler(mbgResp http.ResponseWriter, mbgR *http.Request) {
