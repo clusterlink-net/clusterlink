@@ -41,18 +41,18 @@ type connDialer struct {
 	c net.Conn
 }
 
-func (cd connDialer) Dial(ctx context.Context, network, addr string) (net.Conn, error) {
+func (cd connDialer) Dial(network, addr string) (net.Conn, error) {
 	return cd.c, nil
 }
 
 var mlog = logrus.WithField("component", "mbgDataplane/mTLSForwarder")
 
 //Init client fields
-func (m *MbgMtlsForwarder) InitmTlsForwarder(targetIP, target, name, certificate, key string, connect bool) {
+func (m *MbgMtlsForwarder) InitmTlsForwarder(targetIPPort, name, certificate, key string, connect bool) {
 	mlog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
 
-	m.TargetMbg = target + "/" + name
-	connectMbg := "https://" + targetIP + ":8443/mbgDataConnect"
+	m.TargetMbg = "https://" + targetIPPort + "/mbgData/" + name
+	connectMbg := "https://" + targetIPPort + "/mbgDataConnect"
 	m.Name = name
 	// Read the key pair to create certificate
 	cert, err := tls.LoadX509KeyPair(certificate, key)
@@ -80,46 +80,66 @@ func (m *MbgMtlsForwarder) InitmTlsForwarder(targetIP, target, name, certificate
 
 	// Trying out Connect Method
 	if connect {
-		// TLSClientConfig := &tls.Config{
-		// 	RootCAs:      caCertPool,
-		// 	Certificates: []tls.Certificate{cert},
-		// }
-		// mtls_conn, err := tls.Dial("tcp", targetIP+":8443", TLSClientConfig)
-		// if err != nil {
-		// 	mlog.Infof("Error in connecting.. %+v", err)
-		// }
-		// // Create a HTTPS client and supply the created CA pool and certificate
-		// TlsConnectClient := &http.Client{
-		// 	Transport: &http.Transport{
-		// 		TLSClientConfig: &tls.Config{
-		// 			RootCAs:      caCertPool,
-		// 			Certificates: []tls.Certificate{cert},
-		// 		},
-		// 		DialTLSContext: connDialer{mtls_conn}.Dial,
-		// 	},
-		// }
 
+		// Create a HTTPS client and supply the created CA pool and certificate
+		// Below Snippets tries different methods :
+
+		// Method 1:
+
+		// Outcome :
+		// Encountered following error:
+		// INFO   [2023-01-02 10:47:03] Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/  component=mbgDataplane/mTLSForwarder
+		// INFO   [2023-01-02 10:47:03] Connect resp:  400                            component=mbgDataplane/TCPForwarder
+
+		TLSClientConfig := &tls.Config{
+			RootCAs:      caCertPool,
+			Certificates: []tls.Certificate{cert},
+		}
+		mtls_conn, err := tls.Dial("tcp", targetIPPort, TLSClientConfig)
+		if err != nil {
+			mlog.Infof("Error in connecting.. %+v", err)
+		}
 		TlsConnectClient := &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
 					RootCAs:      caCertPool,
 					Certificates: []tls.Certificate{cert},
 				},
-				Dial: func(network, addr string) (net.Conn, error) {
-					TLSClientConfig := &tls.Config{
-						RootCAs:      caCertPool,
-						Certificates: []tls.Certificate{cert},
-					}
-
-					conn, err := tls.Dial("tcp", targetIP+":8443", TLSClientConfig)
-					if err != nil {
-						return nil, err
-					}
-					log.Infof("Successfully dialed TLS %v", conn.LocalAddr().String())
-					return conn, nil
-				},
+				DialTLS: connDialer{mtls_conn}.Dial,
 			},
 		}
+
+		// Method 2:
+
+		// OutCome:
+		// Encounter following error :
+		// INFO   [2023-01-02 10:20:57] Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/  component=mbgDataplane/mTLSForwarder
+		// INFO   [2023-01-02 10:20:57] Successfully dialed TLS 10.20.20.2:40698      component=mbgDataplane/TCPForwarder
+		// INFO   [2023-01-02 10:20:57] Error in Tls Connection Connect "https://10.20.20.1:8443/mbgDataConnect": http: server gave HTTP response to HTTPS client  component=mbgDataplane/mTLSForwarder
+		// panic: runtime error: invalid memory address or nil pointer dereference
+		// [signal SIGSEGV: segmentation violation code=0x1 addr=0x10 pc=0x7178e5]
+
+		// TlsConnectClient := &http.Client{
+		// 	Transport: &http.Transport{
+		// 		TLSClientConfig: &tls.Config{
+		// 			RootCAs:      caCertPool,
+		// 			Certificates: []tls.Certificate{cert},
+		// 		},
+		// 		Dial: func(network, addr string) (net.Conn, error) {
+		// 			TLSClientConfig := &tls.Config{
+		// 				RootCAs:      caCertPool,
+		// 				Certificates: []tls.Certificate{cert},
+		// 			}
+
+		// 			conn, err := tls.Dial("tcp", targetIPPort, TLSClientConfig)
+		// 			if err != nil {
+		// 				return nil, err
+		// 			}
+		// 			log.Infof("Successfully dialed TLS %v", conn.LocalAddr().String())
+		// 			return conn, nil
+		// 		},
+		// 	},
+		// }
 
 		req, err := http.NewRequest(http.MethodConnect, connectMbg, bytes.NewBuffer([]byte("jsonData")))
 		if err != nil {
@@ -131,7 +151,6 @@ func (m *MbgMtlsForwarder) InitmTlsForwarder(targetIP, target, name, certificate
 		}
 		log.Println("Connect resp: ", resp.StatusCode)
 	}
-	mlog.Infof("Starting mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
 	// Register function for handling the dataplane traffic
 	http.HandleFunc("/mbgData/"+m.Name, m.mbgDataHandler)
 	mlog.Infof("Starting mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
