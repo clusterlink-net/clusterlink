@@ -40,6 +40,7 @@ type ConnectRequest struct {
 	Id     string
 	IdDest string
 	Policy string
+	MbgID  string
 }
 
 type ConnectReply struct {

@@ -203,7 +203,6 @@ func GetMbgCerts(id string) (string, string) {
 
 func GetMbgCertsFromIp(ip string) (string, string) {
 	for _, mbgI := range s.MbgArr {
-		log.Printf("GetMbgCertsFromIp: Comparing %s, %s ", mbgI.Ip, ip)
 		if mbgI.Ip == ip {
 			return mbgI.CertificateFile, mbgI.KeyFile
 		}

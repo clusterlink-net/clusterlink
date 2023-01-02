@@ -36,6 +36,7 @@ func ConnectLocalService(c protocol.ConnectRequest, targetMbgIP string, conn net
 	connectionID := c.Id + ":" + c.IdDest
 	dataplane := state.GetDataplane()
 	localSvc := state.GetLocalService(c.IdDest)
+	targetMbgIP = state.GetMbgIP(c.MbgID)
 	switch dataplane {
 	case TCP_TYPE:
 		clog.Infof("[MBG %v] Sending Connect reply to Connection(%v) to use Dest:%v", state.GetMyId(), connectionID, "use connect hijack")
@@ -127,7 +128,7 @@ func ConnectPostReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, 
 	clog.Infof("Start connect Request to MBG %v for service %v", mbgIp, svcIdDest)
 	address := "http://" + mbgIp + "/connect"
 
-	j, err := json.Marshal(protocol.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy})
+	j, err := json.Marshal(protocol.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy, MbgID: state.GetMyId()})
 	if err != nil {
 		clog.Fatal(err)
 	}
@@ -155,7 +156,7 @@ func ConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (net.Conn, error) {
 	clog.Printf("Start connect Request to MBG %v for service %v", mbgIp, svcIdDest)
 	url := "http://" + mbgIp + "/connect"
 
-	jsonData, err := json.Marshal(protocol.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy})
+	jsonData, err := json.Marshal(protocol.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy, MbgID: state.GetMyId()})
 	if err != nil {
 		clog.Fatal(err)
 	}
