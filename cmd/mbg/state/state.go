@@ -13,10 +13,12 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
+
+var log = logrus.WithField("component", s.MyInfo.Id)
 
 type mbgState struct {
 	MyInfo                MbgInfo
@@ -131,6 +133,7 @@ func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDat
 			log.Fatal(err)
 		}
 	}
+	log = logrus.WithField("component", s.MyInfo.Id)
 	SaveState()
 }
 
@@ -142,6 +145,7 @@ func SetLocalCluster(id, ip string) {
 
 func UpdateState() {
 	s = readState()
+	log = logrus.WithField("component", s.MyInfo.Id)
 }
 
 //Return Function fields
@@ -167,7 +171,7 @@ func LookupLocalService(network string) (LocalService, error) {
 	serviceNetwork := strings.Split(network, ":")
 	for _, service := range s.MyServices {
 		// Compare Service IPs
-		fmt.Printf("Comparing %s, %s \n", strings.Split(service.Service.Ip, ":")[0], serviceNetwork[0])
+		log.Printf("Comparing %s, %s ", strings.Split(service.Service.Ip, ":")[0], serviceNetwork[0])
 		if strings.Split(service.Service.Ip, ":")[0] == serviceNetwork[0] {
 			return service, nil
 		}
@@ -199,6 +203,7 @@ func GetMbgCerts(id string) (string, string) {
 
 func GetMbgCertsFromIp(ip string) (string, string) {
 	for _, mbgI := range s.MbgArr {
+		log.Printf("GetMbgCertsFromIp: Comparing %s, %s ", mbgI.Ip, ip)
 		if mbgI.Ip == ip {
 			return mbgI.CertificateFile, mbgI.KeyFile
 		}

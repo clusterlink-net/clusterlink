@@ -55,18 +55,17 @@ func (m *MbgMtlsForwarder) StartmTlsForwarder(targetIPPort, name, certificate, k
 	mlog.Infof("Connect MBG Target =%s", connectMbg)
 	m.Connection = endpointConn
 	m.Name = name
-
 	if connect {
 		// Read the key pair to create certificate
 		cert, err := tls.LoadX509KeyPair(certificate, key)
 		if err != nil {
-			log.Fatal(err)
+			mlog.Fatalf("LoadX509KeyPair -%v \ncertificate: %v \nkey:%v", err, certificate, key)
 		}
 
 		// Create a CA certificate pool and add cert.pem to it
 		caCert, err := ioutil.ReadFile(certificate)
 		if err != nil {
-			log.Fatal(err)
+			mlog.Fatalf("ReadFile certificate %v :%v", certificate, err)
 		}
 		caCertPool := x509.NewCertPool()
 		caCertPool.AppendCertsFromPEM(caCert)
@@ -103,7 +102,7 @@ func (m *MbgMtlsForwarder) StartmTlsForwarder(targetIPPort, name, certificate, k
 		go m.mtlsDispatch()
 	}
 	go m.dispatch()
-	mlog.Infof("Starting mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
+	mlog.Infof("Starting mTLS Forwarder for MBG Dataplane at /mbgData/%s  to target %s with certs(%s,%s)", m.Name, m.TargetMbg, certificate, key)
 
 }
 
@@ -119,6 +118,7 @@ func (m *MbgMtlsForwarder) mbgConnectHandler(w http.ResponseWriter, r *http.Requ
 	conn, _, err := hj.Hijack()
 	if err != nil {
 		mlog.Infof("Hijacking failed %v", err)
+
 	}
 	conn.Write([]byte{})
 	fmt.Fprintf(conn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n")
@@ -194,7 +194,7 @@ func StartMtlsServer(ip, certificate, key string) {
 	// Create the TLS Config with the CA pool and enable Client certificate validation
 	caCert, err := ioutil.ReadFile(certificate)
 	if err != nil {
-		log.Fatal(err)
+		mlog.Fatal(err)
 	}
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
@@ -214,5 +214,5 @@ func StartMtlsServer(ip, certificate, key string) {
 	mlog.Infof("Starting mTLS Server for MBG Dataplane/Controlplane")
 
 	// Listen to HTTPS connections with the server certificate and wait
-	log.Fatal(server.ListenAndServeTLS(certificate, key))
+	mlog.Fatal(server.ListenAndServeTLS(certificate, key))
 }

@@ -152,7 +152,7 @@ func ConnectPostReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, 
 }
 
 func ConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (net.Conn, error) {
-	log.Printf("Start connect Request to MBG %v for service %v", mbgIp, svcIdDest)
+	clog.Printf("Start connect Request to MBG %v for service %v", mbgIp, svcIdDest)
 	url := "http://" + mbgIp + "/connect"
 
 	jsonData, err := json.Marshal(protocol.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy})
@@ -226,7 +226,7 @@ func StartClusterService(serviceId, clusterServicePort, targetMbgIPPort, certifi
 			connectType, connectDest, err := ConnectPostReq(localSvc.Service.Id, serviceId, "forward", mbgIP)
 
 			if err != nil && err.Error() != "Connection already setup!" {
-				clog.Infof("[MBG %v] Send connect failure to Cluster = %v ", state.GetMyId(), err.Error())
+				clog.Infof("[MBG %v] Key Send connect failure to Cluster = %v ", state.GetMyId(), err.Error())
 				ac.Close()
 				continue
 			}
@@ -245,7 +245,7 @@ func StartReceiverService(clusterServicePort, targetMbgIPPort, remoteEndPoint, c
 	if err != nil {
 		return err
 	}
-	clog.Infof("Receiver Connection at %s, %s", conn.LocalAddr().String(), remoteEndPoint)
+	clog.Infof("[MBG %v] Receiver Connection at %s, %s", state.GetMyId(), conn.LocalAddr().String(), remoteEndPoint)
 	var mtlsForward MbgMtlsForwarder
 	mtlsForward.StartmTlsForwarder(targetMbgIPPort, remoteEndPoint, certificate, key, conn, false)
 	return nil
