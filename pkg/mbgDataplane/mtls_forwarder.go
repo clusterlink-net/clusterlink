@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net"
@@ -25,6 +26,7 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
+	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
 type MbgMtlsForwarder struct {
@@ -35,13 +37,22 @@ type MbgMtlsForwarder struct {
 	CloseConn  chan bool
 }
 
+type connDialer struct {
+	c net.Conn
+}
+
+func (cd connDialer) Dial(ctx context.Context, network, addr string) (net.Conn, error) {
+	return cd.c, nil
+}
+
 var mlog = logrus.WithField("component", "mbgDataplane/mTLSForwarder")
 
 //Init client fields
-func (m *MbgMtlsForwarder) InitmTlsForwarder(target, name, certificate, key string) {
+func (m *MbgMtlsForwarder) InitmTlsForwarder(targetIP, target, name, certificate, key string, connect bool) {
 	mlog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
 
 	m.TargetMbg = target + "/" + name
+	connectMbg := "https://" + targetIP + ":8443/mbgDataConnect"
 	m.Name = name
 	// Read the key pair to create certificate
 	cert, err := tls.LoadX509KeyPair(certificate, key)
@@ -57,7 +68,7 @@ func (m *MbgMtlsForwarder) InitmTlsForwarder(target, name, certificate, key stri
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
-	// Create a HTTPS client and supply the created CA pool and certificate
+	// TlsClient for the POST Method
 	m.TlsClient = &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
@@ -66,6 +77,61 @@ func (m *MbgMtlsForwarder) InitmTlsForwarder(target, name, certificate, key stri
 			},
 		},
 	}
+
+	// Trying out Connect Method
+	if connect {
+		// TLSClientConfig := &tls.Config{
+		// 	RootCAs:      caCertPool,
+		// 	Certificates: []tls.Certificate{cert},
+		// }
+		// mtls_conn, err := tls.Dial("tcp", targetIP+":8443", TLSClientConfig)
+		// if err != nil {
+		// 	mlog.Infof("Error in connecting.. %+v", err)
+		// }
+		// // Create a HTTPS client and supply the created CA pool and certificate
+		// TlsConnectClient := &http.Client{
+		// 	Transport: &http.Transport{
+		// 		TLSClientConfig: &tls.Config{
+		// 			RootCAs:      caCertPool,
+		// 			Certificates: []tls.Certificate{cert},
+		// 		},
+		// 		DialTLSContext: connDialer{mtls_conn}.Dial,
+		// 	},
+		// }
+
+		TlsConnectClient := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs:      caCertPool,
+					Certificates: []tls.Certificate{cert},
+				},
+				Dial: func(network, addr string) (net.Conn, error) {
+					TLSClientConfig := &tls.Config{
+						RootCAs:      caCertPool,
+						Certificates: []tls.Certificate{cert},
+					}
+
+					conn, err := tls.Dial("tcp", targetIP+":8443", TLSClientConfig)
+					if err != nil {
+						return nil, err
+					}
+					log.Infof("Successfully dialed TLS %v", conn.LocalAddr().String())
+					return conn, nil
+				},
+			},
+		}
+
+		req, err := http.NewRequest(http.MethodConnect, connectMbg, bytes.NewBuffer([]byte("jsonData")))
+		if err != nil {
+			mlog.Infof("Failed to create new request %v", err)
+		}
+		resp, err := TlsConnectClient.Do(req)
+		if err != nil {
+			mlog.Infof("Error in Tls Connection %v", err)
+		}
+		log.Println("Connect resp: ", resp.StatusCode)
+	}
+	mlog.Infof("Starting mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
 	// Register function for handling the dataplane traffic
 	http.HandleFunc("/mbgData/"+m.Name, m.mbgDataHandler)
 	mlog.Infof("Starting mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
@@ -100,8 +166,37 @@ func StartMtlsServer(ip, certificate, key string) {
 	}
 
 	mlog.Infof("Starting mTLS Server for MBG Dataplane/Controlplane")
+	http.HandleFunc("/mbgDataConnect", mbgConnectHandler)
+
 	// Listen to HTTPS connections with the server certificate and wait
 	log.Fatal(server.ListenAndServeTLS(certificate, key))
+}
+
+func mbgConnectHandler(w http.ResponseWriter, r *http.Request) {
+	//Phrase struct from request
+	log.Infof("Received HTTP connect to service:")
+
+	var c protocol.ConnectRequest
+	err := json.NewDecoder(r.Body).Decode(&c)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	//Connect control plane logic
+	//Check if we can hijack connection
+	hj, ok := w.(http.Hijacker)
+	if !ok {
+		http.Error(w, "server doesn't support hijacking", http.StatusInternalServerError)
+		return
+	}
+	//Write response
+	//Hijack the connection
+	conn, _, err := hj.Hijack()
+	//connection logic
+	w.WriteHeader(http.StatusOK)
+
+	log.Info("Connection Hijacked  %s->%s", conn.RemoteAddr().String(), conn.RemoteAddr().String())
 }
 
 func (m *MbgMtlsForwarder) mbgDataHandler(mbgResp http.ResponseWriter, mbgR *http.Request) {

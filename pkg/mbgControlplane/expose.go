@@ -32,7 +32,7 @@ func Expose(e protocol.ExposeRequest) {
 		mtlsPort := (state.GetMyMtlsPort()).External
 		mbgTarget := "https://" + targetMbgIP + mtlsPort + "/mbgData"
 		mlog.Infof("Starting a Cluster Service for remote service %s at %s->%s with certs(%s,%s)", e.Id, myServicePort.Local, mbgTarget, certFile, keyFile)
-		go md.StartClusterService(e.Id, myServicePort.Local, mbgTarget, certFile, keyFile)
+		go md.StartClusterService(e.Id, myServicePort.Local, targetMbgIP, mbgTarget, certFile, keyFile)
 	}
 
 }
