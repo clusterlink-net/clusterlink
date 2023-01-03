@@ -18,11 +18,13 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -231,9 +233,17 @@ func mbgConnectHandler(w http.ResponseWriter, r *http.Request) {
 		mlog.Infof("Hijacking failed %v", err)
 	}
 	//connection logic
-	w.WriteHeader(http.StatusOK)
+	//w.WriteHeader(http.StatusOK)
+
+	conn.Write([]byte{})
+	fmt.Fprintf(conn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n")
 
 	mlog.Info("Connection Hijacked  %v->%v", conn.RemoteAddr().String(), conn.LocalAddr().String())
+
+	for {
+		mlog.Infof("Using Conn..")
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func (m *MbgMtlsForwarder) mbgDataHandler(mbgResp http.ResponseWriter, mbgR *http.Request) {
