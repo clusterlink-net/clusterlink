@@ -46,11 +46,10 @@ func ConnectLocalService(c protocol.ConnectRequest, targetMbgIP string, conn net
 		remoteEndPoint := connectionID + "-" + uid.String()
 		mtlsPort := (state.GetMyMtlsPort()).External
 		mbgTarget := targetMbgIP + mtlsPort
-		certFile, keyFile := state.GetMbgCertsFromIp(targetMbgIP)
-		clog.Infof("[MBG %v] Starting a Receiver service for %s Using RemoteEndpoint : %s/%s Certs(%s,%s)", state.GetMyId(),
-			localSvc.Service.Ip, mbgTarget, remoteEndPoint, certFile, keyFile)
+		clog.Infof("[MBG %v] Starting a Receiver service for %s Using RemoteEndpoint : %s/%s", state.GetMyId(),
+			localSvc.Service.Ip, mbgTarget, remoteEndPoint)
 
-		go StartReceiverService(localSvc.Service.Ip, mbgTarget, remoteEndPoint, certFile, keyFile)
+		go StartReceiverService(localSvc.Service.Ip, mbgTarget, remoteEndPoint, "", "")
 		return "Success", dataplane, remoteEndPoint
 	default:
 		return "failure", "", ""
@@ -232,10 +231,7 @@ func StartClusterService(serviceId, clusterServicePort, targetMbgIPPort, certifi
 				continue
 			}
 			clog.Infof("[MBG %v] Using %s for  %s/%s to connect to Service-%v", state.GetMyId(), connectType, targetMbgIPPort, connectDest, destSvc.Service.Id)
-			mtlsForward.InitmTlsForwarder(targetMbgIPPort, connectDest, certificate, key, true)
-
-			mtlsForward.setSocketConnection(ac)
-			go mtlsForward.dispatch(ac)
+			mtlsForward.StartmTlsForwarder(targetMbgIPPort, connectDest, certificate, key, ac, true)
 		default:
 			clog.Fatalf("%v -Not supported", dataplane)
 
@@ -251,8 +247,6 @@ func StartReceiverService(clusterServicePort, targetMbgIPPort, remoteEndPoint, c
 	}
 	clog.Infof("Receiver Connection at %s, %s", conn.LocalAddr().String(), remoteEndPoint)
 	var mtlsForward MbgMtlsForwarder
-	mtlsForward.InitmTlsForwarder(targetMbgIPPort, remoteEndPoint, certificate, key, false)
-	mtlsForward.setSocketConnection(conn)
-	go mtlsForward.dispatch(conn)
+	mtlsForward.StartmTlsForwarder(targetMbgIPPort, remoteEndPoint, certificate, key, conn, false)
 	return nil
 }
