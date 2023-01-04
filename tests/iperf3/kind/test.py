@@ -31,10 +31,11 @@ if __name__ == "__main__":
     printHeader("\n\nStart Kind Test\n\n")
     printHeader("Start pre-setting")
 
-    iperf3DestPort="30001"
+    
     mbg1DataPort= "30001"
     mbg1MtlsPort= "30443"
     mbg1MtlsPortLocal= "8443"
+    
     mbg2DataPort= "30001"
     mbg2MtlsPort= "30443"
     mbg2MtlsPortLocal= "8443"
@@ -44,7 +45,8 @@ if __name__ == "__main__":
     srcIp=":5000"
 
     destSvc ="iperfIndia"
-    podDefaultGW="10.244.0.1"
+    iperf3DestPort="30001"
+
     dataplane = args["dataplane"]
     mbg1crt=f"./mtls/mbg1.crt" if dataplane =="mtls" else ""
     mbg1key=f"./mtls/mbg1.key" if dataplane =="mtls" else ""
