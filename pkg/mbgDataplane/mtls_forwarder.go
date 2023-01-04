@@ -23,6 +23,9 @@ import (
 	"net"
 	"net/http"
 
+	"strings"
+	"time"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -78,13 +81,17 @@ func (m *MbgMtlsForwarder) StartmTlsForwarder(targetIPPort, name, certificate, k
 		if err != nil {
 			mlog.Infof("Error in connecting.. %+v", err)
 		}
+
+		tlsConfig := tls.Config{RootCAs: caCertPool,
+			Certificates: []tls.Certificate{cert},
+		}
+
+		//mlog.Debugln("mTLS Debug Check:", m.certDebg(targetIPPort, name, tlsConfig))
+
 		TlsConnectClient := &http.Client{
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs:      caCertPool,
-					Certificates: []tls.Certificate{cert},
-				},
-				DialTLS: connDialer{mtls_conn}.Dial,
+				TLSClientConfig: &tlsConfig,
+				DialTLS:         connDialer{mtls_conn}.Dial,
 			},
 		}
 		req, err := http.NewRequest(http.MethodGet, connectMbg, nil)
@@ -102,7 +109,7 @@ func (m *MbgMtlsForwarder) StartmTlsForwarder(targetIPPort, name, certificate, k
 		go m.mtlsDispatch()
 	}
 	go m.dispatch()
-	mlog.Infof("Starting mTLS Forwarder for MBG Dataplane at /mbgData/%s  to target %s with certs(%s,%s)", m.Name, m.TargetMbg, certificate, key)
+	mlog.Infof("Starting mTLS Forwarder for MBG Dataplane at /mbgData/%s  to target %s with certs(%s,%s)", m.Name, targetIPPort, certificate, key)
 
 }
 
@@ -215,4 +222,21 @@ func StartMtlsServer(ip, certificate, key string) {
 
 	// Listen to HTTPS connections with the server certificate and wait
 	mlog.Fatal(server.ListenAndServeTLS(certificate, key))
+}
+
+func (m *MbgMtlsForwarder) certDebg(target, name string, tlsConfig tls.Config) string {
+	mlog.Infof("Starting tls debug to addr %v name %v", target, name)
+	conn, err := tls.Dial("tcp", target, &tlsConfig)
+	if err != nil {
+		panic("Server doesn't support SSL certificate err: " + err.Error())
+	}
+	ip := strings.Split(target, ":")[0]
+	err = conn.VerifyHostname(ip)
+	if err != nil {
+		panic("Hostname doesn't match with certificate: " + err.Error())
+	}
+	expiry := conn.ConnectionState().PeerCertificates[0].NotAfter
+	mlog.Infof("Issuer: %s\nExpiry: %v\n", conn.ConnectionState().PeerCertificates[0].Issuer, expiry.Format(time.RFC850))
+	conn.Close()
+	return "Debug succeed"
 }
