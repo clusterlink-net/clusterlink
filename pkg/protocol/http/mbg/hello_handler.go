@@ -43,9 +43,8 @@ func (m MbgHandler) helloPost(w http.ResponseWriter, r *http.Request) {
 	//Hello control plane logic
 	log.Infof("Received Hello from MBG ip: %v", h.Ip)
 	mbgControlplane.Hello(h)
-	myInfo := state.GetMyInfo()
 
-	j, err := json.Marshal(protocol.HelloResponse{Status: "success", CertData: myInfo.CertData, KeyData: myInfo.KeyData})
+	j, err := json.Marshal(protocol.HelloResponse{Status: "success"})
 	if err != nil {
 		log.Fatal(err)
 	}

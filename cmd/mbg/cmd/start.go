@@ -32,6 +32,7 @@ var startCmd = &cobra.Command{
 		cport, _ := cmd.Flags().GetString("cport")
 		localDataPortRange, _ := cmd.Flags().GetString("localDataPortRange")
 		externalDataPortRange, _ := cmd.Flags().GetString("externalDataPortRange")
+		caFile, _ := cmd.Flags().GetString("rootCa")
 		certificateFile, _ := cmd.Flags().GetString("certificate")
 		keyFile, _ := cmd.Flags().GetString("key")
 		dataplane, _ := cmd.Flags().GetString("dataplane")
@@ -42,9 +43,9 @@ var startCmd = &cobra.Command{
 			log.Println("Error: please insert all flag arguments for Mbg start command")
 			os.Exit(1)
 		}
-		state.SetState(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, certificateFile, keyFile, dataplane, mtlsportLocal, mtlsport)
+		state.SetState(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane, mtlsportLocal, mtlsport)
 		if dataplane == "mtls" {
-			go md.StartMtlsServer(":"+mtlsportLocal, certificateFile, keyFile)
+			go md.StartMtlsServer(":"+mtlsportLocal, caFile, certificateFile, keyFile)
 		}
 		startHttpServer()
 	},
@@ -60,6 +61,7 @@ func init() {
 	startCmd.Flags().String("mtlsport", "8443", "Multi-cloud Border Gateway mtls external port for the MBG neighbors ")
 	startCmd.Flags().String("localDataPortRange", "5000", "Set the port range for data connection in the MBG")
 	startCmd.Flags().String("externalDataPortRange", "30000", "Set the port range for exposing data connection (each expose port connect to localDataPort")
+	startCmd.Flags().String("rootCa", "", "Path to the Root Certificate Auth File (.pem)")
 	startCmd.Flags().String("certificate", "", "Path to the Certificate File (.pem)")
 	startCmd.Flags().String("key", "", "Path to the Key File (.pem)")
 	startCmd.Flags().String("dataplane", "tcp", "tcp/mtls based data-plane proxies")
