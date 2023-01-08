@@ -75,11 +75,7 @@ if __name__ == "__main__":
     --dataplane {args["dataplane"]}  --mtlsport {mbg2MtlsPort} --mtlsportLocal {mbg2MtlsPortLocal} {mbg2crtFlags}')
     if dataplane =="mtls":
         runcmd(f"kubectl create service nodeport mbg --tcp={mbg2MtlsPortLocal}:{mbg2MtlsPortLocal} --node-port={mbg2MtlsPort}")
-    printHeader("Add MBG1 neighbor to MBG2")
-    runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addMbg --id "MBG1" --ip {mbg1Ip} --cport "30000"')
-    printHeader("Send Hello commands")
-    runcmd(f'kubectl exec -i {podMbg2} -- ./mbg hello')
-
+    
     ###Run host
     printHeader("\n\nStart building host-cluster")
     folCl=f"{proj_dir}/tests/iperf3/manifests/iperf3-client"
@@ -91,6 +87,16 @@ if __name__ == "__main__":
     runcmdb(f'kubectl exec -i {podhost} -- ./cluster start --id "hostCluster"  --ip {hostIp} --cport 30000 --mbgIP {mbg1Ip}:30000')
     printHeader(f"Add {srcSvc} (client) service to host cluster")
     runcmd(f'kubectl exec -i {podhost} -- ./cluster addService --serviceId {srcSvc} --serviceIp {srcDefaultGW}')
+        
+    # Add MBG Peer
+    printHeader("Add MBG2 peer to MBG1")
+    runcmd(f'kubectl exec -i {podhost} -- ./cluster addPeer --id "MBG2" --ip {mbg2Ip} --cport "30000"')
+    
+    # Send Hello
+    printHeader("Send Hello commands")
+    runcmd(f'kubectl exec -i {podhost} -- ./cluster hello')
+    
+
 
     ###Run dest
     printHeader("\n\nStart building dest-clusterination")
