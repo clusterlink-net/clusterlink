@@ -15,6 +15,11 @@ func (m MbgHandler) Routes() chi.Router {
 
 	r.Get("/", m.mbgWelcome)
 
+	r.Route("/peer", func(r chi.Router) {
+		r.Get("/{mbgID}", m.peerGet)   //GET /peer/{mbgID}  - Get MBG peer Id
+		r.Post("/{mbgID}", m.peerPost) // Post /peer/{mbgID} - Add MBG peer Id to MBg peers list
+	})
+
 	r.Route("/hello", func(r chi.Router) {
 		//r.Use(PostCtx)
 		r.Get("/", m.helloGet)   //  GET  /hello - Get MBG id
