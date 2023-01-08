@@ -23,23 +23,17 @@ type AddServiceRequest struct {
 	Domain string
 }
 
+//Hello
+type HelloResponse struct {
+	Status string
+}
+
 //Expose
 type ExposeRequest struct {
 	Id     string
 	Ip     string
 	Domain string
 	MbgID  string
-}
-
-//Hello
-type HelloRequest struct {
-	Id    string
-	Ip    string
-	Cport string
-}
-
-type HelloResponse struct {
-	Status string
 }
 
 //Connect

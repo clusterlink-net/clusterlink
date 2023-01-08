@@ -4,45 +4,41 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
-func (m MbgHandler) helloGet(w http.ResponseWriter, r *http.Request) {
+//Send hello to specific mbg
+func (m MbgHandler) sendHello(w http.ResponseWriter, r *http.Request) {
 
-	//Marshal or convert MyInfo object back to json and write to response
-	myInfo := state.GetMyInfo()
-	userJson, err := json.Marshal(protocol.HelloRequest{Id: myInfo.Id, Ip: myInfo.Ip, Cport: myInfo.Cport.External})
+	//phrase hello struct from request
+	mbgID := chi.URLParam(r, "mbgID")
+
+	//Hello control plane logic
+	log.Infof("Send Hello to MBG id: %v", mbgID)
+	mbgControlplane.SendHello(mbgID)
+
+	j, err := json.Marshal(protocol.HelloResponse{Status: "success"})
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-
-	//Set Content-Type header so that clients will know how to read response
-	w.Header().Set("Content-Type", "application/json")
+	//Response
 	w.WriteHeader(http.StatusOK)
-
-	//Write json response back to response
-	_, err = w.Write(userJson)
+	_, err = w.Write(j)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func (m MbgHandler) helloPost(w http.ResponseWriter, r *http.Request) {
+//Send hello to all mbg peers
+func (m MbgHandler) sendHello2All(w http.ResponseWriter, r *http.Request) {
 
-	//phrase hello struct from request
-	var h protocol.HelloRequest
-	err := json.NewDecoder(r.Body).Decode(&h)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	//Hello control plane logic
-	log.Infof("Received Hello from MBG ip: %v", h.Ip)
-	mbgControlplane.Hello(h)
+	log.Infof("Send Hello to MBG peers")
+	mbgControlplane.SendHello2All()
 
 	j, err := json.Marshal(protocol.HelloResponse{Status: "success"})
 	if err != nil {

@@ -22,8 +22,8 @@ func (m MbgHandler) Routes() chi.Router {
 
 	r.Route("/hello", func(r chi.Router) {
 		//r.Use(PostCtx)
-		r.Get("/", m.helloGet)   //  GET  /hello - Get MBG id
-		r.Post("/", m.helloPost) // Post /hello  - Post MBG Id
+		r.Post("/{mbgID}", m.sendHello) // send Hello to MBG peer
+		r.Post("/", m.sendHello2All)    // send Hello to MBG peer
 	})
 
 	r.Route("/addservice", func(r chi.Router) {
