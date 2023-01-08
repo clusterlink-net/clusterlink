@@ -54,10 +54,9 @@ if __name__ == "__main__":
     svcpolicy ="Forward"
 
     dataplane = args["dataplane"]
-    mbg1crt=f"./mtls/mbg1.crt" if dataplane =="mtls" else ""
-    mbg1key=f"./mtls/mbg1.key" if dataplane =="mtls" else ""
-    mbg2crt=f"./mtls/mbg2.crt" if dataplane =="mtls" else ""
-    mbg2key=f"./mtls/mbg2.key" if dataplane =="mtls" else ""
+    mbg1crtFlags =f"--rootCa ./mtls/ca.crt  --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    mbg2crtFlags =f"--rootCa ./mtls/ca.crt  --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    
 
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
@@ -80,7 +79,7 @@ if __name__ == "__main__":
         printHeader("\n\nStart building MBG1")
         podMbg1, mbg1Ip= buildMbg("mbg-agent1",f"{proj_dir}/manifests/kind/mbg-config1.yaml")
         runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg start --id "MBG1" --ip {mbg1Ip} --cport "30000" --externalDataPortRange {mbg1DataPort} \
-            --dataplane {args["dataplane"]} --mtlsport {mbg1MtlsPort} --mtlsportLocal {mbg1MtlsPortLocal} --certificate {mbg1crt} --key {mbg1key}')
+            --dataplane {args["dataplane"]} --mtlsport {mbg1MtlsPort} --mtlsportLocal {mbg1MtlsPortLocal} {mbg1crtFlags}')
         if dataplane =="mtls" :
             runcmd(f"kubectl create service nodeport mbg --tcp={mbg1MtlsPortLocal}:{mbg1MtlsPortLocal} --node-port={mbg1MtlsPort}")
 
@@ -88,7 +87,7 @@ if __name__ == "__main__":
         printHeader("\n\nStart building MBG2")
         podMbg2, mbg2Ip= buildMbg("mbg-agent2",f"{proj_dir}/manifests/kind/mbg-config2.yaml")
         runcmdb(f'kubectl exec -i {podMbg2} --  ./mbg start --id "MBG2" --ip {mbg2Ip} --cport "30000" --externalDataPortRange {mbg2DataPort}\
-        --dataplane {args["dataplane"]}  --mtlsport {mbg2MtlsPort} --mtlsportLocal {mbg2MtlsPortLocal} --certificate {mbg2crt} --key {mbg2key}')
+        --dataplane {args["dataplane"]}  --mtlsport {mbg2MtlsPort} --mtlsportLocal {mbg2MtlsPortLocal}  {mbg2crtFlags}')
         if dataplane =="mtls":
             runcmd(f"kubectl create service nodeport mbg --tcp={mbg2MtlsPortLocal}:{mbg2MtlsPortLocal} --node-port={mbg2MtlsPort}")
     
