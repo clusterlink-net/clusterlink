@@ -48,7 +48,7 @@ var mlog = logrus.WithField("component", "mbgDataplane/mTLSForwarder")
 // Start mtls Forwarder on a specific mtls target
 // targetIPPort in the format of <ip:port>
 // connect is set to true on a client side
-func (m *MbgMtlsForwarder) StartmTlsForwarder(targetIPPort, name, certificate, key string, endpointConn net.Conn, connect bool) {
+func (m *MbgMtlsForwarder) StartmTlsForwarder(targetIPPort, name, rootCA, certificate, key string, endpointConn net.Conn, connect bool) {
 	mlog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
 	// Register function for handling the dataplane traffic
 	http.HandleFunc("/mbgData/"+name, m.mbgConnectHandler)
@@ -65,10 +65,10 @@ func (m *MbgMtlsForwarder) StartmTlsForwarder(targetIPPort, name, certificate, k
 			mlog.Fatalf("LoadX509KeyPair -%v \ncertificate: %v \nkey:%v", err, certificate, key)
 		}
 
-		// Create a CA certificate pool and add cert.pem to it
-		caCert, err := ioutil.ReadFile(certificate)
+		// Create a CA certificate pool and add ca to it
+		caCert, err := ioutil.ReadFile(rootCA)
 		if err != nil {
-			mlog.Fatalf("ReadFile certificate %v :%v", certificate, err)
+			mlog.Fatalf("ReadFile certificate %v :%v", rootCA, err)
 		}
 		caCertPool := x509.NewCertPool()
 		caCertPool.AppendCertsFromPEM(caCert)
@@ -197,9 +197,9 @@ func CloseMtlsServer(ip string) {
 	}
 	server.Shutdown(context.Background())
 }
-func StartMtlsServer(ip, certificate, key string) {
+func StartMtlsServer(ip, rootCA, certificate, key string) {
 	// Create the TLS Config with the CA pool and enable Client certificate validation
-	caCert, err := ioutil.ReadFile(certificate)
+	caCert, err := ioutil.ReadFile(rootCA)
 	if err != nil {
 		mlog.Fatal(err)
 	}
@@ -210,7 +210,6 @@ func StartMtlsServer(ip, certificate, key string) {
 		ClientCAs:  caCertPool,
 		ClientAuth: tls.RequireAndVerifyClientCert,
 	}
-	tlsConfig.BuildNameToCertificate()
 
 	// Create a Server instance to listen on port 8443 with the TLS config
 	server := &http.Server{

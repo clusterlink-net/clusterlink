@@ -19,7 +19,7 @@ var addMbgCmd = &cobra.Command{
 		id, _ := cmd.Flags().GetString("id")
 		cport, _ := cmd.Flags().GetString("cport")
 		state.UpdateState()
-		state.AddMbgNbr(id, ip, cport, "", "")
+		state.AddMbgNbr(id, ip, cport)
 	},
 }
 

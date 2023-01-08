@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
-	"os"
 	"os/user"
 	"path"
 	"strconv"
@@ -23,7 +22,7 @@ var log = logrus.WithField("component", s.MyInfo.Id)
 type mbgState struct {
 	MyInfo                MbgInfo
 	ClusterArr            map[string]LocalCluster
-	MbgArr                map[string]*MbgInfo
+	MbgArr                map[string]MbgInfo
 	MyServices            map[string]LocalService
 	RemoteServices        map[string]RemoteService
 	Connections           map[string]ClusterPort
@@ -39,10 +38,9 @@ type MbgInfo struct {
 	DataPortRange   ClusterPort
 	MtlsPort        ClusterPort
 	MaxPorts        int
+	CaFile          string
 	CertificateFile string
 	KeyFile         string
-	CertData        []byte
-	KeyData         []byte
 	Dataplane       string
 }
 
@@ -67,7 +65,7 @@ type ClusterPort struct {
 
 var s = mbgState{MyInfo: MbgInfo{},
 	ClusterArr:            make(map[string]LocalCluster),
-	MbgArr:                make(map[string]*MbgInfo),
+	MbgArr:                make(map[string]MbgInfo),
 	MyServices:            make(map[string]LocalService),
 	RemoteServices:        make(map[string]RemoteService),
 	Connections:           make(map[string]ClusterPort),
@@ -95,7 +93,7 @@ func GetMyInfo() MbgInfo {
 	return s.MyInfo
 }
 
-func GetMbgArr() map[string]*MbgInfo {
+func GetMbgArr() map[string]MbgInfo {
 	return s.MbgArr
 }
 
@@ -109,7 +107,7 @@ func GetLocalClusterArr() map[string]LocalCluster {
 func GetDataplane() string {
 	return s.MyInfo.Dataplane
 }
-func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, certificate, key, dataplane, mtlsPortLocal, mtlsPort string) {
+func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, caFile, certificate, key, dataplane, mtlsPortLocal, mtlsPort string) {
 	s.MyInfo.Id = id
 	s.MyInfo.Ip = ip
 	s.MyInfo.Cport.Local = cportLocal
@@ -119,20 +117,10 @@ func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDat
 	s.MyInfo.MtlsPort.Local = ":" + mtlsPortLocal
 	s.MyInfo.MtlsPort.External = ":" + mtlsPort
 	s.MyInfo.MaxPorts = 1000 // TODO
+	s.MyInfo.CaFile = caFile
 	s.MyInfo.CertificateFile = certificate
 	s.MyInfo.KeyFile = key
 	s.MyInfo.Dataplane = dataplane
-	if dataplane == "mtls" {
-		var err error
-		s.MyInfo.CertData, err = os.ReadFile(certificate)
-		if err != nil {
-			log.Fatal(err)
-		}
-		s.MyInfo.KeyData, err = os.ReadFile(key)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
 	log = logrus.WithField("component", s.MyInfo.Id)
 	SaveState()
 }
@@ -196,37 +184,20 @@ func GetMbgIP(id string) string {
 	return mbgI.Ip
 }
 
-func GetMbgCerts(id string) (string, string) {
-	mbgI := s.MbgArr[id]
-	return mbgI.CertificateFile, mbgI.KeyFile
+func GetMyMbgCerts() (string, string, string) {
+	return s.MyInfo.CaFile, s.MyInfo.CertificateFile, s.MyInfo.KeyFile
 }
 
-func GetMbgCertsFromIp(ip string) (string, string) {
-	for _, mbgI := range s.MbgArr {
-		if mbgI.Ip == ip {
-			return mbgI.CertificateFile, mbgI.KeyFile
-		}
-	}
-	return "", ""
-}
 func IsServiceLocal(id string) bool {
 	_, exist := s.MyServices[id]
 	return exist
 }
 
-func AddMbgNbr(id, ip, cport, certFile, keyFile string) {
-	log.Info("AddMbgNbr ", id, ip, cport, certFile, keyFile)
-	s.MbgArr[id] = &MbgInfo{Id: id, Ip: ip, Cport: ClusterPort{External: cport, Local: ""}, CertificateFile: certFile, KeyFile: keyFile}
+func AddMbgNbr(id, ip, cport string) {
+	log.Info("AddMbgNbr ", id, ip, cport)
+	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ClusterPort{External: cport, Local: ""}}
 	log.Infof("[MBG %v] add MBG neighbors array %v", s.MyInfo.Id, s.MbgArr[id])
 	s.Print()
-	SaveState()
-}
-
-func UpdateMbgCerts(id, certFile, keyFile string) {
-	mbgInfo := s.MbgArr[id]
-	mbgInfo.CertificateFile = certFile
-	mbgInfo.KeyFile = keyFile
-	log.Infof("[MBG %v] Updated %s certs :%s, %s", s.MyInfo.Id, mbgInfo.Id, mbgInfo.CertificateFile, mbgInfo.KeyFile)
 	SaveState()
 }
 
