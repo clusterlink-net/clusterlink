@@ -5,14 +5,8 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"net/http"
-
-	"github.com/go-chi/chi"
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/cluster/state"
-
-	log "github.com/sirupsen/logrus"
-	handler "github.ibm.com/mbg-agent/pkg/protocol/http/cluster"
 )
 
 // startCmd represents the start command
@@ -31,7 +25,6 @@ var startCmd = &cobra.Command{
 		cport, _ := cmd.Flags().GetString("cport")
 
 		state.SetState(ip, id, mbgIP, cportLocal, cport)
-		startServer()
 	},
 }
 
@@ -42,20 +35,4 @@ func init() {
 	startCmd.Flags().String("mbgIP", "", "IP address of the MBG connected to the Cluster")
 	startCmd.Flags().String("cportLocal", "50051", "Multi-cloud Border Gateway control local port inside the MBG")
 	startCmd.Flags().String("cport", "", "Multi-cloud Border Gateway control external port for the MBG neighbors ")
-}
-
-/********************************** Server **********************************************************/
-func startServer() {
-	log.Printf("Cluster [%v] started", state.GetId())
-
-	//Create a new router
-	r := chi.NewRouter()
-	r.Mount("/", handler.ClusterHandler{}.Routes())
-	//Use router to start the server
-	clusterCPort := ":" + state.GetCport().Local
-	err := http.ListenAndServe(clusterCPort, r)
-	if err != nil {
-		log.Println(err)
-	}
-
 }
