@@ -17,8 +17,8 @@ func AddServiceReq(serviceId string) {
 	svcExp := s.Service
 	log.Printf("Service %v", s)
 
-	address := "http://" + mbgIP + "/addservice"
-	j, err := json.Marshal(protocol.AddServiceRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain})
+	address := "http://" + mbgIP + "/service"
+	j, err := json.Marshal(protocol.ServiceRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain})
 	if err != nil {
 		log.Fatal(err)
 	}

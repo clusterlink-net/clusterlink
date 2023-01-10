@@ -21,5 +21,3 @@ func DisconnectReq(svcId, svcIdDest, mbgIP string) {
 	resp := httpAux.HttpDelete(address, j)
 	log.Infof(`Service %s disconnect for message: %s`, svcId, string(resp))
 }
-
-/************************** Http server function *************************************/

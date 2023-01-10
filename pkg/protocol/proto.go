@@ -16,8 +16,8 @@ type PeerResponse struct {
 	Status string
 }
 
-//AddService
-type AddServiceRequest struct {
+//Service
+type ServiceRequest struct {
 	Id     string
 	Ip     string
 	Domain string
