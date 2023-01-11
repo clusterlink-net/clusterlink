@@ -26,7 +26,6 @@ func Expose(e protocol.ExposeRequest) {
 		if err != nil {
 			mlog.Infof("")
 		}
-		ExposeToCluster(e.Id, myServicePort.External)
 		targetMbgIP := state.GetMbgIP(e.MbgID)
 		rootCA, certFile, keyFile := state.GetMyMbgCerts()
 		mtlsPort := (state.GetMyMtlsPort()).External
@@ -48,20 +47,6 @@ func ExposeToMbg(serviceId string) {
 	for _, m := range MbgArr {
 		destIp := m.Ip + ":" + m.Cport.External
 		ExposeReq(svcExp, destIp, "MBG")
-	}
-}
-
-func ExposeToCluster(serviceId, externalPort string) {
-	clusterArr := state.GetLocalClusterArr()
-	myIp := state.GetMyIp()
-	s := state.GetRemoteService(serviceId)
-	svcExp := s.Service
-	svcExp.Ip = myIp + externalPort
-	svcExp.Domain = "Remote"
-
-	for _, g := range clusterArr {
-		destIp := g.Ip
-		ExposeReq(svcExp, destIp, "Gateway")
 	}
 }
 

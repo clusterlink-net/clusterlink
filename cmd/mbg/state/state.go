@@ -107,6 +107,11 @@ func GetLocalClusterArr() map[string]LocalCluster {
 func GetDataplane() string {
 	return s.MyInfo.Dataplane
 }
+
+func GetRemoteServicesArr() map[string]RemoteService {
+	return s.RemoteServices
+}
+
 func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, caFile, certificate, key, dataplane, mtlsPortLocal, mtlsPort string) {
 	s.MyInfo.Id = id
 	s.MyInfo.Ip = ip

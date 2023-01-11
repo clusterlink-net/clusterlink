@@ -63,5 +63,3 @@ func ConnectClient(svcId, svcIdDest, sourceIp, destIp, connName string) {
 	log.Infof("Connection from %v to %v is close\n", svcId, svcIdDest)
 
 }
-
-/************************** Http server function *************************************/

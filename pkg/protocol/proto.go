@@ -5,11 +5,27 @@ Desc: protocol package contain all struct for communicate (Request and Response)
 */
 package protocol
 
-//AddService
-type AddServiceRequest struct {
+//AddPeer
+type PeerRequest struct {
+	Id    string
+	Ip    string
+	Cport string
+}
+
+type PeerResponse struct {
+	Status string
+}
+
+//Service
+type ServiceRequest struct {
 	Id     string
 	Ip     string
 	Domain string
+}
+
+//Hello
+type HelloResponse struct {
+	Status string
 }
 
 //Expose
@@ -18,17 +34,6 @@ type ExposeRequest struct {
 	Ip     string
 	Domain string
 	MbgID  string
-}
-
-//Hello
-type HelloRequest struct {
-	Id    string
-	Ip    string
-	Cport string
-}
-
-type HelloResponse struct {
-	Status string
 }
 
 //Connect

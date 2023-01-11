@@ -15,14 +15,21 @@ func (m MbgHandler) Routes() chi.Router {
 
 	r.Get("/", m.mbgWelcome)
 
-	r.Route("/hello", func(r chi.Router) {
-		//r.Use(PostCtx)
-		r.Get("/", m.helloGet)   //  GET  /hello - Get MBG id
-		r.Post("/", m.helloPost) // Post /hello  - Post MBG Id
+	r.Route("/peer", func(r chi.Router) {
+		r.Get("/{mbgID}", m.peerGet)   //GET /peer/{mbgID}  - Get MBG peer Id
+		r.Post("/{mbgID}", m.peerPost) // Post /peer/{mbgID} - Add MBG peer Id to MBg peers list
 	})
 
-	r.Route("/addservice", func(r chi.Router) {
-		r.Post("/", m.addServicePost) // Post /expose  - Expose mbg service
+	r.Route("/hello", func(r chi.Router) {
+		//r.Use(PostCtx)
+		r.Post("/{mbgID}", m.sendHello) // send Hello to MBG peer
+		r.Post("/", m.sendHello2All)    // send Hello to MBG peer
+	})
+
+	r.Route("/service", func(r chi.Router) {
+		r.Post("/", m.addServicePost)   // Post /service  - Expose mbg service
+		r.Get("/", m.allServicesGet)    // Get  /service  - Expose mbg service
+		r.Get("/{svcId}", m.serviceGet) // Get  /service  - Expose mbg service
 	})
 
 	r.Route("/expose", func(r chi.Router) {
