@@ -2,7 +2,7 @@
 ## This Document lays out the design of policy engine of MBG
 
 
-<img src="policy-arch.png" width="300">
+<img src="policy-arch.png" width="600">
 
 The MBG's control plane and data plane have hookpoints to publish events to another component called event manager. A hookpoint is be a point in code where *a new connection request has arrived* or *a service listing request arrives*. The event manager receives an event-type, and standard attributes which are associated with the event-type. The event manager then publishes the event to Policy Dispatcher which maintains a list of policy agents (ACL, LB, Limiter, Monitor, etc) which have subscribed to a policy with a certain priority in which they need to executed. For example, *a new connection request* event could be subscribed by ACL, LB and Monitor with a priority of 0, 1 and 2 which means ACL will be the first policy agent and Monitor the last. This also means that Policy Dispatcher maintains the states and handles the stitching of multiple policy agents for an event and handles the movement of shared states between the policy agents.
 
