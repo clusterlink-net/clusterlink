@@ -56,7 +56,8 @@ func ExposeReq(svcExp service.Service, destIp, cType string) {
 
 	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain, MbgID: state.GetMyId()})
 	if err != nil {
-		mlog.Fatal(err)
+		mlog.Error(err)
+		return
 	}
 	//Send expose
 	resp := httpAux.HttpPost(address, j)

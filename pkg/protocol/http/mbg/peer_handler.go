@@ -27,7 +27,8 @@ func (m MbgHandler) peerPost(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	j, err := json.Marshal(protocol.PeerResponse{Status: "success"})
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return
 	}
 	_, err = w.Write(j)
 	if err != nil {
@@ -47,7 +48,8 @@ func (m MbgHandler) peerGet(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	jsonResp, err := json.Marshal(p)
 	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+		log.Errorf("Error happened in JSON marshal. Err: %s", err)
+		return
 	}
 	_, err = w.Write(jsonResp)
 	if err != nil {

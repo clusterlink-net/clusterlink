@@ -43,7 +43,8 @@ func (m MbgHandler) allServicesGet(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	jsonResp, err := json.Marshal(sArr)
 	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+		log.Errorf("Error happened in JSON marshal. Err: %s", err)
+		return
 	}
 	log.Info("Send all services ")
 	_, err = w.Write(jsonResp)
@@ -65,7 +66,8 @@ func (m MbgHandler) serviceGet(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	jsonResp, err := json.Marshal(s)
 	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+		log.Errorf("Error happened in JSON marshal. Err: %s", err)
+		return
 	}
 	_, err = w.Write(jsonResp)
 	if err != nil {

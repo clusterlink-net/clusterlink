@@ -145,7 +145,7 @@ func UpdateState() {
 func GetLocalService(id string) LocalService {
 	val, ok := s.MyServices[id]
 	if !ok {
-		log.Fatalf("Service %v is not exist", id)
+		log.Errorf("Service %v is not exist", id)
 	}
 	return val
 }
@@ -153,7 +153,7 @@ func GetLocalService(id string) LocalService {
 func GetRemoteService(id string) RemoteService {
 	val, ok := s.RemoteServices[id]
 	if !ok {
-		log.Fatalf("Service %v is not exist", id)
+		log.Errorf("Service %v is not exist", id)
 	}
 	return val
 
