@@ -27,8 +27,14 @@ func (m MbgHandler) Routes() chi.Router {
 	})
 
 	r.Route("/service", func(r chi.Router) {
-		r.Post("/", m.addServicePost)   // Post /service  - Expose mbg service
-		r.Get("/", m.allServicesGet)    // Get  /service  - Expose mbg service
+		r.Post("/", m.addServicePost)   // Post /service  - Add local service to MBG
+		r.Get("/", m.allServicesGet)    // Get  /service  - Get all Local services in MBG
+		r.Get("/{svcId}", m.serviceGet) // Get  /service  - Get specific local service
+	})
+
+	r.Route("/remoteservice", func(r chi.Router) {
+		r.Post("/", m.addServicePost)   // Post /service  - Add Remote service to the MBG
+		r.Get("/", m.allServicesGet)    // Get  /service  - Add Remote service to the MBG
 		r.Get("/{svcId}", m.serviceGet) // Get  /service  - Expose mbg service
 	})
 

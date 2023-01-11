@@ -12,10 +12,6 @@ type PeerRequest struct {
 	Cport string
 }
 
-type PeerResponse struct {
-	Status string
-}
-
 //Service
 type ServiceRequest struct {
 	Id     string

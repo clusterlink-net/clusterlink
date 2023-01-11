@@ -27,7 +27,7 @@ var addPolicyCmd = &cobra.Command{
 		if err == nil {
 			policyEngine.AddPolicy(name, desc, target, policyType)
 		} else {
-			log.Fatalf("Invalid Policy Type")
+			log.Errorf("Invalid Policy Type")
 		}
 	},
 }
