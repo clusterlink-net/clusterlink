@@ -5,10 +5,9 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.ibm.com/mbg-agent/cmd/cluster/state"
+	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
 )
 
 // applyPolicyCmd represents the applyPolicy command
@@ -17,7 +16,7 @@ var applyPolicyCmd = &cobra.Command{
 	Short: "An applyPolicy command send the MBG the policy for dedicated service",
 	Long:  `An applyPolicy command send the MBG the policy for dedicated service.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("applyPolicy called")
+		log.Println("applyPolicy called")
 		policy, _ := cmd.Flags().GetString("policy")
 		destServiceName, _ := cmd.Flags().GetString("destServiceName")
 		myServiceName, _ := cmd.Flags().GetString("myServiceName")
@@ -34,6 +33,6 @@ func init() {
 
 func sendPolicy(policy, destServiceName, myServiceName string) {
 	mbgIP := state.GetMbgIP()
-	fmt.Println("send policy", policy, "for service", myServiceName, "to MBG", mbgIP)
+	log.Println("send policy", policy, "for service", myServiceName, "to MBG", mbgIP)
 
 }

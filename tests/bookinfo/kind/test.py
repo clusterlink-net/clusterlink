@@ -6,15 +6,15 @@ proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.p
 
 sys.path.insert(0,f'{proj_dir}/tests/')
 print(f"{proj_dir}/tests/")
-from aux.kindAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getKindIp, getMbgPorts,buildMbg,buildCluster
+from aux.kindAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getKindIp, getMbgPorts,buildMbg,buildMbgctl
 
 
 
 def connectSvc(srcSvc,destSvc,policy):
     printHeader(f"\n\nStart Data plan connection {srcSvc} to {destSvc}")
     runcmd(f'kubectl config use-context kind-product-cluster')
-    podhost= getPodName("cluster-mbg")
-    runcmdb(f'kubectl exec -i {podhost} -- ./cluster connect --serviceId {srcSvc}  --serviceIp {srcSvcIp} --serviceIdDest {destSvc}')
+    podhost= getPodName("mbgctl")
+    runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl connect --serviceId {srcSvc}  --serviceIp {srcSvcIp} --serviceIdDest {destSvc}')
 
     runcmd(f'kubectl config use-context kind-mbg-agent1')
     podMbg1= getPodName("mbg")
@@ -62,9 +62,9 @@ if __name__ == "__main__":
     os.chdir(proj_dir)
     if args["command"] == "disconnect":
         runcmd(f'kubectl config use-context kind-product-cluster')
-        podhost= getPodName("cluster-mbg")
+        podhost= getPodName("mbgctl")
         printHeader("\n\nClose Iperf3 connection")
-        runcmd(f'kubectl exec -i {podhost} -- ./cluster disconnect --serviceId {args["src"]} --serviceIdDest {args["dest"]}')
+        runcmd(f'kubectl exec -i {podhost} -- ./mbgctl disconnect --serviceId {args["src"]} --serviceIdDest {args["dest"]}')
     elif args["command"] == "connect":
         connectSvc(args["src"],args["dest"],svcpolicy)
     else:
@@ -101,20 +101,19 @@ if __name__ == "__main__":
         
         runcmd(f"kubectl create -f {folpdct}/product.yaml")
         runcmd(f"kubectl create -f {folpdct}/details.yaml")
-        #runcmd(f"kubectl create service nodeport cluster-mbg --tcp=9080:9080 --node-port=30010")
         runcmd(f"kubectl create -f {folpdct}/review-svc.yaml")
-        podhost, hostIp= buildCluster("product Cluster")
-        runcmdb(f'kubectl exec -i {podhost} -- ./cluster start --id "productCluster"  --ip {hostIp} --cport 30000 --mbgIP {mbg1Ip}:30000')
+        podhost, hostIp= buildMbgctl("product Cluster")
+        runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl start --id "productCluster"  --ip {hostIp} --cport 30000 --mbgIP {mbg1Ip}:30000')
         printHeader(f"Add {srcSvc} (client) service to host cluster")
-        runcmd(f'kubectl exec -i {podhost} -- ./cluster addService --serviceId {srcSvc} --serviceIp {srcDefaultGW}')
+        runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addService --serviceId {srcSvc} --serviceIp {srcDefaultGW}')
         
         # Add MBG Peer
         printHeader("Add MBG2 peer to MBG1")
-        runcmd(f'kubectl exec -i {podhost} -- ./cluster addPeer --id "MBG2" --ip {mbg2Ip} --cport "30000"')
+        runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addPeer --id "MBG2" --ip {mbg2Ip} --cport "30000"')
     
         # Send Hello
         printHeader("Send Hello commands")
-        runcmd(f'kubectl exec -i {podhost} -- ./cluster hello')
+        runcmd(f'kubectl exec -i {podhost} -- ./mbgctl hello')
         
         ###Run dest
         printHeader("\n\nStart building review-cluster")
@@ -129,29 +128,34 @@ if __name__ == "__main__":
         runcmd(f"kubectl create -f {folReview}/review-v2.yaml")
         runcmd(f"kubectl create service nodeport reviews-v2 --tcp=9080:9080 --node-port={review2DestPort}")
         runcmd(f"kubectl create -f {folReview}/rating.yaml")
-        podest, destIp= buildCluster("dest Cluster")   
-        runcmdb(f'kubectl exec -i {podest} -- ./cluster start --id "reviewCluster"  --ip {destIp} --cport 30000 --mbgIP {mbg2Ip}:30000')
+        podest, destIp= buildMbgctl("dest Cluster")   
+        runcmdb(f'kubectl exec -i {podest} -- ./mbgctl start --id "reviewCluster"  --ip {destIp} --cport 30000 --mbgIP {mbg2Ip}:30000')
         printHeader(f"Add {review2svc} (server) service to destination cluster")
-        runcmd(f'kubectl exec -i {podest} -- ./cluster addService --serviceId {review2svc} --serviceIp {destIp}:{review2DestPort}')
-        runcmd(f'kubectl exec -i {podest} -- ./cluster addService --serviceId {review3svc} --serviceIp {destIp}:{review3DestPort}')
+        runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --serviceId {review2svc} --serviceIp {destIp}:{review2DestPort}')
+        runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --serviceId {review3svc} --serviceIp {destIp}:{review3DestPort}')
 
         
         
         #Add host cluster to MBG1
         runcmd(f'kubectl config use-context kind-mbg-agent1')
         printHeader("Add host cluster to MBG1")
-        runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addCluster --id "productCluster" --ip {hostIp}:30000')
+        runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addMbgctl --id "productCluster" --ip {hostIp}:30000')
 
         #Add dest cluster to MBG2
         runcmd(f'kubectl config use-context kind-mbg-agent2')
         printHeader("Add dest cluster to MBG2")
-        runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addCluster --id "reviewCluster" --ip {destIp}:30000')
+        runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addMbgctl --id "reviewCluster" --ip {destIp}:30000')
         
         #Expose service
         runcmd(f'kubectl config use-context kind-review-cluster')
         printHeader("\n\nStart exposing connection")
-        runcmd(f'kubectl exec -i {podest} -- ./cluster expose --serviceId {review2svc}')
-        runcmd(f'kubectl exec -i {podest} -- ./cluster expose --serviceId {review3svc}')
+        runcmd(f'kubectl exec -i {podest} -- ./mbgctl expose --serviceId {review2svc}')
+        runcmd(f'kubectl exec -i {podest} -- ./mbgctl expose --serviceId {review3svc}')
 
-        #connect cluster
+        #Get services
+        runcmd(f'kubectl config use-context kind-product-cluster')
+        printHeader("\n\nStart get service")
+        runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl getService')
+    
+        #connect
         connectSvc(srcSvc,review2svc,svcpolicy)

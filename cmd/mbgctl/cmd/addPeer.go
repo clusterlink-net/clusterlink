@@ -5,9 +5,13 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"encoding/json"
+
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.ibm.com/mbg-agent/cmd/cluster/state"
-	handler "github.ibm.com/mbg-agent/pkg/protocol/http/cluster"
+	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
+	"github.ibm.com/mbg-agent/pkg/protocol"
+	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 )
 
 // updateCmd represents the update command
@@ -20,7 +24,7 @@ var addPeerCmd = &cobra.Command{
 		id, _ := cmd.Flags().GetString("id")
 		cport, _ := cmd.Flags().GetString("cport")
 		state.UpdateState()
-		handler.AddPeerReq(id, ip, cport)
+		addPeerReq(id, ip, cport)
 
 	},
 }
@@ -31,4 +35,16 @@ func init() {
 	addPeerCmd.Flags().String("id", "", "MBG peer id")
 	addPeerCmd.Flags().String("ip", "", "MBG peer ip")
 	addPeerCmd.Flags().String("cport", "", "MBG peer control port")
+}
+
+func addPeerReq(peerId, peerIp, peerCport string) {
+	mbgIP := state.GetMbgIP()
+	address := "http://" + mbgIP + "/peer/" + peerId
+	j, err := json.Marshal(protocol.PeerRequest{Id: peerId, Ip: peerIp, Cport: peerCport})
+	if err != nil {
+		log.Fatal(err)
+	}
+	//send expose
+	resp := httpAux.HttpPost(address, j)
+	log.Infof(`Response message for adding MBG peer %s command : %s`, peerId, string(resp))
 }

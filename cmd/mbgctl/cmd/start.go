@@ -6,16 +6,16 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.ibm.com/mbg-agent/cmd/cluster/state"
+	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
 )
 
 // startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start",
-	Short: "A start command set all parameter state of the cluster",
-	Long: `A start command set all parameter state of the cluster-
-			1) The MBG that the cluster is connected
-			2) The IP of the cluster
+	Short: "A start command set all parameter state of mbgctl (mbg control)",
+	Long: `A start command set all parameter state of mbgctl (mbg control)-
+			1) The MBG that the mbgctl is connected
+			2) The IP of the mbgctl
 			TBD now is done manually need to call some external `,
 	Run: func(cmd *cobra.Command, args []string) {
 		ip, _ := cmd.Flags().GetString("ip")
@@ -30,9 +30,9 @@ var startCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(startCmd)
-	startCmd.Flags().String("id", "", "Cluster Id")
-	startCmd.Flags().String("ip", "", "Cluster IP")
-	startCmd.Flags().String("mbgIP", "", "IP address of the MBG connected to the Cluster")
+	startCmd.Flags().String("id", "", "mbgctl Id")
+	startCmd.Flags().String("ip", "", "mbgctl IP")
+	startCmd.Flags().String("mbgIP", "", "IP address of the MBG (that the mbgctl is connected)")
 	startCmd.Flags().String("cportLocal", "50051", "Multi-cloud Border Gateway control local port inside the MBG")
 	startCmd.Flags().String("cport", "", "Multi-cloud Border Gateway control external port for the MBG neighbors ")
 }

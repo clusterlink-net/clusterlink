@@ -24,8 +24,8 @@ func Connect(c protocol.ConnectRequest, targetMbgIP string, conn net.Conn) (stri
 	if state.IsServiceLocal(c.IdDest) {
 		return ConnectLocalService(c, targetMbgIP, conn)
 	} else { //For Remote service
-		// This condition is applicable only for explicit connection request from a cluster.
-		// Moving on, this condition would be deprecated since we would start a Cluster Service for every remote service
+		// This condition is applicable only for explicit connection request from a mbgctl.
+		// Moving on, this condition would be deprecated since we would start a mbgctl Service for every remote service
 		// to initiate connect requests.
 		return ConnectRemoteService(c)
 	}
@@ -65,7 +65,7 @@ func ConnectRemoteService(c protocol.ConnectRequest) (string, string, string) {
 	//Send connection request to other MBG
 	connectType, connectDest, err := ConnectPostReq(c.Id, c.IdDest, c.Policy, mbgIP)
 	if err != nil && err.Error() != "connection already setup" {
-		clog.Infof("[MBG %v] Send connect failure to Cluster =%v ", state.GetMyId(), err.Error())
+		clog.Infof("[MBG %v] Send connect failure to mbgctl =%v ", state.GetMyId(), err.Error())
 		return "Failure", "tcp", connectDest
 	}
 	clog.Infof("[MBG %v] Using %v:%v to connect IP-%v", state.GetMyId(), connectType, connectDest, destSvc.Service.Ip)
@@ -173,12 +173,12 @@ func ConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (net.Conn, error) {
 	}
 }
 
-// Start a Cluster Service which is a proxy for remote service
+// Start a Local Service which is a proxy for remote service
 // It receives connections from local service and performs Connect API
 // and sets up an mTLS forwarding to the remote service upon accepted (policy checks, etc)
-func StartClusterService(serviceId, clusterServicePort, targetMbgIPPort, rootCA, certificate, key string) error {
-	clog.Infof("Start to listen to %v ", clusterServicePort)
-	acceptor, err := net.Listen("tcp", clusterServicePort)
+func StartLocalService(serviceId, localServicePort, targetMbgIPPort, rootCA, certificate, key string) error {
+	clog.Infof("Start to listen to %v ", localServicePort)
+	acceptor, err := net.Listen("tcp", localServicePort)
 	if err != nil {
 		return err
 	}
@@ -211,14 +211,14 @@ func StartClusterService(serviceId, clusterServicePort, targetMbgIPPort, rootCA,
 			connDest, err := ConnectReq(localSvc.Service.Id, serviceId, "forward", mbgIP)
 
 			if err != nil && err.Error() != "Connection already setup!" {
-				clog.Infof("[MBG %v] Send connect failure to Cluster = %v ", state.GetMyId(), err.Error())
+				clog.Infof("[MBG %v] Send connect failure to mbgctl = %v ", state.GetMyId(), err.Error())
 				ac.Close()
 				continue
 			}
 			connectDest := "Use open connect socket" //not needed ehr we use connect - destSvc.Service.Ip + ":" + connectDest
 			clog.Infof("[MBG %v] Using %s for  %s/%s to connect to Service-%v", state.GetMyId(), dataplane, targetMbgIPPort, connectDest, destSvc.Service.Id)
 			connectionID := localSvc.Service.Id + ":" + destSvc.Service.Id
-			go ConnectService(clusterServicePort, connectDest, "forward", connectionID, ac, connDest)
+			go ConnectService(localServicePort, connectDest, "forward", connectionID, ac, connDest)
 
 		case MTLS_TYPE:
 			var mtlsForward MbgMtlsForwarder
@@ -227,7 +227,7 @@ func StartClusterService(serviceId, clusterServicePort, targetMbgIPPort, rootCA,
 			connectType, connectDest, err := ConnectPostReq(localSvc.Service.Id, serviceId, "forward", mbgIP)
 
 			if err != nil && err.Error() != "Connection already setup!" {
-				clog.Infof("[MBG %v] Key Send connect failure to Cluster = %v ", state.GetMyId(), err.Error())
+				clog.Infof("[MBG %v] Key Send connect failure to mbgctl = %v ", state.GetMyId(), err.Error())
 				ac.Close()
 				continue
 			}
@@ -240,9 +240,9 @@ func StartClusterService(serviceId, clusterServicePort, targetMbgIPPort, rootCA,
 	}
 }
 
-// Receiver service is run at the cluster of the server service which receives connection from a remote service
-func StartReceiverService(clusterServicePort, targetMbgIPPort, remoteEndPoint string) error {
-	conn, err := net.Dial("tcp", clusterServicePort)
+// Receiver service is run at the mbg which receives connection from a remote service
+func StartReceiverService(localServicePort, targetMbgIPPort, remoteEndPoint string) error {
+	conn, err := net.Dial("tcp", localServicePort)
 	if err != nil {
 		return err
 	}

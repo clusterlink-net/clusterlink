@@ -31,5 +31,5 @@ func init() {
 	rootCmd.AddCommand(addServiceCmd)
 	addServiceCmd.Flags().String("id", "", "Service id")
 	addServiceCmd.Flags().String("ip", "", "Service ip")
-	addServiceCmd.Flags().String("domain", "internal", "Local cluster domain")
+	addServiceCmd.Flags().String("domain", "internal", "Local domain")
 }

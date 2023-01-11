@@ -66,10 +66,10 @@ def buildMbg(name,cfg):
     mbgIp=getKindIp(name)
     return podMbg, mbgIp
 
-def buildCluster(name):
-    runcmd(f"kubectl create -f {folMfst}/cluster/cluster.yaml")
-    runcmd(f"kubectl create -f {folMfst}/cluster/cluster-svc.yaml")
-    waitPod("cluster-mbg")
-    name= getPodName("cluster-mbg")
+def buildMbgctl(name):
+    runcmd(f"kubectl create -f {folMfst}/mbgctl/mbgctl.yaml")
+    runcmd(f"kubectl create -f {folMfst}/mbgctl/mbgctl-svc.yaml")
+    waitPod("mbgctl")
+    name= getPodName("mbgctl")
     ip=getKindIp(name)
     return name, ip 

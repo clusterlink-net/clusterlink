@@ -7,7 +7,7 @@ proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.p
 
 sys.path.insert(0,f'{proj_dir}/tests/')
 print(f"{proj_dir}/tests/")
-from aux.kindAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getKindIp, getMbgPorts,buildMbg,buildCluster
+from aux.kindAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getKindIp, getMbgPorts,buildMbg,buildMbgctl
 
 def iperf3Test(cmd):
     print(cmd)
@@ -83,50 +83,50 @@ if __name__ == "__main__":
     runcmd(f"kind load docker-image mbg --name=host-cluster")
     runcmd(f"kubectl create -f {folCl}/iperf3-client.yaml")
     runcmd(f"kubectl create -f {folCl}/iperf3-svc.yaml")
-    podhost, hostIp= buildCluster("host Cluster")
-    runcmdb(f'kubectl exec -i {podhost} -- ./cluster start --id "hostCluster"  --ip {hostIp} --cport 30000 --mbgIP {mbg1Ip}:30000')
+    podhost, hostIp= buildMbgctl("host Cluster")
+    runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl start --id "hostCluster"  --ip {hostIp} --cport 30000 --mbgIP {mbg1Ip}:30000')
     printHeader(f"Add {srcSvc} (client) service to host cluster")
-    runcmd(f'kubectl exec -i {podhost} -- ./cluster addService --serviceId {srcSvc} --serviceIp {srcDefaultGW}')
+    runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addService --serviceId {srcSvc} --serviceIp {srcDefaultGW}')
 
     # Add MBG Peer
     printHeader("Add MBG2 peer to MBG1")
-    runcmd(f'kubectl exec -i {podhost} -- ./cluster addPeer --id "MBG2" --ip {mbg2Ip} --cport "30000"')
+    runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addPeer --id "MBG2" --ip {mbg2Ip} --cport "30000"')
     
     # Send Hello
     printHeader("Send Hello commands")
-    runcmd(f'kubectl exec -i {podhost} -- ./cluster hello')
+    runcmd(f'kubectl exec -i {podhost} -- ./mbgctl hello')
     
     ###Run dest
-    printHeader("\n\nStart building dest-clusterination")
+    printHeader("\n\nStart building dest-cluster")
     folSv=f"{proj_dir}/tests/iperf3/manifests/iperf3-server"
     runcmd(f"kind create cluster --config {folSv}/kind-config.yaml --name=dest-cluster")
     runcmd(f"kind load docker-image mbg --name=dest-cluster")
     runcmd(f"kubectl create -f {folSv}/iperf3.yaml")
-    podest, destIp= buildCluster("dest Cluster")   
+    podest, destIp= buildMbgctl("dest Cluster")   
     runcmd(f"kubectl create service nodeport iperf3-server --tcp=5000:5000 --node-port={iperf3DestPort}")
-    runcmdb(f'kubectl exec -i {podest} -- ./cluster start --id "destCluster"  --ip {destIp} --cport 30000 --mbgIP {mbg2Ip}:30000')
+    runcmdb(f'kubectl exec -i {podest} -- ./mbgctl start --id "destCluster"  --ip {destIp} --cport 30000 --mbgIP {mbg2Ip}:30000')
     printHeader(f"Add {destSvc} (server) service to destination cluster")
-    runcmd(f'kubectl exec -i {podest} -- ./cluster addService --serviceId {destSvc} --serviceIp {destIp}:{iperf3DestPort}')
+    runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --serviceId {destSvc} --serviceIp {destIp}:{iperf3DestPort}')
     
     #Add host cluster to MBG1
     runcmd(f'kubectl config use-context kind-mbg-agent1')
     printHeader("Add host cluster to MBG1")
-    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addCluster --id "hostCluster" --ip {hostIp}:30000')
+    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addMbgctl --id "hostCluster" --ip {hostIp}:30000')
 
     #Add dest cluster to MBG2
     runcmd(f'kubectl config use-context kind-mbg-agent2')
     printHeader("Add dest cluster to MBG2")
-    runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addCluster --id "destCluster" --ip {destIp}:30000')
+    runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addMbgctl --id "destCluster" --ip {destIp}:30000')
 
     #Expose destination service
     runcmd(f'kubectl config use-context kind-dest-cluster')
     printHeader("\n\nStart exposing connection")
-    runcmdb(f'kubectl exec -i {podest} -- ./cluster expose --serviceId {destSvc}')
+    runcmdb(f'kubectl exec -i {podest} -- ./mbgctl expose --serviceId {destSvc}')
 
     #Get services
     runcmd(f'kubectl config use-context kind-host-cluster')
     printHeader("\n\nStart get service")
-    runcmdb(f'kubectl exec -i {podhost} -- ./cluster getService')
+    runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl getService')
     # Create Nodeports inside mbg1
     runcmd(f'kubectl config use-context kind-mbg-agent1')
     mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, srcSvc,destSvc)
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     # Create connect from cluster to MBG
     printHeader(f"\n\nStart Data plan connection {srcSvc} to {destSvc}")
     runcmd(f'kubectl config use-context kind-host-cluster')
-    runcmdb(f'kubectl exec -i {podhost} -- ./cluster connect --serviceId {srcSvc} --serviceIp {srcIp} --serviceIdDest {destSvc}')
+    runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl connect --serviceId {srcSvc} --serviceIp {srcIp} --serviceIdDest {destSvc}')
 
     #Testing
     printHeader("\n\nStart Iperf3 testing")
@@ -155,9 +155,9 @@ if __name__ == "__main__":
     iperf3Test(cmd)
 
     printHeader("Full Iperf3 test clinet-> MBG1-> MBG2-> dest")
-    cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c cluster-iperf3-service -p 5000'
+    cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c mbgctl-iperf3-service -p 5000'
     iperf3Test(cmd)
 
     #Close connection
     printHeader("\n\nClose Iperf3 connection")
-    runcmd(f'kubectl exec -i {podhost} -- ./cluster disconnect --serviceId {srcSvc} --serviceIdDest {destSvc}')
+    runcmd(f'kubectl exec -i {podhost} -- ./mbgctl disconnect --serviceId {srcSvc} --serviceIdDest {destSvc}')

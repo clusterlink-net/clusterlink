@@ -21,11 +21,11 @@ var log = logrus.WithField("component", s.MyInfo.Id)
 
 type mbgState struct {
 	MyInfo                MbgInfo
-	ClusterArr            map[string]LocalCluster
+	MbgctlArr             map[string]Mbgctl
 	MbgArr                map[string]MbgInfo
 	MyServices            map[string]LocalService
 	RemoteServices        map[string]RemoteService
-	Connections           map[string]ClusterPort
+	Connections           map[string]ServicePort
 	LocalServiceEndpoints map[string]string
 	LocalPortMap          map[int]bool
 	ExternalPortMap       map[int]bool
@@ -34,9 +34,9 @@ type mbgState struct {
 type MbgInfo struct {
 	Id              string
 	Ip              string
-	Cport           ClusterPort
-	DataPortRange   ClusterPort
-	MtlsPort        ClusterPort
+	Cport           ServicePort
+	DataPortRange   ServicePort
+	MtlsPort        ServicePort
 	MaxPorts        int
 	CaFile          string
 	CertificateFile string
@@ -44,7 +44,7 @@ type MbgInfo struct {
 	Dataplane       string
 }
 
-type LocalCluster struct {
+type Mbgctl struct {
 	Id string
 	Ip string
 }
@@ -58,17 +58,17 @@ type LocalService struct {
 	Service service.Service
 }
 
-type ClusterPort struct {
+type ServicePort struct {
 	Local    string
 	External string
 }
 
 var s = mbgState{MyInfo: MbgInfo{},
-	ClusterArr:            make(map[string]LocalCluster),
+	MbgctlArr:             make(map[string]Mbgctl),
 	MbgArr:                make(map[string]MbgInfo),
 	MyServices:            make(map[string]LocalService),
 	RemoteServices:        make(map[string]RemoteService),
-	Connections:           make(map[string]ClusterPort),
+	Connections:           make(map[string]ServicePort),
 	LocalServiceEndpoints: make(map[string]string),
 	LocalPortMap:          make(map[int]bool),
 	ExternalPortMap:       make(map[int]bool)}
@@ -81,11 +81,11 @@ func GetMyId() string {
 	return s.MyInfo.Id
 }
 
-func GetMyCport() ClusterPort {
+func GetMyCport() ServicePort {
 	return s.MyInfo.Cport
 }
 
-func GetMyMtlsPort() ClusterPort {
+func GetMyMtlsPort() ServicePort {
 	return s.MyInfo.MtlsPort
 }
 
@@ -97,11 +97,11 @@ func GetMbgArr() map[string]MbgInfo {
 	return s.MbgArr
 }
 
-func GetConnectionArr() map[string]ClusterPort {
+func GetConnectionArr() map[string]ServicePort {
 	return s.Connections
 }
-func GetLocalClusterArr() map[string]LocalCluster {
-	return s.ClusterArr
+func GetMbgctlArr() map[string]Mbgctl {
+	return s.MbgctlArr
 }
 
 func GetDataplane() string {
@@ -130,9 +130,9 @@ func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDat
 	SaveState()
 }
 
-func SetLocalCluster(id, ip string) {
+func SetMbgctl(id, ip string) {
 	log.Info(s)
-	s.ClusterArr[id] = LocalCluster{Id: id, Ip: ip}
+	s.MbgctlArr[id] = Mbgctl{Id: id, Ip: ip}
 	SaveState()
 }
 
@@ -200,20 +200,20 @@ func IsServiceLocal(id string) bool {
 
 func AddMbgNbr(id, ip, cport string) {
 	log.Info("AddMbgNbr ", id, ip, cport)
-	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ClusterPort{External: cport, Local: ""}}
+	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ServicePort{External: cport, Local: ""}}
 	log.Infof("[MBG %v] add MBG neighbors array %v", s.MyInfo.Id, s.MbgArr[id])
 	s.Print()
 	SaveState()
 }
 
 // Gets an available free port to use per connection
-func GetFreePorts(connectionID string) (ClusterPort, error) {
+func GetFreePorts(connectionID string) (ServicePort, error) {
 	if port, ok := s.Connections[connectionID]; ok {
 		return port, fmt.Errorf("connection already setup")
 	}
 	rand.NewSource(time.Now().UnixNano())
 	if len(s.Connections) == s.MyInfo.MaxPorts {
-		return ClusterPort{}, fmt.Errorf("all Ports taken up, Try again after sometimes")
+		return ServicePort{}, fmt.Errorf("all Ports taken up, Try again after sometimes")
 	}
 	lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
 	eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
@@ -222,7 +222,7 @@ func GetFreePorts(connectionID string) (ClusterPort, error) {
 		select {
 		// Got a timeout! fail with a timeout error
 		case <-timeout:
-			return ClusterPort{}, fmt.Errorf("all Ports taken up, Try again after sometimes")
+			return ServicePort{}, fmt.Errorf("all Ports taken up, Try again after sometimes")
 		default:
 			random := rand.Intn(s.MyInfo.MaxPorts)
 			localPort := lval + random
@@ -233,7 +233,7 @@ func GetFreePorts(connectionID string) (ClusterPort, error) {
 					log.Infof("[MBG %v] Free External Port available at %v", s.MyInfo.Id, externalPort)
 					s.LocalPortMap[localPort] = true
 					s.ExternalPortMap[externalPort] = true
-					myPort := ClusterPort{Local: ":" + strconv.Itoa(localPort), External: ":" + strconv.Itoa(externalPort)}
+					myPort := ServicePort{Local: ":" + strconv.Itoa(localPort), External: ":" + strconv.Itoa(externalPort)}
 					s.Connections[connectionID] = myPort
 					SaveState()
 					return myPort, nil
@@ -243,7 +243,7 @@ func GetFreePorts(connectionID string) (ClusterPort, error) {
 	}
 }
 
-// Gets an available free port to be used within the cluster for a remote service endpoint
+// Gets an available free port to be used within the MBG for a remote service endpoint
 func GetFreeLocalPort(serviceName string) (string, error) {
 	if port, ok := s.LocalServiceEndpoints[serviceName]; ok {
 		return port, fmt.Errorf("connection already setup")

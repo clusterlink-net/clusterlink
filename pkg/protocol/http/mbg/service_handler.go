@@ -45,10 +45,12 @@ func (m MbgHandler) allServicesGet(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
+	log.Info("Send all services ")
 	_, err = w.Write(jsonResp)
 	if err != nil {
 		log.Println(err)
 	}
+
 }
 
 func (m MbgHandler) serviceGet(w http.ResponseWriter, r *http.Request) {

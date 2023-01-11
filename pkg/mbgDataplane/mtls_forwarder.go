@@ -6,10 +6,10 @@
 // openssl req -newkey rsa:2048   -new -nodes -x509   -days 3650   -out ~/mtls/tcnode6_cert.pem   -keyout ~/mtls/tcnode6_key.pem   -subj "/C=US/ST=California/L=mbg/O=ibm/OU=dev/CN=tcnode6" -addext "subjectAltName = IP:10.20.20.1"
 
 // Workflow of mTLS forwarder usage
-// After Expose of a service at Cluster 1 run the following APIs :
-//    1) StartClusterService for the exported service at other remote Clusters (for e.g. Cluster 2)
-//    2) When ClusterService receives an accepted connection from Cluster 2, Do an Connect API to Cluster 1
-//    3) Cluster1 starts a StartReceiverService with the necessary details such as endpoint, and sends it as Connect Response
+// After Expose of a service at MBG 1 run the following APIs :
+//    1) StartLocalService for the exported service at other remote application (for e.g. App 2)
+//    2) When LocalService receives an accepted connection from APP 2, Do an Connect API to APP 1
+//    3) MBG1 starts a StartReceiverService with the necessary details such as endpoint, and sends it as Connect Response
 
 package mbgDataplane
 

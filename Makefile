@@ -39,7 +39,7 @@ vet-go: ; $(info $(M) vetting code...)
 
 build:
 	@echo "Start go build phase"
-	go build -o ./bin/cluster ./cmd/cluster/main.go
+	go build -o ./bin/mbgctl ./cmd/mbgctl/main.go
 	go build -o ./bin/mbg ./cmd/mbg/main.go
 
 docker-build-mbg:
@@ -56,8 +56,8 @@ proto-build:
 #------------------------------------------------------
 # Run Targets
 #------------------------------------------------------
-run-cluster:
-	@./bin/cluster
+run-mbgctl:
+	@./bin/mbgctl
 
 run-mbg:
 	@./bin/mbg

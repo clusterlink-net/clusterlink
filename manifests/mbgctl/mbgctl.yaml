@@ -1,32 +1,29 @@
 ################################################################
-#Name: cluster-mbg-deployment 
-#Desc: YAML file for creating Go cluster to connect the service 
-#      to mbg functions.
+#Name: mbgctl-deployment 
+#Desc: YAML file for creating mbgctl for CLI to MBG 
 ################################################################
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cluster-mbg-deployment
+  name: mbgctl-deployment
   labels:
-    app: cluster-mbg
+    app: mbgctl
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: cluster-mbg
+      app: mbgctl
   template:
     metadata:
       labels:
-        app: cluster-mbg
+        app: mbgctl
     spec:
       containers:
-      - name: cluster-mbg
+      - name: mbgctl
         #image: gcr.io/multi-cloud-networks-4438/mbg:latest
         image: mbg
         imagePullPolicy: IfNotPresent
-        #command: ["/cluster"]
         command: [ "sleep" ]
         args: [ "infinity" ]  
         ports:
-        #- containerPort: 6000
         - containerPort: 50051

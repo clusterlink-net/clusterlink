@@ -13,7 +13,7 @@ COPY . ./
 
 # Build Go model
 RUN CGO_ENABLED=0 go build -o ./bin/mbg ./cmd/mbg/main.go
-RUN CGO_ENABLED=0 go build -o ./bin/cluster ./cmd/cluster/main.go
+RUN CGO_ENABLED=0 go build -o ./bin/mbgctl ./cmd/mbgctl/main.go
 
 # Create dockerfile with multi-stagets :stage 1: low resources
 
@@ -21,5 +21,5 @@ FROM alpine:3.14
 
 WORKDIR /
 COPY --from=0  /mbg/bin/mbg /mbg
-COPY --from=0  /mbg/bin/cluster /cluster
+COPY --from=0  /mbg/bin/mbgctl /mbgctl
 COPY ./tests/aux/mtls /mtls

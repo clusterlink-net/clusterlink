@@ -20,7 +20,7 @@ func Expose(e protocol.ExposeRequest) {
 	if e.Domain == "Internal" {
 		state.AddLocalService(e.Id, e.Ip, e.Domain)
 		ExposeToMbg(e.Id)
-	} else { //Got the service from MBG so expose to local Cluster
+	} else {
 		state.AddRemoteService(e.Id, e.Ip, e.Domain, e.MbgID)
 		myServicePort, err := state.GetFreePorts(e.Id)
 		if err != nil {
@@ -30,8 +30,8 @@ func Expose(e protocol.ExposeRequest) {
 		rootCA, certFile, keyFile := state.GetMyMbgCerts()
 		mtlsPort := (state.GetMyMtlsPort()).External
 		mbgTarget := targetMbgIP + mtlsPort
-		mlog.Infof("Starting a Cluster Service for remote service %s at %s->%s with certs(%s,%s,%s)", e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
-		go md.StartClusterService(e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
+		mlog.Infof("Starting a local Service for remote service %s at %s->%s with certs(%s,%s,%s)", e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
+		go md.StartLocalService(e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
 	}
 
 }

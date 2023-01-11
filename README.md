@@ -5,8 +5,8 @@ This project contains two main components:
 1) MBG - THe Multi-cloud border gateway that allows secure connections between different services in different network domains.
    The MBG has different APIs like hello, expose and connect, enabling service connectivity.  
    The MBG can also apply some network functions (TCP-split, compression, etc.)
-2) Cluster - is K8s cluster implementation that uses MBG APIs to connect the service inside the network domain to the MBG.
-   The cluster uses commands like expose, connect and disconnect to create connectivity to service in different network domains using the MBG. 
+2) mbgctl - is CLI implementation that uses MBG APIs to send control messages to thr MBG.
+   The mbgctl uses commands like expose, connect and disconnect to create connectivity to service in different network domains using the MBG. 
 
 ![alt text](./tests/figures/mbg-proto.png)
 

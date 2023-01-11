@@ -7,11 +7,11 @@
 ./bin/mbg start --id mbg2 --ip 10.20.20.2 --cport 50051 --cportLocal 50051 --localDataPortRange 10000 --externalDataPortRange 10000 --rootCa /home/pravein/certs/ca.crt --certificate /home/pravein/certs/tcnode7-cert.pem --key /home/pravein/certs/tcnode7-key.pem --dataplane mtls
 ./bin/mbg addMbg --id mbg1 --ip 10.20.20.1 --cport 50051
 ./bin/mbg hello
-./bin/cluster addService --serviceId test-s --serviceIp 127.0.0.1:8000
+./bin/mbgctl addService --serviceId test-s --serviceIp 127.0.0.1:8000
 
 ## Cluster 1 (tcnode6)
-./bin/cluster addService --serviceId test-d --serviceIp 127.0.0.1:8000
-./bin/cluster expose --serviceId test-d
+./bin/mbgctl addService --serviceId test-d --serviceIp 127.0.0.1:8000
+./bin/mbgctl expose --serviceId test-d
 
 ## Cluster 1 (tcnode6)
 go run testservice.go --type server --port 8000

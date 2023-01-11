@@ -44,7 +44,3 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9080
-        # env:
-        # - name: REVIEWS_HOSTNAME
-        #   value: "cluster-mbg" #172.17.232.60
----
