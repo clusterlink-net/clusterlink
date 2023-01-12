@@ -18,14 +18,13 @@ import (
 // updateCmd represents the update command
 var addServiceCmd = &cobra.Command{
 	Use:   "addService",
-	Short: "Add service to the MBG",
-	Long:  `Add service to the MBG and save it also in the state of the mbgctl`,
+	Short: "Add local service to the MBG",
+	Long:  `Add local service to the MBG and save it also in the state of the mbgctl`,
 	Run: func(cmd *cobra.Command, args []string) {
 		serviceId, _ := cmd.Flags().GetString("serviceId")
 		serviceIp, _ := cmd.Flags().GetString("serviceIp")
-		serviceDomain, _ := cmd.Flags().GetString("serviceDomain")
 		state.UpdateState()
-		state.AddService(serviceId, serviceIp, serviceDomain)
+		state.AddService(serviceId, serviceIp)
 		addServiceReq(serviceId)
 
 	},
@@ -35,7 +34,6 @@ func init() {
 	rootCmd.AddCommand(addServiceCmd)
 	addServiceCmd.Flags().String("serviceId", "", "service id field")
 	addServiceCmd.Flags().String("serviceIp", "", "service ip to connect")
-	addServiceCmd.Flags().String("serviceDomain", "Internal", "service domain : Internal/Remote")
 }
 
 func addServiceReq(serviceId string) {
@@ -46,7 +44,7 @@ func addServiceReq(serviceId string) {
 	log.Printf("Service %v", s)
 
 	address := "http://" + mbgIP + "/service"
-	j, err := json.Marshal(protocol.ServiceRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain})
+	j, err := json.Marshal(protocol.ServiceRequest{Id: svcExp.Id, Ip: svcExp.Ip})
 	if err != nil {
 		log.Fatal(err)
 	}

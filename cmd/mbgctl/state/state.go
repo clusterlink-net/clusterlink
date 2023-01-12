@@ -82,12 +82,12 @@ func GetService(id string) MbgctlService {
 	return val
 }
 
-func AddService(id, ip, domain string) {
+func AddService(id, ip string) {
 	if s.Services == nil {
 		s.Services = make(map[string]MbgctlService)
 	}
 
-	s.Services[id] = MbgctlService{Service: service.Service{id, ip, domain}}
+	s.Services[id] = MbgctlService{Service: service.Service{id, ip}}
 	SaveState()
 	log.Infof("[%v] Add service: %v", s.Id, s.Services[id])
 	s.Print()
