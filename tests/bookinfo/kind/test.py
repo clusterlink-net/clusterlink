@@ -103,7 +103,7 @@ if __name__ == "__main__":
         runcmd(f"kubectl create -f {folpdct}/details.yaml")
         runcmd(f"kubectl create -f {folpdct}/review-svc.yaml")
         podhost, hostIp= buildMbgctl("product Cluster")
-        runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl start --id "productCluster"  --ip {hostIp} --cport 30000 --mbgIP {mbg1Ip}:30000')
+        runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl start --id "productCluster"  --ip {hostIp} --mbgIP {mbg1Ip}:30000')
         printHeader(f"Add {srcSvc} (client) service to host cluster")
         runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addService --serviceId {srcSvc} --serviceIp {srcDefaultGW}')
         
@@ -129,7 +129,7 @@ if __name__ == "__main__":
         runcmd(f"kubectl create service nodeport reviews-v2 --tcp=9080:9080 --node-port={review2DestPort}")
         runcmd(f"kubectl create -f {folReview}/rating.yaml")
         podest, destIp= buildMbgctl("dest Cluster")   
-        runcmdb(f'kubectl exec -i {podest} -- ./mbgctl start --id "reviewCluster"  --ip {destIp} --cport 30000 --mbgIP {mbg2Ip}:30000')
+        runcmdb(f'kubectl exec -i {podest} -- ./mbgctl start --id "reviewCluster"  --ip {destIp} --mbgIP {mbg2Ip}:30000')
         printHeader(f"Add {review2svc} (server) service to destination cluster")
         runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --serviceId {review2svc} --serviceIp {destIp}:{review2DestPort}')
         runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --serviceId {review3svc} --serviceIp {destIp}:{review3DestPort}')
