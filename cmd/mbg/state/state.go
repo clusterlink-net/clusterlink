@@ -108,6 +108,9 @@ func GetDataplane() string {
 	return s.MyInfo.Dataplane
 }
 
+func GetLocalServicesArr() map[string]LocalService {
+	return s.MyServices
+}
 func GetRemoteServicesArr() map[string]RemoteService {
 	return s.RemoteServices
 }
@@ -284,15 +287,15 @@ func FreeUpPorts(connectionID string) {
 	delete(s.Connections, connectionID)
 }
 
-func AddLocalService(id, ip, domain string) {
-	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain}}
+func AddLocalService(id, ip string) {
+	s.MyServices[id] = LocalService{Service: service.Service{Id: id, Ip: ip}}
 	log.Infof("[MBG %v] add service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()
 }
 
-func AddRemoteService(id, ip, domain, MbgId string) {
-	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain}, MbgId: MbgId}
+func AddRemoteService(id, ip, MbgId string) {
+	s.RemoteServices[id] = RemoteService{Service: service.Service{Id: id, Ip: ip}, MbgId: MbgId}
 	log.Infof("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()

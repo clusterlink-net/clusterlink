@@ -22,11 +22,12 @@ var getServiceCmd = &cobra.Command{
 	Long:  `get service list from the MBG`,
 	Run: func(cmd *cobra.Command, args []string) {
 		serviceId, _ := cmd.Flags().GetString("serviceId")
+		servicetype, _ := cmd.Flags().GetString("servicetype")
 		state.UpdateState()
 		if serviceId == "" {
-			getAllServicesReq()
+			getAllServicesReq(servicetype)
 		} else {
-			getServiceReq(serviceId)
+			getServiceReq(serviceId, servicetype)
 		}
 	},
 }
@@ -34,13 +35,18 @@ var getServiceCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(getServiceCmd)
 	getServiceCmd.Flags().String("serviceId", "", "service id field")
+	getServiceCmd.Flags().String("servicetype", "remote", "service type : remote/local")
 
 }
 
-func getAllServicesReq() {
+func getAllServicesReq(servicetype string) {
 	mbgIP := state.GetMbgIP()
-	address := "http://" + mbgIP + "/service/"
-
+	var address string
+	if servicetype == "local" {
+		address = "http://" + mbgIP + "/service/"
+	} else {
+		address = "http://" + mbgIP + "/remoteservice/"
+	}
 	resp := httpAux.HttpGet(address)
 
 	sArr := make(map[string]protocol.ServiceRequest)
@@ -48,15 +54,21 @@ func getAllServicesReq() {
 		log.Fatal("getAllServicesReq Error :", err)
 	}
 	for _, s := range sArr {
-		state.AddService(s.Id, s.Ip, s.Domain)
+		state.AddService(s.Id, s.Ip)
 		log.Infof(`Response message from MBG getting service: %s with ip: %s`, s.Id, s.Ip)
 	}
 
 }
 
-func getServiceReq(serviceId string) {
+func getServiceReq(serviceId, servicetype string) {
 	mbgIP := state.GetMbgIP()
-	address := "http://" + mbgIP + "/service/" + serviceId
+	var address string
+	if servicetype == "local" {
+		address = "http://" + mbgIP + "/service/" + serviceId
+	} else {
+		address = "http://" + mbgIP + "/remoteservice/" + serviceId
+	}
+
 	//Send request
 	resp := httpAux.HttpGet(address)
 
@@ -64,6 +76,6 @@ func getServiceReq(serviceId string) {
 	if err := json.Unmarshal(resp, &s); err != nil {
 		log.Fatal("getServiceReq Error :", err)
 	}
-	state.AddService(s.Id, s.Ip, s.Domain)
+	state.AddService(s.Id, s.Ip)
 	log.Infof(`Response message from MBG getting service: %s with ip: %s`, s.Id, s.Ip)
 }
