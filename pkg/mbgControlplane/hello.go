@@ -44,7 +44,8 @@ func HelloReq(m, myInfo state.MbgInfo) {
 
 	j, err := json.Marshal(protocol.PeerRequest{Id: myInfo.Id, Ip: myInfo.Ip, Cport: myInfo.Cport.External})
 	if err != nil {
-		hlog.Fatal(err)
+		hlog.Error(err)
+		return
 	}
 	//Send hello
 	resp := httpAux.HttpPost(address, j)

@@ -139,14 +139,16 @@ func ConnectPostReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, 
 
 	j, err := json.Marshal(protocol.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy, MbgID: state.GetMyId()})
 	if err != nil {
-		clog.Fatal(err)
+		clog.Error(err)
+		return "", "", err
 	}
 	//Send connect
 	resp := httpAux.HttpPost(address, j)
 	var r protocol.ConnectReply
 	err = json.Unmarshal(resp, &r)
 	if err != nil {
-		clog.Fatal(err)
+		clog.Error(err)
+		return "", "", err
 	}
 	if r.Message == "Success" {
 		clog.Printf("Successfully Connected : Using Connection:Port - %s:%s", r.ConnectType, r.ConnectDest)
@@ -167,7 +169,8 @@ func ConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (net.Conn, error) {
 
 	jsonData, err := json.Marshal(protocol.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy, MbgID: state.GetMyId()})
 	if err != nil {
-		clog.Fatal(err)
+		clog.Error(err)
+		return nil, err
 	}
 	c, resp := httpAux.HttpConnect(mbgIp, url, string(jsonData))
 	if resp == nil {
@@ -243,7 +246,7 @@ func StartLocalService(serviceId, localServicePort, targetMbgIPPort, rootCA, cer
 			clog.Infof("[MBG %v] Using %s for  %s/%s to connect to Service-%v", state.GetMyId(), connectType, targetMbgIPPort, connectDest, destSvc.Service.Id)
 			mtlsForward.StartmTlsForwarder(targetMbgIPPort, connectDest, rootCA, certificate, key, ac, true)
 		default:
-			clog.Fatalf("%v -Not supported", dataplane)
+			clog.Errorf("%v -Not supported", dataplane)
 
 		}
 	}

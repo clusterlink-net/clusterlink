@@ -6,7 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
-	md "github.ibm.com/mbg-agent/pkg/mbgDataplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
@@ -17,23 +16,8 @@ var mlog = logrus.WithField("component", "mbgControlPlane/Expose")
 func Expose(e protocol.ExposeRequest) {
 	//Update MBG state
 	state.UpdateState()
-	if e.Domain == "Internal" {
-		state.AddLocalService(e.Id, e.Ip, e.Domain)
-		ExposeToMbg(e.Id)
-	} else {
-		state.AddRemoteService(e.Id, e.Ip, e.Domain, e.MbgID)
-		myServicePort, err := state.GetFreePorts(e.Id)
-		if err != nil {
-			mlog.Infof("")
-		}
-		targetMbgIP := state.GetMbgIP(e.MbgID)
-		rootCA, certFile, keyFile := state.GetMyMbgCerts()
-		mtlsPort := (state.GetMyMtlsPort()).External
-		mbgTarget := targetMbgIP + mtlsPort
-		mlog.Infof("Starting a local Service for remote service %s at %s->%s with certs(%s,%s,%s)", e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
-		go md.StartLocalService(e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
-	}
-
+	state.AddLocalService(e.Id, e.Ip)
+	ExposeToMbg(e.Id)
 }
 
 func ExposeToMbg(serviceId string) {
@@ -43,7 +27,6 @@ func ExposeToMbg(serviceId string) {
 	s := state.GetLocalService(serviceId)
 	svcExp := s.Service
 	svcExp.Ip = myIp
-	svcExp.Domain = "Remote"
 	for _, m := range MbgArr {
 		destIp := m.Ip + ":" + m.Cport.External
 		ExposeReq(svcExp, destIp, "MBG")
@@ -52,11 +35,12 @@ func ExposeToMbg(serviceId string) {
 
 func ExposeReq(svcExp service.Service, destIp, cType string) {
 	mlog.Printf("Start expose %v to %v with IP address %v", svcExp.Id, cType, destIp)
-	address := "http://" + destIp + "/expose"
+	address := "http://" + destIp + "/remoteservice"
 
-	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain, MbgID: state.GetMyId()})
+	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, MbgID: state.GetMyId()})
 	if err != nil {
-		mlog.Fatal(err)
+		mlog.Error(err)
+		return
 	}
 	//Send expose
 	resp := httpAux.HttpPost(address, j)

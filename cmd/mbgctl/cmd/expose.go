@@ -42,7 +42,7 @@ func exposeReq(serviceId, mbgIP string) {
 	log.Printf("Service %v", s)
 
 	address := "http://" + mbgIP + "/expose"
-	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Domain: svcExp.Domain, MbgID: ""})
+	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, MbgID: ""})
 	if err != nil {
 		log.Fatal(err)
 	}

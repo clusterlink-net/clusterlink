@@ -84,7 +84,7 @@ if __name__ == "__main__":
     runcmd(f"kubectl create -f {folCl}/iperf3-client.yaml")
     runcmd(f"kubectl create -f {folCl}/iperf3-svc.yaml")
     podhost, hostIp= buildMbgctl("host Cluster")
-    runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl start --id "hostCluster"  --ip {hostIp} --cport 30000 --mbgIP {mbg1Ip}:30000')
+    runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl start --id "hostCluster"  --ip {hostIp} --mbgIP {mbg1Ip}:30000')
     printHeader(f"Add {srcSvc} (client) service to host cluster")
     runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addService --serviceId {srcSvc} --serviceIp {srcDefaultGW}')
 
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     runcmd(f"kubectl create -f {folSv}/iperf3.yaml")
     podest, destIp= buildMbgctl("dest Cluster")   
     runcmd(f"kubectl create service nodeport iperf3-server --tcp=5000:5000 --node-port={iperf3DestPort}")
-    runcmdb(f'kubectl exec -i {podest} -- ./mbgctl start --id "destCluster"  --ip {destIp} --cport 30000 --mbgIP {mbg2Ip}:30000')
+    runcmdb(f'kubectl exec -i {podest} -- ./mbgctl start --id "destCluster"  --ip {destIp}  --mbgIP {mbg2Ip}:30000')
     printHeader(f"Add {destSvc} (server) service to destination cluster")
     runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --serviceId {destSvc} --serviceIp {destIp}:{iperf3DestPort}')
     

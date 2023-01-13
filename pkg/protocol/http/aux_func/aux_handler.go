@@ -15,12 +15,14 @@ var log = logrus.WithField("component", "httpHandler")
 func HttpGet(url string) []byte {
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Fatalln(err)
+		log.Errorln(err)
+		return nil
 	}
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalln(err)
+		log.Errorln(err)
+		return nil
 	}
 	//Convert the body to type string
 	return body
@@ -32,13 +34,15 @@ func HttpPost(url string, jsonData []byte) []byte {
 		bytes.NewBuffer(jsonData))
 
 	if err != nil {
-		log.Fatal(err)
+		log.Errorln(err)
+		return nil
 	}
 
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalln(err)
+		log.Errorln(err)
+		return nil
 	}
 
 	return body
@@ -52,13 +56,15 @@ func HttpDelete(url string, jsonData []byte) []byte {
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Errorln(err)
+		return nil
 	}
 
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalln(err)
+		log.Errorln(err)
+		return nil
 	}
 
 	return body
@@ -73,7 +79,8 @@ func HttpConnect(address, url string, jsonData string) (net.Conn, error) {
 	req, err := http.NewRequest(http.MethodConnect, url, bytes.NewBuffer([]byte(jsonData)))
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatalln(err)
+		log.Errorln(err)
+		return nil, nil
 	}
 	log.Println("Connect resp: ", resp.StatusCode)
 

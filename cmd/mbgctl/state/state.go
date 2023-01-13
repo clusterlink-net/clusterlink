@@ -15,17 +15,11 @@ import (
 var log = logrus.WithField("component", "mbgctl")
 
 type MbgctlState struct {
-	MbgIP           string     `json:"MbgIP"`
-	IP              string     `json:"IP"`
-	Id              string     `json:"Id"`
-	Cport           MbgctlPort `json:"Cport"`
+	MbgIP           string `json:"MbgIP"`
+	IP              string `json:"IP"`
+	Id              string `json:"Id"`
 	Services        map[string]MbgctlService
 	OpenConnections map[string]OpenConnection
-}
-
-type MbgctlPort struct {
-	Local    string
-	External string
 }
 
 type MbgctlService struct {
@@ -37,10 +31,6 @@ type OpenConnection struct {
 	SvcIdDest string
 	PId       int
 }
-
-const (
-	ConstPort = 5000
-)
 
 var s = MbgctlState{MbgIP: "", IP: "", Id: "", Services: make(map[string]MbgctlService), OpenConnections: make(map[string]OpenConnection)}
 
@@ -56,14 +46,9 @@ func GetId() string {
 	return s.Id
 }
 
-func GetCport() MbgctlPort {
-	return s.Cport
-}
-func SetState(ip, id, mbgIp, cportLocal, cportExternal string) {
+func SetState(ip, id, mbgIp string) {
 	s.Id = id
 	s.IP = ip
-	s.Cport.Local = cportLocal
-	s.Cport.External = cportExternal
 	s.MbgIP = mbgIp
 
 	SaveState()
@@ -82,12 +67,12 @@ func GetService(id string) MbgctlService {
 	return val
 }
 
-func AddService(id, ip, domain string) {
+func AddService(id, ip string) {
 	if s.Services == nil {
 		s.Services = make(map[string]MbgctlService)
 	}
 
-	s.Services[id] = MbgctlService{Service: service.Service{id, ip, domain}}
+	s.Services[id] = MbgctlService{Service: service.Service{id, ip}}
 	SaveState()
 	log.Infof("[%v] Add service: %v", s.Id, s.Services[id])
 	s.Print()

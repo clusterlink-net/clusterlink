@@ -21,10 +21,7 @@ var startCmd = &cobra.Command{
 		ip, _ := cmd.Flags().GetString("ip")
 		id, _ := cmd.Flags().GetString("id")
 		mbgIP, _ := cmd.Flags().GetString("mbgIP")
-		cportLocal, _ := cmd.Flags().GetString("cportLocal")
-		cport, _ := cmd.Flags().GetString("cport")
-
-		state.SetState(ip, id, mbgIP, cportLocal, cport)
+		state.SetState(ip, id, mbgIP)
 	},
 }
 
@@ -33,6 +30,4 @@ func init() {
 	startCmd.Flags().String("id", "", "mbgctl Id")
 	startCmd.Flags().String("ip", "", "mbgctl IP")
 	startCmd.Flags().String("mbgIP", "", "IP address of the MBG (that the mbgctl is connected)")
-	startCmd.Flags().String("cportLocal", "50051", "Multi-cloud Border Gateway control local port inside the MBG")
-	startCmd.Flags().String("cport", "", "Multi-cloud Border Gateway control external port for the MBG neighbors ")
 }

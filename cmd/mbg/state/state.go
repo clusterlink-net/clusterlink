@@ -114,6 +114,9 @@ func GetDataplane() string {
 	return s.MyInfo.Dataplane
 }
 
+func GetLocalServicesArr() map[string]LocalService {
+	return s.MyServices
+}
 func GetRemoteServicesArr() map[string]RemoteService {
 	return s.RemoteServices
 }
@@ -154,7 +157,7 @@ func UpdateState() {
 func GetLocalService(id string) LocalService {
 	val, ok := s.MyServices[id]
 	if !ok {
-		log.Fatalf("Service %v is not exist", id)
+		log.Errorf("Service %v is not exist", id)
 	}
 	return val
 }
@@ -162,7 +165,7 @@ func GetLocalService(id string) LocalService {
 func GetRemoteService(id string) RemoteService {
 	val, ok := s.RemoteServices[id]
 	if !ok {
-		log.Fatalf("Service %v is not exist", id)
+		log.Errorf("Service %v is not exist", id)
 	}
 	return val
 
@@ -293,15 +296,15 @@ func FreeUpPorts(connectionID string) {
 	delete(s.Connections, connectionID)
 }
 
-func AddLocalService(id, ip, domain string) {
-	s.MyServices[id] = LocalService{Service: service.Service{id, ip, domain}}
+func AddLocalService(id, ip string) {
+	s.MyServices[id] = LocalService{Service: service.Service{Id: id, Ip: ip}}
 	log.Infof("[MBG %v] add service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()
 }
 
-func AddRemoteService(id, ip, domain, MbgId string) {
-	s.RemoteServices[id] = RemoteService{Service: service.Service{id, ip, domain}, MbgId: MbgId}
+func AddRemoteService(id, ip, MbgId string) {
+	s.RemoteServices[id] = RemoteService{Service: service.Service{Id: id, Ip: ip}, MbgId: MbgId}
 	if mbgs, ok := s.RemoteServiceMap[id]; ok {
 		mbgs = append(mbgs, MbgId)
 		s.RemoteServiceMap[id] = mbgs
@@ -309,7 +312,6 @@ func AddRemoteService(id, ip, domain, MbgId string) {
 		s.RemoteServiceMap[id] = []string{MbgId}
 	}
 	log.Infof("[MBG %v] Remote service added %v->[%v]", s.MyInfo.Id, id, s.RemoteServiceMap[id])
-
 	s.Print()
 	SaveState()
 }

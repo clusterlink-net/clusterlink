@@ -23,7 +23,8 @@ func (m MbgHandler) sendHello(w http.ResponseWriter, r *http.Request) {
 
 	j, err := json.Marshal(protocol.HelloResponse{Status: "success"})
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return
 	}
 	//Response
 	w.WriteHeader(http.StatusOK)
@@ -42,7 +43,8 @@ func (m MbgHandler) sendHello2All(w http.ResponseWriter, r *http.Request) {
 
 	j, err := json.Marshal(protocol.HelloResponse{Status: "success"})
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return
 	}
 	//Response
 	w.WriteHeader(http.StatusOK)

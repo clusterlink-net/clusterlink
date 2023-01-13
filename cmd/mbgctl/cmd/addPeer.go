@@ -45,6 +45,6 @@ func addPeerReq(peerId, peerIp, peerCport string) {
 		log.Fatal(err)
 	}
 	//send expose
-	resp := httpAux.HttpPost(address, j)
-	log.Infof(`Response message for adding MBG peer %s command : %s`, peerId, string(resp))
+	httpAux.HttpPost(address, j)
+	log.Infof(`Adding MBG peer %s finish`, peerId)
 }
