@@ -8,6 +8,8 @@ const (
 const (
 	Allow int = iota
 	Deny
+	AllowAll
+	AllowPartial
 )
 
 type ConnectionRequestAttr struct {
@@ -37,7 +39,16 @@ type ExposeRequestAttr struct {
 }
 
 type ExposeRequestResp struct {
+	Action     int
 	TargetMbgs []string
+}
+
+type AddPeerAttr struct {
+	PeerMbg string
+}
+
+type AddPeerResp struct {
+	Action int
 }
 
 type ServiceListRequestAttr struct {
@@ -45,5 +56,14 @@ type ServiceListRequestAttr struct {
 }
 
 type ServiceListRequestResp struct {
+	Action   int
 	Services []string
+}
+
+type ServiceRequestAttr struct {
+	SrcMbg string
+}
+
+type ServiceRequestResp struct {
+	Action int
 }

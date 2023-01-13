@@ -26,6 +26,26 @@ func (m *MbgEventManager) RaiseNewRemoteServiceEvent(remoteServiceAttr NewRemote
 	return NewRemoteServiceResp{Action: Allow}, nil
 }
 
+func (m *MbgEventManager) RaiseExposeRequestEvent(exposeRequestAttr ExposeRequestAttr) (ExposeRequestResp, error) {
+	elog.Infof("New Remote Service Event %+v", exposeRequestAttr)
+	return ExposeRequestResp{Action: AllowAll, TargetMbgs: nil}, nil
+}
+
+func (m *MbgEventManager) RaiseAddPeerEvent(AddPeerAttr AddPeerAttr) (AddPeerResp, error) {
+	elog.Infof("Add Peer MBG Event %+v", AddPeerAttr)
+	return AddPeerResp{Action: Allow}, nil
+}
+
+func (m *MbgEventManager) RaiseServiceListRequestEvent(serviceListRequestAttr ServiceListRequestAttr) (ServiceListRequestResp, error) {
+	elog.Infof("Service List Event %+v", serviceListRequestAttr)
+	return ServiceListRequestResp{Action: Allow, Services: nil}, nil
+}
+
+func (m *MbgEventManager) RaiseServiceRequestEvent(serviceRequestAttr ServiceRequestAttr) (ServiceRequestResp, error) {
+	elog.Infof("Service List Event %+v", serviceRequestAttr)
+	return ServiceRequestResp{Action: Allow}, nil
+}
+
 func (m *MbgEventManager) AssignPolicyDispatcher(targetUrl string) {
 	m.PolicyDispatcherTarget = targetUrl
 }

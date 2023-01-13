@@ -201,6 +201,10 @@ func GetMbgIP(id string) string {
 	return mbgI.Ip
 }
 
+func GetMbgControlTarget(id string) string {
+	mbgI := s.MbgArr[id]
+	return mbgI.Ip + ":" + mbgI.Cport.External
+}
 func GetMyMbgCerts() (string, string, string) {
 	return s.MyInfo.CaFile, s.MyInfo.CertificateFile, s.MyInfo.KeyFile
 }

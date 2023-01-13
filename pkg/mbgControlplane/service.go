@@ -2,6 +2,7 @@ package mbgControlplane
 
 import (
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
+	"github.ibm.com/mbg-agent/pkg/eventManager"
 	md "github.ibm.com/mbg-agent/pkg/mbgDataplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
@@ -35,9 +36,20 @@ func GetAllLocalServices() map[string]protocol.ServiceRequest {
 /******************* Local Service ****************************************/
 func AddRemoteService(e protocol.ExposeRequest) {
 	state.AddRemoteService(e.Id, e.Ip, e.MbgID)
+
+	policyResp, err := state.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: e.Id, Mbg: e.MbgID})
+	if err != nil {
+		mlog.Errorf("[MBG %v] Unable to raise connection request event", state.GetMyId())
+		return
+	}
+	if policyResp.Action == eventManager.Deny {
+		return
+	}
+
 	myServicePort, err := state.GetFreePorts(e.Id)
 	if err != nil {
-		mlog.Infof("")
+		mlog.Errorf("Unable to get free port")
+		return
 	}
 	targetMbgIP := state.GetMbgIP(e.MbgID)
 	rootCA, certFile, keyFile := state.GetMyMbgCerts()
