@@ -5,16 +5,17 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"net/http"
 	"os"
 
-	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 
-	md "github.ibm.com/mbg-agent/pkg/mbgDataplane"
 	handler "github.ibm.com/mbg-agent/pkg/protocol/http/mbg"
 )
 
@@ -36,18 +37,17 @@ var startCmd = &cobra.Command{
 		certificateFile, _ := cmd.Flags().GetString("certificate")
 		keyFile, _ := cmd.Flags().GetString("key")
 		dataplane, _ := cmd.Flags().GetString("dataplane")
-		mtlsportLocal, _ := cmd.Flags().GetString("mtlsportLocal")
-		mtlsport, _ := cmd.Flags().GetString("mtlsport")
 
 		if ip == "" || id == "" || cport == "" {
 			log.Println("Error: please insert all flag arguments for Mbg start command")
 			os.Exit(1)
 		}
-		state.SetState(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane, mtlsportLocal, mtlsport)
+		state.SetState(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
 		if dataplane == "mtls" {
-			go md.StartMtlsServer(":"+mtlsportLocal, caFile, certificateFile, keyFile)
+			StartMtlsServer(":"+cportLocal, caFile, certificateFile, keyFile)
+		} else {
+			startHttpServer(":" + cportLocal)
 		}
-		startHttpServer()
 	},
 }
 
@@ -55,10 +55,8 @@ func init() {
 	rootCmd.AddCommand(startCmd)
 	startCmd.Flags().String("id", "", "Multi-cloud Border Gateway id")
 	startCmd.Flags().String("ip", "", "Multi-cloud Border Gateway ip")
-	startCmd.Flags().String("cportLocal", "50051", "Multi-cloud Border Gateway control local port inside the MBG")
-	startCmd.Flags().String("cport", "", "Multi-cloud Border Gateway control external port for the MBG neighbors ")
-	startCmd.Flags().String("mtlsportLocal", "8443", "Multi-cloud Border Gateway mtls local port inside the MBG")
-	startCmd.Flags().String("mtlsport", "8443", "Multi-cloud Border Gateway mtls external port for the MBG neighbors ")
+	startCmd.Flags().String("cportLocal", "8443", "Multi-cloud Border Gateway control local port inside the MBG")
+	startCmd.Flags().String("cport", "8443", "Multi-cloud Border Gateway control external port for the MBG neighbors ")
 	startCmd.Flags().String("localDataPortRange", "5000", "Set the port range for data connection in the MBG")
 	startCmd.Flags().String("externalDataPortRange", "30000", "Set the port range for exposing data connection (each expose port connect to localDataPort")
 	startCmd.Flags().String("rootCa", "", "Path to the Root Certificate Auth File (.pem)")
@@ -68,19 +66,47 @@ func init() {
 }
 
 /********************************** Server **********************************************************/
-func startHttpServer() {
+func startHttpServer(ip string) {
 	log.Infof("MBG [%v] started", state.GetMyId())
 
-	//Create a new router
-	r := chi.NewRouter()
+	//Set chi router
+	r := state.GetChiRouter()
 	r.Mount("/", handler.MbgHandler{}.Routes())
 
 	//Use router to start the server
-	mbgCPort := ":" + state.GetMyCport().Local
-	log.Infof("Control channel listening at %v", mbgCPort)
-	err := http.ListenAndServe(mbgCPort, r)
+	log.Infof("Starting HTTP server, listening to: %v", ip)
+	err := http.ListenAndServe(ip, r)
 	if err != nil {
 		log.Println(err)
 	}
 
+}
+
+func StartMtlsServer(ip, rootCA, certificate, key string) {
+	// Create the TLS Config with the CA pool and enable Client certificate validation
+	caCert, err := ioutil.ReadFile(rootCA)
+	if err != nil {
+		log.Fatal(err)
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	tlsConfig := &tls.Config{
+		ClientCAs:  caCertPool,
+		ClientAuth: tls.RequireAndVerifyClientCert,
+	}
+	//Set chi router
+	r := state.GetChiRouter()
+	r.Mount("/", handler.MbgHandler{}.Routes())
+
+	// Create a Server instance to listen on port 8443 with the TLS config
+	server := &http.Server{
+		Addr:      ip,
+		TLSConfig: tlsConfig,
+		Handler:   r,
+	}
+	log.Infof("Starting mTLS Server for MBG Dataplane/Controlplane")
+
+	// Listen to HTTPS connections with the server certificate and wait
+	log.Fatal(server.ListenAndServeTLS(certificate, key))
 }

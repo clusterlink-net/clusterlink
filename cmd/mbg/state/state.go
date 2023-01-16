@@ -1,17 +1,22 @@
 package state
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"net/http"
 	"os/user"
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
 	"github.ibm.com/mbg-agent/pkg/eventManager"
@@ -19,6 +24,8 @@ import (
 )
 
 var log = logrus.WithField("component", s.MyInfo.Id)
+var dataMutex sync.Mutex
+var ChiRouter *chi.Mux = chi.NewRouter()
 
 type mbgState struct {
 	MyInfo                MbgInfo
@@ -39,7 +46,6 @@ type MbgInfo struct {
 	Ip              string
 	Cport           ServicePort
 	DataPortRange   ServicePort
-	MtlsPort        ServicePort
 	MaxPorts        int
 	CaFile          string
 	CertificateFile string
@@ -91,10 +97,6 @@ func GetMyCport() ServicePort {
 	return s.MyInfo.Cport
 }
 
-func GetMyMtlsPort() ServicePort {
-	return s.MyInfo.MtlsPort
-}
-
 func GetMyInfo() MbgInfo {
 	return s.MyInfo
 }
@@ -113,6 +115,9 @@ func GetMbgctlArr() map[string]Mbgctl {
 func GetDataplane() string {
 	return s.MyInfo.Dataplane
 }
+func GetChiRouter() (r *chi.Mux) {
+	return ChiRouter
+}
 
 func GetLocalServicesArr() map[string]LocalService {
 	return s.MyServices
@@ -124,15 +129,14 @@ func GetRemoteServicesArr() map[string]RemoteService {
 func GetEventManager() *eventManager.MbgEventManager {
 	return &s.MyEventManager
 }
-func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, caFile, certificate, key, dataplane, mtlsPortLocal, mtlsPort string) {
+
+func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, caFile, certificate, key, dataplane string) {
 	s.MyInfo.Id = id
 	s.MyInfo.Ip = ip
-	s.MyInfo.Cport.Local = cportLocal
-	s.MyInfo.Cport.External = cportExternal
+	s.MyInfo.Cport.Local = ":" + cportLocal
+	s.MyInfo.Cport.External = ":" + cportExternal
 	s.MyInfo.DataPortRange.Local = localDataPortRange
 	s.MyInfo.DataPortRange.External = externalDataPortRange
-	s.MyInfo.MtlsPort.Local = ":" + mtlsPortLocal
-	s.MyInfo.MtlsPort.External = ":" + mtlsPort
 	s.MyInfo.MaxPorts = 1000 // TODO
 	s.MyInfo.CaFile = caFile
 	s.MyInfo.CertificateFile = certificate
@@ -146,6 +150,10 @@ func SetMbgctl(id, ip string) {
 	log.Info(s)
 	s.MbgctlArr[id] = Mbgctl{Id: id, Ip: ip}
 	SaveState()
+}
+
+func SetChiRouter(r *chi.Mux) {
+	ChiRouter = r
 }
 
 func UpdateState() {
@@ -187,7 +195,7 @@ func GetServiceMbgIp(Ip string) string {
 	svcIp := strings.Split(Ip, ":")[0]
 	for _, m := range s.MbgArr {
 		if m.Ip == svcIp {
-			mbgIp := m.Ip + ":" + m.Cport.External
+			mbgIp := m.Ip + m.Cport.External
 			return mbgIp
 		}
 	}
@@ -196,9 +204,9 @@ func GetServiceMbgIp(Ip string) string {
 	return ""
 }
 
-func GetMbgIP(id string) string {
+func GetMbgTarget(id string) string {
 	mbgI := s.MbgArr[id]
-	return mbgI.Ip
+	return mbgI.Ip + mbgI.Cport.External
 }
 
 func GetMbgControlTarget(id string) string {
@@ -320,6 +328,42 @@ func AddRemoteService(id, ip, MbgId string) {
 	SaveState()
 }
 
+func GetAddrStart() string {
+	if s.MyInfo.Dataplane == "mtls" {
+		return "https://"
+	} else {
+		return "http://"
+	}
+}
+func GetHttpClient() http.Client {
+	if s.MyInfo.Dataplane == "mtls" {
+		cert, err := ioutil.ReadFile(s.MyInfo.CaFile)
+		if err != nil {
+			log.Fatalf("could not open certificate file: %v", err)
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(cert)
+
+		certificate, err := tls.LoadX509KeyPair(s.MyInfo.CertificateFile, s.MyInfo.KeyFile)
+		if err != nil {
+			log.Fatalf("could not load certificate: %v", err)
+		}
+
+		client := http.Client{
+			Timeout: time.Minute * 3,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs:      caCertPool,
+					Certificates: []tls.Certificate{certificate},
+				},
+			},
+		}
+		return client
+	} else {
+		return http.Client{}
+	}
+}
+
 func (s *mbgState) Print() {
 	log.Infof("[MBG %v]: Id: %v Ip: %v Cport %v", s.MyInfo.Id, s.MyInfo.Id, s.MyInfo.Ip, s.MyInfo.Cport)
 	log.Infof("[MBG %v]: MBG neighbors : %v", s.MyInfo.Id, s.MbgArr)
@@ -342,9 +386,11 @@ func configPath() string {
 
 func SaveState() {
 	log.Infof("Update MBG state")
+	dataMutex.Lock()
 	jsonC, _ := json.MarshalIndent(s, "", "\t")
 	log.Debugf("state save in", configPath())
 	ioutil.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
+	dataMutex.Unlock()
 }
 
 func readState() mbgState {
