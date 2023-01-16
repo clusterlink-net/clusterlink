@@ -3,12 +3,22 @@ package mbgControlplane
 import (
 	log "github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
+	"github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
 func AddPeer(p protocol.PeerRequest) {
 	//Update MBG state
 	state.UpdateState()
+
+	peerResp, err := state.GetEventManager().RaiseAddPeerEvent(eventManager.AddPeerAttr{PeerMbg: p.Id})
+	if err != nil {
+		log.Errorf("[MBG %v] Unable to raise connection request event", state.GetMyId())
+		return
+	}
+	if peerResp.Action == eventManager.Deny {
+		return
+	}
 	state.AddMbgNbr(p.Id, p.Ip, p.Cport)
 }
 

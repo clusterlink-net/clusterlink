@@ -14,6 +14,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.ibm.com/mbg-agent/pkg/eventManager"
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
 
@@ -29,6 +30,8 @@ type mbgState struct {
 	LocalServiceEndpoints map[string]string
 	LocalPortMap          map[int]bool
 	ExternalPortMap       map[int]bool
+	RemoteServiceMap      map[string][]string
+	MyEventManager        eventManager.MbgEventManager
 }
 
 type MbgInfo struct {
@@ -71,7 +74,10 @@ var s = mbgState{MyInfo: MbgInfo{},
 	Connections:           make(map[string]ServicePort),
 	LocalServiceEndpoints: make(map[string]string),
 	LocalPortMap:          make(map[int]bool),
-	ExternalPortMap:       make(map[int]bool)}
+	ExternalPortMap:       make(map[int]bool),
+	RemoteServiceMap:      make(map[string][]string),
+	MyEventManager:        eventManager.MbgEventManager{},
+}
 
 func GetMyIp() string {
 	return s.MyInfo.Ip
@@ -115,6 +121,9 @@ func GetRemoteServicesArr() map[string]RemoteService {
 	return s.RemoteServices
 }
 
+func GetEventManager() *eventManager.MbgEventManager {
+	return &s.MyEventManager
+}
 func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, caFile, certificate, key, dataplane, mtlsPortLocal, mtlsPort string) {
 	s.MyInfo.Id = id
 	s.MyInfo.Ip = ip
@@ -192,6 +201,10 @@ func GetMbgIP(id string) string {
 	return mbgI.Ip
 }
 
+func GetMbgControlTarget(id string) string {
+	mbgI := s.MbgArr[id]
+	return mbgI.Ip + ":" + mbgI.Cport.External
+}
 func GetMyMbgCerts() (string, string, string) {
 	return s.MyInfo.CaFile, s.MyInfo.CertificateFile, s.MyInfo.KeyFile
 }
@@ -296,7 +309,13 @@ func AddLocalService(id, ip string) {
 
 func AddRemoteService(id, ip, MbgId string) {
 	s.RemoteServices[id] = RemoteService{Service: service.Service{Id: id, Ip: ip}, MbgId: MbgId}
-	log.Infof("[MBG %v] addd service %v", s.MyInfo.Id, service.GetService(id))
+	if mbgs, ok := s.RemoteServiceMap[id]; ok {
+		mbgs = append(mbgs, MbgId)
+		s.RemoteServiceMap[id] = mbgs
+	} else {
+		s.RemoteServiceMap[id] = []string{MbgId}
+	}
+	log.Infof("[MBG %v] Remote service added %v->[%v]", s.MyInfo.Id, id, s.RemoteServiceMap[id])
 	s.Print()
 	SaveState()
 }

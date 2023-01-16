@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
+	"github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 	service "github.ibm.com/mbg-agent/pkg/serviceMap"
@@ -21,15 +22,31 @@ func Expose(e protocol.ExposeRequest) {
 }
 
 func ExposeToMbg(serviceId string) {
-	MbgArr := state.GetMbgArr()
-	myIp := state.GetMyIp()
+	exposeResp, err := state.GetEventManager().RaiseExposeRequestEvent(eventManager.ExposeRequestAttr{Service: serviceId})
+	if err != nil {
+		mlog.Errorf("Unable to raise expose request event")
+		return
+	}
+	if exposeResp.Action == eventManager.Deny {
+		return
+	}
 
+	myIp := state.GetMyIp()
 	s := state.GetLocalService(serviceId)
 	svcExp := s.Service
 	svcExp.Ip = myIp
-	for _, m := range MbgArr {
-		destIp := m.Ip + ":" + m.Cport.External
-		ExposeReq(svcExp, destIp, "MBG")
+
+	if exposeResp.Action == eventManager.AllowAll {
+		MbgArr := state.GetMbgArr()
+		for _, m := range MbgArr {
+			destIp := m.Ip + ":" + m.Cport.External
+			ExposeReq(svcExp, destIp, "MBG")
+		}
+	} else {
+		for _, mbgId := range exposeResp.TargetMbgs {
+			mbgAddr := state.GetMbgControlTarget(mbgId)
+			ExposeReq(svcExp, mbgAddr, "MBG")
+		}
 	}
 }
 

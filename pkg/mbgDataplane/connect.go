@@ -8,6 +8,7 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
+	"github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
@@ -37,6 +38,14 @@ func ConnectLocalService(c protocol.ConnectRequest, targetMbgIP string, conn net
 	dataplane := state.GetDataplane()
 	localSvc := state.GetLocalService(c.IdDest)
 	targetMbgIP = state.GetMbgIP(c.MbgID)
+	policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: c.Id, DstService: c.IdDest, Direction: eventManager.Incoming, OtherMbg: c.MbgID})
+	if err != nil {
+		clog.Errorf("[MBG %v] Unable to raise connection request event", state.GetMyId())
+		return "failure", "", ""
+	}
+	if policyResp.Action == eventManager.Deny {
+		return "failure", "", ""
+	}
 	switch dataplane {
 	case TCP_TYPE:
 		clog.Infof("[MBG %v] Sending Connect reply to Connection(%v) to use Dest:%v", state.GetMyId(), connectionID, "use connect hijack")
