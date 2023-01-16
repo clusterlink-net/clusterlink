@@ -12,8 +12,8 @@ import (
 var log = logrus.WithField("component", "httpHandler")
 
 //Helper gunction for get response
-func HttpGet(url string) []byte {
-	resp, err := http.Get(url)
+func HttpGet(url string, cl http.Client) []byte {
+	resp, err := cl.Get(url)
 	if err != nil {
 		log.Errorln(err)
 		return nil
@@ -28,9 +28,9 @@ func HttpGet(url string) []byte {
 	return body
 }
 
-func HttpPost(url string, jsonData []byte) []byte {
+func HttpPost(url string, jsonData []byte, cl http.Client) []byte {
 
-	resp, err := http.Post(url, "application/json",
+	resp, err := cl.Post(url, "application/json",
 		bytes.NewBuffer(jsonData))
 
 	if err != nil {
