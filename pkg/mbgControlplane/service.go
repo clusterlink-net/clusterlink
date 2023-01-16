@@ -33,7 +33,7 @@ func GetAllLocalServices() map[string]protocol.ServiceRequest {
 	return sArr
 }
 
-/******************* Local Service ****************************************/
+/******************* Remote Service ****************************************/
 func AddRemoteService(e protocol.ExposeRequest) {
 	state.AddRemoteService(e.Id, e.Ip, e.MbgID)
 
@@ -51,12 +51,10 @@ func AddRemoteService(e protocol.ExposeRequest) {
 		mlog.Errorf("Unable to get free port")
 		return
 	}
-	targetMbgIP := state.GetMbgIP(e.MbgID)
+	mbgTarget := state.GetMbgTarget(e.MbgID)
 	rootCA, certFile, keyFile := state.GetMyMbgCerts()
-	mtlsPort := (state.GetMyMtlsPort()).External
-	mbgTarget := targetMbgIP + mtlsPort
 	mlog.Infof("Starting a local Service for remote service %s at %s->%s with certs(%s,%s,%s)", e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
-	go md.StartLocalService(e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
+	go md.StartLocalServer2RemoteService(e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
 }
 
 func GetRemoteService(svcId string) protocol.ServiceRequest {

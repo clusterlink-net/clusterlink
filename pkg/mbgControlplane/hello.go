@@ -39,7 +39,7 @@ func SendHello2All() {
 
 //send hello request(http) to other mbg
 func HelloReq(m, myInfo state.MbgInfo) {
-	address := "http://" + m.Ip + ":" + m.Cport.External + "/peer/" + myInfo.Id
+	address := state.GetAddrStart() + m.Ip + m.Cport.External + "/peer/" + myInfo.Id
 	hlog.Infof("Start Hello message to MBG with address %v", address)
 
 	j, err := json.Marshal(protocol.PeerRequest{Id: myInfo.Id, Ip: myInfo.Ip, Cport: myInfo.Cport.External})
@@ -48,7 +48,7 @@ func HelloReq(m, myInfo state.MbgInfo) {
 		return
 	}
 	//Send hello
-	resp := httpAux.HttpPost(address, j)
+	resp := httpAux.HttpPost(address, j, state.GetHttpClient())
 
 	var h protocol.HelloResponse
 	err = json.NewDecoder(bytes.NewBuffer(resp)).Decode(&h)

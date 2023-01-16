@@ -35,11 +35,10 @@ func ExposeToMbg(serviceId string) {
 	s := state.GetLocalService(serviceId)
 	svcExp := s.Service
 	svcExp.Ip = myIp
-
 	if exposeResp.Action == eventManager.AllowAll {
 		MbgArr := state.GetMbgArr()
 		for _, m := range MbgArr {
-			destIp := m.Ip + ":" + m.Cport.External
+			destIp := m.Ip + m.Cport.External
 			ExposeReq(svcExp, destIp, "MBG")
 		}
 	} else {
@@ -52,7 +51,7 @@ func ExposeToMbg(serviceId string) {
 
 func ExposeReq(svcExp service.Service, destIp, cType string) {
 	mlog.Printf("Start expose %v to %v with IP address %v", svcExp.Id, cType, destIp)
-	address := "http://" + destIp + "/remoteservice"
+	address := state.GetAddrStart() + destIp + "/remoteservice"
 
 	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, MbgID: state.GetMyId()})
 	if err != nil {
@@ -60,6 +59,6 @@ func ExposeReq(svcExp service.Service, destIp, cType string) {
 		return
 	}
 	//Send expose
-	resp := httpAux.HttpPost(address, j)
+	resp := httpAux.HttpPost(address, j, state.GetHttpClient())
 	mlog.Infof(`Response message for serive %s expose :  %s`, svcExp.Id, string(resp))
 }
