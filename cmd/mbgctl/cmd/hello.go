@@ -38,21 +38,21 @@ func init() {
 func helloReq(mbgIP, peerID string) {
 	log.Printf("Start hello from to MBG peer %v", peerID)
 
-	address := "http://" + mbgIP + "/hello/" + peerID
+	address := state.GetAddrStart() + mbgIP + "/hello/" + peerID
 
 	//send hello
 	j := []byte{}
-	resp := httpAux.HttpPost(address, j)
+	resp := httpAux.HttpPost(address, j, state.GetHttpClient())
 	log.Infof(`Response message hello to MBG peer(%s) :  %s`, peerID, string(resp))
 }
 
 func hello2AllReq(mbgIP string) {
 	log.Printf("Start hello to all MBG peers")
 
-	address := "http://" + mbgIP + "/hello/"
+	address := state.GetAddrStart() + mbgIP + "/hello/"
 
 	//send hello
 	j := []byte{}
-	resp := httpAux.HttpPost(address, j)
+	resp := httpAux.HttpPost(address, j, state.GetHttpClient())
 	log.Infof(`Response message hello to all MBG peers: %s`, string(resp))
 }

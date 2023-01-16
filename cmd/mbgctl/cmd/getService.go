@@ -43,11 +43,11 @@ func getAllServicesReq(servicetype string) {
 	mbgIP := state.GetMbgIP()
 	var address string
 	if servicetype == "local" {
-		address = "http://" + mbgIP + "/service/"
+		address = state.GetAddrStart() + mbgIP + "/service/"
 	} else {
-		address = "http://" + mbgIP + "/remoteservice/"
+		address = state.GetAddrStart() + mbgIP + "/remoteservice/"
 	}
-	resp := httpAux.HttpGet(address)
+	resp := httpAux.HttpGet(address, state.GetHttpClient())
 
 	sArr := make(map[string]protocol.ServiceRequest)
 	if err := json.Unmarshal(resp, &sArr); err != nil {
@@ -64,13 +64,13 @@ func getServiceReq(serviceId, servicetype string) {
 	mbgIP := state.GetMbgIP()
 	var address string
 	if servicetype == "local" {
-		address = "http://" + mbgIP + "/service/" + serviceId
+		address = state.GetAddrStart() + mbgIP + "/service/" + serviceId
 	} else {
-		address = "http://" + mbgIP + "/remoteservice/" + serviceId
+		address = state.GetAddrStart() + mbgIP + "/remoteservice/" + serviceId
 	}
 
 	//Send request
-	resp := httpAux.HttpGet(address)
+	resp := httpAux.HttpGet(address, state.GetHttpClient())
 
 	var s protocol.ServiceRequest
 	if err := json.Unmarshal(resp, &s); err != nil {

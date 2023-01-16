@@ -43,12 +43,13 @@ func addServiceReq(serviceId string) {
 	svcExp := s.Service
 	log.Printf("Service %v", s)
 
-	address := "http://" + mbgIP + "/service"
+	address := state.GetAddrStart() + mbgIP + "/service"
 	j, err := json.Marshal(protocol.ServiceRequest{Id: svcExp.Id, Ip: svcExp.Ip})
 	if err != nil {
 		log.Fatal(err)
 	}
-	//send expose
-	resp := httpAux.HttpPost(address, j)
-	log.Infof(`Response message for serive %s expose :  %s`, svcExp.Id, string(resp))
+
+	//send
+	resp := httpAux.HttpPost(address, j, state.GetHttpClient())
+	log.Infof(`Response message for serive %s addservice:  %s`, svcExp.Id, string(resp))
 }

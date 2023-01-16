@@ -41,12 +41,12 @@ func exposeReq(serviceId, mbgIP string) {
 	svcExp := s.Service
 	log.Printf("Service %v", s)
 
-	address := "http://" + mbgIP + "/expose"
+	address := state.GetAddrStart() + mbgIP + "/expose"
 	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, MbgID: ""})
 	if err != nil {
 		log.Fatal(err)
 	}
 	//send expose
-	resp := httpAux.HttpPost(address, j)
+	resp := httpAux.HttpPost(address, j, state.GetHttpClient())
 	log.Infof(`Response message for serive %s expose :  %s`, svcExp.Id, string(resp))
 }

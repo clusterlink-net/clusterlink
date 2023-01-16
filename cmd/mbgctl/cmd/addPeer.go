@@ -39,12 +39,12 @@ func init() {
 
 func addPeerReq(peerId, peerIp, peerCport string) {
 	mbgIP := state.GetMbgIP()
-	address := "http://" + mbgIP + "/peer/" + peerId
-	j, err := json.Marshal(protocol.PeerRequest{Id: peerId, Ip: peerIp, Cport: peerCport})
+	address := state.GetAddrStart() + mbgIP + "/peer/" + peerId
+	j, err := json.Marshal(protocol.PeerRequest{Id: peerId, Ip: peerIp, Cport: ":" + peerCport})
 	if err != nil {
 		log.Fatal(err)
 	}
 	//send expose
-	httpAux.HttpPost(address, j)
+	httpAux.HttpPost(address, j, state.GetHttpClient())
 	log.Infof(`Adding MBG peer %s finish`, peerId)
 }
