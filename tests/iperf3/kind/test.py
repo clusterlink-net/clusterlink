@@ -33,12 +33,12 @@ if __name__ == "__main__":
 
     
     mbg1DataPort= "30001"
-    mbg1MtlsPort= "30443"
-    mbg1MtlsPortLocal= "8443"
+    mbg1cPort= "30443"
+    mbg1cPortLocal= "8443"
     
     mbg2DataPort= "30001"
-    mbg2MtlsPort= "30443"
-    mbg2MtlsPortLocal= "8443"
+    mbg2cPort= "30443"
+    mbg2cPortLocal= "8443"
 
     srcSvc ="iperfisrael"
     srcDefaultGW="10.244.0.1"
@@ -48,9 +48,11 @@ if __name__ == "__main__":
     iperf3DestPort="30001"
 
     dataplane = args["dataplane"]
-    mbg1crtFlags =f"--rootCa ./mtls/ca.crt  --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
-    mbg2crtFlags =f"--rootCa ./mtls/ca.crt  --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
-    
+    mbg1crtFlags =f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    mbg2crtFlags =f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    hostcrtFlags =f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    destcrtFlags =f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
     ### clean 
@@ -63,18 +65,17 @@ if __name__ == "__main__":
     ###Run first Mbg
     printHeader("\n\nStart building MBG1")
     podMbg1, mbg1Ip= buildMbg("mbg-agent1",f"{proj_dir}/manifests/kind/mbg-config1.yaml")
-    runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg start --id "MBG1" --ip {mbg1Ip} --cport "30000" --externalDataPortRange {mbg1DataPort}\
-     --dataplane {args["dataplane"]} --mtlsport {mbg1MtlsPort} --mtlsportLocal {mbg1MtlsPortLocal} {mbg1crtFlags}')
-    if dataplane =="mtls" :
-        runcmd(f"kubectl create service nodeport mbg --tcp={mbg1MtlsPortLocal}:{mbg1MtlsPortLocal} --node-port={mbg1MtlsPort}")
+    runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg start --id "MBG1" --ip {mbg1Ip} --cport {mbg1cPort} --cportLocal {mbg1cPortLocal}  --externalDataPortRange {mbg1DataPort}\
+    --dataplane {args["dataplane"]} {mbg1crtFlags}')
+    runcmd(f"kubectl create service nodeport mbg --tcp={mbg1cPortLocal}:{mbg1cPortLocal} --node-port={mbg1cPort}")
 
     ###Run Second Mbg
     printHeader("\n\nStart building MBG2")
     podMbg2, mbg2Ip= buildMbg("mbg-agent2",f"{proj_dir}/manifests/kind/mbg-config2.yaml")
-    runcmdb(f'kubectl exec -i {podMbg2} -- ./mbg start --id "MBG2" --ip {mbg2Ip} --cport "30000" --externalDataPortRange {mbg2DataPort} \
-    --dataplane {args["dataplane"]}  --mtlsport {mbg2MtlsPort} --mtlsportLocal {mbg2MtlsPortLocal} {mbg2crtFlags}')
-    if dataplane =="mtls":
-        runcmd(f"kubectl create service nodeport mbg --tcp={mbg2MtlsPortLocal}:{mbg2MtlsPortLocal} --node-port={mbg2MtlsPort}")
+    runcmdb(f'kubectl exec -i {podMbg2} -- ./mbg start --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort} --cportLocal {mbg2cPortLocal} --externalDataPortRange {mbg2DataPort} \
+    --dataplane {args["dataplane"]} {mbg2crtFlags}')
+    
+    runcmd(f"kubectl create service nodeport mbg --tcp={mbg2cPortLocal}:{mbg2cPortLocal} --node-port={mbg2cPort}")
     
     ###Run host
     printHeader("\n\nStart building host-cluster")
@@ -84,19 +85,19 @@ if __name__ == "__main__":
     runcmd(f"kubectl create -f {folCl}/iperf3-client.yaml")
     runcmd(f"kubectl create -f {folCl}/iperf3-svc.yaml")
     podhost, hostIp= buildMbgctl("host Cluster")
-    runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl start --id "hostCluster"  --ip {hostIp} --mbgIP {mbg1Ip}:30000')
+    runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl start --id "hostCluster"  --ip {hostIp} --mbgIP {mbg1Ip}:{mbg1cPort}  --dataplane {args["dataplane"]} {hostcrtFlags} ')
     printHeader(f"Add {srcSvc} (client) service to host cluster")
     runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addService --serviceId {srcSvc} --serviceIp {srcDefaultGW}')
 
     # Add MBG Peer
     printHeader("Add MBG2 peer to MBG1")
-    runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addPeer --id "MBG2" --ip {mbg2Ip} --cport "30000"')
+    runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addPeer --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort}')
     
     # Send Hello
     printHeader("Send Hello commands")
     runcmd(f'kubectl exec -i {podhost} -- ./mbgctl hello')
     
-    ###Run dest
+    ##Run dest
     printHeader("\n\nStart building dest-cluster")
     folSv=f"{proj_dir}/tests/iperf3/manifests/iperf3-server"
     runcmd(f"kind create cluster --config {folSv}/kind-config.yaml --name=dest-cluster")
@@ -104,10 +105,10 @@ if __name__ == "__main__":
     runcmd(f"kubectl create -f {folSv}/iperf3.yaml")
     podest, destIp= buildMbgctl("dest Cluster")   
     runcmd(f"kubectl create service nodeport iperf3-server --tcp=5000:5000 --node-port={iperf3DestPort}")
-    runcmdb(f'kubectl exec -i {podest} -- ./mbgctl start --id "destCluster"  --ip {destIp}  --mbgIP {mbg2Ip}:30000')
+    runcmdb(f'kubectl exec -i {podest} -- ./mbgctl start --id "destCluster"  --ip {destIp}  --mbgIP {mbg2Ip}:{mbg2cPort} --dataplane {args["dataplane"]} {destcrtFlags}')
     printHeader(f"Add {destSvc} (server) service to destination cluster")
     runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --serviceId {destSvc} --serviceIp {destIp}:{iperf3DestPort}')
-    
+
     #Add host cluster to MBG1
     runcmd(f'kubectl config use-context kind-mbg-agent1')
     printHeader("Add host cluster to MBG1")
