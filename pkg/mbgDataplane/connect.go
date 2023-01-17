@@ -190,18 +190,12 @@ func ConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (net.Conn, error) {
 // Start a Local Service which is a proxy for remote service
 // It receives connections from local service and performs Connect API
 // and sets up an mTLS forwarding to the remote service upon accepted (policy checks, etc)
-func StartLocalServer2RemoteService(serviceId, localServicePort, targetMbgIPPort, rootCA, certificate, key string) error {
+func StartProxyRemoteService(serviceId, localServicePort, targetMbgIPPort, rootCA, certificate, key string) error {
 	clog.Infof("Start to listen to %v ", localServicePort)
 	var err error
 	var acceptor net.Listener
 	dataplane := state.GetDataplane()
-	if dataplane == MTLS_TYPE {
-		//mtlsForward := MbgMtlsForwarder{ChiRouter: state.GetChiRouter()}
-		//acceptor, err = tls.Listen("tcp", localServicePort, mtlsForward.CreateTlsConfig(rootCA, certificate, key))
-		acceptor, err = net.Listen("tcp", localServicePort)
-	} else {
-		acceptor, err = net.Listen("tcp", localServicePort)
-	}
+	acceptor, err = net.Listen("tcp", localServicePort) //TODO- need to support secure endpoint
 
 	if err != nil {
 		return err

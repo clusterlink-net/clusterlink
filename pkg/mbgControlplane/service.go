@@ -54,7 +54,7 @@ func AddRemoteService(e protocol.ExposeRequest) {
 	mbgTarget := state.GetMbgTarget(e.MbgID)
 	rootCA, certFile, keyFile := state.GetMyMbgCerts()
 	mlog.Infof("Starting a local Service for remote service %s at %s->%s with certs(%s,%s,%s)", e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
-	go md.StartLocalServer2RemoteService(e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
+	go md.StartProxyRemoteService(e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
 }
 
 func GetRemoteService(svcId string) protocol.ServiceRequest {
