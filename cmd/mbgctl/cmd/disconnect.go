@@ -59,6 +59,6 @@ func disconnectReq(svcId, svcIdDest, mbgIP string) {
 		log.Fatal(err)
 	}
 	//send expose
-	resp := httpAux.HttpDelete(address, j)
+	resp := httpAux.HttpDelete(address, j, state.GetHttpClient())
 	log.Infof(`Service %s disconnect for message: %s`, svcId, string(resp))
 }
