@@ -1,11 +1,15 @@
 package state
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 	"os/user"
 	"path"
 	"syscall"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -18,6 +22,10 @@ type MbgctlState struct {
 	MbgIP           string `json:"MbgIP"`
 	IP              string `json:"IP"`
 	Id              string `json:"Id"`
+	CaFile          string
+	CertificateFile string
+	KeyFile         string
+	Dataplane       string
 	Services        map[string]MbgctlService
 	OpenConnections map[string]OpenConnection
 }
@@ -46,10 +54,14 @@ func GetId() string {
 	return s.Id
 }
 
-func SetState(ip, id, mbgIp string) {
+func SetState(ip, id, mbgIp, caFile, certificateFile, keyFile, dataplane string) {
 	s.Id = id
 	s.IP = ip
 	s.MbgIP = mbgIp
+	s.Dataplane = dataplane
+	s.CertificateFile = certificateFile
+	s.KeyFile = keyFile
+	s.CaFile = caFile
 
 	SaveState()
 }
@@ -98,6 +110,42 @@ func CloseOpenConnection(svcId, svcIdDest string) {
 		SaveState()
 	} else {
 		log.Fatalf("[%v]: connection from service %v to service %v is not exist \n", s.Id, svcId, svcIdDest)
+	}
+}
+
+func GetAddrStart() string {
+	if s.Dataplane == "mtls" {
+		return "https://"
+	} else {
+		return "http://"
+	}
+}
+func GetHttpClient() http.Client {
+	if s.Dataplane == "mtls" {
+		cert, err := ioutil.ReadFile(s.CaFile)
+		if err != nil {
+			log.Fatalf("could not open certificate file: %v", err)
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(cert)
+
+		certificate, err := tls.LoadX509KeyPair(s.CertificateFile, s.KeyFile)
+		if err != nil {
+			log.Fatalf("could not load certificate: %v", err)
+		}
+
+		client := http.Client{
+			Timeout: time.Minute * 3,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs:      caCertPool,
+					Certificates: []tls.Certificate{certificate},
+				},
+			},
+		}
+		return client
+	} else {
+		return http.Client{}
 	}
 }
 

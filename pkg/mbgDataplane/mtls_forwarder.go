@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,6 +34,7 @@ type MbgMtlsForwarder struct {
 	Name           string
 	Connection     net.Conn
 	mtlsConnection net.Conn
+	ChiRouter      *chi.Mux
 }
 
 type connDialer struct {
@@ -50,8 +52,10 @@ var mlog = logrus.WithField("component", "mbgDataplane/mTLSForwarder")
 // connect is set to true on a client side
 func (m *MbgMtlsForwarder) StartmTlsForwarder(targetIPPort, name, rootCA, certificate, key string, endpointConn net.Conn, connect bool) {
 	mlog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
+
 	// Register function for handling the dataplane traffic
-	http.HandleFunc("/mbgData/"+name, m.mbgConnectHandler)
+	mlog.Infof("Register new handle func to address =%s", "/mbgData/"+name)
+	m.ChiRouter.Get("/mbgData/"+name, m.mbgConnectHandler)
 
 	connectMbg := "https://" + targetIPPort + "/mbgData/" + name
 
@@ -59,38 +63,17 @@ func (m *MbgMtlsForwarder) StartmTlsForwarder(targetIPPort, name, rootCA, certif
 	m.Connection = endpointConn
 	m.Name = name
 	if connect {
-		// Read the key pair to create certificate
-		cert, err := tls.LoadX509KeyPair(certificate, key)
-		if err != nil {
-			mlog.Fatalf("LoadX509KeyPair -%v \ncertificate: %v \nkey:%v", err, certificate, key)
-		}
-
-		// Create a CA certificate pool and add ca to it
-		caCert, err := ioutil.ReadFile(rootCA)
-		if err != nil {
-			mlog.Fatalf("ReadFile certificate %v :%v", rootCA, err)
-		}
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(caCert)
-
-		TLSClientConfig := &tls.Config{
-			RootCAs:      caCertPool,
-			Certificates: []tls.Certificate{cert},
-		}
+		TLSClientConfig := m.CreateTlsConfig(rootCA, certificate, key)
 		mtls_conn, err := tls.Dial("tcp", targetIPPort, TLSClientConfig)
 		if err != nil {
 			mlog.Infof("Error in connecting.. %+v", err)
-		}
-
-		tlsConfig := tls.Config{RootCAs: caCertPool,
-			Certificates: []tls.Certificate{cert},
 		}
 
 		//mlog.Debugln("mTLS Debug Check:", m.certDebg(targetIPPort, name, tlsConfig))
 
 		TlsConnectClient := &http.Client{
 			Transport: &http.Transport{
-				TLSClientConfig: &tlsConfig,
+				TLSClientConfig: TLSClientConfig,
 				DialTLS:         connDialer{mtls_conn}.Dial,
 			},
 		}
@@ -104,7 +87,7 @@ func (m *MbgMtlsForwarder) StartmTlsForwarder(targetIPPort, name, rootCA, certif
 		}
 
 		m.mtlsConnection = mtls_conn
-		mlog.Infof("mtlS Connection Established RespCode(%d)", resp.StatusCode)
+		mlog.Infof("mtlS Connection Established Resp:%s(%d) to Target: %s", resp.Status, resp.StatusCode, connectMbg)
 
 		go m.mtlsDispatch()
 	}
@@ -146,7 +129,7 @@ func (m *MbgMtlsForwarder) mtlsDispatch() error {
 			if err == io.EOF {
 				err = nil //Ignore EOF error
 			} else {
-				mlog.Infof("Read error %v\n", err)
+				mlog.Infof("mtlsDispatch: Read error %v\n", err)
 			}
 			break
 		}
@@ -170,7 +153,9 @@ func (m *MbgMtlsForwarder) dispatch() error {
 			if err == io.EOF {
 				err = nil //Ignore EOF error
 			} else {
-				mlog.Infof("Read error %v\n", err)
+				mlog.Errorf("Dispatch: Read error %v  connection: (local:%s Remote:%s)->,(local: %s Remote%s) ", err,
+					m.Connection.LocalAddr(), m.Connection.RemoteAddr(), m.mtlsConnection.LocalAddr(), m.mtlsConnection.RemoteAddr())
+
 			}
 			break
 		}
@@ -197,32 +182,31 @@ func CloseMtlsServer(ip string) {
 	}
 	server.Shutdown(context.Background())
 }
-func StartMtlsServer(ip, rootCA, certificate, key string) {
-	// Create the TLS Config with the CA pool and enable Client certificate validation
+
+//Get rootCA, certificate, key  and create tls config
+func (m *MbgMtlsForwarder) CreateTlsConfig(rootCA, certificate, key string) *tls.Config {
+	// Read the key pair to create certificate
+	cert, err := tls.LoadX509KeyPair(certificate, key)
+	if err != nil {
+		mlog.Fatalf("LoadX509KeyPair -%v \ncertificate: %v \nkey:%v", err, certificate, key)
+	}
+
+	// Create a CA certificate pool and add ca to it
 	caCert, err := ioutil.ReadFile(rootCA)
 	if err != nil {
-		mlog.Fatal(err)
+		mlog.Fatalf("ReadFile certificate %v :%v", rootCA, err)
 	}
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
-	tlsConfig := &tls.Config{
-		ClientCAs:  caCertPool,
-		ClientAuth: tls.RequireAndVerifyClientCert,
+	TLSConfig := &tls.Config{
+		RootCAs:      caCertPool,
+		Certificates: []tls.Certificate{cert},
 	}
-
-	// Create a Server instance to listen on port 8443 with the TLS config
-	server := &http.Server{
-		Addr:      ip,
-		TLSConfig: tlsConfig,
-	}
-
-	mlog.Infof("Starting mTLS Server for MBG Dataplane/Controlplane")
-
-	// Listen to HTTPS connections with the server certificate and wait
-	mlog.Fatal(server.ListenAndServeTLS(certificate, key))
+	return TLSConfig
 }
 
+//method for debug only -use to debug mtls connection
 func (m *MbgMtlsForwarder) certDebg(target, name string, tlsConfig tls.Config) string {
 	mlog.Infof("Starting tls debug to addr %v name %v", target, name)
 	conn, err := tls.Dial("tcp", target, &tlsConfig)

@@ -41,21 +41,25 @@ if __name__ == "__main__":
     review3svc="review-v3"
 
     mbg1DataPort= "30001"
-    mbg1MtlsPort= "30443"
-    mbg1MtlsPortLocal= "8443"
-
+    mbg1cPort= "30443"
+    mbg1cPortLocal= "8443"
+    
     mbg2DataPort= "30001"
-    mbg2MtlsPort= "30443"
-    mbg2MtlsPortLocal= "8443"
+    mbg2cPort= "30443"
+    mbg2cPortLocal= "8443"
+
 
     srcSvc="review"
-    srcSvcIp=":9080"
+    srcSvcPort="9080"
+    srcSvcIp=":"+srcSvcPort
     srcDefaultGW="10.244.0.1"
     svcpolicy ="Forward"
 
     dataplane = args["dataplane"]
-    mbg1crtFlags =f"--rootCa ./mtls/ca.crt  --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
-    mbg2crtFlags =f"--rootCa ./mtls/ca.crt  --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    mbg1crtFlags =f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    mbg2crtFlags =f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    productCrtFlags =f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    reviewCrtFlags =f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     
 
     print(f'Working directory {proj_dir}')
@@ -78,18 +82,16 @@ if __name__ == "__main__":
         ###Run first Mbg
         printHeader("\n\nStart building MBG1")
         podMbg1, mbg1Ip= buildMbg("mbg-agent1",f"{proj_dir}/manifests/kind/mbg-config1.yaml")
-        runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg start --id "MBG1" --ip {mbg1Ip} --cport "30000" --externalDataPortRange {mbg1DataPort} \
-            --dataplane {args["dataplane"]} --mtlsport {mbg1MtlsPort} --mtlsportLocal {mbg1MtlsPortLocal} {mbg1crtFlags}')
-        if dataplane =="mtls" :
-            runcmd(f"kubectl create service nodeport mbg --tcp={mbg1MtlsPortLocal}:{mbg1MtlsPortLocal} --node-port={mbg1MtlsPort}")
+        runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg start --id "MBG1" --ip {mbg1Ip} --cport {mbg1cPort} --cportLocal {mbg1cPortLocal} --externalDataPortRange {mbg1DataPort} \
+            --dataplane {args["dataplane"]}  {mbg1crtFlags}')
+        runcmd(f"kubectl create service nodeport mbg --tcp={mbg1cPortLocal}:{mbg1cPortLocal} --node-port={mbg1cPort}")
 
         ###Run Second Mbg
         printHeader("\n\nStart building MBG2")
         podMbg2, mbg2Ip= buildMbg("mbg-agent2",f"{proj_dir}/manifests/kind/mbg-config2.yaml")
-        runcmdb(f'kubectl exec -i {podMbg2} --  ./mbg start --id "MBG2" --ip {mbg2Ip} --cport "30000" --externalDataPortRange {mbg2DataPort}\
-        --dataplane {args["dataplane"]}  --mtlsport {mbg2MtlsPort} --mtlsportLocal {mbg2MtlsPortLocal}  {mbg2crtFlags}')
-        if dataplane =="mtls":
-            runcmd(f"kubectl create service nodeport mbg --tcp={mbg2MtlsPortLocal}:{mbg2MtlsPortLocal} --node-port={mbg2MtlsPort}")
+        runcmdb(f'kubectl exec -i {podMbg2} --  ./mbg start --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort} --cportLocal {mbg2cPortLocal} --externalDataPortRange {mbg2DataPort}\
+        --dataplane {args["dataplane"]}  {mbg2crtFlags}')
+        runcmd(f"kubectl create service nodeport mbg --tcp={mbg2cPortLocal}:{mbg2cPortLocal} --node-port={mbg2cPort}")
     
         ###Run host
         printHeader("\n\nStart building product-cluster")
@@ -103,13 +105,13 @@ if __name__ == "__main__":
         runcmd(f"kubectl create -f {folpdct}/details.yaml")
         runcmd(f"kubectl create -f {folpdct}/review-svc.yaml")
         podhost, hostIp= buildMbgctl("product Cluster")
-        runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl start --id "productCluster"  --ip {hostIp} --mbgIP {mbg1Ip}:30000')
+        runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl start --id "productCluster"  --ip {hostIp} --mbgIP {mbg1Ip}:{mbg1cPort} --dataplane {args["dataplane"]} {productCrtFlags}')
         printHeader(f"Add {srcSvc} (client) service to host cluster")
         runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addService --serviceId {srcSvc} --serviceIp {srcDefaultGW}')
         
         # Add MBG Peer
         printHeader("Add MBG2 peer to MBG1")
-        runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addPeer --id "MBG2" --ip {mbg2Ip} --cport "30000"')
+        runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addPeer --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort}')
     
         # Send Hello
         printHeader("Send Hello commands")
@@ -124,12 +126,12 @@ if __name__ == "__main__":
         runcmd(f"kind load docker-image maistra/examples-bookinfo-reviews-v3 --name=review-cluster")
         runcmd(f"kind load docker-image maistra/examples-bookinfo-ratings-v1:0.12.0 --name=review-cluster")
         runcmd(f"kubectl create -f {folReview}/review-v3.yaml")
-        runcmd(f"kubectl create service nodeport reviews-v3 --tcp=9080:9080 --node-port={review3DestPort}")
+        runcmd(f"kubectl create service nodeport reviews-v3 --tcp={srcSvcPort}:{srcSvcPort} --node-port={review3DestPort}")
         runcmd(f"kubectl create -f {folReview}/review-v2.yaml")
-        runcmd(f"kubectl create service nodeport reviews-v2 --tcp=9080:9080 --node-port={review2DestPort}")
+        runcmd(f"kubectl create service nodeport reviews-v2 --tcp={srcSvcPort}:{srcSvcPort} --node-port={review2DestPort}")
         runcmd(f"kubectl create -f {folReview}/rating.yaml")
         podest, destIp= buildMbgctl("dest Cluster")   
-        runcmdb(f'kubectl exec -i {podest} -- ./mbgctl start --id "reviewCluster"  --ip {destIp} --mbgIP {mbg2Ip}:30000')
+        runcmdb(f'kubectl exec -i {podest} -- ./mbgctl start --id "reviewCluster"  --ip {destIp} --mbgIP {mbg2Ip}:{mbg2cPort} --dataplane {args["dataplane"]} {reviewCrtFlags}')
         printHeader(f"Add {review2svc} (server) service to destination cluster")
         runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --serviceId {review2svc} --serviceIp {destIp}:{review2DestPort}')
         runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --serviceId {review3svc} --serviceIp {destIp}:{review3DestPort}')

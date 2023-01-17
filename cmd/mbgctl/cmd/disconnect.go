@@ -52,7 +52,7 @@ func disconnectClient(svcId, svcIdDest string) {
 
 func disconnectReq(svcId, svcIdDest, mbgIP string) {
 	log.Printf("Start disconnect Request to MBG %v for service %v:%v", mbgIP, svcId, svcIdDest)
-	address := "http://" + mbgIP + "/connect"
+	address := state.GetAddrStart() + mbgIP + "/connect"
 
 	j, err := json.Marshal(protocol.DisconnectRequest{Id: svcId, IdDest: svcIdDest})
 	if err != nil {
