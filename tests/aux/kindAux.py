@@ -8,13 +8,14 @@ proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 folMfst=f"{proj_dir}/manifests"
 
 def waitPod(name):
-    start_cond="false"
-    time.sleep(3) #Initial start
-    while(start_cond != "true"):
-        cmd=f"kubectl get pods -l app={name} -o jsonpath" + "=\'{.items[0].status.containerStatuses[0].ready}\'"
-        start_cond =sp.getoutput(cmd)
-        if (start_cond != "true"):
-            print (f"Waiting for pod {name} to start")
+    time.sleep(2) #Initial start
+    podStatus=""
+    while(podStatus != "Running"):
+        #cmd=f"kubectl get pods -l app={name} -o jsonpath" + "=\'{.items[0].status.containerStatuses[0].ready}\'"
+        cmd=f"kubectl get pods -l app={name} "+ '--no-headers -o custom-columns=":status.phase"'
+        podStatus =sp.getoutput(cmd)
+        if (podStatus != "Running"):
+            print (f"Waiting for pod {name} to start current status: {podStatus}")
             time.sleep(7)
         else:
             time.sleep(5)
@@ -23,6 +24,11 @@ def waitPod(name):
 def getPodName(prefix):
     podName=sp.getoutput(f'kubectl get pods -o name | fgrep {prefix}| cut -d\'/\' -f2')
     return podName
+
+def getPodIp(name):
+    name=getPodName(name)
+    podIp=sp.getoutput(f"kubectl get pod {name}"+" --template '{{.status.podIP}}'")
+    return podIp
 
 def runcmd(cmd):
     print(cmd)
@@ -65,10 +71,13 @@ def buildMbg(name,cfg):
     mbgIp=getKindIp(name)
     return podMbg, mbgIp
 
-def buildMbgctl(name):
+def buildMbgctl(name, mbgMode):
     runcmd(f"kubectl create -f {folMfst}/mbgctl/mbgctl.yaml")
     runcmd(f"kubectl create -f {folMfst}/mbgctl/mbgctl-svc.yaml")
+    podName= getPodName("mbgctl")
     waitPod("mbgctl")
-    name= getPodName("mbgctl")
-    ip=getKindIp(name)
-    return name, ip 
+    ip= getPodIp("mbgctl") if mbgMode=="inside" else getKindIp(name)
+    return podName, ip 
+
+def useKindCluster(name):
+    runcmd(f'kubectl config use-context kind-{name}')

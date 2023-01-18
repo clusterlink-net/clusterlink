@@ -108,8 +108,6 @@ func CloseOpenConnection(svcId, svcIdDest string) {
 		syscall.Kill(val.PId, syscall.SIGINT)
 		log.Infof("[%v]: Delete connection: %v", s.Id, val)
 		SaveState()
-	} else {
-		log.Fatalf("[%v]: connection from service %v to service %v is not exist \n", s.Id, svcId, svcIdDest)
 	}
 }
 
