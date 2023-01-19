@@ -4,51 +4,82 @@
 /**********************************************************/
 package policyEngine
 
-var PolicyMap = make(map[string]Policy)
+import (
+	"encoding/json"
+	"log"
+	"net/http"
 
-//TODO Placeholder for policy type
-const (
-	connection int = iota
-	service
-	global
+	"github.com/go-chi/chi"
+	"github.com/sirupsen/logrus"
+	event "github.ibm.com/mbg-agent/pkg/eventManager"
 )
 
-type Policy struct {
-	Name   string
-	Desc   string
-	Target string
-	PType  int
+var plog = logrus.WithField("component", "PolicyEngine")
+
+type PolicyHandler struct{}
+
+func (pH PolicyHandler) Routes() chi.Router {
+	r := chi.NewRouter()
+	r.Get("/", pH.policyWelcome)
+
+	r.Route("/NewConnectionRequest", func(r chi.Router) {
+		r.Post("/", pH.newConnectionRequest) // New connection Request
+	})
+
+	r.Route("/AddPeerRequest", func(r chi.Router) {
+		r.Post("/", pH.addPeerRequest) // New connection Request
+	})
+	return r
 }
 
-func AddPolicy(name string, desc string, target string, ptype int) {
-	PolicyMap[name] = Policy{name, desc, target, ptype}
-}
-
-// This is applicable, if we attach a separate Policy Agent (e.g. )
-func GetPolicyTarget(policy string) string {
-
-	policyObj, found := PolicyMap[policy]
-	if found {
-		// Ideally we need to allocate a free port for the policy per service pair
-		return policyObj.Target
-	} else {
-		return ""
+func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Request) {
+	var requestAttr event.ConnectionRequestAttr
+	err := json.NewDecoder(r.Body).Decode(&requestAttr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 }
 
-// Implement Global policies
-func ApplyGlobalPolicies(serviceID string) {
-	// Global access control policies can be applied here.
+func (pH PolicyHandler) addPeerRequest(w http.ResponseWriter, r *http.Request) {
+	var requestAttr event.AddPeerAttr
+	err := json.NewDecoder(r.Body).Decode(&requestAttr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	plog.Infof("Add Peer reqest : %+v", requestAttr)
+	respJson, err := json.Marshal(event.AddPeerResp{Action: event.Allow})
+	if err != nil {
+		panic(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	_, err = w.Write(respJson)
+	if err != nil {
+		plog.Errorf("Unable to write response %v", err)
+	}
 }
 
-// Implement Service policies
-func ApplyServicePolicies(serviceID string) {
-	// Service-level access policies can be applied here.
-	// e.g No. of outgoing connections per service
+func (pH PolicyHandler) policyWelcome(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write([]byte("Welcome to Policy Engine"))
+	if err != nil {
+		log.Println(err)
+	}
 }
 
-// Implement Connection-level policies
-func ApplyConnectionPolicies(connID string) {
-	// Connection-level access policies can be applied here.
-	// e.g Rate-limit for  connections
+func StartPolicyDispatcher(router *chi.Mux, ip string) {
+	plog.Infof("Policy Engine [%v] started")
+
+	router.Mount("/policy", PolicyHandler{}.Routes())
+
+	//Use router to start the server
+	plog.Infof("Starting HTTP server, listening to: %v", ip)
+	err := http.ListenAndServe(ip, router)
+	if err != nil {
+		log.Println(err)
+	}
+
 }

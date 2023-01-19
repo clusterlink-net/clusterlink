@@ -9,7 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
-	"github.ibm.com/mbg-agent/pkg/policyEngine"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 )
@@ -104,34 +103,16 @@ func ConnectService(svcListenPort, svcIp, policy, connName string, serverConn, c
 	srcIp := svcListenPort
 	destIp := svcIp
 
-	policyTarget := policyEngine.GetPolicyTarget(policy)
-	if policyTarget == "" {
-		// No Policy to be applied
-		var forward MbgTcpForwarder
-		forward.InitTcpForwarder(srcIp, destIp, connName)
-		if serverConn != nil {
-			forward.SetServerConnection(serverConn)
-		}
-		if clientConn != nil {
-			forward.SetClientConnection(clientConn)
-		}
-		forward.RunTcpForwarder()
-	} else {
-		var ingress MbgTcpForwarder
-		var egress MbgTcpForwarder
-
-		ingress.InitTcpForwarder(srcIp, policyTarget, connName)
-		egress.InitTcpForwarder(policyTarget, destIp, connName)
-		if serverConn != nil {
-			ingress.SetServerConnection(serverConn)
-		}
-		if clientConn != nil {
-			egress.SetServerConnection(clientConn)
-		}
-		ingress.RunTcpForwarder()
-		egress.RunTcpForwarder()
+	// No Policy to be applied
+	var forward MbgTcpForwarder
+	forward.InitTcpForwarder(srcIp, destIp, connName)
+	if serverConn != nil {
+		forward.SetServerConnection(serverConn)
 	}
-
+	if clientConn != nil {
+		forward.SetClientConnection(clientConn)
+	}
+	forward.RunTcpForwarder()
 }
 
 //Send control request to connect
