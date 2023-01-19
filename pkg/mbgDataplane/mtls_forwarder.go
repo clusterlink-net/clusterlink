@@ -50,7 +50,53 @@ var mlog = logrus.WithField("component", "mbgDataplane/mTLSForwarder")
 // Start mtls Forwarder on a specific mtls target
 // targetIPPort in the format of <ip:port>
 // connect is set to true on a client side
-func (m *MbgMtlsForwarder) StartmTlsForwarder(targetIPPort, name, rootCA, certificate, key string, endpointConn net.Conn, connect bool) {
+func (m *MbgMtlsForwarder) StartMtlsForwarderClient(targetIPPort, name, rootCA, certificate, key string, endpointConn net.Conn) {
+	mlog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
+
+	connectMbg := "https://" + targetIPPort + "/mbgData/" + name
+
+	mlog.Infof("Connect MBG Target =%s", connectMbg)
+	m.Connection = endpointConn
+	m.Name = name
+
+	//Create TCP connection with TLS handshake
+	TLSClientConfig := m.CreateTlsConfig(rootCA, certificate, key)
+	mtls_conn, err := tls.Dial("tcp", targetIPPort, TLSClientConfig)
+	if err != nil {
+		mlog.Infof("Error in connecting.. %+v", err)
+	}
+
+	//mlog.Debugln("mTLS Debug Check:", m.certDebg(targetIPPort, name, tlsConfig))
+
+	TlsConnectClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: TLSClientConfig,
+			DialTLS:         connDialer{mtls_conn}.Dial,
+		},
+	}
+	req, err := http.NewRequest(http.MethodGet, connectMbg, nil)
+	if err != nil {
+		mlog.Infof("Failed to create new request %v", err)
+	}
+	resp, err := TlsConnectClient.Do(req)
+	if err != nil {
+		mlog.Infof("Error in Tls Connection %v", err)
+	}
+
+	m.mtlsConnection = mtls_conn
+	mlog.Infof("mtlS Connection Established Resp:%s(%d) to Target: %s", resp.Status, resp.StatusCode, connectMbg)
+
+	//From forwarder to other MBG
+	go m.mtlsDispatch()
+	//From source to forwarder
+	go m.dispatch()
+	mlog.Infof("Starting mTLS Forwarder client for MBG Dataplane at /mbgData/%s  to target %s with certs(%s,%s)", m.Name, targetIPPort, certificate, key)
+
+}
+
+// Start mtls Forwarder server on a specific mtls target
+// Register handling function (for hijack the connection) and start dispatch to destination
+func (m *MbgMtlsForwarder) StartMtlsForwarderServer(targetIPPort, name, rootCA, certificate, key string, endpointConn net.Conn) {
 	mlog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
 
 	// Register function for handling the dataplane traffic
@@ -62,37 +108,9 @@ func (m *MbgMtlsForwarder) StartmTlsForwarder(targetIPPort, name, rootCA, certif
 	mlog.Infof("Connect MBG Target =%s", connectMbg)
 	m.Connection = endpointConn
 	m.Name = name
-	if connect {
-		TLSClientConfig := m.CreateTlsConfig(rootCA, certificate, key)
-		mtls_conn, err := tls.Dial("tcp", targetIPPort, TLSClientConfig)
-		if err != nil {
-			mlog.Infof("Error in connecting.. %+v", err)
-		}
 
-		//mlog.Debugln("mTLS Debug Check:", m.certDebg(targetIPPort, name, tlsConfig))
-
-		TlsConnectClient := &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: TLSClientConfig,
-				DialTLS:         connDialer{mtls_conn}.Dial,
-			},
-		}
-		req, err := http.NewRequest(http.MethodGet, connectMbg, nil)
-		if err != nil {
-			mlog.Infof("Failed to create new request %v", err)
-		}
-		resp, err := TlsConnectClient.Do(req)
-		if err != nil {
-			mlog.Infof("Error in Tls Connection %v", err)
-		}
-
-		m.mtlsConnection = mtls_conn
-		mlog.Infof("mtlS Connection Established Resp:%s(%d) to Target: %s", resp.Status, resp.StatusCode, connectMbg)
-
-		go m.mtlsDispatch()
-	}
 	go m.dispatch()
-	mlog.Infof("Starting mTLS Forwarder for MBG Dataplane at /mbgData/%s  to target %s with certs(%s,%s)", m.Name, targetIPPort, certificate, key)
+	mlog.Infof("Starting mTLS Forwarder server for MBG Dataplane at /mbgData/%s  to target %s with certs(%s,%s)", m.Name, targetIPPort, certificate, key)
 
 }
 
