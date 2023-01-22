@@ -51,7 +51,7 @@ def printHeader(msg):
     print(f'{Fore.BLUE}{msg} {Style.RESET_ALL}')
     #print(msg)
 
-def getMbgPorts(podMbg, srcSvc, destSvc):
+def getMbgPorts(podMbg, destSvc):
     mbgJson=json.loads(sp.getoutput(f' kubectl exec -i {podMbg} -- cat ./root/.mbgApp'))
     localPort =(mbgJson["Connections"][destSvc]["Local"]).split(":")[1]
     externalPort =(mbgJson["Connections"][destSvc]["External"]).split(":")[1]

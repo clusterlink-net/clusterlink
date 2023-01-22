@@ -157,7 +157,7 @@ if __name__ == "__main__":
     runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl getService')
     # Create Nodeport inside mbg1
     useKindCluster(mbg1ClusterName)
-    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, srcSvc,destSvc)
+    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1,destSvc)
     
     if mbgMode !="inside":
         runcmd(f"kubectl create service nodeport {srcSvc} --tcp={mbg1LocalPort}:{mbg1LocalPort} --node-port={mbg1ExternalPort}")

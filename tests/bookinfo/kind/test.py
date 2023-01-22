@@ -14,7 +14,7 @@ def connectSvc(srcSvc,destSvc,srcK8sName,policy):
     printHeader(f"\n\nStart connect {srcSvc} to {destSvc}")
     useKindCluster(mbg1ClusterName)    
     podMbg1= getPodName("mbg-deployment")        
-    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, srcSvc, destSvc)
+    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, destSvc)
     if mbgMode !="inside": #Set forwarder
         printHeader(f"\n\nStart Data plan connection {srcSvc} to {destSvc}")
         useKindCluster(productClusterName)
