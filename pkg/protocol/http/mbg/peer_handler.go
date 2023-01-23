@@ -25,6 +25,10 @@ func (m MbgHandler) peerPost(w http.ResponseWriter, r *http.Request) {
 
 	//Response
 	w.WriteHeader(http.StatusOK)
+	_, err = w.Write([]byte("Expose succeed"))
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func (m MbgHandler) peerGet(w http.ResponseWriter, r *http.Request) {
