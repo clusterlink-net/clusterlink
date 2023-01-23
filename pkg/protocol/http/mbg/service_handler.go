@@ -23,7 +23,7 @@ func (m MbgHandler) addLocalServicePost(w http.ResponseWriter, r *http.Request) 
 
 	}
 	//AddService control plane logic
-	log.Infof("Received Add local service command to service: %v", s.Id)
+	log.Debugf("Received Add local service command to service: %v", s.Id)
 	mbgControlplane.AddLocalService(s)
 
 	//Response
@@ -37,7 +37,7 @@ func (m MbgHandler) addLocalServicePost(w http.ResponseWriter, r *http.Request) 
 func (m MbgHandler) allLocalServicesGet(w http.ResponseWriter, r *http.Request) {
 
 	//GetService control plane logic
-	log.Info("Received get local services command")
+	log.Debug("Received get local services command")
 	sArr := mbgControlplane.GetAllLocalServices()
 
 	//Response
@@ -47,7 +47,7 @@ func (m MbgHandler) allLocalServicesGet(w http.ResponseWriter, r *http.Request) 
 		log.Errorf("Error happened in JSON marshal. Err: %s", err)
 		return
 	}
-	log.Info("Send all services ")
+	log.Debug("Send all services")
 	_, err = w.Write(jsonResp)
 	if err != nil {
 		log.Println(err)
@@ -60,7 +60,7 @@ func (m MbgHandler) localServiceGet(w http.ResponseWriter, r *http.Request) {
 	svcId := chi.URLParam(r, "svcId")
 
 	//GetService control plane logic
-	log.Infof("Received get local service command to service: %v", svcId)
+	log.Debugf("Received get local service command to service: %v", svcId)
 	s := mbgControlplane.GetLocalService(svcId)
 
 	//Response
@@ -88,7 +88,7 @@ func (m MbgHandler) addRemoteServicePost(w http.ResponseWriter, r *http.Request)
 
 	}
 	//AddService control plane logic
-	log.Infof("Received Add remote service command to service: %v", e.Id)
+	log.Debugf("Received Add remote service command to service: %v", e.Id)
 	mbgControlplane.AddRemoteService(e)
 
 	//Response
@@ -102,7 +102,7 @@ func (m MbgHandler) addRemoteServicePost(w http.ResponseWriter, r *http.Request)
 func (m MbgHandler) allRemoteServicesGet(w http.ResponseWriter, r *http.Request) {
 
 	//GetService control plane logic
-	log.Info("Received get Remote services command")
+	log.Debug("Received get Remote services command")
 	sArr := mbgControlplane.GetAllRemoteServices()
 
 	//Response
@@ -112,7 +112,7 @@ func (m MbgHandler) allRemoteServicesGet(w http.ResponseWriter, r *http.Request)
 		log.Errorf("Error happened in JSON marshal. Err: %s", err)
 		return
 	}
-	log.Info("Send all services ")
+
 	_, err = w.Write(jsonResp)
 	if err != nil {
 		log.Println(err)

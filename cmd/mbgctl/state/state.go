@@ -86,13 +86,13 @@ func AddService(id, ip string) {
 
 	s.Services[id] = MbgctlService{Service: service.Service{id, ip}}
 	SaveState()
-	log.Infof("[%v] Add service: %v", s.Id, s.Services[id])
+	log.Debugf("[%v] Add service: %v", s.Id, s.Services[id])
 	s.Print()
 }
 
 func (s *MbgctlState) Print() {
-	log.Infof("[%v]: Id: %v ip: %v mbgip: %v", s.Id, s.Id, s.IP, s.MbgIP)
-	log.Infof("[%v]: services %v", s.Id, s.Services)
+	log.Debugf("[%v]: Id: %v ip: %v mbgip: %v", s.Id, s.Id, s.IP, s.MbgIP)
+	log.Debugf("[%v]: services %v", s.Id, s.Services)
 }
 
 func AddOpenConnection(svcId, svcIdDest string, pId int) {
