@@ -58,8 +58,11 @@ def getMbgPorts(podMbg, destSvc):
     print(f"Service nodeport will use local Port: {localPort} and externalPort:{externalPort}")
     return localPort, externalPort
 
-def buildMbg(name,cfg):
-    runcmd(f"kind create cluster --config {cfg} --name={name}")
+def buildMbg(name,cfg=""):
+    if cfg != "": 
+        runcmd(f"kind create cluster --config {cfg} --name={name}")
+    else:
+        runcmd(f"kind create cluster --name={name}")
     runcmd(f"kind load docker-image mbg --name={name}")
     runcmd(f"kind load docker-image tcp-split --name={name}")
     runcmd(f"kubectl create -f {folMfst}/mbg/mbg.yaml")

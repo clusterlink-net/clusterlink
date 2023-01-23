@@ -64,10 +64,10 @@ run-mbg:
 	@./bin/mbg
 
 run-kind-iperf3:
-	python3 tests/iperf3/kind/test.py
+	python3 tests/iperf3/kind/test.py -d mtls
 
 run-kind-bookinfo:
-	python3 tests/bookinfo/kind/test.py
+	python3 tests/bookinfo/kind/test.py -d mtls
 
 #------------------------------------------------------
 # Clena targets
@@ -81,6 +81,7 @@ clean-kind-iperf3:
 clean-kind-bookinfo:
 	kind delete cluster --name=mbg-agent1
 	kind delete cluster --name=mbg-agent2
+	kind delete cluster --name=mbg-agent3
 	kind delete cluster --name=product-cluster
 	kind delete cluster --name=review-cluster
 
