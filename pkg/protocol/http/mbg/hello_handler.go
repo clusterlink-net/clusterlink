@@ -19,9 +19,9 @@ func (m MbgHandler) sendHello(w http.ResponseWriter, r *http.Request) {
 
 	//Hello control plane logic
 	log.Infof("Send Hello to MBG id: %v", mbgID)
-	mbgControlplane.SendHello(mbgID)
+	resp := mbgControlplane.SendHello(mbgID)
 
-	j, err := json.Marshal(protocol.HelloResponse{Status: "success"})
+	j, err := json.Marshal(protocol.HelloResponse{Status: resp})
 	if err != nil {
 		log.Error(err)
 		return
@@ -39,9 +39,9 @@ func (m MbgHandler) sendHello2All(w http.ResponseWriter, r *http.Request) {
 
 	//Hello control plane logic
 	log.Infof("Send Hello to MBG peers")
-	mbgControlplane.SendHello2All()
+	resp := mbgControlplane.SendHello2All()
 
-	j, err := json.Marshal(protocol.HelloResponse{Status: "success"})
+	j, err := json.Marshal(protocol.HelloResponse{Status: resp})
 	if err != nil {
 		log.Error(err)
 		return

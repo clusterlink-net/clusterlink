@@ -51,15 +51,18 @@ def printHeader(msg):
     print(f'{Fore.BLUE}{msg} {Style.RESET_ALL}')
     #print(msg)
 
-def getMbgPorts(podMbg, srcSvc, destSvc):
+def getMbgPorts(podMbg, destSvc):
     mbgJson=json.loads(sp.getoutput(f' kubectl exec -i {podMbg} -- cat ./root/.mbgApp'))
     localPort =(mbgJson["Connections"][destSvc]["Local"]).split(":")[1]
     externalPort =(mbgJson["Connections"][destSvc]["External"]).split(":")[1]
     print(f"Service nodeport will use local Port: {localPort} and externalPort:{externalPort}")
     return localPort, externalPort
 
-def buildMbg(name,cfg):
-    runcmd(f"kind create cluster --config {cfg} --name={name}")
+def buildMbg(name,cfg=""):
+    if cfg != "": 
+        runcmd(f"kind create cluster --config {cfg} --name={name}")
+    else:
+        runcmd(f"kind create cluster --name={name}")
     runcmd(f"kind load docker-image mbg --name={name}")
     runcmd(f"kind load docker-image tcp-split --name={name}")
     runcmd(f"kubectl create -f {folMfst}/mbg/mbg.yaml")

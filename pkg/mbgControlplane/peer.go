@@ -22,6 +22,18 @@ func AddPeer(p protocol.PeerRequest) {
 	state.AddMbgNbr(p.Id, p.Ip, p.Cport)
 }
 
+func GetAllPeers() map[string]protocol.PeerRequest {
+	//Update MBG state
+	state.UpdateState()
+	pArr := make(map[string]protocol.PeerRequest)
+
+	for _, s := range state.GetMbgArr() {
+		pArr[s.Id] = protocol.PeerRequest{Id: s.Id, Ip: s.Ip, Cport: s.Cport.External}
+	}
+	return pArr
+
+}
+
 func GetPeer(peerID string) protocol.PeerRequest {
 	//Update MBG state
 	state.UpdateState()

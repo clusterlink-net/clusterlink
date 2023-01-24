@@ -10,12 +10,13 @@ clean: ; $(info $(M) cleaning...)	@
 #------------------------------------------------------
 
 prereqs: 											## Verify that required utilities are installed
-	@echo -- $@ --
+	@echo -- $@ for MBG Project--
 	@go version || (echo "Please install GOLANG: https://go.dev/doc/install" && exit 1)
 #	@which goimports || (echo "Please install goimports: https://pkg.go.dev/golang.org/x/tools/cmd/goimports" && exit 1)
 	@kubectl version --client || (echo "Please install kubectl: https://kubernetes.io/docs/tasks/tools/" && exit 1)
 	@docker version --format 'Docker v{{.Server.Version}}' || (echo "Please install Docker Engine: https://docs.docker.com/engine/install" && exit 1)
 	@kind --version || (echo "Please install kind: https://kind.sigs.k8s.io/docs/user/quick-start/#installation" && exit 1)
+	@python3 --version || (echo "Please install python3 https://www.python.org/downloads/ "&& exit 1)
 
 .PHONY: precommit format lint
 precommit: format lint
@@ -63,10 +64,10 @@ run-mbg:
 	@./bin/mbg
 
 run-kind-iperf3:
-	python3 tests/iperf3/kind/test.py
+	python3 tests/iperf3/kind/test.py -d mtls
 
 run-kind-bookinfo:
-	python3 tests/bookinfo/kind/test.py
+	python3 tests/bookinfo/kind/test.py -d mtls
 
 #------------------------------------------------------
 # Clena targets
@@ -80,6 +81,7 @@ clean-kind-iperf3:
 clean-kind-bookinfo:
 	kind delete cluster --name=mbg-agent1
 	kind delete cluster --name=mbg-agent2
+	kind delete cluster --name=mbg-agent3
 	kind delete cluster --name=product-cluster
 	kind delete cluster --name=review-cluster
 

@@ -53,9 +53,10 @@ func getAllServicesReq(servicetype string) {
 	if err := json.Unmarshal(resp, &sArr); err != nil {
 		log.Fatal("getAllServicesReq Error :", err)
 	}
+	log.Infof("MBG services:")
 	for _, s := range sArr {
 		state.AddService(s.Id, s.Ip)
-		log.Infof(`Response message from MBG getting service: %s with ip: %s`, s.Id, s.Ip)
+		log.Infof("Service: %s Ip: %s", s.Id, s.Ip)
 	}
 
 }

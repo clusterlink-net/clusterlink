@@ -388,7 +388,7 @@ func SaveState() {
 	log.Infof("Update MBG state")
 	dataMutex.Lock()
 	jsonC, _ := json.MarshalIndent(s, "", "\t")
-	log.Debugf("state save in", configPath())
+	log.Info("state save in ", configPath())
 	ioutil.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
 	dataMutex.Unlock()
 }

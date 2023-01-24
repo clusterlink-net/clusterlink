@@ -11,18 +11,23 @@ import (
 
 var log = logrus.WithField("component", "httpHandler")
 
+const (
+	RESPOK   string = "Success"
+	RESPFAIL string = "Fail"
+)
+
 //Helper gunction for get response
 func HttpGet(url string, cl http.Client) []byte {
 	resp, err := cl.Get(url)
 	if err != nil {
-		log.Errorln(err)
-		return nil
+		log.Errorln("Get Response", err)
+		return []byte(RESPFAIL)
 	}
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Errorln(err)
-		return nil
+		log.Errorln("Get buffer read Response", err)
+		return []byte(RESPFAIL)
 	}
 	//Convert the body to type string
 	return body
@@ -34,15 +39,15 @@ func HttpPost(url string, jsonData []byte, cl http.Client) []byte {
 		bytes.NewBuffer(jsonData))
 
 	if err != nil {
-		log.Errorln(err)
-		return nil
+		log.Errorln("Post Response", err)
+		return []byte(RESPFAIL)
 	}
 
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Errorln(err)
-		return nil
+		log.Errorln("Post buffer read Response", err)
+		return []byte(RESPFAIL)
 	}
 
 	return body
@@ -57,14 +62,14 @@ func HttpDelete(url string, jsonData []byte, cl http.Client) []byte {
 
 	if err != nil {
 		log.Errorln("HttpDelete req:", err)
-		return nil
+		return []byte(RESPFAIL)
 	}
 
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Errorln("HttpDelete Read:", err)
-		return nil
+		return []byte(RESPFAIL)
 	}
 
 	return body
