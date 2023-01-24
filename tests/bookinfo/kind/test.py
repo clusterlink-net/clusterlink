@@ -153,7 +153,6 @@ if __name__ == "__main__":
         runcmd(f"kind load docker-image maistra/examples-bookinfo-reviews-v2 --name={mbg2ClusterName}")
         runcmd(f"kind load docker-image maistra/examples-bookinfo-ratings-v1:0.12.0 --name={mbg2ClusterName}")
         runcmd(f"kubectl create -f {folReview}/review-v2.yaml")
-        runcmd(f"kubectl create service nodeport {review2svc} --tcp={srcK8sSvcPort}:{srcK8sSvcPort} --node-port={review2DestPort}")
         runcmd(f"kubectl create -f {folReview}/rating.yaml")
         mbgctl2name, mbgctl2Ip= buildMbgctl(mbgctl2Name, mbgMode="inside")   
         destMbg2Ip = f"{getPodIp(podMbg2)}:{mbg2cPortLocal}" 
@@ -169,7 +168,6 @@ if __name__ == "__main__":
         runcmd(f"kind load docker-image maistra/examples-bookinfo-reviews-v3 --name={mbg3ClusterName}")
         runcmd(f"kind load docker-image maistra/examples-bookinfo-ratings-v1:0.12.0 --name={mbg3ClusterName}")
         runcmd(f"kubectl create -f {folReview}/review-v3.yaml")
-        runcmd(f"kubectl create service nodeport {review3svc} --tcp={srcK8sSvcPort}:{srcK8sSvcPort} --node-port={review3DestPort}")
         runcmd(f"kubectl create -f {folReview}/rating.yaml")
         mbgctl3name, mbgctl3Ip= buildMbgctl(mbgctl3Name , mbgMode="inside")   
         destMbg3Ip = f"{getPodIp(podMbg3)}:{mbg3cPortLocal}" 
