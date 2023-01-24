@@ -31,6 +31,25 @@ func (m MbgHandler) peerPost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (m MbgHandler) peerGetAll(w http.ResponseWriter, r *http.Request) {
+
+	//AddPeer control plane logic
+	p := mbgControlplane.GetAllPeers()
+
+	//Response
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	jsonResp, err := json.Marshal(p)
+	if err != nil {
+		log.Errorf("Error happened in JSON marshal. Err: %s", err)
+		return
+	}
+	_, err = w.Write(jsonResp)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func (m MbgHandler) peerGet(w http.ResponseWriter, r *http.Request) {
 
 	mbgID := chi.URLParam(r, "mbgID")
