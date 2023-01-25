@@ -10,8 +10,8 @@ import (
 )
 
 // addPolicyCmd represents the addPolicy command
-var addPolicyCmd = &cobra.Command{
-	Use:   "addPolicy",
+var addPolicyEngineCmd = &cobra.Command{
+	Use:   "addPolicyEngine",
 	Short: "add the list of Policies that the MBG supports",
 	Long:  `add the list of Policies that the MBG supports`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -23,6 +23,6 @@ var addPolicyCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(addPolicyCmd)
-	addPolicyCmd.Flags().String("target", "", "Target endpoint(e.g.ip:port) to reach the policy agent")
+	rootCmd.AddCommand(addPolicyEngineCmd)
+	addPolicyEngineCmd.Flags().String("target", "", "Target endpoint(e.g.ip:port) to reach the policy agent")
 }

@@ -151,6 +151,7 @@ func StartProxyRemoteService(serviceId, localServicePort, targetMbgIPPort, rootC
 		destSvc := state.GetRemoteService(serviceId)
 		var mbgIP string
 		if policyResp.TargetMbg == "" {
+			// Policy Agent hasnt suggested anything any target MBG, hence we fall back to our defaults
 			mbgIP = state.GetServiceMbgIp(destSvc.Service.Ip)
 		} else {
 			mbgIP = state.GetMbgTarget(policyResp.TargetMbg)

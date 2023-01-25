@@ -109,7 +109,6 @@ func sendLbPolicy(service string, policy int) {
 	url := state.GetPolicyDispatcher() + "/" + lb + "/setPolicy"
 	httpClient := http.Client{}
 
-	log.Infof("Sending ACL Policy %s", url)
 	jsonReq, err := json.Marshal(policyEngine.LoadBalancerRule{Service: service, Policy: policy})
 	if err != nil {
 		log.Errorf("Unable to marshal json %v", err)

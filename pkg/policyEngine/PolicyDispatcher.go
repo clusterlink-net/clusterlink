@@ -233,10 +233,11 @@ func (pH PolicyHandler) init(router *chi.Mux, ip string) {
 	pH.loadBalancer = &LoadBalancer{}
 	pH.accessControl.Init()
 	pH.loadBalancer.Init()
+
 	pH.SubscriptionMap[event.NewConnectionRequest] = policyList1
 	pH.SubscriptionMap[event.AddPeerRequest] = policyList2
 	pH.SubscriptionMap[event.NewRemoteService] = policyList2
-	pH.SubscriptionMap[event.ExposeRequest] = []string{"AccessControl"}
+	pH.SubscriptionMap[event.ExposeRequest] = policyList2
 
 	plog.Infof("Subscription Map - %+v", pH.SubscriptionMap)
 

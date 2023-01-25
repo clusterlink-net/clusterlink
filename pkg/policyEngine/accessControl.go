@@ -119,8 +119,57 @@ func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst stri
 	priority := math.MaxInt
 	bitrate := 0
 	plog.Infof("ACL Lookup (%s, %s, %s)", serviceSrc, serviceDst, mbgDst)
-	// 001
-	prio, action, rate := A.RulesLookup(event.Wildcard, event.Wildcard, mbgDst)
+	// For now, we perform something like an LPM (Longest Prefix Match) with priority
+	// Return the first matching rule if priority is 0, Otherwise, check next matches and
+	// return the match with the highest priority (0 is high priority, MaxInt is low priority)
+
+	// 111
+	prio, action, rate := A.RulesLookup(serviceSrc, serviceDst, mbgDst)
+	if prio == 0 {
+		return action, rate
+	}
+	if prio < priority {
+		resultAction = action
+		bitrate = rate
+	}
+	// 110
+	prio, action, rate = A.RulesLookup(serviceSrc, serviceDst, event.Wildcard)
+	if prio == 0 {
+		return action, rate
+	}
+	if prio < priority {
+		priority = prio
+		resultAction = action
+		bitrate = rate
+	}
+
+	// 101
+	prio, action, rate = A.RulesLookup(serviceSrc, event.Wildcard, mbgDst)
+	if prio == 0 {
+		return action, rate
+	}
+	if prio < priority {
+		priority = prio
+		resultAction = action
+		bitrate = rate
+	}
+
+	// 011
+	prio, action, rate = A.RulesLookup(event.Wildcard, serviceDst, mbgDst)
+	if prio == 0 {
+		return action, rate
+	}
+	if prio < priority {
+		priority = prio
+		resultAction = action
+		bitrate = rate
+	}
+
+	// 100
+	prio, action, rate = A.RulesLookup(serviceSrc, event.Wildcard, event.Wildcard)
+	if prio == 0 {
+		return action, rate
+	}
 	if prio < priority {
 		priority = prio
 		resultAction = action
@@ -136,51 +185,9 @@ func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst stri
 		resultAction = action
 		bitrate = rate
 	}
-	// 011
-	prio, action, rate = A.RulesLookup(event.Wildcard, serviceDst, mbgDst)
-	if prio == 0 {
-		return action, rate
-	}
-	if prio < priority {
-		priority = prio
-		resultAction = action
-		bitrate = rate
-	}
-	// 100
-	prio, action, rate = A.RulesLookup(serviceSrc, event.Wildcard, event.Wildcard)
-	if prio == 0 {
-		return action, rate
-	}
-	if prio < priority {
-		priority = prio
-		resultAction = action
-		bitrate = rate
-	}
-	// 101
-	prio, action, rate = A.RulesLookup(serviceSrc, event.Wildcard, mbgDst)
-	if prio == 0 {
-		return action, rate
-	}
-	if prio < priority {
-		priority = prio
-		resultAction = action
-		bitrate = rate
-	}
-	// 110
-	prio, action, rate = A.RulesLookup(serviceSrc, serviceDst, event.Wildcard)
-	if prio == 0 {
-		return action, rate
-	}
-	if prio < priority {
-		priority = prio
-		resultAction = action
-		bitrate = rate
-	}
-	// 111
-	prio, action, rate = A.RulesLookup(serviceSrc, serviceDst, mbgDst)
-	if prio == 0 {
-		return action, rate
-	}
+
+	// 001
+	prio, action, rate = A.RulesLookup(event.Wildcard, event.Wildcard, mbgDst)
 	if prio < priority {
 		resultAction = action
 		bitrate = rate
