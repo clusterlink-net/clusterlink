@@ -17,7 +17,7 @@ var mlog = logrus.WithField("component", "mbgControlPlane/Expose")
 func Expose(e protocol.ExposeRequest) {
 	//Update MBG state
 	state.UpdateState()
-	state.AddLocalService(e.Id, e.Ip)
+	state.AddLocalService(e.Id, e.Ip, e.Description)
 	ExposeToMbg(e.Id)
 }
 
@@ -55,7 +55,7 @@ func ExposeReq(svcExp service.Service, destIp, cType string) {
 	mlog.Printf("Start expose %v to %v with IP address %v", svcExp.Id, cType, destIp)
 	address := state.GetAddrStart() + destIp + "/remoteservice"
 
-	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, MbgID: state.GetMyId()})
+	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Description: svcExp.Description, MbgID: state.GetMyId()})
 	if err != nil {
 		mlog.Error(err)
 		return

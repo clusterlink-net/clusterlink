@@ -148,7 +148,7 @@ func StartProxyRemoteService(serviceId, localServicePort, targetMbgIPPort, rootC
 
 		clog.Infof("[MBG %v] Accepting Outgoing Connect request from service: %v to service: %v", state.GetMyId(), localSvc.Service.Id, serviceId)
 
-		destSvc := state.GetRemoteService(serviceId)
+		destSvc := state.GetRemoteService(serviceId)[0]
 		var mbgIP string
 		if policyResp.TargetMbg == "" {
 			// Policy Agent hasnt suggested anything any target MBG, hence we fall back to our defaults
@@ -156,7 +156,6 @@ func StartProxyRemoteService(serviceId, localServicePort, targetMbgIPPort, rootC
 		} else {
 			mbgIP = state.GetMbgTarget(policyResp.TargetMbg)
 		}
-
 		switch dataplane {
 		case TCP_TYPE:
 			connDest, err := tcpConnectReq(localSvc.Service.Id, serviceId, "forward", mbgIP)

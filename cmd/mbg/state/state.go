@@ -308,15 +308,15 @@ func FreeUpPorts(connectionID string) {
 	delete(s.Connections, connectionID)
 }
 
-func AddLocalService(id, ip string) {
-	s.MyServices[id] = LocalService{Service: service.Service{Id: id, Ip: ip}}
+func AddLocalService(id, ip, description string) {
+	s.MyServices[id] = LocalService{Service: service.Service{Id: id, Ip: ip, Description: description}}
 	log.Infof("[MBG %v] add service %v", s.MyInfo.Id, service.GetService(id))
 	s.Print()
 	SaveState()
 }
 
-func AddRemoteService(id, ip, MbgId string) {
-	s.RemoteServices[id] = RemoteService{Service: service.Service{Id: id, Ip: ip}, MbgId: MbgId}
+func AddRemoteService(id, ip, description, MbgId string) {
+	s.RemoteServices[id] = RemoteService{Service: service.Service{Id: id, Ip: ip, Description: description}, MbgId: MbgId}
 	if mbgs, ok := s.RemoteServiceMap[id]; ok {
 		mbgs = append(mbgs, MbgId)
 		s.RemoteServiceMap[id] = mbgs

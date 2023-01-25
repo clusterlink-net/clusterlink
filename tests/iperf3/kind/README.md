@@ -129,11 +129,11 @@ Send Hello message from MBG1 to MBG2:
 In this step, we add the iperf3 services for each MBG.  
 Add an iperf3-client service to MBG1:
 
-    kubectl exec -i $MBGCTL1 -- ./mbgctl addService --serviceId iperf3-client --serviceIp $IPERF3CLIENT_IP
+    kubectl exec -i $MBGCTL1 -- ./mbgctl addService --id iperf3-client --ip $IPERF3CLIENT_IP
 Add an iperf3-server service to MBG2:
 
     kubectl config use-context kind-mbg-agent2
-    kubectl exec -i $MBGCTL2 -- ./mbgctl addService --serviceId iperf3-server --serviceIp $IPERF3SERVER_IP:5000
+    kubectl exec -i $MBGCTL2 -- ./mbgctl addService --id iperf3-server --ip $IPERF3SERVER_IP:5000
 
 ### <ins> Step 6: Expose service <ins>
 In this step, we expose the iperf3-server service from MBG2 to MBG1.

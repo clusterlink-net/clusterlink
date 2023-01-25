@@ -14,9 +14,10 @@ type PeerRequest struct {
 
 //Service
 type ServiceRequest struct {
-	Id    string
-	Ip    string
-	MbgID string
+	Id          string
+	Ip          string
+	Description string
+	MbgID       string
 }
 
 //Hello
@@ -26,9 +27,10 @@ type HelloResponse struct {
 
 //Expose
 type ExposeRequest struct {
-	Id    string
-	Ip    string
-	MbgID string
+	Id          string
+	Ip          string
+	Description string
+	MbgID       string
 }
 
 //Connect

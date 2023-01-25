@@ -19,9 +19,11 @@ var addServiceCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		id, _ := cmd.Flags().GetString("id")
 		ip, _ := cmd.Flags().GetString("ip")
+		description, _ := cmd.Flags().GetString("description")
+
 		state.UpdateState()
 		log.Println("add local service")
-		state.AddLocalService(id, ip)
+		state.AddLocalService(id, ip, description)
 
 	},
 }
@@ -30,4 +32,6 @@ func init() {
 	rootCmd.AddCommand(addServiceCmd)
 	addServiceCmd.Flags().String("id", "", "Service id")
 	addServiceCmd.Flags().String("ip", "", "Service ip")
+	addServiceCmd.Flags().String("description", "", "Service description")
+
 }

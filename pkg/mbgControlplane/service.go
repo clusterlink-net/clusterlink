@@ -11,7 +11,7 @@ import (
 /******************* Local Service ****************************************/
 func AddLocalService(s protocol.ServiceRequest) {
 	state.UpdateState()
-	state.AddLocalService(s.Id, s.Ip)
+	state.AddLocalService(s.Id, s.Ip, s.Description)
 }
 
 func GetLocalService(svcId string) protocol.ServiceRequest {
@@ -27,7 +27,7 @@ func GetAllLocalServices() map[string]protocol.ServiceRequest {
 	for _, s := range state.GetLocalServicesArr() {
 		sPort := state.GetConnectionArr()[s.Service.Id].External
 		sIp := state.GetMyIp() + sPort
-		sArr[s.Service.Id] = protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp}
+		sArr[s.Service.Id] = protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, Description: s.Service.Description}
 	}
 
 	return sArr
@@ -35,7 +35,7 @@ func GetAllLocalServices() map[string]protocol.ServiceRequest {
 
 /******************* Remote Service ****************************************/
 func AddRemoteService(e protocol.ExposeRequest) {
-	state.AddRemoteService(e.Id, e.Ip, e.MbgID)
+	state.AddRemoteService(e.Id, e.Ip, e.Description, e.MbgID)
 
 	policyResp, err := state.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: e.Id, Mbg: e.MbgID})
 	if err != nil {
@@ -62,7 +62,7 @@ func GetRemoteService(svcId string) protocol.ServiceRequest {
 	s := state.GetRemoteService(svcId)
 	sPort := state.GetConnectionArr()[s.Service.Id].External
 	sIp := state.GetMyIp() + sPort
-	return protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, MbgID: s.MbgId}
+	return protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, MbgID: s.MbgId, Description: s.Service.Description}
 }
 
 func GetAllRemoteServices() map[string]protocol.ServiceRequest {
@@ -72,7 +72,7 @@ func GetAllRemoteServices() map[string]protocol.ServiceRequest {
 	for _, s := range state.GetRemoteServicesArr() {
 		sPort := state.GetConnectionArr()[s.Service.Id].External
 		sIp := state.GetMyIp() + sPort
-		sArr[s.Service.Id] = protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, MbgID: s.MbgId}
+		sArr[s.Service.Id] = protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, MbgID: s.MbgId, Description: s.Service.Description}
 	}
 
 	return sArr

@@ -14,10 +14,10 @@
 
 ./bin/mbgctl addPeer --id mbg1 --ip 10.20.20.1 --cport 8443
 ./bin/mbgctl hello
-./bin/mbgctl addService --serviceId test-s --serviceIp 127.0.0.1:8000
+./bin/mbgctl addService --id test-s --ip 127.0.0.1:8000
 
 ## Cluster 1 (tcnode6)
-./bin/mbgctl addService --serviceId test-d --serviceIp 127.0.0.1:8000
+./bin/mbgctl addService --id test-d --ip 127.0.0.1:8000
 ./bin/mbgctl expose --serviceId test-d
 
 ## Cluster 1 (tcnode6)

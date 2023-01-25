@@ -21,8 +21,8 @@ var getServiceCmd = &cobra.Command{
 	Short: "get service list from the MBG",
 	Long:  `get service list from the MBG`,
 	Run: func(cmd *cobra.Command, args []string) {
-		serviceId, _ := cmd.Flags().GetString("serviceId")
-		servicetype, _ := cmd.Flags().GetString("servicetype")
+		serviceId, _ := cmd.Flags().GetString("Id")
+		servicetype, _ := cmd.Flags().GetString("type")
 		state.UpdateState()
 		if serviceId == "" {
 			getAllServicesReq(servicetype)
@@ -34,8 +34,8 @@ var getServiceCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(getServiceCmd)
-	getServiceCmd.Flags().String("serviceId", "", "service id field")
-	getServiceCmd.Flags().String("servicetype", "remote", "service type : remote/local")
+	getServiceCmd.Flags().String("Id", "", "service id field")
+	getServiceCmd.Flags().String("type", "remote", "service type : remote/local")
 
 }
 
@@ -55,8 +55,8 @@ func getAllServicesReq(servicetype string) {
 	}
 	log.Infof("MBG services:")
 	for _, s := range sArr {
-		state.AddService(s.Id, s.Ip)
-		log.Infof("Service: %s IP: %s MBGID: %s", s.Id, s.Ip, s.MbgID)
+		state.AddService(s.Id, s.Ip, s.Description)
+		log.Infof("Service: %s IP: %s MBGID: %s Description: %s", s.Id, s.Ip, s.MbgID, s.Description)
 	}
 
 }
@@ -77,6 +77,6 @@ func getServiceReq(serviceId, servicetype string) {
 	if err := json.Unmarshal(resp, &s); err != nil {
 		log.Fatal("getServiceReq Error :", err)
 	}
-	state.AddService(s.Id, s.Ip)
-	log.Infof(`Response message from MBG getting service: %s with IP: %s MBGID %s`, s.Id, s.Ip, s.MbgID)
+	state.AddService(s.Id, s.Ip, s.Description)
+	log.Infof(`Response message from MBG getting service: %s with IP: %s MBGID %s Description %s`, s.Id, s.Ip, s.MbgID, s.Description)
 }

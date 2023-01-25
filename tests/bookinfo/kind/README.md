@@ -188,14 +188,14 @@ In this step, we add servicers to the MBGs.
 Add service product to MBG1.
 
     kubectl config use-context kind-mbg-agent2
-    kubectl exec -i $MBGCTL1 -- ./mbgctl addService --serviceId "productpage" --serviceIp $PRODUCTPAGEPOD_IP
+    kubectl exec -i $MBGCTL1 -- ./mbgctl addService --id "productpage" --id $PRODUCTPAGEPOD_IP
         
 Add services reviews-v2 and reviews-v3 services to MBG2 and MBG3 respectively.
 
     kubectl config use-context kind-mbg-agent2
-    kubectl exec -i $MBGCTL2 -- ./mbgctl addService --serviceId reviews-v2 --serviceIp $REVIEWS2POD_IP:9080
+    kubectl exec -i $MBGCTL2 -- ./mbgctl addService --id reviews-v2 --ip $REVIEWS2POD_IP:9080
     kubectl config use-context kind-mbg-agent3
-    kubectl exec -i $MBGCTL3 -- ./mbgctl addService --serviceId reviews-v3 --serviceIp $REVIEWS3POD_IP:9080
+    kubectl exec -i $MBGCTL3 -- ./mbgctl addService --id reviews-v3 --ip $REVIEWS3POD_IP:9080
 
 ### <ins> Step 6: Expose service <ins>
 In this step, we expose the reviews services from MBG2 and MBG3 to MBG1.

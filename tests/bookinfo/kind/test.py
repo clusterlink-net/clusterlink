@@ -138,7 +138,7 @@ if __name__ == "__main__":
         runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl start --id {mbgctl1Name}   --ip {mbgctl1Ip} --mbgIP  {destMbg1Ip} --dataplane {args["dataplane"]} {mbg1crtFlags}')
         printHeader(f"Add {srcSvc} (client) service to host cluster")
         srcSvcIp =getPodIp(srcSvc)  
-        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addService --serviceId {srcSvc} --serviceIp {srcSvcIp}')
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addService --id {srcSvc} --ip {srcSvcIp}')
         
         # Add MBG Peer
         printHeader("Add MBG2, MBG3 peer to MBG1")
@@ -160,7 +160,7 @@ if __name__ == "__main__":
         printHeader(f"Add {review2svc} (server) service to destination cluster")
         waitPod(review2svc)
         destSvcReview2Ip = f"{getPodIp(review2svc)}:{srcK8sSvcPort}"
-        runcmd(f'kubectl exec -i {mbgctl2name} -- ./mbgctl addService --serviceId {review2svc} --serviceIp {destSvcReview2Ip}')
+        runcmd(f'kubectl exec -i {mbgctl2name} -- ./mbgctl addService --id {review2svc} --ip {destSvcReview2Ip}')
         
 
         ###Set mbgctl3
@@ -175,7 +175,7 @@ if __name__ == "__main__":
         printHeader(f"Add {review3svc} (server) service to destination cluster")
         waitPod(review3svc)
         destSvcReview3Ip = f"{getPodIp(review3svc)}:{srcK8sSvcPort}"
-        runcmd(f'kubectl exec -i {mbgctl3name} -- ./mbgctl addService --serviceId {review3svc} --serviceIp {destSvcReview3Ip}')
+        runcmd(f'kubectl exec -i {mbgctl3name} -- ./mbgctl addService --id {review3svc} --ip {destSvcReview3Ip}')
 
         #Add host cluster to MBG1
         useKindCluster(mbg1ClusterName)
