@@ -59,10 +59,10 @@ func AddRemoteService(e protocol.ExposeRequest) {
 
 func GetRemoteService(svcId string) protocol.ServiceRequest {
 	state.UpdateState()
-	s := state.GetRemoteService(svcId).Service
-	sPort := state.GetConnectionArr()[s.Id].External
-	s.Ip = state.GetMyIp() + sPort
-	return protocol.ServiceRequest{Id: s.Id, Ip: s.Ip}
+	s := state.GetRemoteService(svcId)
+	sPort := state.GetConnectionArr()[s.Service.Id].External
+	sIp := state.GetMyIp() + sPort
+	return protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, MbgID: s.MbgId}
 }
 
 func GetAllRemoteServices() map[string]protocol.ServiceRequest {
@@ -72,7 +72,7 @@ func GetAllRemoteServices() map[string]protocol.ServiceRequest {
 	for _, s := range state.GetRemoteServicesArr() {
 		sPort := state.GetConnectionArr()[s.Service.Id].External
 		sIp := state.GetMyIp() + sPort
-		sArr[s.Service.Id] = protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp}
+		sArr[s.Service.Id] = protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, MbgID: s.MbgId}
 	}
 
 	return sArr

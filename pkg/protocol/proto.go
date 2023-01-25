@@ -14,8 +14,9 @@ type PeerRequest struct {
 
 //Service
 type ServiceRequest struct {
-	Id string
-	Ip string
+	Id    string
+	Ip    string
+	MbgID string
 }
 
 //Hello
