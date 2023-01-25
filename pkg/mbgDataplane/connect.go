@@ -39,15 +39,16 @@ func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, conn 
 	connectionID := c.Id + ":" + c.IdDest
 	dataplane := state.GetDataplane()
 	localSvc := state.GetLocalService(c.IdDest)
-	mbgTarget := state.GetMbgTarget(c.MbgID)
 	policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: c.Id, DstService: c.IdDest, Direction: eventManager.Incoming, OtherMbg: c.MbgID})
 	if err != nil {
 		clog.Errorf("[MBG %v] Unable to raise connection request event", state.GetMyId())
 		return "failure", "", ""
 	}
 	if policyResp.Action == eventManager.Deny {
-		return "failure", "", ""
+		return "Deny", "", ""
 	}
+
+	mbgTarget := state.GetMbgTarget(c.MbgID)
 
 	switch dataplane {
 	case TCP_TYPE:
@@ -132,6 +133,17 @@ func StartProxyRemoteService(serviceId, localServicePort, targetMbgIPPort, rootC
 			ac.Close()
 			continue
 		}
+		policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: localSvc.Service.Id, DstService: serviceId, Direction: eventManager.Outgoing, OtherMbg: eventManager.Wildcard})
+		if err != nil {
+			clog.Errorf("[MBG %v] Unable to raise connection request event", state.GetMyId())
+			ac.Close()
+			continue
+		}
+		if policyResp.Action == eventManager.Deny {
+			ac.Close()
+			continue
+		}
+
 		clog.Infof("[MBG %v] Accepting Outgoing Connect request from service: %v to service: %v", state.GetMyId(), localSvc.Service.Id, serviceId)
 
 		destSvc := state.GetRemoteService(serviceId)

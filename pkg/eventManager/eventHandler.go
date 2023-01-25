@@ -17,7 +17,7 @@ type MbgEventManager struct {
 
 func (m *MbgEventManager) RaiseNewConnectionRequestEvent(connectionAttr ConnectionRequestAttr) (ConnectionRequestResp, error) {
 	// Send the event to PolicyDispatcher
-	url := m.PolicyDispatcherTarget + "/NewConnectionRequest"
+	url := m.PolicyDispatcherTarget + "/" + NewConnectionRequest
 	if m.PolicyDispatcherTarget != "" {
 		elog.Infof("Sending to PolicyDispatcher : %s", m.PolicyDispatcherTarget)
 		jsonReq, err := json.Marshal(connectionAttr)
@@ -41,17 +41,56 @@ func (m *MbgEventManager) RaiseNewConnectionRequestEvent(connectionAttr Connecti
 
 func (m *MbgEventManager) RaiseNewRemoteServiceEvent(remoteServiceAttr NewRemoteServiceAttr) (NewRemoteServiceResp, error) {
 	elog.Infof("New Remote Service Event %+v", remoteServiceAttr)
-	return NewRemoteServiceResp{Action: Allow}, nil
+	url := m.PolicyDispatcherTarget + "/" + NewRemoteService
+	if m.PolicyDispatcherTarget != "" {
+		elog.Infof("Sending to PolicyDispatcher : %s", m.PolicyDispatcherTarget)
+		jsonReq, err := json.Marshal(remoteServiceAttr)
+		if err != nil {
+			elog.Errorf("Unable to marshal json %v", err)
+			return NewRemoteServiceResp{Action: Allow}, err
+		}
+		resp := httpAux.HttpPost(url, jsonReq, m.httpClient)
+		var r NewRemoteServiceResp
+		err = json.Unmarshal(resp, &r)
+		if err != nil {
+			elog.Errorf("Unable to unmarshal json %v", err)
+			return NewRemoteServiceResp{Action: Allow}, err
+		}
+		return r, nil
+	} else {
+		// No Policy Dispatcher assigned
+		return NewRemoteServiceResp{Action: Allow}, nil
+	}
 }
 
 func (m *MbgEventManager) RaiseExposeRequestEvent(exposeRequestAttr ExposeRequestAttr) (ExposeRequestResp, error) {
-	elog.Infof("New Remote Service Event %+v", exposeRequestAttr)
-	return ExposeRequestResp{Action: AllowAll, TargetMbgs: nil}, nil
+	elog.Infof("New Expose Event %+v", exposeRequestAttr)
+	url := m.PolicyDispatcherTarget + "/" + ExposeRequest
+	// Send the event to PolicyDispatcher
+	if m.PolicyDispatcherTarget != "" {
+		elog.Infof("Sending to PolicyDispatcher : %s", m.PolicyDispatcherTarget)
+		jsonReq, err := json.Marshal(exposeRequestAttr)
+		if err != nil {
+			elog.Errorf("Unable to marshal json %v", err)
+			return ExposeRequestResp{Action: Allow}, err
+		}
+		resp := httpAux.HttpPost(url, jsonReq, m.httpClient)
+		var r ExposeRequestResp
+		err = json.Unmarshal(resp, &r)
+		if err != nil {
+			elog.Errorf("Unable to unmarshal json %v", err)
+			return ExposeRequestResp{Action: Allow}, err
+		}
+		return r, nil
+	} else {
+		// No Policy Dispatcher assigned
+		return ExposeRequestResp{Action: Allow}, nil
+	}
 }
 
 func (m *MbgEventManager) RaiseAddPeerEvent(addPeerAttr AddPeerAttr) (AddPeerResp, error) {
 	elog.Infof("Add Peer MBG Event %+v", addPeerAttr)
-	url := m.PolicyDispatcherTarget + "/AddPeerRequest"
+	url := m.PolicyDispatcherTarget + "/" + AddPeerRequest
 	// Send the event to PolicyDispatcher
 	if m.PolicyDispatcherTarget != "" {
 		elog.Infof("Sending to PolicyDispatcher : %s", m.PolicyDispatcherTarget)
@@ -80,7 +119,7 @@ func (m *MbgEventManager) RaiseServiceListRequestEvent(serviceListRequestAttr Se
 }
 
 func (m *MbgEventManager) RaiseServiceRequestEvent(serviceRequestAttr ServiceRequestAttr) (ServiceRequestResp, error) {
-	elog.Infof("Service List Event %+v", serviceRequestAttr)
+	elog.Infof("Service Request Event %+v", serviceRequestAttr)
 	return ServiceRequestResp{Action: Allow}, nil
 }
 

@@ -3,9 +3,14 @@
 ##tcnode6
 ./bin/mbg start --ip 10.20.20.1 --id mbg1 --cport 8443 --cportLocal 8443 --localDataPortRange 10000 --externalDataPortRange 10000 --rootCa /home/pravein/certs/ca.crt --certificate /home/pravein/certs/tcnode6-cert.pem --key /home/pravein/certs/tcnode6-key.pem --dataplane mtls
 ./bin/mbgctl start --id "tcnode6cluster" --ip 127.0.0.1 --mbgIP 10.20.20.1:8443 --rootCa /home/pravein/certs/ca.crt --certificate /home/pravein/certs/tcnode6-cert.pem --key /home/pravein/certs/tcnode6-key.pem --dataplane mtls
+./bin/mbg addPolicy --target localhost:9990 --start
+
 ##tcnode7 
 ./bin/mbg start --id mbg2 --ip 10.20.20.2 --cport 8443 --cportLocal 8443 --localDataPortRange 10000 --externalDataPortRange 10000 --rootCa /home/pravein/certs/ca.crt --certificate /home/pravein/certs/tcnode7-cert.pem --key /home/pravein/certs/tcnode7-key.pem --dataplane mtls
 ./bin/mbgctl start --id "tcnode7cluster" --ip 127.0.0.1  --mbgIP 10.20.20.2:8443 --rootCa /home/pravein/certs/ca.crt --certificate /home/pravein/certs/tcnode7-cert.pem --key /home/pravein/certs/tcnode7-key.pem --dataplane mtls
+./bin/mbg addPolicy --target localhost:9990 --start
+./bin/mbgctl addPolicy --target localhost:9990
+
 ./bin/mbgctl addPeer --id mbg1 --ip 10.20.20.1 --cport 8443
 ./bin/mbgctl hello
 ./bin/mbgctl addService --serviceId test-s --serviceIp 127.0.0.1:8000
@@ -20,6 +25,9 @@ go run testservice.go --type server --port 8000
 ## Cluster 2 (tcnode7) Change 10081 according to the exposed cluster service port
 go run testservice.go --type client --port 10081
 
+
+### Policies at mbg2
+./bin/mbgctl policy --type acl_add --serviceSrc test-s --serviceDst test-d --mbgDest mbg1 --priority 0 --action 1
 
 ----Generate Certificates-----
 1) Root CA Certs - This is done once by a CA authority

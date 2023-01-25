@@ -27,7 +27,9 @@ func ExposeToMbg(serviceId string) {
 		mlog.Errorf("Unable to raise expose request event")
 		return
 	}
+	mlog.Infof("Response = %+v", exposeResp)
 	if exposeResp.Action == eventManager.Deny {
+		mlog.Errorf("Denying Expose of service %s", serviceId)
 		return
 	}
 
