@@ -28,13 +28,13 @@ type ServiceState struct {
 	totalConnections int
 }
 type LoadBalancer struct {
-	ServiceMap      map[string][]string //Service to MBGs
-	Policy          map[string]int      // PolicyType like RoundRobin/Random/etc
+	ServiceMap      map[string]*[]string //Service to MBGs
+	Policy          map[string]int       // PolicyType like RoundRobin/Random/etc
 	ServiceStateMap map[string]*ServiceState
 }
 
 func (lB *LoadBalancer) Init() {
-	lB.ServiceMap = make(map[string][]string)
+	lB.ServiceMap = make(map[string]*[]string)
 	lB.Policy = make(map[string]int)
 	lB.ServiceStateMap = make(map[string]*ServiceState)
 }
@@ -56,13 +56,13 @@ func (lB *LoadBalancer) SetPolicyReq(w http.ResponseWriter, r *http.Request) {
 
 func (lB *LoadBalancer) AddToServiceMap(service string, mbg string) {
 	if mbgs, ok := lB.ServiceMap[service]; ok {
-		mbgs = append(mbgs, mbg)
+		*mbgs = append(*mbgs, mbg)
 		lB.ServiceMap[service] = mbgs
 	} else {
-		lB.ServiceMap = make(map[string][]string)
-		lB.ServiceMap[service] = []string{mbg}
+		lB.ServiceMap = make(map[string]*[]string)
+		lB.ServiceMap[service] = &([]string{mbg})
 	}
-	llog.Infof("[MBG %v] Remote service added %v->[%+v]", service, lB.ServiceMap[service])
+	llog.Infof("Remote service added %v->[%+v]", service, *(lB.ServiceMap[service]))
 }
 
 func (lB *LoadBalancer) SetPolicy(service string, policy int) {
@@ -73,10 +73,16 @@ func (lB *LoadBalancer) SetPolicy(service string, policy int) {
 }
 
 func (lB *LoadBalancer) LookupRandom(service string) string {
+	plog.Infof("service Map %+v", lB.ServiceMap)
 	mbgList := lB.ServiceMap[service]
 	if mbgList != nil {
-		index := rand.Intn(len(mbgList))
-		return mbgList[index]
+		mbgs := *mbgList
+		plog.Infof("mbgList for service %s -> %+v", service, mbgs)
+		index := rand.Intn(len(*mbgList))
+		plog.Infof("LoadBalancer (%d)target MBG %s", index, mbgs[index])
+		return mbgs[index]
+	} else {
+		plog.Infof("mbgList is nil")
 	}
 	return ""
 }
@@ -91,8 +97,9 @@ func (lB *LoadBalancer) updateState(service string) {
 func (lB *LoadBalancer) LookupEcmp(service string) string {
 	mbgList := lB.ServiceMap[service]
 	if mbgList != nil {
-		index := lB.ServiceStateMap[service].totalConnections % len(mbgList)
-		return mbgList[index]
+		mbgs := *mbgList
+		index := lB.ServiceStateMap[service].totalConnections % len(mbgs)
+		return mbgs[index]
 	}
 	return ""
 }
@@ -101,6 +108,7 @@ func (lB *LoadBalancer) Lookup(service string) string {
 	policy := lB.Policy[service]
 
 	lB.updateState(service)
+	plog.Infof("LoadBalancer lookup for %s", service)
 	switch policy {
 	case random:
 		return lB.LookupRandom(service)

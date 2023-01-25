@@ -45,6 +45,7 @@ func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, conn 
 		return "failure", "", ""
 	}
 	if policyResp.Action == eventManager.Deny {
+		clog.Infof("[MBG %v] Denying incoming connect request due to policy")
 		return "Deny", "", ""
 	}
 
@@ -140,6 +141,7 @@ func StartProxyRemoteService(serviceId, localServicePort, targetMbgIPPort, rootC
 			continue
 		}
 		if policyResp.Action == eventManager.Deny {
+			clog.Infof("Denying Outgoing connection due to policy")
 			ac.Close()
 			continue
 		}
@@ -147,7 +149,12 @@ func StartProxyRemoteService(serviceId, localServicePort, targetMbgIPPort, rootC
 		clog.Infof("[MBG %v] Accepting Outgoing Connect request from service: %v to service: %v", state.GetMyId(), localSvc.Service.Id, serviceId)
 
 		destSvc := state.GetRemoteService(serviceId)
-		mbgIP := state.GetServiceMbgIp(destSvc.Service.Ip)
+		var mbgIP string
+		if policyResp.TargetMbg == "" {
+			mbgIP = state.GetServiceMbgIp(destSvc.Service.Ip)
+		} else {
+			mbgIP = state.GetMbgTarget(policyResp.TargetMbg)
+		}
 
 		switch dataplane {
 		case TCP_TYPE:

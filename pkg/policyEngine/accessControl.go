@@ -14,7 +14,7 @@ import (
 
 const defaultAction = event.Allow
 
-type ACL map[string]rule
+type ACL map[string]*rule
 
 type AclRule struct {
 	ServiceSrc string
@@ -83,13 +83,14 @@ func (A *AccessControl) GetRuleReq(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		plog.Errorf("Unable to write response %v", err)
 	}
+	A.displayRules()
 }
 
 func (A *AccessControl) AddRule(serviceSrc string, serviceDst string, mbgDest string, priority int, action int) {
 	if A.ACLRules == nil {
 		A.ACLRules = make(ACL)
 	}
-	A.ACLRules[getKey(serviceSrc, serviceDst, mbgDest)] = rule{priority: priority, action: action}
+	A.ACLRules[getKey(serviceSrc, serviceDst, mbgDest)] = &rule{priority: priority, action: action}
 	plog.Infof("Rule added %+v-> %+v ", getKey(serviceSrc, serviceDst, mbgDest), A.ACLRules[getKey(serviceSrc, serviceDst, mbgDest)])
 }
 
@@ -117,6 +118,7 @@ func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst stri
 	resultAction := event.Allow
 	priority := math.MaxInt
 	bitrate := 0
+	plog.Infof("ACL Lookup (%s, %s, %s)", serviceSrc, serviceDst, mbgDst)
 	// 001
 	prio, action, rate := A.RulesLookup(event.Wildcard, event.Wildcard, mbgDst)
 	if prio < priority {
@@ -204,10 +206,14 @@ func (A *AccessControl) LookupTarget(service string, peerMbgs *[]string) (int, [
 	}
 	return myAction, mbgList
 }
-func getKey(serviceSrc string, serviceDst string, mbgDst string) string {
-	return serviceSrc + "-" + serviceDst + "-" + mbgDst
+
+func (A *AccessControl) displayRules() {
+	for key, rule := range A.ACLRules {
+		plog.Infof("%s -> %+v", key, rule)
+	}
+
 }
 
-func displayRules() {
-
+func getKey(serviceSrc string, serviceDst string, mbgDst string) string {
+	return serviceSrc + "-" + serviceDst + "-" + mbgDst
 }

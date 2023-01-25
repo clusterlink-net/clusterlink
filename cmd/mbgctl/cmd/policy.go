@@ -74,9 +74,9 @@ var PolicyCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(PolicyCmd)
 	PolicyCmd.Flags().String("command", "", "Policy agent command (For now, acl_add/del lb_add/del)")
-	PolicyCmd.Flags().String("serviceSrc", "", "Name of Source Service (* for wildcard)")
-	PolicyCmd.Flags().String("serviceDst", "", "Name of Dest Service (* for wildcard)")
-	PolicyCmd.Flags().String("mbgDest", "", "Name of MBG the dest service belongs to (* for wildcard)")
+	PolicyCmd.Flags().String("serviceSrc", "*", "Name of Source Service (* for wildcard)")
+	PolicyCmd.Flags().String("serviceDst", "*", "Name of Dest Service (* for wildcard)")
+	PolicyCmd.Flags().String("mbgDest", "*", "Name of MBG the dest service belongs to (* for wildcard)")
 	PolicyCmd.Flags().Int("priority", 0, "Priority of the acl rule (0 -> highest)")
 	PolicyCmd.Flags().Int("action", 0, "acl 0 -> allow, 1 -> deny")
 	PolicyCmd.Flags().Int("policy", 0, "lb policy , 0-> random, 1-> ecmp")
@@ -101,6 +101,7 @@ func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priorit
 		log.Errorf("Unable to marshal json %v", err)
 		return
 	}
+	log.Infof("Sending Policy %+v", jsonReq)
 	httpAux.HttpPost(url, jsonReq, httpClient)
 }
 
@@ -126,7 +127,7 @@ func showAclPolicies() {
 	if err != nil {
 		log.Infof("Unable to decode response %v", err)
 	}
-	fmt.Printf("%+v", rules)
+	fmt.Printf("%+v\n", rules)
 }
 
 func showLbPolicies() {

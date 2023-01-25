@@ -22,8 +22,8 @@ type MbgState struct {
 
 type PolicyHandler struct {
 	SubscriptionMap map[string][]string
-	accessControl   AccessControl
-	loadBalancer    LoadBalancer
+	accessControl   *AccessControl
+	loadBalancer    *LoadBalancer
 	mbgState        MbgState
 }
 
@@ -69,16 +69,22 @@ func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Requ
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	plog.Infof("New connection reqest : %+v -> %+v", requestAttr, pH.SubscriptionMap[event.NewConnectionRequest])
+	plog.Infof("New connection request : %+v -> %+v", requestAttr, pH.SubscriptionMap[event.NewConnectionRequest])
 
 	var action int
 	var targetMbg string
 	var bitrate int
-	for _, agent := range pH.SubscriptionMap[event.AddPeerRequest] {
+	for _, agent := range pH.SubscriptionMap[event.NewConnectionRequest] {
+		plog.Infof("Applying Policy %s", agent)
 		switch agent {
 		case "AccessControl":
-			action, bitrate = pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, requestAttr.OtherMbg)
+			if requestAttr.Direction == event.Outgoing {
+				action, bitrate = pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, targetMbg)
+			} else {
+				action, bitrate = pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, requestAttr.OtherMbg)
+			}
 		case "LoadBalancer":
+			plog.Infof("Looking up loadbalancer drection %d", requestAttr.Direction)
 			if requestAttr.Direction == event.Outgoing {
 				targetMbg = pH.loadBalancer.Lookup(requestAttr.DstService)
 			}
@@ -220,9 +226,11 @@ func (pH PolicyHandler) policyWelcome(w http.ResponseWriter, r *http.Request) {
 func (pH PolicyHandler) init(router *chi.Mux, ip string) {
 	pH.SubscriptionMap = make(map[string][]string)
 	pH.mbgState.mbgPeers = &([]string{})
-	policyList1 := []string{"AccessControl", "LoadBalancer"}
+	policyList1 := []string{"LoadBalancer", "AccessControl"}
 	policyList2 := []string{"AccessControl"}
 
+	pH.accessControl = &AccessControl{}
+	pH.loadBalancer = &LoadBalancer{}
 	pH.accessControl.Init()
 	pH.loadBalancer.Init()
 	pH.SubscriptionMap[event.NewConnectionRequest] = policyList1
@@ -246,7 +254,7 @@ func (pH PolicyHandler) init(router *chi.Mux, ip string) {
 }
 
 func StartPolicyDispatcher(router *chi.Mux, ip string) {
-	plog.Infof("Policy Engine [%v] started")
+	plog.Infof("Policy Engine started")
 
 	var myPolicyHandler PolicyHandler
 

@@ -17,6 +17,7 @@ func AddPeer(p protocol.PeerRequest) {
 		return
 	}
 	if peerResp.Action == eventManager.Deny {
+		log.Infof("Denying add peer(%s) due to policy", p.Id)
 		return
 	}
 	state.AddMbgNbr(p.Id, p.Ip, p.Cport)
