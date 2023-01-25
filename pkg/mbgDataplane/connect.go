@@ -45,7 +45,7 @@ func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, conn 
 		return "failure", "", ""
 	}
 	if policyResp.Action == eventManager.Deny {
-		clog.Infof("[MBG %v] Denying incoming connect request due to policy")
+		clog.Infof("[MBG %v] Denying incoming connect request (%s,%s) due to policy", state.GetMyId(), c.Id, c.IdDest)
 		return "Deny", "", ""
 	}
 

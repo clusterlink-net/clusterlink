@@ -73,16 +73,13 @@ func (lB *LoadBalancer) SetPolicy(service string, policy int) {
 }
 
 func (lB *LoadBalancer) LookupRandom(service string) string {
-	plog.Infof("service Map %+v", lB.ServiceMap)
 	mbgList := lB.ServiceMap[service]
 	if mbgList != nil {
 		mbgs := *mbgList
 		plog.Infof("mbgList for service %s -> %+v", service, mbgs)
 		index := rand.Intn(len(*mbgList))
-		plog.Infof("LoadBalancer (%d)target MBG %s", index, mbgs[index])
+		plog.Infof("LoadBalancer selects index(%d) - target MBG %s", index, mbgs[index])
 		return mbgs[index]
-	} else {
-		plog.Infof("mbgList is nil")
 	}
 	return ""
 }

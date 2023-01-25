@@ -36,7 +36,7 @@ go run testservice.go --type client --port 10081
 
 ### Test Policies at mbg1 (tcnode7)
 ## Block a specific service
-./bin/mbgctl policy --command acl_add --serviceSrc test-s --serviceDst test-d --priority 0 --action 1
+./bin/mbgctl policy --command acl_add --serviceSrc test-s --serviceDst test-d --mbgDest mbg2 --priority 0 --action 1
 
 
 ----Generate Certificates-----
