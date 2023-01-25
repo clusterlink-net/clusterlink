@@ -23,6 +23,7 @@ const (
 	acl_add = "acl_add"
 	acl_del = "acl_del"
 	lb      = "lb"
+	lb_set  = "lb_set"
 	show    = "show"
 )
 
@@ -56,13 +57,13 @@ var PolicyCmd = &cobra.Command{
 			priority, _ := cmd.Flags().GetInt("priority")
 			action, _ := cmd.Flags().GetInt("action")
 			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, action, add)
-		case lb:
+		case lb_set:
 			service, _ := cmd.Flags().GetString("serviceDst")
 			policy, _ := cmd.Flags().GetInt("policy")
-			sendLbPolicy(service, policy)
+			sendLBPolicy(service, policy)
 		case show:
 			showAclPolicies()
-			showLbPolicies()
+			showLBPolicies()
 		default:
 			fmt.Println("Unknown policy type")
 			os.Exit(1)
@@ -105,7 +106,7 @@ func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priorit
 	httpAux.HttpPost(url, jsonReq, httpClient)
 }
 
-func sendLbPolicy(service string, policy int) {
+func sendLBPolicy(service string, policy int) {
 	url := state.GetPolicyDispatcher() + "/" + lb + "/setPolicy"
 	httpClient := http.Client{}
 
@@ -129,7 +130,7 @@ func showAclPolicies() {
 	fmt.Printf("%+v\n", rules)
 }
 
-func showLbPolicies() {
+func showLBPolicies() {
 	var rules map[string]int
 	httpClient := http.Client{}
 	url := state.GetPolicyDispatcher() + "/" + lb

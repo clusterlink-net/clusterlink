@@ -27,6 +27,16 @@ go run testservice.go --type server --port 8000
 go run testservice.go --type client --port 10081
 
 
+
+##tcnode6 with MBG3
+./bin/mbg start --ip 10.20.20.1 --id mbg3 --cport 8445 --cportLocal 8445 --localDataPortRange 20000 --externalDataPortRange 20000 --rootCa /home/pravein/certs/ca.crt --certificate /home/pravein/certs/tcnode6-cert.pem --key /home/pravein/certs/tcnode6-key.pem --dataplane mtls
+./bin/mbgctl start --id "tcnode6-1cluster" --ip 127.0.0.1 --mbgIP 10.20.20.1:8445 --rootCa /home/pravein/certs/ca.crt --certificate /home/pravein/certs/tcnode6-cert.pem --key /home/pravein/certs/tcnode6-key.pem --dataplane mtls
+./bin/mbg addPolicyEngine --target localhost:9995 --start
+./bin/mbgctl addPolicyEngine --target localhost:9990
+./bin/mbgctl addPeer --id mbg1 --ip 10.20.20.1 --cport 8443
+./bin/mbgctl addPeer --id mbg2 --ip 10.20.20.1 --cport 8443
+./bin/mbgctl hello
+
 ### Test Policies at mbg2 (tcnode7)
 ## Block a specific service
 ./bin/mbgctl policy --command acl_add --serviceSrc test-s --serviceDst test-d --mbgDest mbg1 --priority 0 --action 1
@@ -38,6 +48,8 @@ go run testservice.go --type client --port 10081
 ## Block a specific service
 ./bin/mbgctl policy --command acl_add --serviceSrc test-s --serviceDst test-d --mbgDest mbg2 --priority 0 --action 1
 
+## Set Load Balancer
+./bin/mbgctl policy --command lb_set --policy 0
 
 ----Generate Certificates-----
 1) Root CA Certs - This is done once by a CA authority
