@@ -19,15 +19,16 @@ import (
 var log = logrus.WithField("component", "mbgctl")
 
 type MbgctlState struct {
-	MbgIP           string `json:"MbgIP"`
-	IP              string `json:"IP"`
-	Id              string `json:"Id"`
-	CaFile          string
-	CertificateFile string
-	KeyFile         string
-	Dataplane       string
-	Services        map[string]MbgctlService
-	OpenConnections map[string]OpenConnection
+	MbgIP                  string `json:"MbgIP"`
+	IP                     string `json:"IP"`
+	Id                     string `json:"Id"`
+	CaFile                 string
+	CertificateFile        string
+	KeyFile                string
+	Dataplane              string
+	Services               map[string]MbgctlService
+	OpenConnections        map[string]OpenConnection
+	PolicyDispatcherTarget string
 }
 
 type MbgctlService struct {
@@ -95,6 +96,15 @@ func (s *MbgctlState) Print() {
 	log.Debugf("[%v]: services %v", s.Id, s.Services)
 }
 
+func AssignPolicyDispatcher(targetUrl string) {
+	s.PolicyDispatcherTarget = targetUrl
+	SaveState()
+}
+
+func GetPolicyDispatcher() string {
+	return s.PolicyDispatcherTarget
+}
+
 func AddOpenConnection(svcId, svcIdDest string, pId int) {
 	s.OpenConnections[svcId+":"+svcIdDest] = OpenConnection{SvcId: svcId, SvcIdDest: svcIdDest, PId: pId}
 	SaveState()
@@ -118,6 +128,7 @@ func GetAddrStart() string {
 		return "http://"
 	}
 }
+
 func GetHttpClient() http.Client {
 	if s.Dataplane == "mtls" {
 		cert, err := ioutil.ReadFile(s.CaFile)

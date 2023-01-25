@@ -9,7 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
-	"github.ibm.com/mbg-agent/pkg/policyEngine"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 )
@@ -40,15 +39,17 @@ func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, conn 
 	connectionID := c.Id + ":" + c.IdDest
 	dataplane := state.GetDataplane()
 	localSvc := state.GetLocalService(c.IdDest)
-	mbgTarget := state.GetMbgTarget(c.MbgID)
 	policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: c.Id, DstService: c.IdDest, Direction: eventManager.Incoming, OtherMbg: c.MbgID})
 	if err != nil {
 		clog.Errorf("[MBG %v] Unable to raise connection request event", state.GetMyId())
 		return "failure", "", ""
 	}
 	if policyResp.Action == eventManager.Deny {
-		return "failure", "", ""
+		clog.Infof("[MBG %v] Denying incoming connect request (%s,%s) due to policy", state.GetMyId(), c.Id, c.IdDest)
+		return "Deny", "", ""
 	}
+
+	mbgTarget := state.GetMbgTarget(c.MbgID)
 
 	switch dataplane {
 	case TCP_TYPE:
@@ -88,34 +89,16 @@ func StartTcpProxyService(svcListenPort, svcIp, policy, connName string, serverC
 	srcIp := svcListenPort
 	destIp := svcIp
 
-	policyTarget := policyEngine.GetPolicyTarget(policy)
-	if policyTarget == "" {
-		// No Policy to be applied
-		var forward MbgTcpForwarder
-		forward.InitTcpForwarder(srcIp, destIp, connName)
-		if serverConn != nil {
-			forward.SetServerConnection(serverConn)
-		}
-		if clientConn != nil {
-			forward.SetClientConnection(clientConn)
-		}
-		forward.RunTcpForwarder()
-	} else {
-		var ingress MbgTcpForwarder
-		var egress MbgTcpForwarder
-
-		ingress.InitTcpForwarder(srcIp, policyTarget, connName)
-		egress.InitTcpForwarder(policyTarget, destIp, connName)
-		if serverConn != nil {
-			ingress.SetServerConnection(serverConn)
-		}
-		if clientConn != nil {
-			egress.SetServerConnection(clientConn)
-		}
-		ingress.RunTcpForwarder()
-		egress.RunTcpForwarder()
+	// No Policy to be applied
+	var forward MbgTcpForwarder
+	forward.InitTcpForwarder(srcIp, destIp, connName)
+	if serverConn != nil {
+		forward.SetServerConnection(serverConn)
 	}
-
+	if clientConn != nil {
+		forward.SetClientConnection(clientConn)
+	}
+	forward.RunTcpForwarder()
 }
 
 /***************** Remote Service function **********************************/
@@ -151,10 +134,28 @@ func StartProxyRemoteService(serviceId, localServicePort, targetMbgIPPort, rootC
 			ac.Close()
 			continue
 		}
+		policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: localSvc.Service.Id, DstService: serviceId, Direction: eventManager.Outgoing, OtherMbg: eventManager.Wildcard})
+		if err != nil {
+			clog.Errorf("[MBG %v] Unable to raise connection request event", state.GetMyId())
+			ac.Close()
+			continue
+		}
+		if policyResp.Action == eventManager.Deny {
+			clog.Infof("Denying Outgoing connection due to policy")
+			ac.Close()
+			continue
+		}
+
 		clog.Infof("[MBG %v] Accepting Outgoing Connect request from service: %v to service: %v", state.GetMyId(), localSvc.Service.Id, serviceId)
 
 		destSvc := state.GetRemoteService(serviceId)
-		mbgIP := state.GetServiceMbgIp(destSvc.Service.Ip)
+		var mbgIP string
+		if policyResp.TargetMbg == "" {
+			// Policy Agent hasnt suggested anything any target MBG, hence we fall back to our defaults
+			mbgIP = state.GetServiceMbgIp(destSvc.Service.Ip)
+		} else {
+			mbgIP = state.GetMbgTarget(policyResp.TargetMbg)
+		}
 
 		switch dataplane {
 		case TCP_TYPE:

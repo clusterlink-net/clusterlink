@@ -5,11 +5,20 @@ const (
 	Outgoing
 )
 
+const Wildcard = "*"
+
 const (
 	Allow int = iota
 	Deny
 	AllowAll
 	AllowPartial
+)
+
+const (
+	NewConnectionRequest = "NewConnectionRequest"
+	AddPeerRequest       = "AddPeerRequest"
+	NewRemoteService     = "NewRemoteService"
+	ExposeRequest        = "ExposeRequest"
 )
 
 type ConnectionRequestAttr struct {
