@@ -19,14 +19,14 @@ from aux.kindAux import runcmd, runcmdb, printHeader, getPodName, waitPod,getMbg
 
 
 
-def connectSvc(srcSvc,destSvc,srcK8sName):
+def connectSvc(srcSvc,destSvc, k8sSvcName):
     printHeader(f"\n\nStart connect {srcSvc} to {destSvc}")
     useKindCluster(mbg1ClusterName)    
     podMbg1= getPodName("mbg-deployment")        
     mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, destSvc)
-    runcmd(f"kubectl delete service {srcK8sName}")
-    runcmd(f"kubectl create service clusterip {srcK8sName} --tcp={srcK8sSvcPort}:{mbg1LocalPort}")
-    runcmd(f"kubectl patch service {srcK8sName} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
+    runcmd(f"kubectl delete service {destSvc}")
+    runcmd(f"kubectl create service clusterip {k8sSvcName} --tcp={srcK8sSvcPort}:{mbg1LocalPort}")
+    runcmd(f"kubectl patch service {k8sSvcName} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -46,6 +46,7 @@ if __name__ == "__main__":
     dataplane = args["dataplane"]
  
 
+    destSvc         = "reviews"
     #MBG1 parameters 
     mbg1DataPort    = "30001"
     mbg1cPort       = "30443"
@@ -54,7 +55,6 @@ if __name__ == "__main__":
     mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     mbgctl1Name     = "mbgctl1"
     srcSvc          = "productpage"
-    srcK8sName      = "reviews"
     srcK8sSvcPort   = "9080"
     srcK8sSvcIp     = ":"+srcK8sSvcPort
     srcDefaultGW    = "10.244.0.1"
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     mbg2ClusterName = "mbg-agent2"
     mbgctl2Name     = "mbgctl2"
     review2DestPort = "30001"
-    review2svc      = "reviews-v2"
+    review2pod      = "reviews-v2"
 
     #MBG3 parameters 
     mbg3DataPort    = "30001"
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     mbg3ClusterName = "mbg-agent3"
     mbgctl3Name     = "mbgctl3"
     review3DestPort = "30001"
-    review3svc      = "reviews-v3"
+    review3pod      = "reviews-v3"
     
 
     print(f'Working directory {proj_dir}')
@@ -89,7 +89,7 @@ if __name__ == "__main__":
         printHeader("\n\nClose Iperf3 connection")
         runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl disconnect --serviceId {args["src"]} --serviceIdDest {args["dest"]}')
     elif args["command"] == "connect":
-        connectSvc(args["src"],args["dest"],srcK8sName)
+        connectSvc(args["src"],args["dest"],destSvc)
     else:
         ### clean 
         print(f"Clean old kinds")
@@ -138,7 +138,7 @@ if __name__ == "__main__":
         runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl start --id {mbgctl1Name}   --ip {mbgctl1Ip} --mbgIP  {destMbg1Ip} --dataplane {args["dataplane"]} {mbg1crtFlags}')
         printHeader(f"Add {srcSvc} (client) service to host cluster")
         srcSvcIp =getPodIp(srcSvc)  
-        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addService --id {srcSvc} --ip {srcSvcIp}')
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addService --id {srcSvc} --ip {srcSvcIp} --description product')
         
         # Add MBG Peer
         printHeader("Add MBG2, MBG3 peer to MBG1")
@@ -157,10 +157,10 @@ if __name__ == "__main__":
         mbgctl2name, mbgctl2Ip= buildMbgctl(mbgctl2Name, mbgMode="inside")   
         destMbg2Ip = f"{getPodIp(podMbg2)}:{mbg2cPortLocal}" 
         runcmdb(f'kubectl exec -i {mbgctl2name} -- ./mbgctl start --id {mbgctl2Name}  --ip {mbgctl2Ip} --mbgIP {destMbg2Ip} --dataplane {args["dataplane"]} {mbg2crtFlags}')
-        printHeader(f"Add {review2svc} (server) service to destination cluster")
-        waitPod(review2svc)
-        destSvcReview2Ip = f"{getPodIp(review2svc)}:{srcK8sSvcPort}"
-        runcmd(f'kubectl exec -i {mbgctl2name} -- ./mbgctl addService --id {review2svc} --ip {destSvcReview2Ip}')
+        printHeader(f"Add {destSvc} (server) service to destination cluster")
+        waitPod(review2pod)
+        destSvcReview2Ip = f"{getPodIp(review2pod)}:{srcK8sSvcPort}"
+        runcmd(f'kubectl exec -i {mbgctl2name} -- ./mbgctl addService --id {destSvc} --ip {destSvcReview2Ip} --description v2')
         
 
         ###Set mbgctl3
@@ -172,10 +172,10 @@ if __name__ == "__main__":
         mbgctl3name, mbgctl3Ip= buildMbgctl(mbgctl3Name , mbgMode="inside")   
         destMbg3Ip = f"{getPodIp(podMbg3)}:{mbg3cPortLocal}" 
         runcmdb(f'kubectl exec -i {mbgctl3name} -- ./mbgctl start --id {mbgctl3Name}  --ip {mbgctl3Ip} --mbgIP {destMbg3Ip} --dataplane {args["dataplane"]} {mbg3crtFlags}')
-        printHeader(f"Add {review3svc} (server) service to destination cluster")
-        waitPod(review3svc)
-        destSvcReview3Ip = f"{getPodIp(review3svc)}:{srcK8sSvcPort}"
-        runcmd(f'kubectl exec -i {mbgctl3name} -- ./mbgctl addService --id {review3svc} --ip {destSvcReview3Ip}')
+        printHeader(f"Add {destSvc} (server) service to destination cluster")
+        waitPod(review3pod)
+        destSvcReview3Ip = f"{getPodIp(review3pod)}:{srcK8sSvcPort}"
+        runcmd(f'kubectl exec -i {mbgctl3name} -- ./mbgctl addService --id {destSvc} --ip {destSvcReview3Ip} --description v3')
 
         #Add host cluster to MBG1
         useKindCluster(mbg1ClusterName)
@@ -194,11 +194,11 @@ if __name__ == "__main__":
         
         #Expose service
         useKindCluster(mbg2ClusterName)
-        printHeader(f"\n\nStart exposing svc {review2svc}")
-        runcmd(f'kubectl exec -i {mbgctl2name} -- ./mbgctl expose --serviceId {review2svc}')
+        printHeader(f"\n\nStart exposing svc {destSvc}")
+        runcmd(f'kubectl exec -i {mbgctl2name} -- ./mbgctl expose --serviceId {destSvc}')
         useKindCluster(mbg3ClusterName)
-        printHeader(f"\n\nStart exposing svc {review3svc}")
-        runcmd(f'kubectl exec -i {mbgctl3name} -- ./mbgctl expose --serviceId {review3svc}')
+        printHeader(f"\n\nStart exposing svc {destSvc}")
+        runcmd(f'kubectl exec -i {mbgctl3name} -- ./mbgctl expose --serviceId {destSvc}')
 
         #Get services
         useKindCluster(mbg1ClusterName)
@@ -206,4 +206,4 @@ if __name__ == "__main__":
         runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl getService')
     
         #connect
-        connectSvc(srcSvc, review2svc, srcK8sName)
+        connectSvc(srcSvc, destSvc+"-MBG2",destSvc)

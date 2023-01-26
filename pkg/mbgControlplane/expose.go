@@ -17,7 +17,6 @@ var mlog = logrus.WithField("component", "mbgControlPlane/Expose")
 func Expose(e protocol.ExposeRequest) {
 	//Update MBG state
 	state.UpdateState()
-	state.AddLocalService(e.Id, e.Ip, e.Description)
 	ExposeToMbg(e.Id)
 }
 

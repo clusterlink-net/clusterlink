@@ -8,7 +8,7 @@ import (
 func Disconnect(d protocol.DisconnectRequest) {
 	//Update MBG state
 	state.UpdateState()
-	connectionID := d.Id + ":" + d.IdDest
+	connectionID := d.Id
 	if state.IsServiceLocal(d.IdDest) {
 		state.FreeUpPorts(connectionID)
 		// Need to Kill the corresponding process

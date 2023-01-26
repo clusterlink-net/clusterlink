@@ -57,23 +57,28 @@ func AddRemoteService(e protocol.ExposeRequest) {
 	go md.StartProxyRemoteService(e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
 }
 
-func GetRemoteService(svcId string) protocol.ServiceRequest {
+func GetRemoteService(svcId string) []protocol.ServiceRequest {
 	state.UpdateState()
-	s := state.GetRemoteService(svcId)
-	sPort := state.GetConnectionArr()[s.Service.Id].External
-	sIp := state.GetMyIp() + sPort
-	return protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, MbgID: s.MbgId, Description: s.Service.Description}
+	return convertRemoteService2RemoteReq(svcId)
 }
 
-func GetAllRemoteServices() map[string]protocol.ServiceRequest {
+func GetAllRemoteServices() map[string][]protocol.ServiceRequest {
 	state.UpdateState()
-	sArr := make(map[string]protocol.ServiceRequest)
+	sArr := make(map[string][]protocol.ServiceRequest)
 
-	for _, s := range state.GetRemoteServicesArr() {
-		sPort := state.GetConnectionArr()[s.Service.Id].External
-		sIp := state.GetMyIp() + sPort
-		sArr[s.Service.Id] = protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, MbgID: s.MbgId, Description: s.Service.Description}
+	for svcId, _ := range state.GetRemoteServicesArr() {
+		sArr[svcId] = convertRemoteService2RemoteReq(svcId)
+
 	}
 
+	return sArr
+}
+func convertRemoteService2RemoteReq(svcId string) []protocol.ServiceRequest {
+	sArr := []protocol.ServiceRequest{}
+	for _, s := range state.GetRemoteService(svcId) {
+		sPort := state.GetConnectionArr()[s.Service.Id].External
+		sIp := state.GetMyIp() + sPort
+		sArr = append(sArr, protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, MbgID: s.MbgId, Description: s.Service.Description})
+	}
 	return sArr
 }

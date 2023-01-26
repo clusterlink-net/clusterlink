@@ -32,7 +32,7 @@ type mbgState struct {
 	MbgctlArr             map[string]Mbgctl
 	MbgArr                map[string]MbgInfo
 	MyServices            map[string]LocalService
-	RemoteServices        map[string]RemoteService
+	RemoteServices        map[string][]RemoteService
 	Connections           map[string]ServicePort
 	LocalServiceEndpoints map[string]string
 	LocalPortMap          map[int]bool
@@ -76,7 +76,7 @@ var s = mbgState{MyInfo: MbgInfo{},
 	MbgctlArr:             make(map[string]Mbgctl),
 	MbgArr:                make(map[string]MbgInfo),
 	MyServices:            make(map[string]LocalService),
-	RemoteServices:        make(map[string]RemoteService),
+	RemoteServices:        make(map[string][]RemoteService),
 	Connections:           make(map[string]ServicePort),
 	LocalServiceEndpoints: make(map[string]string),
 	LocalPortMap:          make(map[int]bool),
@@ -122,7 +122,7 @@ func GetChiRouter() (r *chi.Mux) {
 func GetLocalServicesArr() map[string]LocalService {
 	return s.MyServices
 }
-func GetRemoteServicesArr() map[string]RemoteService {
+func GetRemoteServicesArr() map[string][]RemoteService {
 	return s.RemoteServices
 }
 
@@ -170,7 +170,7 @@ func GetLocalService(id string) LocalService {
 	return val
 }
 
-func GetRemoteService(id string) RemoteService {
+func GetRemoteService(id string) []RemoteService {
 	val, ok := s.RemoteServices[id]
 	if !ok {
 		log.Errorf("Service %v is not exist", id)
@@ -316,12 +316,13 @@ func AddLocalService(id, ip, description string) {
 }
 
 func AddRemoteService(id, ip, description, MbgId string) {
-	s.RemoteServices[id] = RemoteService{Service: service.Service{Id: id, Ip: ip, Description: description}, MbgId: MbgId}
+	svc := RemoteService{Service: service.Service{Id: id, Ip: ip, Description: description}, MbgId: MbgId}
 	if mbgs, ok := s.RemoteServiceMap[id]; ok {
-		mbgs = append(mbgs, MbgId)
-		s.RemoteServiceMap[id] = mbgs
+		s.RemoteServiceMap[id] = append(mbgs, MbgId) //TODO- check uniqueness
+		s.RemoteServices[id] = append(s.RemoteServices[id], svc)
 	} else {
 		s.RemoteServiceMap[id] = []string{MbgId}
+		s.RemoteServices[id] = []RemoteService{svc}
 	}
 	log.Infof("[MBG %v] Remote service added %v->[%v]", s.MyInfo.Id, id, s.RemoteServiceMap[id])
 	s.Print()

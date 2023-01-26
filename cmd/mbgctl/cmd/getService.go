@@ -49,16 +49,17 @@ func getAllServicesReq(servicetype string) {
 	}
 	resp := httpAux.HttpGet(address, state.GetHttpClient())
 
-	sArr := make(map[string]protocol.ServiceRequest)
+	sArr := make(map[string][]protocol.ServiceRequest)
 	if err := json.Unmarshal(resp, &sArr); err != nil {
 		log.Fatal("getAllServicesReq Error :", err)
 	}
 	log.Infof("MBG services:")
-	for _, s := range sArr {
-		state.AddService(s.Id, s.Ip, s.Description)
-		log.Infof("Service: %s IP: %s MBGID: %s Description: %s", s.Id, s.Ip, s.MbgID, s.Description)
+	for _, sA := range sArr {
+		for _, s := range sA {
+			state.AddService(s.Id, s.Ip, s.Description)
+			log.Infof("Service: %s IP: %s MBGID: %s Description: %s", s.Id, s.Ip, s.MbgID, s.Description)
+		}
 	}
-
 }
 
 func getServiceReq(serviceId, servicetype string) {
@@ -73,10 +74,12 @@ func getServiceReq(serviceId, servicetype string) {
 	//Send request
 	resp := httpAux.HttpGet(address, state.GetHttpClient())
 
-	var s protocol.ServiceRequest
-	if err := json.Unmarshal(resp, &s); err != nil {
+	var sArr []protocol.ServiceRequest
+	if err := json.Unmarshal(resp, &sArr); err != nil {
 		log.Fatal("getServiceReq Error :", err)
 	}
-	state.AddService(s.Id, s.Ip, s.Description)
-	log.Infof(`Response message from MBG getting service: %s with IP: %s MBGID %s Description %s`, s.Id, s.Ip, s.MbgID, s.Description)
+	for _, s := range sArr {
+		state.AddService(s.Id, s.Ip, s.Description)
+		log.Infof(`Response message from MBG getting service: %s with IP: %s MBGID %s Description %s`, s.Id, s.Ip, s.MbgID, s.Description)
+	}
 }
