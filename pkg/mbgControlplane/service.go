@@ -46,7 +46,7 @@ func AddRemoteService(e protocol.ExposeRequest) {
 		return
 	}
 
-	myServicePort, err := state.GetFreePorts(e.Id)
+	myServicePort, err := state.GetFreePorts(e.Id + "-" + e.MbgID)
 	if err != nil {
 		mlog.Errorf("Unable to get free port")
 		return
