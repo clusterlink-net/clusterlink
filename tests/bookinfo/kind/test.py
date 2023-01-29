@@ -115,18 +115,23 @@ if __name__ == "__main__":
         runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg start --id "MBG1" --ip {mbg1Ip} --cport {mbg1cPort} --cportLocal {mbg1cPortLocal} --externalDataPortRange {mbg1DataPort} \
             --dataplane {args["dataplane"]}  {mbg1crtFlags}')
         runcmd(f"kubectl create service nodeport mbg --tcp={mbg1cPortLocal}:{mbg1cPortLocal} --node-port={mbg1cPort}")
+        runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg addPolicyEngine --target {getPodIp(podMbg1)}:9990 --start')
+        
         #Set Second MBG
         useKindCluster(mbg2ClusterName)
         runcmdb(f'kubectl exec -i {podMbg2} --  ./mbg start --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort} --cportLocal {mbg2cPortLocal} --externalDataPortRange {mbg2DataPort}\
         --dataplane {args["dataplane"]}  {mbg2crtFlags}')
         runcmd(f"kubectl create service nodeport mbg --tcp={mbg2cPortLocal}:{mbg2cPortLocal} --node-port={mbg2cPort}")
-    
+        runcmdb(f'kubectl exec -i {podMbg2} -- ./mbg addPolicyEngine --target {getPodIp(podMbg2)}:9990 --start')
+        
         #Set Third MBG
         useKindCluster(mbg3ClusterName)
         runcmdb(f'kubectl exec -i {podMbg3} --  ./mbg start --id "MBG3" --ip {mbg3Ip} --cport {mbg3cPort} --cportLocal {mbg3cPortLocal} --externalDataPortRange {mbg3DataPort}\
         --dataplane {args["dataplane"]}  {mbg3crtFlags}')
         runcmd(f"kubectl create service nodeport mbg --tcp={mbg3cPortLocal}:{mbg3cPortLocal} --node-port={mbg3cPort}")
-
+        runcmdb(f'kubectl exec -i {podMbg3} -- ./mbg addPolicyEngine --target {getPodIp(podMbg3)}:9990 --start')
+        
+        
         ###Set mbgctl1
         useKindCluster(mbg1ClusterName)
         runcmd(f"kind load docker-image maistra/examples-bookinfo-productpage-v1 --name={mbg1ClusterName}")
@@ -139,7 +144,8 @@ if __name__ == "__main__":
         printHeader(f"Add {srcSvc} (client) service to host cluster")
         srcSvcIp =getPodIp(srcSvc)  
         runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addService --id {srcSvc} --ip {srcSvcIp} --description product')
-        
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addPolicyEngine --target {getPodIp(podMbg1)}:9990')
+
         # Add MBG Peer
         printHeader("Add MBG2, MBG3 peer to MBG1")
         runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addPeer --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort}')
@@ -161,7 +167,8 @@ if __name__ == "__main__":
         waitPod(review2pod)
         destSvcReview2Ip = f"{getPodIp(review2pod)}:{srcK8sSvcPort}"
         runcmd(f'kubectl exec -i {mbgctl2name} -- ./mbgctl addService --id {destSvc} --ip {destSvcReview2Ip} --description v2')
-        
+        runcmd(f'kubectl exec -i {mbgctl2name} -- ./mbgctl addPolicyEngine --target {getPodIp(podMbg2)}:9990')
+
 
         ###Set mbgctl3
         useKindCluster(mbg3ClusterName)
@@ -176,6 +183,7 @@ if __name__ == "__main__":
         waitPod(review3pod)
         destSvcReview3Ip = f"{getPodIp(review3pod)}:{srcK8sSvcPort}"
         runcmd(f'kubectl exec -i {mbgctl3name} -- ./mbgctl addService --id {destSvc} --ip {destSvcReview3Ip} --description v3')
+        runcmd(f'kubectl exec -i {mbgctl3name} -- ./mbgctl addPolicyEngine --target {getPodIp(podMbg3)}:9990')
 
         #Add host cluster to MBG1
         useKindCluster(mbg1ClusterName)
@@ -205,5 +213,7 @@ if __name__ == "__main__":
         printHeader("\n\nStart get service")
         runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl getService')
     
+        #set services
+        runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl policy --command lb_set --policy 0')
         #connect
         connectSvc(srcSvc, destSvc+"-MBG2",destSvc)
