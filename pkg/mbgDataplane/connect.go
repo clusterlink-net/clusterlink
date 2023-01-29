@@ -106,7 +106,7 @@ func StartTcpProxyService(svcListenPort, svcIp, policy, connName string, serverC
 // Start a Local Service which is a proxy for remote service
 // It receives connections from local service and performs Connect API
 // and sets up an mTLS forwarding to the remote service upon accepted (policy checks, etc)
-func StartProxyRemoteService(serviceId, localServicePort, targetMbgIPPort, rootCA, certificate, key string) error {
+func StartProxyRemoteService(serviceId, localServicePort, rootCA, certificate, key string) error {
 	clog.Infof("Start to listen to %v ", localServicePort)
 	var err error
 	var acceptor net.Listener
@@ -166,7 +166,7 @@ func StartProxyRemoteService(serviceId, localServicePort, targetMbgIPPort, rootC
 				continue
 			}
 			connectDest := "Use open connect socket" //not needed ehr we use connect - destSvc.Service.Ip + ":" + connectDest
-			clog.Infof("[MBG %v] Using %s for  %s/%s to connect to Service-%v", state.GetMyId(), dataplane, targetMbgIPPort, connectDest, destSvc.Service.Id)
+			clog.Infof("[MBG %v] Using %s for  %s/%s to connect to Service-%v", state.GetMyId(), dataplane, mbgIP, connectDest, destSvc.Service.Id)
 			connectionID := localSvc.Service.Id + ":" + destSvc.Service.Id
 			go StartTcpProxyService(localServicePort, connectDest, "forward", connectionID, ac, connDest)
 
@@ -181,8 +181,8 @@ func StartProxyRemoteService(serviceId, localServicePort, targetMbgIPPort, rootC
 				ac.Close()
 				continue
 			}
-			clog.Infof("[MBG %v] Using %s for  %s/%s to connect to Service-%v", state.GetMyId(), connectType, targetMbgIPPort, connectDest, destSvc.Service.Id)
-			mtlsForward.StartMtlsForwarderClient(targetMbgIPPort, connectDest, rootCA, certificate, key, ac)
+			clog.Infof("[MBG %v] Using %s for  %s/%s to connect to Service-%v", state.GetMyId(), connectType, mbgIP, connectDest, destSvc.Service.Id)
+			mtlsForward.StartMtlsForwarderClient(mbgIP, connectDest, rootCA, certificate, key, ac)
 		default:
 			clog.Errorf("%v -Not supported", dataplane)
 

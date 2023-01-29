@@ -386,7 +386,7 @@ func configPath() string {
 }
 
 func SaveState() {
-	log.Infof("Update MBG state")
+	log.Infof("Save MBG state")
 	dataMutex.Lock()
 	jsonC, _ := json.MarshalIndent(s, "", "\t")
 	log.Info("state save in ", configPath())

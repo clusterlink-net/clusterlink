@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
+	event "github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 )
@@ -49,18 +50,18 @@ var PolicyCmd = &cobra.Command{
 			mbgDest, _ := cmd.Flags().GetString("mbgDest")
 			priority, _ := cmd.Flags().GetInt("priority")
 			action, _ := cmd.Flags().GetInt("action")
-			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, action, add)
+			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), add)
 		case acl_del:
 			serviceSrc, _ := cmd.Flags().GetString("serviceSrc")
 			serviceDst, _ := cmd.Flags().GetString("serviceDst")
 			mbgDest, _ := cmd.Flags().GetString("mbgDest")
 			priority, _ := cmd.Flags().GetInt("priority")
 			action, _ := cmd.Flags().GetInt("action")
-			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, action, add)
+			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), add)
 		case lb_set:
 			service, _ := cmd.Flags().GetString("serviceDst")
 			policy, _ := cmd.Flags().GetInt("policy")
-			sendLBPolicy(service, policy)
+			sendLBPolicy(service, policyEngine.PolicyLoadBalancer(policy))
 		case show:
 			showAclPolicies()
 			showLBPolicies()
@@ -83,7 +84,7 @@ func init() {
 	PolicyCmd.Flags().Int("policy", 0, "lb policy , 0-> random, 1-> ecmp")
 }
 
-func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action int, command int) {
+func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action, command int) {
 	url := state.GetPolicyDispatcher() + "/" + acl
 	httpClient := http.Client{}
 	switch command {
@@ -106,7 +107,7 @@ func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priorit
 	httpAux.HttpPost(url, jsonReq, httpClient)
 }
 
-func sendLBPolicy(service string, policy int) {
+func sendLBPolicy(service string, policy policyEngine.PolicyLoadBalancer) {
 	url := state.GetPolicyDispatcher() + "/" + lb + "/setPolicy"
 	httpClient := http.Client{}
 

@@ -14,28 +14,35 @@ import (
 
 var llog = logrus.WithField("component", "LoadBalancer")
 
+type PolicyLoadBalancer int
+
 const (
-	random = 0
-	ecmp   = 2
+	Random PolicyLoadBalancer = iota
+	RoundRobin
+	Ecmp
 )
+
+func (p PolicyLoadBalancer) String() string {
+	return [...]string{"Random", "RoundRobin", "Ecmp"}[p]
+}
 
 type LoadBalancerRule struct {
 	Service string
-	Policy  int
+	Policy  PolicyLoadBalancer
 }
 
 type ServiceState struct {
 	totalConnections int
 }
 type LoadBalancer struct {
-	ServiceMap      map[string]*[]string //Service to MBGs
-	Policy          map[string]int       // PolicyType like RoundRobin/Random/etc
+	ServiceMap      map[string]*[]string          //Service to MBGs
+	Policy          map[string]PolicyLoadBalancer // PolicyType like RoundRobin/Random/etc
 	ServiceStateMap map[string]*ServiceState
 }
 
 func (lB *LoadBalancer) Init() {
 	lB.ServiceMap = make(map[string]*[]string)
-	lB.Policy = make(map[string]int)
+	lB.Policy = make(map[string]PolicyLoadBalancer)
 	lB.ServiceStateMap = make(map[string]*ServiceState)
 }
 
@@ -65,7 +72,7 @@ func (lB *LoadBalancer) AddToServiceMap(service string, mbg string) {
 	llog.Infof("Remote service added %v->[%+v]", service, *(lB.ServiceMap[service]))
 }
 
-func (lB *LoadBalancer) SetPolicy(service string, policy int) {
+func (lB *LoadBalancer) SetPolicy(service string, policy PolicyLoadBalancer) {
 	if lB.Policy == nil {
 		lB.Init()
 	}
@@ -107,9 +114,9 @@ func (lB *LoadBalancer) Lookup(service string) string {
 	lB.updateState(service)
 	plog.Infof("LoadBalancer lookup for %s", service)
 	switch policy {
-	case random:
+	case Random:
 		return lB.LookupRandom(service)
-	case ecmp:
+	case Ecmp:
 		return lB.LookupEcmp(service)
 	default:
 		return lB.LookupRandom(service)

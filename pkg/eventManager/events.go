@@ -1,18 +1,30 @@
 package eventManager
 
+type Direction int
+
 const (
-	Incoming = iota
+	Incoming Direction = iota
 	Outgoing
 )
 
-const Wildcard = "*"
+func (d Direction) String() string {
+	return [...]string{"Incoming", "Outgoing"}[d]
+}
+
+type Action int
 
 const (
-	Allow int = iota
+	Allow Action = iota
 	Deny
 	AllowAll
 	AllowPartial
 )
+
+func (a Action) String() string {
+	return [...]string{"Allow", "Deny", "AllowAll", "AllowPartial"}[a]
+}
+
+const Wildcard = "*"
 
 const (
 	NewConnectionRequest = "NewConnectionRequest"
@@ -24,12 +36,12 @@ const (
 type ConnectionRequestAttr struct {
 	SrcService string
 	DstService string
-	Direction  int
+	Direction  Direction
 	OtherMbg   string //Optional: Would not be set if its an outgoing connection
 }
 
 type ConnectionRequestResp struct {
-	Action    int
+	Action    Action
 	TargetMbg string
 	BitRate   int // Mbps
 }
@@ -40,7 +52,7 @@ type NewRemoteServiceAttr struct {
 }
 
 type NewRemoteServiceResp struct {
-	Action int
+	Action Action
 }
 
 type ExposeRequestAttr struct {
@@ -48,7 +60,7 @@ type ExposeRequestAttr struct {
 }
 
 type ExposeRequestResp struct {
-	Action     int
+	Action     Action
 	TargetMbgs []string
 }
 
@@ -57,7 +69,7 @@ type AddPeerAttr struct {
 }
 
 type AddPeerResp struct {
-	Action int
+	Action Action
 }
 
 type ServiceListRequestAttr struct {
@@ -65,7 +77,7 @@ type ServiceListRequestAttr struct {
 }
 
 type ServiceListRequestResp struct {
-	Action   int
+	Action   Action
 	Services []string
 }
 
@@ -74,5 +86,5 @@ type ServiceRequestAttr struct {
 }
 
 type ServiceRequestResp struct {
-	Action int
+	Action Action
 }

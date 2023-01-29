@@ -21,12 +21,12 @@ type AclRule struct {
 	ServiceDst string
 	MbgDest    string
 	Priority   int
-	Action     int
+	Action     event.Action
 }
 
 type rule struct {
 	priority int
-	action   int
+	action   event.Action
 	bitrate  int
 }
 
@@ -86,7 +86,7 @@ func (A *AccessControl) GetRuleReq(w http.ResponseWriter, r *http.Request) {
 	A.displayRules()
 }
 
-func (A *AccessControl) AddRule(serviceSrc string, serviceDst string, mbgDest string, priority int, action int) {
+func (A *AccessControl) AddRule(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action) {
 	if A.ACLRules == nil {
 		A.ACLRules = make(ACL)
 	}
@@ -98,7 +98,7 @@ func (A *AccessControl) DeleteRule(serviceSrc string, serviceDst string, mbgDest
 	delete(A.ACLRules, getKey(serviceSrc, serviceDst, mbgDest))
 }
 
-func (A *AccessControl) RulesLookup(serviceSrc string, serviceDst string, mbgDst string) (int, int, int) {
+func (A *AccessControl) RulesLookup(serviceSrc string, serviceDst string, mbgDst string) (int, event.Action, int) {
 	resultAction := event.Allow
 	priority := math.MaxInt
 	bitrate := 0
@@ -114,7 +114,7 @@ func (A *AccessControl) RulesLookup(serviceSrc string, serviceDst string, mbgDst
 }
 
 // TODO : Parallelize lookups
-func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst string) (int, int) {
+func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst string) (event.Action, int) {
 	resultAction := event.Allow
 	priority := math.MaxInt
 	bitrate := 0
@@ -196,7 +196,7 @@ func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst stri
 	return resultAction, bitrate
 }
 
-func (A *AccessControl) LookupTarget(service string, peerMbgs *[]string) (int, []string) {
+func (A *AccessControl) LookupTarget(service string, peerMbgs *[]string) (event.Action, []string) {
 	myAction := event.AllowAll
 	mbgList := []string{}
 	for _, mbg := range *peerMbgs {
