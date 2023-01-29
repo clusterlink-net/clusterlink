@@ -51,7 +51,8 @@ func (pH PolicyHandler) Routes() chi.Router {
 		r.Post("/delete", pH.accessControl.DelRuleReq)
 	})
 
-	r.Route("/lb/", func(r chi.Router) {
+	r.Route("/lb", func(r chi.Router) {
+		r.Get("/", pH.loadBalancer.GetPolicyReq)
 		r.Post("/setPolicy", pH.loadBalancer.SetPolicyReq) // Add LB Policy
 	})
 	return r
@@ -84,7 +85,7 @@ func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Requ
 				action, bitrate = pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, requestAttr.OtherMbg)
 			}
 		case "LoadBalancer":
-			plog.Infof("Looking up loadbalancer direction %d", requestAttr.Direction)
+			plog.Infof("Looking up loadbalancer direction %v", requestAttr.Direction)
 			if requestAttr.Direction == event.Outgoing {
 				targetMbg = pH.loadBalancer.Lookup(requestAttr.DstService)
 			}
