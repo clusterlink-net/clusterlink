@@ -18,9 +18,8 @@ var llog = logrus.WithField("component", "LoadBalancer")
 type PolicyLoadBalancer string
 
 const (
-	Random     PolicyLoadBalancer = "random"
-	RoundRobin                    = "round-robin"
-	Ecmp                          = "ecmp"
+	Random PolicyLoadBalancer = "random"
+	Ecmp                      = "ecmp"
 )
 
 type LoadBalancerRule struct {
@@ -33,7 +32,7 @@ type ServiceState struct {
 }
 type LoadBalancer struct {
 	ServiceMap      map[string]*[]string          //Service to MBGs
-	Policy          map[string]PolicyLoadBalancer // PolicyType like RoundRobin/Random/etc
+	Policy          map[string]PolicyLoadBalancer // PolicyType like ecmp(Round-robin)/Random/etc
 	ServiceStateMap map[string]*ServiceState
 	ServiceCounter  map[string]uint //count number of calls for the service
 	defaultPolicy   PolicyLoadBalancer
@@ -66,7 +65,7 @@ func (lB *LoadBalancer) GetPolicyReq(w http.ResponseWriter, r *http.Request) {
 	plog.Infof("Get LB Policy request ")
 	respJson, err := json.Marshal(lB.Policy)
 	if err != nil {
-		plog.Errorf("Unable to Marshal ACL rules")
+		plog.Errorf("Unable to Marshal LB Policy")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -115,6 +114,7 @@ func (lB *LoadBalancer) LookupRandom(service string) string {
 	}
 	return ""
 }
+
 func (lB *LoadBalancer) updateState(service string) {
 	if _, ok := lB.ServiceStateMap[service]; !ok {
 		lB.ServiceStateMap[service] = &ServiceState{totalConnections: 1}
@@ -137,7 +137,7 @@ func (lB *LoadBalancer) Lookup(service string) string {
 	policy := lB.Policy[service]
 
 	lB.updateState(service)
-	plog.Infof("LoadBalancer lookup for %s", service)
+	plog.Infof("LoadBalancer lookup for %s with policy %s", service, policy)
 	switch policy {
 	case Random:
 		return lB.LookupRandom(service)

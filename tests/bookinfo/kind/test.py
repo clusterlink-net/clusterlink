@@ -211,9 +211,9 @@ if __name__ == "__main__":
         #Get services
         useKindCluster(mbg1ClusterName)
         printHeader("\n\nStart get service")
-        runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl getService')
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl getService')
     
         #set services
-        runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl policy --command lb_set --policy 0')
+        runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl policy --command lb_set --policy ecmp')
         #connect
         connectSvc(srcSvc, destSvc+"-MBG2",destSvc)

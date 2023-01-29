@@ -81,7 +81,7 @@ func init() {
 	PolicyCmd.Flags().String("mbgDest", "*", "Name of MBG the dest service belongs to (* for wildcard)")
 	PolicyCmd.Flags().Int("priority", 0, "Priority of the acl rule (0 -> highest)")
 	PolicyCmd.Flags().Int("action", 0, "acl 0 -> allow, 1 -> deny")
-	PolicyCmd.Flags().String("policy", "random", "lb policy: random, round-robin,ecmp")
+	PolicyCmd.Flags().String("policy", "random", "lb policy: random,ecmp")
 }
 
 func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action, command int) {

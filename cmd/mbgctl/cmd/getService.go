@@ -21,7 +21,7 @@ var getServiceCmd = &cobra.Command{
 	Short: "get service list from the MBG",
 	Long:  `get service list from the MBG`,
 	Run: func(cmd *cobra.Command, args []string) {
-		serviceId, _ := cmd.Flags().GetString("Id")
+		serviceId, _ := cmd.Flags().GetString("id")
 		servicetype, _ := cmd.Flags().GetString("type")
 		state.UpdateState()
 		if serviceId == "" {
@@ -34,7 +34,7 @@ var getServiceCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(getServiceCmd)
-	getServiceCmd.Flags().String("Id", "", "service id field")
+	getServiceCmd.Flags().String("id", "", "service id field")
 	getServiceCmd.Flags().String("type", "remote", "service type : remote/local")
 
 }
