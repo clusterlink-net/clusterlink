@@ -201,7 +201,7 @@ func (A *AccessControl) LookupTarget(service string, peerMbgs *[]string) (event.
 	mbgList := []string{}
 	for _, mbg := range *peerMbgs {
 		plog.Infof("Checking %s to expose", mbg)
-		_, action, _ := A.RulesLookup(event.Wildcard, service, mbg)
+		action, _ := A.Lookup(event.Wildcard, service, mbg)
 		if action == event.Allow {
 			mbgList = append(mbgList, mbg)
 		} else {
