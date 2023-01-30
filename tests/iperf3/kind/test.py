@@ -113,7 +113,7 @@ if __name__ == "__main__":
     printHeader(f"Add {srcSvc} (client) service to host cluster")
     waitPod(srcSvc)
     srcSvcIp =getPodIp(srcSvc)  if mbgMode =="inside" else srcDefaultGW
-    runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addService --serviceId {srcSvc} --serviceIp {srcSvcIp}')
+    runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addService --id {srcSvc} --id {srcSvcIp}')
 
     # Add MBG Peer
     printHeader("Add MBG2 peer to MBG1")
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     waitPod(destSvc)
     destSvcIp = f"{getPodIp(destSvc)}:5000" if mbgMode =="inside" else f"{destIp}:{iperf3DestPort}"
     destkindIp=getKindIp(destClusterName)
-    runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --serviceId {destSvc} --serviceIp {destSvcIp}')
+    runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --id {destSvc} --ip {destSvcIp}')
 
     #Add host cluster to MBG1
     useKindCluster(hostClusterName)

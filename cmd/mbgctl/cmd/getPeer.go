@@ -21,7 +21,7 @@ var getPeerCmd = &cobra.Command{
 	Short: "get service list from the MBG",
 	Long:  `get service list from the MBG`,
 	Run: func(cmd *cobra.Command, args []string) {
-		peerId, _ := cmd.Flags().GetString("serviceId")
+		peerId, _ := cmd.Flags().GetString("id")
 		state.UpdateState()
 		if peerId == "" {
 			getAllPeersReq()
@@ -34,7 +34,7 @@ var getPeerCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(getPeerCmd)
-	getPeerCmd.Flags().String("perrId", "", "Peer id field")
+	getPeerCmd.Flags().String("id", "", "Peer id field")
 
 }
 

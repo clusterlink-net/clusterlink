@@ -7,8 +7,9 @@ package service
 var Arr = make(map[string]Service)
 
 type Service struct {
-	Id string
-	Ip string
+	Id          string
+	Ip          string
+	Description string
 }
 
 //Init all Functions inside the mbg
@@ -20,6 +21,6 @@ func GetService(s string) Service {
 	return Arr[s]
 }
 
-func UpdateService(id, ip string) {
-	Arr[id] = Service{id, ip}
+func UpdateService(id, ip, description string) {
+	Arr[id] = Service{id, ip, description}
 }

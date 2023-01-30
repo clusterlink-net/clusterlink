@@ -5,10 +5,11 @@ import (
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
+//Todo to replace with dexpose
 func Disconnect(d protocol.DisconnectRequest) {
 	//Update MBG state
 	state.UpdateState()
-	connectionID := d.Id + ":" + d.IdDest
+	connectionID := d.Id
 	if state.IsServiceLocal(d.IdDest) {
 		state.FreeUpPorts(connectionID)
 		// Need to Kill the corresponding process

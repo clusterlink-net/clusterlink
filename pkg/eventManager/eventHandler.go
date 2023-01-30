@@ -84,7 +84,7 @@ func (m *MbgEventManager) RaiseExposeRequestEvent(exposeRequestAttr ExposeReques
 		return r, nil
 	} else {
 		// No Policy Dispatcher assigned
-		return ExposeRequestResp{Action: Allow}, nil
+		return ExposeRequestResp{Action: AllowAll}, nil
 	}
 }
 

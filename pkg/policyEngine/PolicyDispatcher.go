@@ -51,7 +51,8 @@ func (pH PolicyHandler) Routes() chi.Router {
 		r.Post("/delete", pH.accessControl.DelRuleReq)
 	})
 
-	r.Route("/lb/", func(r chi.Router) {
+	r.Route("/lb", func(r chi.Router) {
+		r.Get("/", pH.loadBalancer.GetPolicyReq)
 		r.Post("/setPolicy", pH.loadBalancer.SetPolicyReq) // Add LB Policy
 	})
 	return r
@@ -71,7 +72,7 @@ func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Requ
 	}
 	plog.Infof("New connection request : %+v -> %+v", requestAttr, pH.SubscriptionMap[event.NewConnectionRequest])
 
-	var action int
+	var action event.Action
 	var targetMbg string
 	var bitrate int
 	for _, agent := range pH.SubscriptionMap[event.NewConnectionRequest] {
@@ -84,7 +85,7 @@ func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Requ
 				action, bitrate = pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, requestAttr.OtherMbg)
 			}
 		case "LoadBalancer":
-			plog.Infof("Looking up loadbalancer drection %d", requestAttr.Direction)
+			plog.Infof("Looking up loadbalancer direction %v", requestAttr.Direction)
 			if requestAttr.Direction == event.Outgoing {
 				targetMbg = pH.loadBalancer.Lookup(requestAttr.DstService)
 			}
@@ -116,7 +117,7 @@ func (pH PolicyHandler) addPeerRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	plog.Infof("Add Peer reqest : %+v -> %+v", requestAttr, pH.SubscriptionMap[event.AddPeerRequest])
 	//TODO : Convert this into standard interfaces. This requires formalizing Policy I/O
-	var action int
+	var action event.Action
 
 	for _, agent := range pH.SubscriptionMap[event.AddPeerRequest] {
 		switch agent {
@@ -154,7 +155,7 @@ func (pH PolicyHandler) newRemoteService(w http.ResponseWriter, r *http.Request)
 	}
 	plog.Infof("New Remote Service request : %+v -> %+v", requestAttr, pH.SubscriptionMap[event.NewRemoteService])
 	//TODO : Convert this into standard interfaces. This requires formalizing Policy I/O
-	var action int
+	var action event.Action
 
 	for _, agent := range pH.SubscriptionMap[event.NewRemoteService] {
 		switch agent {

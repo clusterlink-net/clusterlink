@@ -143,7 +143,7 @@ if __name__ == "__main__":
         runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl start --id "productCluster"  --ip {hostIp} --mbgIP  {productMbgIp} --dataplane {args["dataplane"]} {productCrtFlags}')
         printHeader(f"Add {srcSvc} (client) service to host cluster")
         srcSvcIp =getPodIp(srcSvc)  if mbgMode =="inside" else srcDefaultGW
-        runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addService --serviceId {srcSvc} --serviceIp {srcSvcIp}')
+        runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addService --id {srcSvc} --ip {srcSvcIp}')
         if mbgMode !="inside":
             runcmd(f"kubectl create -f {folpdct}/review-svc.yaml")
         # Add MBG Peer
@@ -172,8 +172,8 @@ if __name__ == "__main__":
         waitPod(review3svc)
         destSvcReview2Ip = f"{getPodIp(review2svc)}:{srcK8sSvcPort}" if mbgMode =="inside" else f"{destIp}:{review2DestPort}"
         destSvcReview3Ip = f"{getPodIp(review3svc)}:{srcK8sSvcPort}" if mbgMode =="inside" else f"{destIp}:{review3DestPort}"
-        runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --serviceId {review2svc} --serviceIp {destSvcReview2Ip}')
-        runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --serviceId {review3svc} --serviceIp {destSvcReview3Ip}')
+        runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --id {review2svc} --ip {destSvcReview2Ip}')
+        runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --id {review3svc} --ip {destSvcReview3Ip}')
 
         #Add host cluster to MBG1
         useKindCluster(mbg1ClusterName)

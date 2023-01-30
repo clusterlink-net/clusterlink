@@ -1,6 +1,5 @@
 import os,time,json
 import subprocess as sp
-import netifaces as ni
 from colorama import Fore
 from colorama import Style
 

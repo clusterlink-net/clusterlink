@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
+	event "github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 )
@@ -39,7 +40,7 @@ var PolicyCmd = &cobra.Command{
 	Short: "An applyPolicy command send the MBG the policy for dedicated service",
 	Long:  `An applyPolicy command send the MBG the policy for dedicated service.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("applyPolicy called")
+		log.Println("Policy command called")
 		pType, _ := cmd.Flags().GetString("command")
 		state.UpdateState()
 		switch pType {
@@ -49,18 +50,18 @@ var PolicyCmd = &cobra.Command{
 			mbgDest, _ := cmd.Flags().GetString("mbgDest")
 			priority, _ := cmd.Flags().GetInt("priority")
 			action, _ := cmd.Flags().GetInt("action")
-			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, action, add)
+			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), add)
 		case acl_del:
 			serviceSrc, _ := cmd.Flags().GetString("serviceSrc")
 			serviceDst, _ := cmd.Flags().GetString("serviceDst")
 			mbgDest, _ := cmd.Flags().GetString("mbgDest")
 			priority, _ := cmd.Flags().GetInt("priority")
 			action, _ := cmd.Flags().GetInt("action")
-			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, action, add)
+			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), add)
 		case lb_set:
 			service, _ := cmd.Flags().GetString("serviceDst")
-			policy, _ := cmd.Flags().GetInt("policy")
-			sendLBPolicy(service, policy)
+			policy, _ := cmd.Flags().GetString("policy")
+			sendLBPolicy(service, policyEngine.PolicyLoadBalancer(policy))
 		case show:
 			showAclPolicies()
 			showLBPolicies()
@@ -74,16 +75,16 @@ var PolicyCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(PolicyCmd)
-	PolicyCmd.Flags().String("command", "", "Policy agent command (For now, acl_add/del lb_add/del)")
+	PolicyCmd.Flags().String("command", "", "Policy agent command (For now, acl_add/del lb_add/del/show)")
 	PolicyCmd.Flags().String("serviceSrc", "*", "Name of Source Service (* for wildcard)")
 	PolicyCmd.Flags().String("serviceDst", "*", "Name of Dest Service (* for wildcard)")
 	PolicyCmd.Flags().String("mbgDest", "*", "Name of MBG the dest service belongs to (* for wildcard)")
 	PolicyCmd.Flags().Int("priority", 0, "Priority of the acl rule (0 -> highest)")
 	PolicyCmd.Flags().Int("action", 0, "acl 0 -> allow, 1 -> deny")
-	PolicyCmd.Flags().Int("policy", 0, "lb policy , 0-> random, 1-> ecmp")
+	PolicyCmd.Flags().String("policy", "random", "lb policy: random,ecmp")
 }
 
-func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action int, command int) {
+func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action, command int) {
 	url := state.GetPolicyDispatcher() + "/" + acl
 	httpClient := http.Client{}
 	switch command {
@@ -106,7 +107,7 @@ func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priorit
 	httpAux.HttpPost(url, jsonReq, httpClient)
 }
 
-func sendLBPolicy(service string, policy int) {
+func sendLBPolicy(service string, policy policyEngine.PolicyLoadBalancer) {
 	url := state.GetPolicyDispatcher() + "/" + lb + "/setPolicy"
 	httpClient := http.Client{}
 
@@ -131,13 +132,16 @@ func showAclPolicies() {
 }
 
 func showLBPolicies() {
-	var rules map[string]int
+	var policies map[string]policyEngine.PolicyLoadBalancer
 	httpClient := http.Client{}
 	url := state.GetPolicyDispatcher() + "/" + lb
 	resp := httpAux.HttpGet(url, httpClient)
-	err := json.NewDecoder(bytes.NewBuffer(resp)).Decode(&rules)
-	if err != nil {
-		log.Infof("Unable to decode response %v", err)
+
+	if err := json.Unmarshal(resp, &policies); err != nil {
+		log.Fatal("Unable to decode response:", err)
 	}
-	fmt.Printf("%+v", rules)
+	for p, r := range policies {
+		log.Infof("Service: %v ,Policy: %v", p, r)
+	}
+
 }
