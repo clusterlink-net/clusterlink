@@ -57,7 +57,7 @@ var PolicyCmd = &cobra.Command{
 			mbgDest, _ := cmd.Flags().GetString("mbgDest")
 			priority, _ := cmd.Flags().GetInt("priority")
 			action, _ := cmd.Flags().GetInt("action")
-			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), add)
+			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), del)
 		case lb_set:
 			service, _ := cmd.Flags().GetString("serviceDst")
 			policy, _ := cmd.Flags().GetString("policy")
