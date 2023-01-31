@@ -75,6 +75,7 @@ run-kind-bookinfo:
 clean-kind-iperf3:
 	kind delete cluster --name=mbg-agent1
 	kind delete cluster --name=mbg-agent2
+	kind delete cluster --name=mbg-agent3
 	kind delete cluster --name=host-cluster
 	kind delete cluster --name=dest-cluster
 

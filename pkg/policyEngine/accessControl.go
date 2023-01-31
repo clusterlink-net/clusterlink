@@ -6,6 +6,7 @@ package policyEngine
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"net/http"
 
@@ -14,7 +15,7 @@ import (
 
 const defaultAction = event.Allow
 
-type ACL map[string]*rule
+type ACL map[string]rule
 
 type AclRule struct {
 	ServiceSrc string
@@ -25,9 +26,9 @@ type AclRule struct {
 }
 
 type rule struct {
-	priority int
-	action   event.Action
-	bitrate  int
+	Priority int
+	Action   event.Action
+	Bitrate  int
 }
 
 type AccessControl struct {
@@ -90,7 +91,7 @@ func (A *AccessControl) AddRule(serviceSrc string, serviceDst string, mbgDest st
 	if A.ACLRules == nil {
 		A.ACLRules = make(ACL)
 	}
-	A.ACLRules[getKey(serviceSrc, serviceDst, mbgDest)] = &rule{priority: priority, action: action}
+	A.ACLRules[getKey(serviceSrc, serviceDst, mbgDest)] = rule{Priority: priority, Action: action}
 	plog.Infof("Rule added %+v-> %+v ", getKey(serviceSrc, serviceDst, mbgDest), A.ACLRules[getKey(serviceSrc, serviceDst, mbgDest)])
 }
 
@@ -103,12 +104,12 @@ func (A *AccessControl) RulesLookup(serviceSrc string, serviceDst string, mbgDst
 	priority := math.MaxInt
 	bitrate := 0
 	if myRule, ok := A.ACLRules[getKey(serviceSrc, serviceDst, mbgDst)]; ok {
-		if myRule.priority < priority {
-			priority = myRule.priority
-			resultAction = myRule.action
-			bitrate = myRule.bitrate
+		if myRule.Priority < priority {
+			priority = myRule.Priority
+			resultAction = myRule.Action
+			bitrate = myRule.Bitrate
 		}
-		plog.Infof("Rules Matched.. action=%d", myRule.action)
+		plog.Infof("Rules Matched.. action=%d", myRule.Action)
 	}
 	return priority, resultAction, bitrate
 }
@@ -201,7 +202,7 @@ func (A *AccessControl) LookupTarget(service string, peerMbgs *[]string) (event.
 	mbgList := []string{}
 	for _, mbg := range *peerMbgs {
 		plog.Infof("Checking %s to expose", mbg)
-		_, action, _ := A.RulesLookup(event.Wildcard, service, mbg)
+		action, _ := A.Lookup(event.Wildcard, service, mbg)
 		if action == event.Allow {
 			mbgList = append(mbgList, mbg)
 		} else {
@@ -223,4 +224,8 @@ func (A *AccessControl) displayRules() {
 
 func getKey(serviceSrc string, serviceDst string, mbgDst string) string {
 	return serviceSrc + "-" + serviceDst + "-" + mbgDst
+}
+
+func (r rule) String() string {
+	return fmt.Sprintf("Action: %s Priority: %d Bitrate: %d", r.Action, r.Priority, r.Bitrate)
 }

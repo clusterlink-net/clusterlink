@@ -57,7 +57,7 @@ var PolicyCmd = &cobra.Command{
 			mbgDest, _ := cmd.Flags().GetString("mbgDest")
 			priority, _ := cmd.Flags().GetInt("priority")
 			action, _ := cmd.Flags().GetInt("action")
-			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), add)
+			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), del)
 		case lb_set:
 			service, _ := cmd.Flags().GetString("serviceDst")
 			policy, _ := cmd.Flags().GetString("policy")
@@ -128,7 +128,10 @@ func showAclPolicies() {
 	if err != nil {
 		log.Infof("Unable to decode response %v", err)
 	}
-	fmt.Printf("%+v\n", rules)
+	log.Info("MBG ACL rules")
+	for r, v := range rules {
+		log.Infof("Rule %v , %v", r, v)
+	}
 }
 
 func showLBPolicies() {
@@ -140,6 +143,7 @@ func showLBPolicies() {
 	if err := json.Unmarshal(resp, &policies); err != nil {
 		log.Fatal("Unable to decode response:", err)
 	}
+	log.Info("MBG Load-balancing policies")
 	for p, r := range policies {
 		log.Infof("Service: %v ,Policy: %v", p, r)
 	}
