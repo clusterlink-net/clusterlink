@@ -128,7 +128,7 @@ func showAclPolicies() {
 	if err != nil {
 		log.Infof("Unable to decode response %v", err)
 	}
-	log.Info("MBG rules")
+	log.Info("MBG ACL rules")
 	for r, v := range rules {
 		log.Infof("Rule %v , %v", r, v)
 	}
@@ -143,7 +143,7 @@ func showLBPolicies() {
 	if err := json.Unmarshal(resp, &policies); err != nil {
 		log.Fatal("Unable to decode response:", err)
 	}
-	log.Info("MBG policies")
+	log.Info("MBG Load-balancing policies")
 	for p, r := range policies {
 		log.Infof("Service: %v ,Policy: %v", p, r)
 	}
