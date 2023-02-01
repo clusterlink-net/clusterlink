@@ -66,8 +66,6 @@ def buildMbg(name,cfg=""):
     runcmd(f"kind load docker-image tcp-split --name={name}")
     runcmd(f"kubectl create -f {folMfst}/mbg/mbg.yaml")
     runcmd(f"kubectl create -f {folMfst}/mbg/mbg-client-svc.yaml")
-    runcmd(f"kubectl create -f {folMfst}/tcp-split/tcp-split.yaml")
-    runcmd(f"kubectl create -f {folMfst}/tcp-split/tcp-split-svc.yaml")
     waitPod("mbg")
     podMbg= getPodName("mbg")
     mbgIp=getKindIp(name)
