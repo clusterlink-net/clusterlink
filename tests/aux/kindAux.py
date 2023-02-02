@@ -30,12 +30,12 @@ def getPodIp(name):
     return podIp
 
 def runcmd(cmd):
-    print(cmd)
+    print(f'{Fore.GREEN}{cmd} {Style.RESET_ALL}')
     #sp.Popen(cmd,shell=True)
     os.system(cmd)
     
 def runcmdb(cmd):
-    print(cmd)
+    print(f'{Fore.GREEN}{cmd} {Style.RESET_ALL}')
     #sp.Popen(cmd,shell=True)
     os.system(cmd + ' &')
     time.sleep(7)

@@ -152,3 +152,51 @@ In this step, we can check the secure communication between the iPerf3 client an
 Delete all Kind cluster.
 
     make clean-kind
+
+### <ins> Automated Tests <ins>
+To run the above tests as part of an automated script.
+
+    ./allinone.py
+## Running the packaged Demo
+Additionally, we have prepared individual scripts for a demo of the above scenario with policies.
+
+### Start the Clusters and MBGs
+
+    ./start-cluster-mbg.py -d mtls -m mbg1
+    ./start-cluster-mbg.py -d mtls -m mbg2
+    ./start-cluster-mbg.py -d mtls -m mbg3
+
+### Connect the MBGs
+The below command create connection between MBG1-MBG2 and MBG2-MBG3
+
+    ./connect-mbgs.py
+
+### Start iperf3 services at the three clusters and expose iperf3 server from Cluster 2
+
+    ./iperf3-service.py
+
+### Start iperf3 client from Cluster 1 to Cluster2
+
+    ./iperf-client-start.py -m mbg1
+    ./iperf-client-start.py -m mbg3
+
+### Apply Policy to Block connecton at MBG3
+    ./apply-policy -m mbg3 -t deny
+    ./apply-policy -m mbg3 -t show
+    ./iperf-client-start.py -m mbg3
+    ./iperf-client-start.py -m mbg1
+
+### Apply Policy to Allow connecton at MBG3
+    ./apply-policy -m mbg3 -t allow
+    ./apply-policy -m mbg3 -t show
+    ./iperf-client-start.py -m mbg3
+
+### Apply Policy to Block connecton at MBG2
+    ./apply-policy -m mbg2 -t deny
+    ./apply-policy -m mbg2 -t show
+    ./iperf-client-start.py -m mbg3
+
+### Apply Policy to Allow connecton at MBG3
+    ./apply-policy -m mbg2 -t allow
+    ./apply-policy -m mbg2 -t show
+    ./iperf-client-start.py -m mbg3

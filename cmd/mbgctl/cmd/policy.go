@@ -103,7 +103,6 @@ func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priorit
 		log.Errorf("Unable to marshal json %v", err)
 		return
 	}
-	log.Infof("Sending Policy %+v", jsonReq)
 	httpAux.HttpPost(url, jsonReq, httpClient)
 }
 
