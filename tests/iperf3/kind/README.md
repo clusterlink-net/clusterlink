@@ -171,9 +171,13 @@ The below command create connection between MBG1-MBG2 and MBG2-MBG3
 
     ./connect-mbgs.py
 
-### Start iperf3 services at the three clusters and expose iperf3 server from Cluster 2
+### Start iperf3 services at the three clusters 
 
-    ./iperf3-service.py
+    ./iperf3-service-create.py
+
+### Expose iperf3-server server from Cluster 2 to other Clusters
+    
+    ./iperf3-service-expose.py
 
 ### Start iperf3 client from Cluster 1 to Cluster2
 

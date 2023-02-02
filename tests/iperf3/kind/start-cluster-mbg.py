@@ -10,6 +10,8 @@ sys.path.insert(0,f'{proj_dir}/tests/')
 print(f"{proj_dir}/tests/")
 from aux.kindAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getKindIp, getMbgPorts,buildMbg,buildMbgctl,useKindCluster,getPodIp
 
+def startClusterMbg():
+
 ############################### MAIN ##########################
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
@@ -68,7 +70,6 @@ if __name__ == "__main__":
     
     ### build Kind clusters environment 
     if mbg == "mbg1" :
-        print(f"Clean old kinds")
         os.system("kind delete cluster --name=mbg-agent1")
         ###first Mbg
         printHeader("\n\nStart loading MBG1")
@@ -92,7 +93,6 @@ if __name__ == "__main__":
         f.flush()
         f.close()
     elif  mbg == "mbg2": 
-        print(f"Clean old kinds")
         os.system("kind delete cluster --name=mbg-agent2")
         ###Second Mbg
         printHeader("\n\nStart loading MBG2")
@@ -116,7 +116,6 @@ if __name__ == "__main__":
         f.flush()
         f.close()
     elif mbg == "mbg3": 
-        print(f"Clean old kinds")
         os.system("kind delete cluster --name=mbg-agent3")
         ###Third Mbg
         printHeader("\n\nStart loading MBG3")
