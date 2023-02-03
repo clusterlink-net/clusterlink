@@ -45,12 +45,12 @@ if __name__ == "__main__":
     #MBG1 parameters 
     mbg1ClusterName = "mbg-agent1"
     srcSvc          = "iperf3-client"
-    
+    srcSvc2          = "iperf3-2-client"
+
     #MBG2 parameters 
     destSvc         = "iperf3-server"    
     #MBG3 parameters 
     mbg3ClusterName = "mbg-agent3"
-    srcSvc          = "iperf3-client"
         
     #print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
@@ -72,17 +72,22 @@ if __name__ == "__main__":
         waitPod("iperf3-client")
         podIperf3= getPodName("iperf3-clients")
         mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1,destSvc+"-MBG2")
-        printHeader("Starting Client Service(iperf3 client)->MBG1->MBG2->Dest Service(iperf3 server)")
+        printHeader("Starting Client Service(iperf3 client1)->MBG1->MBG2->Dest Service(iperf3 server)")
         cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {getPodIp(podMbg1) } -p {mbg1LocalPort}'
         iperf3Test(cmd)
+
     elif mbg == "mbg3":
         #Test MBG3
         useKindCluster(mbg3ClusterName)
         waitPod("iperf3-client")
         podIperf3= getPodName("iperf3-clients")
+        pod2Iperf3= getPodName("iperf3-2-clients")
         mbg3LocalPort, mbg3ExternalPort = getMbgPorts(podMbg3,destSvc+"-MBG2")
         printHeader("Starting Client Service(iperf3 client)->MBG3->MBG2->Dest Service(iperf3 server)")
         cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {getPodIp(podMbg3)} -p {mbg3LocalPort}'
+        iperf3Test(cmd)
+        printHeader("Starting Client Service(iperf3 client2)->MBG3->MBG2->Dest Service(iperf3 server)")
+        cmd = f'kubectl exec -i {pod2Iperf3} --  iperf3 -c {getPodIp(podMbg3) } -p {mbg3LocalPort}'
         iperf3Test(cmd)
     else:
         print("Please choose either mbg1/mbg3 for running iperf3 client")

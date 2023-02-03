@@ -14,8 +14,9 @@ from dotenv import load_dotenv
 ############################### MAIN ##########################
 if __name__ == "__main__":
     #parameters 
-    mbg1ClusterName ="mbg-agent1"
+    mbg1ClusterName = "mbg-agent1"
     srcSvc          = "iperf3-client"
+    srcSvc2         = "iperf3-2-client"
     mbg2ClusterName = "mbg-agent2"
     mbgctl2Name     = "mbgctl2"
     destSvc         = "iperf3-server"
@@ -65,6 +66,12 @@ if __name__ == "__main__":
     srcSvcIp =getPodIp(srcSvc)
     runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl addService --id {srcSvc} --ip {srcSvcIp}')
 
+    printHeader(f"Create {srcSvc2} (client) service in MBG3")
+
+    runcmd(f"kubectl create -f {folCl}/iperf3-client2.yaml")
+    waitPod(srcSvc2)
+    srcSvcIp2 =getPodIp(srcSvc2)
+    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl addService --id {srcSvc2} --ip {srcSvcIp2}')
     useKindCluster(mbg2ClusterName)
     waitPod("iperf3-server")
     

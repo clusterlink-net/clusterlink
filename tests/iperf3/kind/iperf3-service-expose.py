@@ -53,6 +53,5 @@ if __name__ == "__main__":
     printHeader("\n\Query service from MBG3")
     runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl getService')
 
-    useKindCluster(mbg2ClusterName)
-    waitPod("iperf3-server")
+
     

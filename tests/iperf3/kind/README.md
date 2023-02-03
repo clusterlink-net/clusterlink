@@ -184,23 +184,23 @@ The below command create connection between MBG1-MBG2 and MBG2-MBG3
     ./iperf-client-start.py -m mbg1
     ./iperf-client-start.py -m mbg3
 
-### Apply Policy to Block connecton at MBG3
+### Apply Policy to Block connection at MBG3
     ./apply-policy -m mbg3 -t deny
     ./apply-policy -m mbg3 -t show
     ./iperf-client-start.py -m mbg3
     ./iperf-client-start.py -m mbg1
 
-### Apply Policy to Allow connecton at MBG3
+### Apply Policy to Allow connection at MBG3
     ./apply-policy -m mbg3 -t allow
     ./apply-policy -m mbg3 -t show
     ./iperf-client-start.py -m mbg3
 
-### Apply Policy to Block connecton at MBG2
+### Apply Policy to Block connection at MBG2
     ./apply-policy -m mbg2 -t deny
     ./apply-policy -m mbg2 -t show
     ./iperf-client-start.py -m mbg3
 
-### Apply Policy to Allow connecton at MBG3
+### Apply Policy to Allow connection at MBG3
     ./apply-policy -m mbg2 -t allow
     ./apply-policy -m mbg2 -t show
     ./iperf-client-start.py -m mbg3

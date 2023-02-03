@@ -245,7 +245,6 @@ func (pH PolicyHandler) init(router *chi.Mux, ip string) {
 	routes := pH.Routes()
 
 	router.Mount("/policy", routes)
-	plog.Infof("Policy Routes : %+v", routes)
 
 	//Use router to start the server
 	plog.Infof("Starting HTTP server, listening to: %v", ip)
