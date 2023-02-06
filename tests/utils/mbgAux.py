@@ -88,9 +88,6 @@ def buildMbgctl(name, mbgMode):
     ip= getPodIp("mbgctl") if mbgMode=="inside" else getKindIp(name)
     return podName, ip 
 
-def useKindCluster(name):
-    runcmd(f'kubectl config use-context kind-{name}')
-
 def clean_cluster():
     runcmd(f'kubectl delete --all deployments')
     runcmd(f'kubectl delete --all svc')

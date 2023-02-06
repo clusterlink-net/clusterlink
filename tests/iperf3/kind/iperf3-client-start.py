@@ -8,7 +8,9 @@ proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.p
 
 sys.path.insert(0,f'{proj_dir}/tests/')
 #print(f"{proj_dir}/tests/")
-from utils.kindAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getKindIp, getMbgPorts,buildMbg,buildMbgctl,useKindCluster,getPodIp
+from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getKindIp, getMbgPorts,buildMbg,buildMbgctl,getPodIp
+from tests.utils.kind.kindAux import useKindCluster
+
 from dotenv import load_dotenv
 
 def iperf3Test(cmd ,blockFlag=False):
