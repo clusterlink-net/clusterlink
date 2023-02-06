@@ -20,6 +20,16 @@ def waitPod(name):
             time.sleep(5)
             break
 
+def getPodNameIp(app):
+    podName = getPodNameApp(app)
+    podIp   =  getPodIp(podName)  
+    return podName, podIp
+
+def getPodNameApp(app):
+    cmd=f"kubectl get pods -l app={app} "+'-o jsonpath="{.items[0].metadata.name}"'
+    podName=sp.getoutput(cmd)
+    return podName
+
 def getPodName(prefix):
     podName=sp.getoutput(f'kubectl get pods -o name | fgrep {prefix}| cut -d\'/\' -f2')
     return podName
@@ -81,3 +91,7 @@ def buildMbgctl(name, mbgMode):
 
 def useKindCluster(name):
     runcmd(f'kubectl config use-context kind-{name}')
+
+def clean_cluster():
+    runcmd(f'kubectl delete --all deployments')
+    runcmd(f'kubectl delete --all svc')

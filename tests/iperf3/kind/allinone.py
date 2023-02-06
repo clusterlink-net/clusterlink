@@ -103,21 +103,21 @@ if __name__ == "__main__":
 
     #Set First MBG
     useKindCluster(mbg1ClusterName)
-    runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg start --id "MBG1" --ip {mbg1Ip} --cport {mbg1cPort} --cportLocal {mbg1cPortLocal}  --externalDataPortRange {mbg1DataPort}\
+    runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg start --id "mbg1" --ip {mbg1Ip} --cport {mbg1cPort} --cportLocal {mbg1cPortLocal}  --externalDataPortRange {mbg1DataPort}\
     --dataplane {args["dataplane"]} {mbg1crtFlags} --startPolicyEngine {True}')
     runcmd(f"kubectl create service nodeport mbg --tcp={mbg1cPortLocal}:{mbg1cPortLocal} --node-port={mbg1cPort}")
 
 
     #Set Second MBG
     useKindCluster(mbg2ClusterName)
-    runcmdb(f'kubectl exec -i {podMbg2} -- ./mbg start --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort} --cportLocal {mbg2cPortLocal} --externalDataPortRange {mbg2DataPort} \
+    runcmdb(f'kubectl exec -i {podMbg2} -- ./mbg start --id "mbg2" --ip {mbg2Ip} --cport {mbg2cPort} --cportLocal {mbg2cPortLocal} --externalDataPortRange {mbg2DataPort} \
     --dataplane {args["dataplane"]} {mbg2crtFlags} --startPolicyEngine {True}')
     runcmd(f"kubectl create service nodeport mbg --tcp={mbg2cPortLocal}:{mbg2cPortLocal} --node-port={mbg2cPort}")
 
 
     #Set Third MBG
     useKindCluster(mbg3ClusterName)
-    runcmdb(f'kubectl exec -i {podMbg3} --  ./mbg start --id "MBG3" --ip {mbg3Ip} --cport {mbg3cPort} --cportLocal {mbg3cPortLocal} --externalDataPortRange {mbg3DataPort}\
+    runcmdb(f'kubectl exec -i {podMbg3} --  ./mbg start --id "mbg3" --ip {mbg3Ip} --cport {mbg3cPort} --cportLocal {mbg3cPortLocal} --externalDataPortRange {mbg3DataPort}\
     --dataplane {args["dataplane"]}  {mbg3crtFlags} --startPolicyEngine {True}')
     runcmd(f"kubectl create service nodeport mbg --tcp={mbg3cPortLocal}:{mbg3cPortLocal} --node-port={mbg3cPort}")
     
@@ -160,20 +160,6 @@ if __name__ == "__main__":
     runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl addService --id {srcSvc} --ip {srcSvcIp}')
     runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl addPolicyEngine --target {getPodIp(podMbg3)}:9990')
     
-    #Add host cluster to MBG1
-    useKindCluster(mbg1ClusterName)
-    printHeader("Add mbgctl to MBG1")
-    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addMbgctl --id {mbgctl1Name} --ip {mbgctl1Ip}')
-
-    #Add dest cluster to MBG2
-    useKindCluster(mbg2ClusterName)
-    printHeader("Add mbgctl2 to MBG2")
-    runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addMbgctl --id {mbgctl2Name} --ip {mbgctl2Ip}')
-    
-    #Add dest cluster to MBG3
-    useKindCluster(mbg3ClusterName)
-    printHeader("Add mbgctl3 to MBG3")
-    runcmd(f'kubectl exec -i {podMbg3} -- ./mbg addMbgctl --id {mbgctl3Name} --ip {mbgctl3Ip}')
     
     # Add MBG Peer
     useKindCluster(mbg2ClusterName)
@@ -204,7 +190,7 @@ if __name__ == "__main__":
     useKindCluster(mbg1ClusterName)
     waitPod("iperf3-client")
     podIperf3= getPodName("iperf3-clients")
-    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1,destSvc+"-MBG2")
+    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1,destSvc+"-mbg2")
 
     printHeader("The Iperf3 test connects directly to the destination")
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {destkindIp} -p {iperf3DestPort}'
@@ -218,7 +204,7 @@ if __name__ == "__main__":
     useKindCluster(mbg3ClusterName)
     waitPod("iperf3-client")
     podIperf3= getPodName("iperf3-clients")
-    mbg3LocalPort, mbg3ExternalPort = getMbgPorts(podMbg3,destSvc+"-MBG2")
+    mbg3LocalPort, mbg3ExternalPort = getMbgPorts(podMbg3,destSvc+"-mbg2")
 
     printHeader("The Iperf3 test connects directly to the destination")
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {destkindIp} -p {iperf3DestPort}'

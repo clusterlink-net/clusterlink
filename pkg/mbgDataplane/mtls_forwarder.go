@@ -50,7 +50,7 @@ var mlog = logrus.WithField("component", "mbgDataplane/mTLSForwarder")
 // Start mtls Forwarder on a specific mtls target
 // targetIPPort in the format of <ip:port>
 // connect is set to true on a client side
-func (m *MbgMtlsForwarder) StartMtlsForwarderClient(targetIPPort, name, rootCA, certificate, key string, endpointConn net.Conn) {
+func (m *MbgMtlsForwarder) StartMtlsForwarderClient(targetIPPort, name, rootCA, certificate, key, ServerName string, endpointConn net.Conn) {
 	mlog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
 
 	connectMbg := "https://" + targetIPPort + "/mbgData/" + name
@@ -60,7 +60,7 @@ func (m *MbgMtlsForwarder) StartMtlsForwarderClient(targetIPPort, name, rootCA, 
 	m.Name = name
 
 	//Create TCP connection with TLS handshake
-	TLSClientConfig := m.CreateTlsConfig(rootCA, certificate, key)
+	TLSClientConfig := m.CreateTlsConfig(rootCA, certificate, key, ServerName)
 	mtls_conn, err := tls.Dial("tcp", targetIPPort, TLSClientConfig)
 	if err != nil {
 		mlog.Infof("Error in connecting.. %+v", err)
@@ -202,7 +202,7 @@ func CloseMtlsServer(ip string) {
 }
 
 //Get rootCA, certificate, key  and create tls config
-func (m *MbgMtlsForwarder) CreateTlsConfig(rootCA, certificate, key string) *tls.Config {
+func (m *MbgMtlsForwarder) CreateTlsConfig(rootCA, certificate, key, ServerName string) *tls.Config {
 	// Read the key pair to create certificate
 	cert, err := tls.LoadX509KeyPair(certificate, key)
 	if err != nil {
@@ -220,6 +220,7 @@ func (m *MbgMtlsForwarder) CreateTlsConfig(rootCA, certificate, key string) *tls
 	TLSConfig := &tls.Config{
 		RootCAs:      caCertPool,
 		Certificates: []tls.Certificate{cert},
+		ServerName:   ServerName,
 	}
 	return TLSConfig
 }

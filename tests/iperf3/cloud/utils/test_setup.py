@@ -27,23 +27,7 @@ from mbg_setup import serviceNodeSetup
 from clusterClass import cluster
 from iperf3_setup import iperf3Test, iperf3TestDB
 
-def clusterSetup(host, mbg,target):
-    #creating source, target, mbg clusters
-    create_k8s_cluster(cluster=host,run_in_bg=True)
-    create_k8s_cluster(cluster=mbg,run_in_bg=True)
-    create_k8s_cluster(cluster=target,run_in_bg=False)
 
-
-    #setup clusters
-    checkClusterIsReady(target)
-    deployTarget(target)
-
-    checkClusterIsReady(mbg)
-    deployServiceNode(mbg)
-
-    checkClusterIsReady(host)
-    deployHost(host)
-    print("Finisd setup all clusters")
 
 
 def hostServiceSetup(host, mbg, target ,service):
@@ -79,33 +63,3 @@ def getTime():
     dt_string = IL_time.strftime("%d-%m-%Y_%H-%M")
     print("date and time =", dt_string)
     return dt_string
-
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-
-
-    parser.add_argument("-mbg_zone"    , "--mbg_zone"     , default = "us-east1"   , help="describe mbg zone")
-    parser.add_argument("-mbg_platform", "--mbg_platform" , default = "gcp"        , help="describe mbg k8s cloud platform")
-    parser.add_argument("-h_zone"    , "--host_zone"      , default = "us-central1", help="describe host zone")
-    parser.add_argument("-h_platform", "--host_platform"  , default = "gcp"        , help="describe host k8s cloud platform")
-    parser.add_argument("-t_zone"    , "--target_zone"    , default = "us-west1"   , help="describe target zone")
-    parser.add_argument("-t_platform", "--target_platform", default = "gcp"        , help="describe target k8s cloud platform")
-    parser.add_argument("-folder_res" , "--folder_res"    , default = ""          , help="prefix for folder result")
-
-    #python3 tests/scripts/single_test.py  -h_zone us-east1 -p_zone us-central1 -t_zone us-west1
-    start_time=test_start_time()
-    print("start single run BW tests")
-    args = parser.parse_args()
-    host_zone       = args.host_zone 
-    host_platform   = args.host_platform 
-    host_name       = "host-cluster"
-
-    mbg_zone         = args.mbg_zone 
-    mbg_platform     = args.mbg_platform
-    mbg_name         = "mbg-cluster"
-
-    target_zone     = args.target_zone  
-    target_platform = args.target_platform
-    target_name   = "iperf3-traget"
-

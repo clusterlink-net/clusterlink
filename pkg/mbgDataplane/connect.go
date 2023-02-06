@@ -182,7 +182,8 @@ func StartProxyRemoteService(serviceId, localServicePort, rootCA, certificate, k
 				continue
 			}
 			clog.Infof("[MBG %v] Using %s for  %s/%s to connect to Service-%v", state.GetMyId(), connectType, mbgIP, connectDest, destSvc.Service.Id)
-			mtlsForward.StartMtlsForwarderClient(mbgIP, connectDest, rootCA, certificate, key, ac)
+			serverName := state.GetMyId()
+			mtlsForward.StartMtlsForwarderClient(mbgIP, connectDest, rootCA, certificate, key, serverName, ac)
 		default:
 			clog.Errorf("%v -Not supported", dataplane)
 

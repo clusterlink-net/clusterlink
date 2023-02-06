@@ -64,7 +64,7 @@ run-mbg:
 	@./bin/mbg
 
 run-kind-iperf3:
-	python3 tests/iperf3/kind/test.py -d mtls
+	python3 tests/iperf3/kind/allinone.py -d mtls
 
 run-kind-bookinfo:
 	python3 tests/bookinfo/kind/test.py -d mtls

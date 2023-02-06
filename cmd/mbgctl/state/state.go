@@ -149,6 +149,7 @@ func GetHttpClient() http.Client {
 				TLSClientConfig: &tls.Config{
 					RootCAs:      caCertPool,
 					Certificates: []tls.Certificate{certificate},
+					ServerName:   s.Id,
 				},
 			},
 		}
