@@ -73,7 +73,6 @@ def buildMbg(name,cfg=""):
     else:
         runcmd(f"kind create cluster --name={name}")
     runcmd(f"kind load docker-image mbg --name={name}")
-    runcmd(f"kind load docker-image tcp-split --name={name}")
     runcmd(f"kubectl create -f {folMfst}/mbg/mbg.yaml")
     runcmd(f"kubectl create -f {folMfst}/mbg/mbg-client-svc.yaml")
     waitPod("mbg")
