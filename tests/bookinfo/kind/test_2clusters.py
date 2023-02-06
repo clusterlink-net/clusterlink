@@ -12,7 +12,7 @@ proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.p
 
 sys.path.insert(0,f'{proj_dir}/tests/')
 print(f"{proj_dir}/tests/")
-from aux.kindAux import runcmd, runcmdb, printHeader, getPodName, waitPod,getMbgPorts,buildMbg,buildMbgctl,useKindCluster,getPodIp
+from utils.kindAux import runcmd, runcmdb, printHeader, getPodName, waitPod,getMbgPorts,buildMbg,buildMbgctl,useKindCluster,getPodIp
 
 
 
