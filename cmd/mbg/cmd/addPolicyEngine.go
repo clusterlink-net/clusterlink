@@ -30,8 +30,6 @@ var addPolicyEngineCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(addPolicyEngineCmd)
-	addPolicyEngineCmd.Flags().String("name", "", "Policy Name")
-	addPolicyEngineCmd.Flags().String("desc", "", "Short description of policy")
 	addPolicyEngineCmd.Flags().String("target", "", "Target endpoint(e.g.ip:port) to reach the policy agent")
 	addPolicyEngineCmd.Flags().Bool("start", true, "Start the policy dispatcher (true/false)")
 }

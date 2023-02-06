@@ -20,21 +20,23 @@ type PolicyLoadBalancer string
 const (
 	Random PolicyLoadBalancer = "random"
 	Ecmp                      = "ecmp"
+	Static                    = "static"
 )
 
 type LoadBalancerRule struct {
-	Service string
-	Policy  PolicyLoadBalancer
+	Service    string
+	Policy     PolicyLoadBalancer
+	DefaultMbg string
 }
 
 type ServiceState struct {
 	totalConnections int
+	defaultMbg       string
 }
 type LoadBalancer struct {
 	ServiceMap      map[string]*[]string          //Service to MBGs
 	Policy          map[string]PolicyLoadBalancer // PolicyType like ecmp(Round-robin)/Random/etc
 	ServiceStateMap map[string]*ServiceState
-	ServiceCounter  map[string]uint //count number of calls for the service
 	defaultPolicy   PolicyLoadBalancer
 }
 
@@ -42,7 +44,6 @@ func (lB *LoadBalancer) Init() {
 	lB.ServiceMap = make(map[string]*[]string)
 	lB.Policy = make(map[string]PolicyLoadBalancer)
 	lB.ServiceStateMap = make(map[string]*ServiceState)
-	lB.ServiceCounter = make(map[string]uint)
 	lB.defaultPolicy = Random
 }
 
@@ -55,7 +56,7 @@ func (lB *LoadBalancer) SetPolicyReq(w http.ResponseWriter, r *http.Request) {
 	}
 	plog.Infof("Set LB Policy request : %+v", requestAttr)
 
-	lB.SetPolicy(requestAttr.Service, requestAttr.Policy)
+	lB.SetPolicy(requestAttr.Service, requestAttr.Policy, requestAttr.DefaultMbg)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -82,27 +83,43 @@ func (lB *LoadBalancer) AddToServiceMap(service string, mbg string) {
 		*mbgs = append(*mbgs, mbg)
 		lB.ServiceMap[service] = mbgs
 	} else {
-		lB.ServiceMap = make(map[string]*[]string)
 		lB.ServiceMap[service] = &([]string{mbg})
-		lB.Policy[service] = lB.defaultPolicy
+		if _, ok := lB.Policy[service]; !ok { //set default random policy
+			lB.setPolicy2Service(service, lB.defaultPolicy, "")
+		}
+
 	}
 	llog.Infof("Remote service added %v->[%+v]", service, *(lB.ServiceMap[service]))
 }
 
-func (lB *LoadBalancer) SetPolicy(service string, policy PolicyLoadBalancer) {
+func (lB *LoadBalancer) SetPolicy(service string, policy PolicyLoadBalancer, defaultMbg string) {
 	if lB.Policy == nil {
 		lB.Init()
 	}
 
 	if service == event.Wildcard {
-		for key, _ := range lB.Policy {
-			plog.Infof("Set LB policy %v for service %+v", policy, key)
-			lB.Policy[key] = policy
+		for s, _ := range lB.Policy {
+			lB.setPolicy2Service(s, policy, defaultMbg)
 		}
 	} else {
-		lB.Policy[service] = policy
+		lB.setPolicy2Service(service, policy, defaultMbg)
 	}
 }
+
+func (lB *LoadBalancer) setPolicy2Service(service string, policy PolicyLoadBalancer, defaultMbg string) {
+	plog.Infof("Set LB policy %v for service %+v", policy, service)
+	if policy == Static && !lB.checkMbgExist(service, defaultMbg) {
+		llog.Errorf("Remote service  %v is not exist in [%+v]", service, defaultMbg)
+		defaultMbg = ""
+	}
+	lB.Policy[service] = policy
+	lB.ServiceStateMap[service] = &ServiceState{totalConnections: 0, defaultMbg: defaultMbg}
+}
+
+func (lB *LoadBalancer) updateState(service string) {
+	lB.ServiceStateMap[service].totalConnections = lB.ServiceStateMap[service].totalConnections + 1
+}
+
 func (lB *LoadBalancer) LookupRandom(service string) string {
 	mbgList := lB.ServiceMap[service]
 	if mbgList != nil {
@@ -115,20 +132,22 @@ func (lB *LoadBalancer) LookupRandom(service string) string {
 	return ""
 }
 
-func (lB *LoadBalancer) updateState(service string) {
-	if _, ok := lB.ServiceStateMap[service]; !ok {
-		lB.ServiceStateMap[service] = &ServiceState{totalConnections: 1}
-	} else {
-		lB.ServiceStateMap[service].totalConnections = lB.ServiceStateMap[service].totalConnections + 1
-	}
-}
-
 func (lB *LoadBalancer) LookupEcmp(service string) string {
 	mbgList := lB.ServiceMap[service]
 	if mbgList != nil {
 		mbgs := *mbgList
 		index := lB.ServiceStateMap[service].totalConnections % len(mbgs)
 		return mbgs[index]
+	}
+	return ""
+}
+
+func (lB *LoadBalancer) LookupStatic(service string) string {
+	mbgList := lB.ServiceMap[service]
+	if mbgList != nil {
+		mbg := lB.ServiceStateMap[service].defaultMbg
+		plog.Infof("LoadBalancer selects - target MBG %s", mbg)
+		return mbg
 	}
 	return ""
 }
@@ -143,7 +162,21 @@ func (lB *LoadBalancer) Lookup(service string) string {
 		return lB.LookupRandom(service)
 	case Ecmp:
 		return lB.LookupEcmp(service)
+	case Static:
+		return lB.LookupStatic(service)
 	default:
 		return lB.LookupRandom(service)
 	}
+}
+
+func (lB *LoadBalancer) checkMbgExist(service, mbg string) bool {
+	mbgList := lB.ServiceMap[service]
+	if mbgList != nil {
+		for _, val := range *mbgList {
+			if val == mbg {
+				return true
+			}
+		}
+	}
+	return false
 }

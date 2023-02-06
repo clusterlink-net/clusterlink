@@ -10,12 +10,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 
+	"github.ibm.com/mbg-agent/pkg/policyEngine"
 	handler "github.ibm.com/mbg-agent/pkg/protocol/http/mbg"
 )
 
@@ -37,12 +39,24 @@ var startCmd = &cobra.Command{
 		certificateFile, _ := cmd.Flags().GetString("certificate")
 		keyFile, _ := cmd.Flags().GetString("key")
 		dataplane, _ := cmd.Flags().GetString("dataplane")
+		startPolicyEngine, _ := cmd.Flags().GetBool("startPolicyEngine")
+		policyEngineIp, _ := cmd.Flags().GetString("policyEngineIp")
 
 		if ip == "" || id == "" || cport == "" {
 			log.Println("Error: please insert all flag arguments for Mbg start command")
 			os.Exit(1)
 		}
 		state.SetState(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
+		if startPolicyEngine {
+			state.GetEventManager().AssignPolicyDispatcher("http://" + policyEngineIp + "/policy")
+			state.SaveState()
+			serverPolicyIp := policyEngineIp
+			if strings.Contains(policyEngineIp, "localhost") {
+				serverPolicyIp = ":" + strings.Split(policyEngineIp, ":")[1]
+			}
+			go policyEngine.StartPolicyDispatcher(state.GetChiRouter(), serverPolicyIp)
+		}
+
 		if dataplane == "mtls" {
 			StartMtlsServer(":"+cportLocal, caFile, certificateFile, keyFile)
 		} else {
@@ -63,6 +77,8 @@ func init() {
 	startCmd.Flags().String("certificate", "", "Path to the Certificate File (.pem)")
 	startCmd.Flags().String("key", "", "Path to the Key File (.pem)")
 	startCmd.Flags().String("dataplane", "tcp", "tcp/mtls based data-plane proxies")
+	startCmd.Flags().Bool("startPolicyEngine", false, "Start policy engine in port")
+	startCmd.Flags().String("policyEngineIp", "localhost:9990", "Set the policy engine ip")
 }
 
 /********************************** Server **********************************************************/

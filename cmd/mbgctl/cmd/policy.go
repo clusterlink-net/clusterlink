@@ -61,7 +61,8 @@ var PolicyCmd = &cobra.Command{
 		case lb_set:
 			service, _ := cmd.Flags().GetString("serviceDst")
 			policy, _ := cmd.Flags().GetString("policy")
-			sendLBPolicy(service, policyEngine.PolicyLoadBalancer(policy))
+			mbgDest, _ := cmd.Flags().GetString("mbgDest")
+			sendLBPolicy(service, policyEngine.PolicyLoadBalancer(policy), mbgDest)
 		case show:
 			showAclPolicies()
 			showLBPolicies()
@@ -81,7 +82,7 @@ func init() {
 	PolicyCmd.Flags().String("mbgDest", "*", "Name of MBG the dest service belongs to (* for wildcard)")
 	PolicyCmd.Flags().Int("priority", 0, "Priority of the acl rule (0 -> highest)")
 	PolicyCmd.Flags().Int("action", 0, "acl 0 -> allow, 1 -> deny")
-	PolicyCmd.Flags().String("policy", "random", "lb policy: random,ecmp")
+	PolicyCmd.Flags().String("policy", "random", "lb policy: random, ecmp, static")
 }
 
 func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action, command int) {
@@ -97,7 +98,7 @@ func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priorit
 		os.Exit(1)
 
 	}
-	log.Infof("Sending ACL Policy %s", url)
+	log.Debugf("Sending ACL Policy %s", url)
 	jsonReq, err := json.Marshal(policyEngine.AclRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, MbgDest: mbgDest, Priority: priority, Action: action})
 	if err != nil {
 		log.Errorf("Unable to marshal json %v", err)
@@ -106,11 +107,11 @@ func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priorit
 	httpAux.HttpPost(url, jsonReq, httpClient)
 }
 
-func sendLBPolicy(service string, policy policyEngine.PolicyLoadBalancer) {
+func sendLBPolicy(service string, policy policyEngine.PolicyLoadBalancer, mbgDest string) {
 	url := state.GetPolicyDispatcher() + "/" + lb + "/setPolicy"
 	httpClient := http.Client{}
 
-	jsonReq, err := json.Marshal(policyEngine.LoadBalancerRule{Service: service, Policy: policy})
+	jsonReq, err := json.Marshal(policyEngine.LoadBalancerRule{Service: service, Policy: policy, DefaultMbg: mbgDest})
 	if err != nil {
 		log.Errorf("Unable to marshal json %v", err)
 		return

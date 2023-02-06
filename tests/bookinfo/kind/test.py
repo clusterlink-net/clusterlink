@@ -113,23 +113,23 @@ if __name__ == "__main__":
         #Set First MBG
         useKindCluster(mbg1ClusterName)
         runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg start --id "MBG1" --ip {mbg1Ip} --cport {mbg1cPort} --cportLocal {mbg1cPortLocal} --externalDataPortRange {mbg1DataPort} \
-            --dataplane {args["dataplane"]}  {mbg1crtFlags}')
+        --dataplane {args["dataplane"]}  {mbg1crtFlags} --startPolicyEngine {True}')
         runcmd(f"kubectl create service nodeport mbg --tcp={mbg1cPortLocal}:{mbg1cPortLocal} --node-port={mbg1cPort}")
-        runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg addPolicyEngine --target {getPodIp(podMbg1)}:9990 --start')
+        #runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg addPolicyEngine --target {getPodIp(podMbg1)}:9990 --start')
         
         #Set Second MBG
         useKindCluster(mbg2ClusterName)
         runcmdb(f'kubectl exec -i {podMbg2} --  ./mbg start --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort} --cportLocal {mbg2cPortLocal} --externalDataPortRange {mbg2DataPort}\
-        --dataplane {args["dataplane"]}  {mbg2crtFlags}')
+        --dataplane {args["dataplane"]}  {mbg2crtFlags}  --startPolicyEngine {True}')
         runcmd(f"kubectl create service nodeport mbg --tcp={mbg2cPortLocal}:{mbg2cPortLocal} --node-port={mbg2cPort}")
-        runcmdb(f'kubectl exec -i {podMbg2} -- ./mbg addPolicyEngine --target {getPodIp(podMbg2)}:9990 --start')
+        #runcmdb(f'kubectl exec -i {podMbg2} -- ./mbg addPolicyEngine --target {getPodIp(podMbg2)}:9990 --start')
         
         #Set Third MBG
         useKindCluster(mbg3ClusterName)
         runcmdb(f'kubectl exec -i {podMbg3} --  ./mbg start --id "MBG3" --ip {mbg3Ip} --cport {mbg3cPort} --cportLocal {mbg3cPortLocal} --externalDataPortRange {mbg3DataPort}\
-        --dataplane {args["dataplane"]}  {mbg3crtFlags}')
+        --dataplane {args["dataplane"]}  {mbg3crtFlags}  --startPolicyEngine {True}')
         runcmd(f"kubectl create service nodeport mbg --tcp={mbg3cPortLocal}:{mbg3cPortLocal} --node-port={mbg3cPort}")
-        runcmdb(f'kubectl exec -i {podMbg3} -- ./mbg addPolicyEngine --target {getPodIp(podMbg3)}:9990 --start')
+        #runcmdb(f'kubectl exec -i {podMbg3} -- ./mbg addPolicyEngine --target {getPodIp(podMbg3)}:9990 --start')
         
         
         ###Set mbgctl1
