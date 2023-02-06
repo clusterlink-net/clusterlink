@@ -78,10 +78,10 @@ if __name__ == "__main__":
     ### build Kind clusters environment 
     ###first Mbg
     printHeader("\n\nStart building MBG1")
-    podMbg1, mbg1Ip= buildMbg(mbg1ClusterName,f"{proj_dir}/manifests/kind/mbg-config1.yaml")
+    podMbg1, mbg1Ip= buildMbg(mbg1ClusterName)
     ###Second Mbg
     printHeader("\n\nStart building MBG2")
-    podMbg2, mbg2Ip= buildMbg(mbg2ClusterName,f"{proj_dir}/manifests/kind/mbg-config2.yaml")
+    podMbg2, mbg2Ip= buildMbg(mbg2ClusterName)
     if mbgMode !="inside":
         ###host cluster
         printHeader("\n\nStart building host-cluster")

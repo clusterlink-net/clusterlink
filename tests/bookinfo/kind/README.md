@@ -35,7 +35,7 @@ In this step, we build the kind cluster with an MBG image.
 Build the first kind cluster with MBG, mbgctl, Product and details micro-services:
 1) Create a Kind cluster with MBG image:
 
-        kind create cluster --config $PROJECT_FOLDER/manifests/kind/mbg-config1.yaml --name=mbg-agent1
+        kind create cluster  --name=mbg-agent1
         kind load docker-image mbg --name=mbg-agent1
 
 2) Create a MBG deployment: 
@@ -59,7 +59,7 @@ Build the first kind cluster with MBG, mbgctl, Product and details micro-service
 Build the second kind cluster with MBG, mbgctl, reviews(v2) and rating microservices:
 1) Create a Kind cluster with MBG image:
 
-        kind create cluster --config $PROJECT_FOLDER/manifests/kind/mbg-config2.yaml --name=mbg-agent2
+        kind create cluster --name=mbg-agent2
         kind load docker-image mbg --name=mbg-agent2
 2) Create a MBG deployment:
    

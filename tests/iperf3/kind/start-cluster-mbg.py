@@ -72,7 +72,7 @@ if __name__ == "__main__":
         os.system("kind delete cluster --name=mbg-agent1")
         ###first Mbg
         printHeader("\n\nStart loading MBG1")
-        podMbg1, mbg1Ip= buildMbg(mbg1ClusterName,f"{proj_dir}/manifests/kind/mbg-config1.yaml")
+        podMbg1, mbg1Ip= buildMbg(mbg1ClusterName)
         mbgctl1Pod, mbgctl1Ip= buildMbgctl(mbgctl1Name,mbgMode="inside")
         #Set First MBG
         printHeader("\n\nStart MBG1 (along with PolicyEngine)")
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         os.system("kind delete cluster --name=mbg-agent2")
         ###Second Mbg
         printHeader("\n\nStart loading MBG2")
-        podMbg2, mbg2Ip= buildMbg(mbg2ClusterName,f"{proj_dir}/manifests/kind/mbg-config2.yaml")
+        podMbg2, mbg2Ip= buildMbg(mbg2ClusterName)
         mbgctl2Pod, mbgctl2Ip= buildMbgctl(mbgctl2Name, mbgMode="inside")   
         #Set Second MBG
         printHeader("\n\nStart MBG2 (along with PolicyEngine)")
