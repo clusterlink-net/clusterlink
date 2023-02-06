@@ -41,7 +41,7 @@ Build the first kind cluster with MBG, mbgctl, Product and details micro-service
 2) Create a MBG deployment: 
     
         kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg.yaml
-        kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg-client-svc.yaml
+        kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg-svc.yaml
 
 3) Create a mbgctl deployment: 
    
@@ -64,7 +64,7 @@ Build the second kind cluster with MBG, mbgctl, reviews(v2) and rating microserv
 2) Create a MBG deployment:
    
         kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg.yaml
-        kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg-client-svc.yaml
+        kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg-svc.yaml
 3) Create a mbgctl deployment: 
 
         kubectl create -f $PROJECT_FOLDER/manifests/mbgctl/mbgctl.yaml
@@ -86,7 +86,7 @@ Build the third kind cluster with MBG, mbgctl, reviews(v3) and rating microservi
 2) Create a MBG deployment:
    
         kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg.yaml
-        kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg-client-svc.yaml
+        kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg-svc.yaml
 3) Create a mbgctl deployment: 
 
         kubectl create -f $PROJECT_FOLDER/manifests/mbgctl/mbgctl.yaml

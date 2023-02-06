@@ -5,18 +5,18 @@
 import os,sys
 file_dir = os.path.dirname(__file__)
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
-sys.path.insert(0,f'{proj_dir}/tests/aux')
+sys.path.insert(0,f'{proj_dir}/tests/utils')
 print(f"{proj_dir}")
 from kindAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getPodNameApp, getMbgPorts,getPodIp,clean_cluster,getPodNameIp
 
 sys.path.append(file_dir+"/utils")
 
-from utils.check_k8s_cluster_ready import checkClusterIsReady,connectToCluster
-from utils.mbg_setup import mbgSetup,pushImage,mbgBuild
-from utils.create_k8s_cluster import createCluster
-from utils.clusterClass import cluster
-from utils.delete_k8s_cluster import deleteCluster
-from utils.PROJECT_PARAMS import PROJECT_PATH
+from utils.cloud.check_k8s_cluster_ready import checkClusterIsReady,connectToCluster
+from utils.cloud.mbg_setup import mbgSetup,pushImage,mbgBuild
+from utils.cloud.create_k8s_cluster import createCluster
+from utils.cloud.clusterClass import cluster
+from utils.cloud.delete_k8s_cluster import deleteCluster
+from utils.cloud.PROJECT_PARAMS import PROJECT_PATH
 import argparse
 
 mbg1 = cluster(name="mbg1",   zone = "us-west1-b",    platform = "gcp", type = "host")
