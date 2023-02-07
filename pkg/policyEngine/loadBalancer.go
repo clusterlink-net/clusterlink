@@ -63,7 +63,6 @@ func (lB *LoadBalancer) SetPolicyReq(w http.ResponseWriter, r *http.Request) {
 }
 
 func (lB *LoadBalancer) GetPolicyReq(w http.ResponseWriter, r *http.Request) {
-	plog.Infof("Get LB Policy request ")
 	respJson, err := json.Marshal(lB.Policy)
 	if err != nil {
 		plog.Errorf("Unable to Marshal LB Policy")

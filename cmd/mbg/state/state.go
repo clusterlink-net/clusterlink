@@ -165,7 +165,7 @@ func UpdateState() {
 func GetLocalService(id string) LocalService {
 	val, ok := s.MyServices[id]
 	if !ok {
-		log.Errorf("Service %v is not exist", id)
+		log.Errorf("Service %v does not exist", id)
 	}
 	return val
 }
@@ -173,7 +173,7 @@ func GetLocalService(id string) LocalService {
 func GetRemoteService(id string) []RemoteService {
 	val, ok := s.RemoteServices[id]
 	if !ok {
-		log.Errorf("Service %v is not exist", id)
+		log.Errorf("Service %v does not exist", id)
 	}
 	return val
 
@@ -184,7 +184,6 @@ func LookupLocalService(network string) (LocalService, error) {
 	serviceNetwork := strings.Split(network, ":")
 	for _, service := range s.MyServices {
 		// Compare Service IPs
-		log.Printf("Comparing %s, %s ", strings.Split(service.Service.Ip, ":")[0], serviceNetwork[0])
 		if strings.Split(service.Service.Ip, ":")[0] == serviceNetwork[0] {
 			return service, nil
 		}
@@ -199,7 +198,7 @@ func GetServiceMbgIp(Ip string) string {
 			return mbgIp
 		}
 	}
-	log.Infof("[MBG %v]Error Service %v is not defined", s.MyInfo.Id, Ip)
+	log.Errorf("Service %v is not defined", Ip)
 	s.Print()
 	return ""
 }
@@ -223,9 +222,7 @@ func IsServiceLocal(id string) bool {
 }
 
 func AddMbgNbr(id, ip, cport string) {
-	log.Info("AddMbgNbr ", id, ip, cport)
 	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ServicePort{External: cport, Local: ""}}
-	log.Infof("[MBG %v] add MBG neighbors array %v", s.MyInfo.Id, s.MbgArr[id])
 	s.Print()
 	SaveState()
 }
@@ -252,9 +249,7 @@ func GetFreePorts(connectionID string) (ServicePort, error) {
 			localPort := lval + random
 			externalPort := eval + random
 			if !s.LocalPortMap[localPort] {
-				log.Infof("[MBG %v] Free Local Port available at %v", s.MyInfo.Id, localPort)
 				if !s.ExternalPortMap[externalPort] {
-					log.Infof("[MBG %v] Free External Port available at %v", s.MyInfo.Id, externalPort)
 					s.LocalPortMap[localPort] = true
 					s.ExternalPortMap[externalPort] = true
 					myPort := ServicePort{Local: ":" + strconv.Itoa(localPort), External: ":" + strconv.Itoa(externalPort)}
@@ -310,7 +305,7 @@ func FreeUpPorts(connectionID string) {
 
 func AddLocalService(id, ip, description string) {
 	s.MyServices[id] = LocalService{Service: service.Service{Id: id, Ip: ip, Description: description}}
-	log.Infof("[MBG %v] add service %v", s.MyInfo.Id, service.GetService(id))
+	log.Infof("Adding local service: %s", id)
 	s.Print()
 	SaveState()
 }
@@ -324,7 +319,7 @@ func AddRemoteService(id, ip, description, MbgId string) {
 		s.RemoteServiceMap[id] = []string{MbgId}
 		s.RemoteServices[id] = []RemoteService{svc}
 	}
-	log.Infof("[MBG %v] Remote service added %v->[%v]", s.MyInfo.Id, id, s.RemoteServiceMap[id])
+	log.Infof("Adding remote service: [%v]", s.RemoteServiceMap[id])
 	s.Print()
 	SaveState()
 }
@@ -367,10 +362,20 @@ func GetHttpClient() http.Client {
 }
 
 func (s *mbgState) Print() {
-	log.Infof("[MBG %v]: Id: %v Ip: %v Cport %v", s.MyInfo.Id, s.MyInfo.Id, s.MyInfo.Ip, s.MyInfo.Cport)
-	log.Infof("[MBG %v]: MBG neighbors : %v", s.MyInfo.Id, s.MbgArr)
-	log.Infof("[MBG %v]: Myservices: %v", s.MyInfo.Id, s.MyServices)
-	log.Infof("[MBG %v]: Remoteservices: %v", s.MyInfo.Id, s.RemoteServices)
+	log.Infof("****** MBG State ********")
+	log.Infof("ID: %v IP: %v%v", s.MyInfo.Id, s.MyInfo.Ip, s.MyInfo.Cport)
+	nb := ""
+	services := ""
+	for _, n := range s.MbgArr {
+		nb = nb + n.Id + " "
+	}
+	log.Infof("MBG neighbors : %s", nb)
+	for _, se := range s.MyServices {
+		services = services + se.Service.Id
+	}
+	log.Infof("Myservices: %v", services)
+	log.Infof("Remoteservices: %v", s.RemoteServiceMap)
+	log.Infof("****************************")
 }
 
 /// Json code ////
@@ -387,10 +392,8 @@ func configPath() string {
 }
 
 func SaveState() {
-	log.Infof("Save MBG state")
 	dataMutex.Lock()
 	jsonC, _ := json.MarshalIndent(s, "", "\t")
-	log.Info("state save in ", configPath())
 	ioutil.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
 	dataMutex.Unlock()
 }

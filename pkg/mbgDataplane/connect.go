@@ -13,7 +13,7 @@ import (
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 )
 
-var clog = logrus.WithField("component", "mbgDataplane/Connect")
+var clog *logrus.Entry
 
 const TCP_TYPE = "tcp"
 const MTLS_TYPE = "mtls"
@@ -23,10 +23,13 @@ const MTLS_TYPE = "mtls"
 func Connect(c protocol.ConnectRequest, targetMbgIP string, conn net.Conn) (string, string, string) {
 	//Update MBG state
 	state.UpdateState()
+	clog = logrus.WithFields(logrus.Fields{
+		"component": state.GetMyId() + "-Dataplane",
+	})
 	if state.IsServiceLocal(c.IdDest) {
 		return StartProxyLocalService(c, targetMbgIP, conn)
 	} else { //For Remote service
-		clog.Errorf("Serivce %s is not exist", c.IdDest)
+		clog.Errorf("Service %s does not exist", c.IdDest)
 		return "failure", "", ""
 	}
 }
@@ -35,17 +38,17 @@ func Connect(c protocol.ConnectRequest, targetMbgIP string, conn net.Conn) (stri
 //1. Create tcp connection to destination (Not Secure)- TODO support also secure connection
 //2. Register new handle function and hijack the connection
 func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, conn net.Conn) (string, string, string) {
-	clog.Infof("[MBG %v] Received Incoming Connect request from service: %v to service: %v", state.GetMyId(), c.Id, c.IdDest)
+	clog.Infof("Received Incoming Connect request from service: %v to service: %v", c.Id, c.IdDest)
 	connectionID := c.Id + ":" + c.IdDest
 	dataplane := state.GetDataplane()
 	localSvc := state.GetLocalService(c.IdDest)
 	policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: c.Id, DstService: c.IdDest, Direction: eventManager.Incoming, OtherMbg: c.MbgID})
 	if err != nil {
-		clog.Errorf("[MBG %v] Unable to raise connection request event", state.GetMyId())
+		clog.Errorf("Unable to raise connection request event", state.GetMyId())
 		return "failure", "", ""
 	}
 	if policyResp.Action == eventManager.Deny {
-		clog.Infof("[MBG %v] Denying incoming connect request (%s,%s) due to policy", state.GetMyId(), c.Id, c.IdDest)
+		clog.Infof("Denying incoming connect request (%s,%s) due to policy", c.Id, c.IdDest)
 		return "Deny", "", ""
 	}
 
@@ -53,13 +56,13 @@ func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, conn 
 
 	switch dataplane {
 	case TCP_TYPE:
-		clog.Infof("[MBG %v] Sending Connect reply to Connection(%v) to use Dest:%v", state.GetMyId(), connectionID, "use connect hijack")
+		clog.Infof("Sending Connect reply to Connection(%v) to use Dest:%v", connectionID, "use connect hijack")
 		go StartTcpProxyService("use connect mode", localSvc.Service.Ip, c.Policy, connectionID, conn, nil)
 		return "Success", dataplane, "use connect mode"
 	case MTLS_TYPE:
 		uid := ksuid.New()
 		remoteEndPoint := connectionID + "-" + uid.String()
-		clog.Infof("[MBG %v] Starting a Receiver service for %s Using RemoteEndpoint : %s/%s", state.GetMyId(),
+		clog.Infof("Starting a Receiver service for %s Using RemoteEndpoint : %s/%s",
 			localSvc.Service.Ip, mbgTarget, remoteEndPoint)
 
 		go StartMtlsProxyLocalService(localSvc.Service.Ip, mbgTarget, remoteEndPoint)
@@ -71,12 +74,11 @@ func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, conn 
 
 // Receiver service is run at the mbg which receives connection from a remote service
 func StartMtlsProxyLocalService(localServicePort, targetMbgIPPort, remoteEndPoint string) error {
-	clog.Info("Start dial to service port ", localServicePort)
 	conn, err := net.Dial("tcp", localServicePort) //Todo - support destination with secure connection
 	if err != nil {
 		return err
 	}
-	clog.Infof("[MBG %v] Receiver Connection at %s, %s", state.GetMyId(), conn.LocalAddr().String(), remoteEndPoint)
+	clog.Infof("Received new Connection at %s, %s", conn.LocalAddr().String(), remoteEndPoint)
 	mtlsForward := MbgMtlsForwarder{ChiRouter: state.GetChiRouter()}
 	mtlsForward.StartMtlsForwarderServer(targetMbgIPPort, remoteEndPoint, "", "", "", conn)
 	return nil
@@ -107,7 +109,6 @@ func StartTcpProxyService(svcListenPort, svcIp, policy, connName string, serverC
 // It receives connections from local service and performs Connect API
 // and sets up an mTLS forwarding to the remote service upon accepted (policy checks, etc)
 func StartProxyRemoteService(serviceId, localServicePort, rootCA, certificate, key string) error {
-	clog.Infof("Start to listen to %v ", localServicePort)
 	var err error
 	var acceptor net.Listener
 	dataplane := state.GetDataplane()
@@ -120,6 +121,9 @@ func StartProxyRemoteService(serviceId, localServicePort, rootCA, certificate, k
 	for {
 		ac, err := acceptor.Accept()
 		state.UpdateState()
+		clog = logrus.WithFields(logrus.Fields{
+			"component": state.GetMyId() + "-Dataplane",
+		})
 		clog.Infof("Receiving Outgoing connection %s->%s ", ac.RemoteAddr().String(), ac.LocalAddr().String())
 		if err != nil {
 			return err
@@ -136,7 +140,7 @@ func StartProxyRemoteService(serviceId, localServicePort, rootCA, certificate, k
 		}
 		policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: localSvc.Service.Id, DstService: serviceId, Direction: eventManager.Outgoing, OtherMbg: eventManager.Wildcard})
 		if err != nil {
-			clog.Errorf("[MBG %v] Unable to raise connection request event", state.GetMyId())
+			clog.Errorf("Unable to raise connection request event")
 			ac.Close()
 			continue
 		}
@@ -146,7 +150,7 @@ func StartProxyRemoteService(serviceId, localServicePort, rootCA, certificate, k
 			continue
 		}
 
-		clog.Infof("[MBG %v] Accepting Outgoing Connect request from service: %v to service: %v", state.GetMyId(), localSvc.Service.Id, serviceId)
+		clog.Infof("Accepting Outgoing Connect request from service: %v to service: %v", localSvc.Service.Id, serviceId)
 
 		destSvc := state.GetRemoteService(serviceId)[0]
 		var mbgIP string
@@ -161,12 +165,12 @@ func StartProxyRemoteService(serviceId, localServicePort, rootCA, certificate, k
 			connDest, err := tcpConnectReq(localSvc.Service.Id, serviceId, "forward", mbgIP)
 
 			if err != nil && err.Error() != "Connection already setup!" {
-				clog.Infof("[MBG %v] Send connect failure to mbgctl = %v ", state.GetMyId(), err.Error())
+				clog.Infof("Send connect failure to mbgctl = %v ", state.GetMyId(), err.Error())
 				ac.Close()
 				continue
 			}
 			connectDest := "Use open connect socket" //not needed ehr we use connect - destSvc.Service.Ip + ":" + connectDest
-			clog.Infof("[MBG %v] Using %s for  %s/%s to connect to Service-%v", state.GetMyId(), dataplane, mbgIP, connectDest, destSvc.Service.Id)
+			clog.Infof("Using %s for  %s/%s to connect to Service-%v", dataplane, mbgIP, connectDest, destSvc.Service.Id)
 			connectionID := localSvc.Service.Id + ":" + destSvc.Service.Id
 			go StartTcpProxyService(localServicePort, connectDest, "forward", connectionID, ac, connDest)
 
@@ -177,11 +181,11 @@ func StartProxyRemoteService(serviceId, localServicePort, rootCA, certificate, k
 			connectType, connectDest, err := mtlsConnectReq(localSvc.Service.Id, serviceId, "forward", mbgIP)
 
 			if err != nil && err.Error() != "Connection already setup!" {
-				clog.Infof("[MBG %v] Key Send connect failure to mbgctl = %v ", state.GetMyId(), err.Error())
+				clog.Infof("Key Send connect failure to mbgctl = %v ", err.Error())
 				ac.Close()
 				continue
 			}
-			clog.Infof("[MBG %v] Using %s for  %s/%s to connect to Service-%v", state.GetMyId(), connectType, mbgIP, connectDest, destSvc.Service.Id)
+			clog.Infof("Using %s for  %s/%s to connect to Service-%v", connectType, mbgIP, connectDest, destSvc.Service.Id)
 			serverName := state.GetMyId()
 			mtlsForward.StartMtlsForwarderClient(mbgIP, connectDest, rootCA, certificate, key, serverName, ac)
 		default:
@@ -193,7 +197,7 @@ func StartProxyRemoteService(serviceId, localServicePort, rootCA, certificate, k
 
 //Send control request to connect
 func mtlsConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, error) {
-	clog.Infof("Start connect Request to MBG %v for service %v", mbgIp, svcIdDest)
+	clog.Infof("Starting mTLS Connect Request to MBG at %v for Service %v", mbgIp, svcIdDest)
 	address := state.GetAddrStart() + mbgIp + "/connect"
 
 	j, err := json.Marshal(protocol.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy, MbgID: state.GetMyId()})
@@ -210,10 +214,10 @@ func mtlsConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, 
 		return "", "", err
 	}
 	if r.Message == "Success" {
-		clog.Printf("Successfully Connected : Using Connection:Port - %s:%s", r.ConnectType, r.ConnectDest)
+		clog.Infof("Successfully Connected : Using Connection:Port - %s:%s", r.ConnectType, r.ConnectDest)
 		return r.ConnectType, r.ConnectDest, nil
 	}
-	clog.Printf("[MBG %v] Failed to Connect : %s", state.GetMyId(), r.Message)
+	clog.Infof("Failed to Connect : %s", state.GetMyId(), r.Message)
 	if "Connection already setup!" == r.Message {
 		return r.ConnectType, r.ConnectDest, fmt.Errorf("Connection already setup!")
 	} else {
@@ -223,7 +227,7 @@ func mtlsConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, 
 }
 
 func tcpConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (net.Conn, error) {
-	clog.Printf("Start connect Request to MBG %v for service %v", mbgIp, svcIdDest)
+	clog.Printf("Starting TCP Connect Request to MBG at %v for service %v", mbgIp, svcIdDest)
 	url := state.GetAddrStart() + mbgIp + "/connect"
 
 	jsonData, err := json.Marshal(protocol.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy, MbgID: state.GetMyId()})
@@ -233,7 +237,7 @@ func tcpConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (net.Conn, error) 
 	}
 	c, resp := httpAux.HttpConnect(mbgIp, url, string(jsonData))
 	if resp == nil {
-		clog.Printf("Successfully Connected using connect method")
+		clog.Printf("Successfully Connected")
 		return c, nil
 	}
 

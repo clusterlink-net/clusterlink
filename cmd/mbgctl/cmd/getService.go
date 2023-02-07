@@ -6,8 +6,7 @@ package cmd
 
 import (
 	"encoding/json"
-
-	log "github.com/sirupsen/logrus"
+	"fmt"
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
 	"github.ibm.com/mbg-agent/pkg/protocol"
@@ -51,13 +50,15 @@ func getAllServicesReq(servicetype string) {
 
 	sArr := make(map[string][]protocol.ServiceRequest)
 	if err := json.Unmarshal(resp, &sArr); err != nil {
-		log.Fatal("getAllServicesReq Error :", err)
+		fmt.Printf("Unable to unmarshal response :%v", err)
 	}
-	log.Infof("MBG services:")
+	fmt.Printf("Remote Services:\n")
+	i := 1
 	for _, sA := range sArr {
 		for _, s := range sA {
 			state.AddService(s.Id, s.Ip, s.Description)
-			log.Infof("Service: %s IP: %s MBGID: %s Description: %s", s.Id, s.Ip, s.MbgID, s.Description)
+			fmt.Printf("%d) Service ID: %s IP: %s MBGID: %s Description: %s\n", i, s.Id, s.Ip, s.MbgID, s.Description)
+			i++
 		}
 	}
 }
@@ -76,10 +77,10 @@ func getServiceReq(serviceId, servicetype string) {
 
 	var sArr []protocol.ServiceRequest
 	if err := json.Unmarshal(resp, &sArr); err != nil {
-		log.Fatal("getServiceReq Error :", err)
+		fmt.Printf("Unable to unmarshal response :%v", err)
 	}
 	for _, s := range sArr {
 		state.AddService(s.Id, s.Ip, s.Description)
-		log.Infof(`Response message from MBG getting service: %s with IP: %s MBGID %s Description %s`, s.Id, s.Ip, s.MbgID, s.Description)
+		fmt.Printf(`Service ID: %s with IP: %s MBGID %s Description %s\n`, s.Id, s.Ip, s.MbgID, s.Description)
 	}
 }

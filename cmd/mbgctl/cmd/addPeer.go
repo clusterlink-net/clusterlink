@@ -6,8 +6,7 @@ package cmd
 
 import (
 	"encoding/json"
-
-	log "github.com/sirupsen/logrus"
+	"fmt"
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
 	"github.ibm.com/mbg-agent/pkg/protocol"
@@ -42,9 +41,8 @@ func addPeerReq(peerId, peerIp, peerCport string) {
 	address := state.GetAddrStart() + mbgIP + "/peer/" + peerId
 	j, err := json.Marshal(protocol.PeerRequest{Id: peerId, Ip: peerIp, Cport: ":" + peerCport})
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Unable to marshal json: %v", err)
 	}
 	//send expose
 	httpAux.HttpPost(address, j, state.GetHttpClient())
-	log.Infof(`Adding MBG peer %s finish`, peerId)
 }

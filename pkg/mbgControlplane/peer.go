@@ -1,11 +1,13 @@
 package mbgControlplane
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
+
+var plog = logrus.WithField("component", "mbgControlPlane/Peer")
 
 func AddPeer(p protocol.PeerRequest) {
 	//Update MBG state
@@ -13,11 +15,11 @@ func AddPeer(p protocol.PeerRequest) {
 
 	peerResp, err := state.GetEventManager().RaiseAddPeerEvent(eventManager.AddPeerAttr{PeerMbg: p.Id})
 	if err != nil {
-		log.Errorf("[MBG %v] Unable to raise connection request event", state.GetMyId())
+		plog.Errorf("Unable to raise connection request event")
 		return
 	}
 	if peerResp.Action == eventManager.Deny {
-		log.Infof("Denying add peer(%s) due to policy", p.Id)
+		plog.Infof("Denying add peer(%s) due to policy", p.Id)
 		return
 	}
 	state.AddMbgNbr(p.Id, p.Ip, p.Cport)
@@ -43,7 +45,7 @@ func GetPeer(peerID string) protocol.PeerRequest {
 	if ok {
 		return protocol.PeerRequest{Id: m.Id, Ip: m.Ip, Cport: m.Cport.External}
 	} else {
-		log.Infof("MBG %s is not exist in the MBG peers list ", peerID)
+		plog.Infof("MBG %s does not exist in the peers list ", peerID)
 		return protocol.PeerRequest{}
 	}
 

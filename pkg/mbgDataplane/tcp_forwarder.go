@@ -9,11 +9,7 @@ import (
 	"io"
 	"net"
 	"sync"
-
-	"github.com/sirupsen/logrus"
 )
-
-var tlog = logrus.WithField("component", "mbgDataplane/TCPForwarder")
 
 var (
 	maxDataBufferSize = 64 * 1024
@@ -44,8 +40,8 @@ func (c *MbgTcpForwarder) SetClientConnection(ClientConn net.Conn) {
 
 //Run client object
 func (c *MbgTcpForwarder) RunTcpForwarder() {
-	tlog.Infof("*** Start TCP Forwarder ***")
-	tlog.Infof("[%v] Start listen: %v  send to : %v \n", c.Name, c.Listener, c.Target)
+	clog.Infof("*** Start TCP Forwarder ***")
+	clog.Infof("[%v] Start listen: %v  send to : %v \n", c.Name, c.Listener, c.Target)
 
 	c.acceptLoop()
 
@@ -59,14 +55,14 @@ func (c *MbgTcpForwarder) acceptLoop() {
 		// open listener
 		acceptor, err := net.Listen("tcp", c.Listener)
 		if err != nil {
-			tlog.Errorln("Error:", err)
+			clog.Errorln("Error:", err)
 		}
 		// loop until signalled to stop
 		for {
 			ac, err := acceptor.Accept()
-			tlog.Info("[", c.Name, "]: accept connetion", ac.LocalAddr().String(), "->", ac.RemoteAddr().String())
+			clog.Info("[", c.Name, "]: accept connetion", ac.LocalAddr().String(), "->", ac.RemoteAddr().String())
 			if err != nil {
-				tlog.Errorln("Error:", err)
+				clog.Errorln("Error:", err)
 			}
 			go c.dispatch(ac)
 		}
@@ -78,9 +74,9 @@ func (c *MbgTcpForwarder) dispatch(ac net.Conn) error {
 	var nodeConn net.Conn
 	if c.ClientConn == nil {
 		var err error
-		tlog.Info("[", c.Name, "]: before dial TCP", c.Target)
+		clog.Info("[", c.Name, "]: before dial TCP", c.Target)
 		nodeConn, err = net.Dial("tcp", c.Target)
-		tlog.Info("[", c.Name, "]: after dial TCP", c.Target)
+		clog.Info("[", c.Name, "]: after dial TCP", c.Target)
 		if err != nil {
 			return err
 		}
@@ -95,8 +91,8 @@ func (c *MbgTcpForwarder) ioLoop(cl, mbg net.Conn) error {
 	defer cl.Close()
 	defer mbg.Close()
 
-	tlog.Debugf("[Cient] listen to:", cl.LocalAddr().String(), "in port:", cl.RemoteAddr().String())
-	tlog.Debugf("[Cient] send data to:", mbg.RemoteAddr().String(), "from port:", mbg.LocalAddr().String())
+	clog.Debugf("[Cient] listen to:", cl.LocalAddr().String(), "in port:", cl.RemoteAddr().String())
+	clog.Debugf("[Cient] send data to:", mbg.RemoteAddr().String(), "from port:", mbg.LocalAddr().String())
 	done := &sync.WaitGroup{}
 	done.Add(2)
 
@@ -120,7 +116,7 @@ func (c *MbgTcpForwarder) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) e
 			if err == io.EOF {
 				err = nil //Ignore EOF error
 			} else {
-				tlog.Infof("[clientToServer]: Read error %v\n", err)
+				clog.Infof("[clientToServer]: Read error %v\n", err)
 			}
 
 			break
@@ -128,7 +124,7 @@ func (c *MbgTcpForwarder) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) e
 		// Another point to apply policies
 		_, err = mbg.Write(bufData[:numBytes])
 		if err != nil {
-			tlog.Infof("[clientToServer]: Write error %v\n", err)
+			clog.Infof("[clientToServer]: Write error %v\n", err)
 			break
 		}
 	}
@@ -152,14 +148,14 @@ func (c *MbgTcpForwarder) serverToClient(wg *sync.WaitGroup, cl, mbg net.Conn) e
 			if err == io.EOF {
 				err = nil //Ignore EOF error
 			} else {
-				tlog.Infof("[serverToClient]: Read error %v\n", err)
+				clog.Infof("[serverToClient]: Read error %v\n", err)
 			}
 			break
 		}
 		// Another point to apply policies
 		_, err = cl.Write(bufData[:numBytes])
 		if err != nil {
-			tlog.Infof("[serverToClient]: Write error %v\n", err)
+			clog.Infof("[serverToClient]: Write error %v\n", err)
 			break
 		}
 	}
@@ -170,7 +166,7 @@ func (c *MbgTcpForwarder) waitToCloseSignal(wg *sync.WaitGroup) {
 	defer wg.Done()
 	<-c.CloseConn
 	//cl.Close() ,mbg.Close()- TBD -check if need to close also the internal connections
-	tlog.Infof("[%v] Receive signal to close connection\n", c.Name)
+	clog.Infof("[%v] Receive signal to close connection\n", c.Name)
 }
 
 func (c *MbgTcpForwarder) CloseConnection() {

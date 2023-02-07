@@ -56,10 +56,9 @@ func initLogger() {
 	log.SetOutput(os.Stderr)
 	log.SetFormatter(
 		&log.TextFormatter{
-			DisableColors:   false,
-			FullTimestamp:   true,
-			TimestampFormat: "2006-01-02 15:04:05",
-			PadLevelText:    true,
-			DisableQuote:    true,
+			DisableColors: false,
+			FullTimestamp: false,
+			PadLevelText:  true,
+			DisableQuote:  true,
 		})
 }

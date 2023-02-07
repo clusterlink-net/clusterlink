@@ -6,8 +6,7 @@ package cmd
 
 import (
 	"encoding/json"
-
-	log "github.com/sirupsen/logrus"
+	"fmt"
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
 	"github.ibm.com/mbg-agent/pkg/protocol"
@@ -36,17 +35,15 @@ func init() {
 }
 
 func exposeReq(serviceId, mbgIP string) {
-	log.Printf("Start expose %v to MBG with IP address %v", serviceId, mbgIP)
 	s := state.GetService(serviceId)
 	svcExp := s.Service
-	log.Printf("Service %v", s)
 
 	address := state.GetAddrStart() + mbgIP + "/expose"
 	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, MbgID: ""})
 	if err != nil {
-		log.Fatal(err)
+		fmt.Errorf("Unable to marshal json %v", err)
 	}
 	//send expose
 	resp := httpAux.HttpPost(address, j, state.GetHttpClient())
-	log.Infof(`Response message for serive %s expose :  %s`, svcExp.Id, string(resp))
+	fmt.Printf("Response message for exposing service [%s] :  %s\n", svcExp.Id, string(resp))
 }

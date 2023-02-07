@@ -5,7 +5,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	log "github.com/sirupsen/logrus"
+	"fmt"
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
@@ -36,23 +36,19 @@ func init() {
 }
 
 func helloReq(mbgIP, peerID string) {
-	log.Printf("Start hello from to MBG peer %v", peerID)
-
 	address := state.GetAddrStart() + mbgIP + "/hello/" + peerID
 
 	//send hello
 	j := []byte{}
 	resp := httpAux.HttpPost(address, j, state.GetHttpClient())
-	log.Infof(`Response message hello to MBG peer(%s) :  %s`, peerID, string(resp))
+	fmt.Printf("Response message hello to MBG peer(%s) :  %s\n", peerID, string(resp))
 }
 
 func hello2AllReq(mbgIP string) {
-	log.Printf("Start hello to all MBG peers")
-
 	address := state.GetAddrStart() + mbgIP + "/hello/"
 
 	//send hello
 	j := []byte{}
 	resp := httpAux.HttpPost(address, j, state.GetHttpClient())
-	log.Infof(`Response message hello to all MBG peers: %s`, string(resp))
+	fmt.Printf("Hello Response message from all MBG peers: %s\n", string(resp))
 }

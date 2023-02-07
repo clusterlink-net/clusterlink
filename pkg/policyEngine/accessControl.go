@@ -70,8 +70,6 @@ func (A *AccessControl) DelRuleReq(w http.ResponseWriter, r *http.Request) {
 }
 
 func (A *AccessControl) GetRuleReq(w http.ResponseWriter, r *http.Request) {
-	plog.Infof("Get Rule request ")
-
 	respJson, err := json.Marshal(A.ACLRules)
 	if err != nil {
 		plog.Errorf("Unable to Marshal ACL rules")
@@ -109,7 +107,7 @@ func (A *AccessControl) RulesLookup(serviceSrc string, serviceDst string, mbgDst
 			resultAction = myRule.Action
 			bitrate = myRule.Bitrate
 		}
-		plog.Infof("Rules Matched.. action=%d", myRule.Action)
+		//plog.Infof("Rules Matched.. action=%d", myRule.Action)
 	}
 	return priority, resultAction, bitrate
 }

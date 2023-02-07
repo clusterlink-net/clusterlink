@@ -1,13 +1,15 @@
 package mbgControlplane
 
 import (
+	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
 	md "github.ibm.com/mbg-agent/pkg/mbgDataplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
-//var mlog = logrus.WithField("component", "mbgControlPlane/AddService")
+var slog = logrus.WithField("component", "mbgControlPlane/AddService")
+
 /******************* Local Service ****************************************/
 func AddLocalService(s protocol.ServiceRequest) {
 	state.UpdateState()
@@ -39,7 +41,7 @@ func AddRemoteService(e protocol.ExposeRequest) {
 
 	policyResp, err := state.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: e.Id, Mbg: e.MbgID})
 	if err != nil {
-		mlog.Errorf("[MBG %v] Unable to raise connection request event", state.GetMyId())
+		slog.Errorf(" Unable to raise connection request event", state.GetMyId())
 		return
 	}
 	if policyResp.Action == eventManager.Deny {
@@ -48,12 +50,12 @@ func AddRemoteService(e protocol.ExposeRequest) {
 
 	myServicePort, err := state.GetFreePorts(e.Id + "-" + e.MbgID)
 	if err != nil {
-		mlog.Errorf("Unable to get free port")
+		slog.Errorf("Unable to get free port")
 		return
 	}
 	mbgTarget := state.GetMbgTarget(e.MbgID)
 	rootCA, certFile, keyFile := state.GetMyMbgCerts()
-	mlog.Infof("Starting a local Service for remote service %s at %s->%s with certs(%s,%s,%s)", e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
+	mlog.Infof("Starting a Proxy Service for Remote service %s at %s->%s with certs(%s,%s,%s)", e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
 	go md.StartProxyRemoteService(e.Id, myServicePort.Local, rootCA, certFile, keyFile)
 }
 

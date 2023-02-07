@@ -6,8 +6,7 @@ package cmd
 
 import (
 	"encoding/json"
-
-	log "github.com/sirupsen/logrus"
+	"fmt"
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
 	"github.ibm.com/mbg-agent/pkg/protocol"
@@ -46,11 +45,11 @@ func getAllPeersReq() {
 
 	pArr := make(map[string]protocol.PeerRequest)
 	if err := json.Unmarshal(resp, &pArr); err != nil {
-		log.Fatal("getAllServicesReq Error :", err)
+		fmt.Printf("Unable to unmarshal response :%v", err)
 	}
-	log.Infof("MBG peers:")
-	for _, p := range pArr {
-		log.Infof("MBG ID: %v IP: %v cPort %v", p.Id, p.Ip, p.Cport)
+	fmt.Printf("MBG peers:")
+	for i, p := range pArr {
+		fmt.Printf("%d) MBG ID: %v IP: %v:%v\n", i, p.Id, p.Ip, p.Cport)
 	}
 
 }
@@ -66,7 +65,7 @@ func getPeerReq(peerId string) {
 
 	var p protocol.PeerRequest
 	if err := json.Unmarshal(resp, &p); err != nil {
-		log.Fatal("getPeerReq Error :", err)
+		fmt.Printf("Unable to unmarshal json :%v", err)
 	}
-	log.Infof("MBG peer details: ID: %v IP: %v cPort %v", p.Id, p.Ip, p.Cport)
+	fmt.Printf("MBG peer details: ID: %v IP: %v:%v\n", p.Id, p.Ip, p.Cport)
 }

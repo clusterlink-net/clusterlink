@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os/user"
@@ -75,7 +76,7 @@ func UpdateState() {
 func GetService(id string) MbgctlService {
 	val, ok := s.Services[id]
 	if !ok {
-		log.Fatalf("Service %v is not exist", id)
+		fmt.Printf("Service %v does not exist", id)
 	}
 	return val
 }
@@ -87,13 +88,11 @@ func AddService(id, ip, description string) {
 
 	s.Services[id] = MbgctlService{Service: service.Service{id, ip, description}}
 	SaveState()
-	log.Debugf("[%v] Add service: %v", s.Id, s.Services[id])
-	s.Print()
 }
 
 func (s *MbgctlState) Print() {
-	log.Debugf("[%v]: Id: %v ip: %v mbgip: %v", s.Id, s.Id, s.IP, s.MbgIP)
-	log.Debugf("[%v]: services %v", s.Id, s.Services)
+	fmt.Printf("Id: %v ip: %v mbgip: %v", s.Id, s.IP, s.MbgIP)
+	fmt.Printf("Services %v", s.Services)
 }
 
 func AssignPolicyDispatcher(targetUrl string) {

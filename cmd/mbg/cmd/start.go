@@ -7,6 +7,7 @@ package cmd
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -43,7 +44,7 @@ var startCmd = &cobra.Command{
 		policyEngineIp, _ := cmd.Flags().GetString("policyEngineIp")
 
 		if ip == "" || id == "" || cport == "" {
-			log.Println("Error: please insert all flag arguments for Mbg start command")
+			fmt.Println("Error: please insert all flag arguments for Mbg start command")
 			os.Exit(1)
 		}
 		state.SetState(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)

@@ -6,12 +6,11 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
 	"github.ibm.com/mbg-agent/pkg/protocol"
-
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 )
 
@@ -40,19 +39,17 @@ func init() {
 }
 
 func addServiceReq(serviceId string) {
-	log.Printf("Start addService %v to ", serviceId)
 	s := state.GetService(serviceId)
 	mbgIP := state.GetMbgIP()
 	svcExp := s.Service
-	log.Printf("Service %v", s)
 
 	address := state.GetAddrStart() + mbgIP + "/service"
 	j, err := json.Marshal(protocol.ServiceRequest{Id: svcExp.Id, Ip: svcExp.Ip, Description: svcExp.Description})
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Unable to marshal json: %v", err)
 	}
 
 	//send
 	resp := httpAux.HttpPost(address, j, state.GetHttpClient())
-	log.Infof(`Response message for serive %s addservice:  %s`, svcExp.Id, string(resp))
+	fmt.Printf("Response message for adding service [%s]:  %s\n", svcExp.Id, string(resp))
 }

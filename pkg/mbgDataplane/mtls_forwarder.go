@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
-	"github.com/sirupsen/logrus"
 )
 
 type MbgMtlsForwarder struct {
@@ -45,17 +44,16 @@ func (cd connDialer) Dial(network, addr string) (net.Conn, error) {
 	return cd.c, nil
 }
 
-var mlog = logrus.WithField("component", "mbgDataplane/mTLSForwarder")
+//var clog = logrus.WithField("component", "mbgDataplane/mTLSForwarder")
 
 // Start mtls Forwarder on a specific mtls target
 // targetIPPort in the format of <ip:port>
 // connect is set to true on a client side
 func (m *MbgMtlsForwarder) StartMtlsForwarderClient(targetIPPort, name, rootCA, certificate, key, ServerName string, endpointConn net.Conn) {
-	mlog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
+	clog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
 
 	connectMbg := "https://" + targetIPPort + "/mbgData/" + name
 
-	mlog.Infof("Connect MBG Target =%s", connectMbg)
 	m.Connection = endpointConn
 	m.Name = name
 
@@ -63,10 +61,10 @@ func (m *MbgMtlsForwarder) StartMtlsForwarderClient(targetIPPort, name, rootCA, 
 	TLSClientConfig := m.CreateTlsConfig(rootCA, certificate, key, ServerName)
 	mtls_conn, err := tls.Dial("tcp", targetIPPort, TLSClientConfig)
 	if err != nil {
-		mlog.Infof("Error in connecting.. %+v", err)
+		clog.Infof("Error in connecting.. %+v", err)
 	}
 
-	//mlog.Debugln("mTLS Debug Check:", m.certDebg(targetIPPort, name, tlsConfig))
+	//clog.Debugln("mTLS Debug Check:", m.certDebg(targetIPPort, name, tlsConfig))
 
 	TlsConnectClient := &http.Client{
 		Transport: &http.Transport{
@@ -76,46 +74,46 @@ func (m *MbgMtlsForwarder) StartMtlsForwarderClient(targetIPPort, name, rootCA, 
 	}
 	req, err := http.NewRequest(http.MethodGet, connectMbg, nil)
 	if err != nil {
-		mlog.Infof("Failed to create new request %v", err)
+		clog.Infof("Failed to create new request %v", err)
 	}
 	resp, err := TlsConnectClient.Do(req)
 	if err != nil {
-		mlog.Infof("Error in Tls Connection %v", err)
+		clog.Infof("Error in Tls Connection %v", err)
 	}
 
 	m.mtlsConnection = mtls_conn
-	mlog.Infof("mtlS Connection Established Resp:%s(%d) to Target: %s", resp.Status, resp.StatusCode, connectMbg)
+	clog.Infof("mtlS Connection Established Resp:%s(%d) to Target: %s", resp.Status, resp.StatusCode, connectMbg)
 
 	//From forwarder to other MBG
 	go m.mtlsDispatch()
 	//From source to forwarder
 	go m.dispatch()
-	mlog.Infof("Starting mTLS Forwarder client for MBG Dataplane at /mbgData/%s  to target %s with certs(%s,%s)", m.Name, targetIPPort, certificate, key)
+	clog.Infof("Starting mTLS Forwarder client for MBG Dataplane at /mbgData/%s  to target %s with certs(%s,%s)", m.Name, targetIPPort, certificate, key)
 
 }
 
 // Start mtls Forwarder server on a specific mtls target
 // Register handling function (for hijack the connection) and start dispatch to destination
 func (m *MbgMtlsForwarder) StartMtlsForwarderServer(targetIPPort, name, rootCA, certificate, key string, endpointConn net.Conn) {
-	mlog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
+	clog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at /mbgData/%s", m.Name)
 
 	// Register function for handling the dataplane traffic
-	mlog.Infof("Register new handle func to address =%s", "/mbgData/"+name)
+	clog.Infof("Register new handle func to address =%s", "/mbgData/"+name)
 	m.ChiRouter.Get("/mbgData/"+name, m.mbgConnectHandler)
 
 	connectMbg := "https://" + targetIPPort + "/mbgData/" + name
 
-	mlog.Infof("Connect MBG Target =%s", connectMbg)
+	clog.Infof("Connect MBG Target =%s", connectMbg)
 	m.Connection = endpointConn
 	m.Name = name
 
 	go m.dispatch()
-	mlog.Infof("Starting mTLS Forwarder server for MBG Dataplane at /mbgData/%s  to target %s with certs(%s,%s)", m.Name, targetIPPort, certificate, key)
+	clog.Infof("Starting mTLS Forwarder server for MBG Dataplane at /mbgData/%s  to target %s with certs(%s,%s)", m.Name, targetIPPort, certificate, key)
 
 }
 
 func (m *MbgMtlsForwarder) mbgConnectHandler(w http.ResponseWriter, r *http.Request) {
-	mlog.Infof("Received mbgConnect (%s) from %s", m.Name, r.RemoteAddr)
+	clog.Infof("Received mbgConnect (%s) from %s", m.Name, r.RemoteAddr)
 
 	hj, ok := w.(http.Hijacker)
 	if !ok {
@@ -125,16 +123,16 @@ func (m *MbgMtlsForwarder) mbgConnectHandler(w http.ResponseWriter, r *http.Requ
 	//Hijack the connection
 	conn, _, err := hj.Hijack()
 	if err != nil {
-		mlog.Infof("Hijacking failed %v", err)
+		clog.Infof("Hijacking failed %v", err)
 
 	}
 	conn.Write([]byte{})
 	fmt.Fprintf(conn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n")
 
-	mlog.Infof("Connection Hijacked  %v->%v", conn.RemoteAddr().String(), conn.LocalAddr().String())
+	clog.Infof("Connection Hijacked  %v->%v", conn.RemoteAddr().String(), conn.LocalAddr().String())
 
 	m.mtlsConnection = conn
-	mlog.Infof("Starting to dispatch mtls Connection")
+	clog.Infof("Starting to dispatch mtls Connection")
 	go m.mtlsDispatch()
 }
 
@@ -147,13 +145,13 @@ func (m *MbgMtlsForwarder) mtlsDispatch() error {
 			if err == io.EOF {
 				err = nil //Ignore EOF error
 			} else {
-				mlog.Infof("mtlsDispatch: Read error %v\n", err)
+				clog.Infof("mtlsDispatch: Read error %v\n", err)
 			}
 			break
 		}
 		m.Connection.Write(bufData[:numBytes])
 	}
-	mlog.Infof("Initiating end of mtls connection(%s)", m.Name)
+	clog.Infof("Initiating end of mtls connection(%s)", m.Name)
 	m.CloseConnection()
 	if err == io.EOF {
 		return nil
@@ -171,7 +169,7 @@ func (m *MbgMtlsForwarder) dispatch() error {
 			if err == io.EOF {
 				err = nil //Ignore EOF error
 			} else {
-				mlog.Errorf("Dispatch: Read error %v  connection: (local:%s Remote:%s)->,(local: %s Remote%s) ", err,
+				clog.Errorf("Dispatch: Read error %v  connection: (local:%s Remote:%s)->,(local: %s Remote%s) ", err,
 					m.Connection.LocalAddr(), m.Connection.RemoteAddr(), m.mtlsConnection.LocalAddr(), m.mtlsConnection.RemoteAddr())
 
 			}
@@ -179,7 +177,7 @@ func (m *MbgMtlsForwarder) dispatch() error {
 		}
 		m.mtlsConnection.Write(bufData[:numBytes])
 	}
-	mlog.Infof("Initiating end of connection(%s)", m.Name)
+	clog.Infof("Initiating end of connection(%s)", m.Name)
 	m.CloseConnection()
 	if err == io.EOF {
 		return nil
@@ -206,13 +204,13 @@ func (m *MbgMtlsForwarder) CreateTlsConfig(rootCA, certificate, key, ServerName 
 	// Read the key pair to create certificate
 	cert, err := tls.LoadX509KeyPair(certificate, key)
 	if err != nil {
-		mlog.Fatalf("LoadX509KeyPair -%v \ncertificate: %v \nkey:%v", err, certificate, key)
+		clog.Fatalf("LoadX509KeyPair -%v \ncertificate: %v \nkey:%v", err, certificate, key)
 	}
 
 	// Create a CA certificate pool and add ca to it
 	caCert, err := ioutil.ReadFile(rootCA)
 	if err != nil {
-		mlog.Fatalf("ReadFile certificate %v :%v", rootCA, err)
+		clog.Fatalf("ReadFile certificate %v :%v", rootCA, err)
 	}
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
@@ -227,7 +225,7 @@ func (m *MbgMtlsForwarder) CreateTlsConfig(rootCA, certificate, key, ServerName 
 
 //method for debug only -use to debug mtls connection
 func (m *MbgMtlsForwarder) certDebg(target, name string, tlsConfig tls.Config) string {
-	mlog.Infof("Starting tls debug to addr %v name %v", target, name)
+	clog.Infof("Starting tls debug to addr %v name %v", target, name)
 	conn, err := tls.Dial("tcp", target, &tlsConfig)
 	if err != nil {
 		panic("Server doesn't support SSL certificate err: " + err.Error())
@@ -238,7 +236,7 @@ func (m *MbgMtlsForwarder) certDebg(target, name string, tlsConfig tls.Config) s
 		panic("Hostname doesn't match with certificate: " + err.Error())
 	}
 	expiry := conn.ConnectionState().PeerCertificates[0].NotAfter
-	mlog.Infof("Issuer: %s\nExpiry: %v\n", conn.ConnectionState().PeerCertificates[0].Issuer, expiry.Format(time.RFC850))
+	clog.Infof("Issuer: %s\nExpiry: %v\n", conn.ConnectionState().PeerCertificates[0].Issuer, expiry.Format(time.RFC850))
 	conn.Close()
 	return "Debug succeed"
 }

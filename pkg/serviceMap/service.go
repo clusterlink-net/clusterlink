@@ -24,3 +24,7 @@ func GetService(s string) Service {
 func UpdateService(id, ip, description string) {
 	Arr[id] = Service{id, ip, description}
 }
+
+func (s *Service) String() string {
+	return "Service ID: " + s.Id + ", IP: " + s.Ip + ", Description: " + s.Description
+}
