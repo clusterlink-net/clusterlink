@@ -5,27 +5,27 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: iperf3-2-clients
+  name: iperf3-client2
   labels:
-    app: iperf3-2-client
+    app: iperf3-client2
 spec:
   selector:
     matchLabels:
-      app: iperf3-2-client
+      app: iperf3-client2
   template:
     metadata:
       labels:
-        app: iperf3-2-client
+        app: iperf3-client2
     spec:
       tolerations:
         - key: node-role.kubernetes.io/master
           operator: Exists
           effect: NoSchedule
       containers:
-      - name: iperf3-2-client
+      - name: iperf3-client2
         #image: networkstatic/iperf3
         image: mlabbe/iperf3
         imagePullPolicy: IfNotPresent
         command: ['/bin/sh', '-c', 'sleep infinity']
-        # To benchmark manually: kubectl exec iperf3-clients-jlfxq -- /bin/sh -c 'iperf3 -c iperf3-server'
+        # To benchmark manually: kubectl exec iperf3-client2-jlfxq -- /bin/sh -c 'iperf3 -c iperf3-server'
       terminationGracePeriodSeconds: 0

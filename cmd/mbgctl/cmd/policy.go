@@ -142,7 +142,7 @@ func showLBPolicies() {
 	}
 	fmt.Printf("MBG Load-balancing policies\n")
 	for p, r := range policies {
-		fmt.Printf("Service: %v Policy: %v", p, r)
+		fmt.Printf("Service: %v Policy: %v\n", p, r)
 	}
 
 }

@@ -71,16 +71,16 @@ run-kind-bookinfo:
 # Clena targets
 #------------------------------------------------------
 clean-kind-iperf3:
-	kind delete cluster --name=mbg-agent1
-	kind delete cluster --name=mbg-agent2
-	kind delete cluster --name=mbg-agent3
+	kind delete cluster --name=mbg1
+	kind delete cluster --name=mbg2
+	kind delete cluster --name=mbg3
 	kind delete cluster --name=host-cluster
 	kind delete cluster --name=dest-cluster
 
 clean-kind-bookinfo:
-	kind delete cluster --name=mbg-agent1
-	kind delete cluster --name=mbg-agent2
-	kind delete cluster --name=mbg-agent3
+	kind delete cluster --name=mbg1
+	kind delete cluster --name=mbg2
+	kind delete cluster --name=mbg3
 	kind delete cluster --name=product-cluster
 	kind delete cluster --name=review-cluster
 

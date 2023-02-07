@@ -14,13 +14,13 @@ import argparse
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{proj_dir}')
 
-from tests.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName, waitPod,getMbgPorts,buildMbg,buildMbgctl,getPodIp
-from tests.utils.kind.kindAux import useKindCluster
+from tests.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName, waitPod,getMbgPorts,buildMbg,buildMbgctl,getPodIp,getPodNameIp
+from tests.utils.kind.kindAux import useKindCluster,startKindClusterMbg,getKindIp
 
 
 def connectSvc(srcSvc,destSvc, k8sSvcName):
     printHeader(f"\n\nStart connect {srcSvc} to {destSvc}")
-    useKindCluster(mbg1ClusterName)    
+    useKindCluster(mbg1Name)    
     podMbg1= getPodName("mbg-deployment")        
     mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, destSvc)
     runcmd(f"kubectl delete service {destSvc}")
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     mbg1DataPort    = "30001"
     mbg1cPort       = "30443"
     mbg1cPortLocal  = "8443"
-    mbg1ClusterName = "mbg-agent1"
+    mbg1Name        = "mbg1"
     mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     mbgctl1Name     = "mbgctl1"
     srcSvc          = "productpage"
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     mbg2cPort       = "30443"
     mbg2cPortLocal  = "8443"
     mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
-    mbg2ClusterName = "mbg-agent2"
+    mbg2Name        = "mbg2"
     mbgctl2Name     = "mbgctl2"
     review2DestPort = "30001"
     review2pod      = "reviews-v2"
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     mbg3cPort       = "30443"
     mbg3cPortLocal  = "8443"
     mbg3crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg3.crt --key ./mtls/mbg3.key"  if dataplane =="mtls" else ""
-    mbg3ClusterName = "mbg-agent3"
+    mbg3Name        = "mbg3"
     mbgctl3Name     = "mbgctl3"
     review3DestPort = "30001"
     review3pod      = "reviews-v3"
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
     if args["command"] == "disconnect":
-        useKindCluster(mbg1ClusterName)
+        useKindCluster(mbg1Name)
         mbgctlPod= getPodName("mbgctl")
         printHeader("\n\nClose Iperf3 connection")
         runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl disconnect --serviceId {args["src"]} --serviceIdDest {args["dest"]}')
@@ -97,119 +97,83 @@ if __name__ == "__main__":
         ### build docker environment 
         printHeader(f"Build docker image")
         os.system("make docker-build")
+        
         ## build Kind clusters environment 
-        ###first Mbg
-        printHeader("\n\nStart building MBG1")
-        podMbg1, mbg1Ip= buildMbg(mbg1ClusterName)
-        ###Second Mbg
-        printHeader("\n\nStart building MBG2")
-        podMbg2, mbg2Ip= buildMbg(mbg2ClusterName)
-        
-        ###Third Mbg
-        printHeader("\n\nStart building MBG3")
-        podMbg3, mbg3Ip= buildMbg(mbg3ClusterName)
+        startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags)        
+        startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort,dataplane ,mbg2crtFlags)        
+        startKindClusterMbg(mbg3Name, mbgctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort,dataplane ,mbg3crtFlags)        
+      
+        ###get mbg parameters
+        useKindCluster(mbg1Name)
+        mbg1Pod, _           = getPodNameIp("mbg")
+        mbg1Ip               = getKindIp("mbg1")
+        mbgctl1Pod, mbgctl1Ip= getPodNameIp("mbgctl")
+        useKindCluster(mbg2Name)
+        mbg2Pod, _            = getPodNameIp("mbg")
+        mbgctl2Pod, mbgctl2Ip = getPodNameIp("mbgctl")
+        mbg2Ip                =getKindIp(mbg2Name)
+        useKindCluster(mbg3Name)
+        mbg3Pod, _            = getPodNameIp("mbg")
+        mbg3Ip                = getKindIp("mbg3")
+        mbgctl3Pod, mbgctl3Ip = getPodNameIp("mbgctl")
 
-        #Set First MBG
-        useKindCluster(mbg1ClusterName)
-        runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg start --id "MBG1" --ip {mbg1Ip} --cport {mbg1cPort} --cportLocal {mbg1cPortLocal} --externalDataPortRange {mbg1DataPort} \
-        --dataplane {args["dataplane"]}  {mbg1crtFlags} --startPolicyEngine {True}')
-        runcmd(f"kubectl create service nodeport mbg --tcp={mbg1cPortLocal}:{mbg1cPortLocal} --node-port={mbg1cPort}")
-        
-        #Set Second MBG
-        useKindCluster(mbg2ClusterName)
-        runcmdb(f'kubectl exec -i {podMbg2} --  ./mbg start --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort} --cportLocal {mbg2cPortLocal} --externalDataPortRange {mbg2DataPort}\
-        --dataplane {args["dataplane"]}  {mbg2crtFlags}  --startPolicyEngine {True}')
-        runcmd(f"kubectl create service nodeport mbg --tcp={mbg2cPortLocal}:{mbg2cPortLocal} --node-port={mbg2cPort}")
-        
-        #Set Third MBG
-        useKindCluster(mbg3ClusterName)
-        runcmdb(f'kubectl exec -i {podMbg3} --  ./mbg start --id "MBG3" --ip {mbg3Ip} --cport {mbg3cPort} --cportLocal {mbg3cPortLocal} --externalDataPortRange {mbg3DataPort}\
-        --dataplane {args["dataplane"]}  {mbg3crtFlags}  --startPolicyEngine {True}')
-        runcmd(f"kubectl create service nodeport mbg --tcp={mbg3cPortLocal}:{mbg3cPortLocal} --node-port={mbg3cPort}")
-        
-        
-        ###Set mbgctl1
-        useKindCluster(mbg1ClusterName)
-        runcmd(f"kind load docker-image maistra/examples-bookinfo-productpage-v1 --name={mbg1ClusterName}")
-        runcmd(f"kind load docker-image maistra/examples-bookinfo-details-v1:0.12.0 --name={mbg1ClusterName}")
+        ###Set mbg1 services
+        useKindCluster(mbg1Name)
+        runcmd(f"kind load docker-image maistra/examples-bookinfo-productpage-v1 --name={mbg1Name}")
+        runcmd(f"kind load docker-image maistra/examples-bookinfo-details-v1:0.12.0 --name={mbg1Name}")
         runcmd(f"kubectl create -f {folpdct}/product.yaml")
         runcmd(f"kubectl create -f {folpdct}/details.yaml")
-        mbgctl1Pod, mbgctl1Ip= buildMbgctl(mbgctl1Name, mbgMode="inside")
-        destMbg1Ip = f"{getPodIp(podMbg1)}:{mbg1cPortLocal}" 
-        runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl start --id {mbgctl1Name}   --ip {mbgctl1Ip} --mbgIP  {destMbg1Ip} --dataplane {args["dataplane"]} {mbg1crtFlags}')
         printHeader(f"Add {srcSvc} (client) service to host cluster")
+        waitPod(srcSvc)
         srcSvcIp =getPodIp(srcSvc)  
         runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addService --id {srcSvc} --ip {srcSvcIp} --description product')
-        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addPolicyEngine --target {getPodIp(podMbg1)}:9990')
+        
 
         # Add MBG Peer
         printHeader("Add MBG2, MBG3 peer to MBG1")
-        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addPeer --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort}')
-        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addPeer --id "MBG3" --ip {mbg3Ip} --cport {mbg3cPort}')
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addPeer --id {mbg2Name} --ip {mbg2Ip} --cport {mbg2cPort}')
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addPeer --id {mbg3Name} --ip {mbg3Ip} --cport {mbg3cPort}')
         # Send Hello
         printHeader("Send Hello commands")
         runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl hello')
         
-        ###Set mbgctl2
-        useKindCluster(mbg2ClusterName)
-        runcmd(f"kind load docker-image maistra/examples-bookinfo-reviews-v2 --name={mbg2ClusterName}")
-        runcmd(f"kind load docker-image maistra/examples-bookinfo-ratings-v1:0.12.0 --name={mbg2ClusterName}")
+        ###Set mbg2 service
+        useKindCluster(mbg2Name)
+        runcmd(f"kind load docker-image maistra/examples-bookinfo-reviews-v2 --name={mbg2Name}")
+        runcmd(f"kind load docker-image maistra/examples-bookinfo-ratings-v1:0.12.0 --name={mbg2Name}")
         runcmd(f"kubectl create -f {folReview}/review-v2.yaml")
         runcmd(f"kubectl create -f {folReview}/rating.yaml")
-        mbgctl2pod, mbgctl2Ip= buildMbgctl(mbgctl2Name, mbgMode="inside")   
-        destMbg2Ip = f"{getPodIp(podMbg2)}:{mbg2cPortLocal}" 
-        runcmdb(f'kubectl exec -i {mbgctl2pod} -- ./mbgctl start --id {mbgctl2Name}  --ip {mbgctl2Ip} --mbgIP {destMbg2Ip} --dataplane {args["dataplane"]} {mbg2crtFlags}')
         printHeader(f"Add {destSvc} (server) service to destination cluster")
         waitPod(review2pod)
         destSvcReview2Ip = f"{getPodIp(review2pod)}:{srcK8sSvcPort}"
-        runcmd(f'kubectl exec -i {mbgctl2pod} -- ./mbgctl addService --id {destSvc} --ip {destSvcReview2Ip} --description v2')
-        runcmd(f'kubectl exec -i {mbgctl2pod} -- ./mbgctl addPolicyEngine --target {getPodIp(podMbg2)}:9990')
-
+        runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl addService --id {destSvc} --ip {destSvcReview2Ip} --description v2')
+        
 
         ###Set mbgctl3
-        useKindCluster(mbg3ClusterName)
-        runcmd(f"kind load docker-image maistra/examples-bookinfo-reviews-v3 --name={mbg3ClusterName}")
-        runcmd(f"kind load docker-image maistra/examples-bookinfo-ratings-v1:0.12.0 --name={mbg3ClusterName}")
+        useKindCluster(mbg3Name)
+        runcmd(f"kind load docker-image maistra/examples-bookinfo-reviews-v3 --name={mbg3Name}")
+        runcmd(f"kind load docker-image maistra/examples-bookinfo-ratings-v1:0.12.0 --name={mbg3Name}")
         runcmd(f"kubectl create -f {folReview}/review-v3.yaml")
         runcmd(f"kubectl create -f {folReview}/rating.yaml")
-        mbgctl3pod, mbgctl3Ip= buildMbgctl(mbgctl3Name , mbgMode="inside")   
-        destMbg3Ip = f"{getPodIp(podMbg3)}:{mbg3cPortLocal}" 
-        runcmdb(f'kubectl exec -i {mbgctl3pod} -- ./mbgctl start --id {mbgctl3Name}  --ip {mbgctl3Ip} --mbgIP {destMbg3Ip} --dataplane {args["dataplane"]} {mbg3crtFlags}')
         printHeader(f"Add {destSvc} (server) service to destination cluster")
         waitPod(review3pod)
         destSvcReview3Ip = f"{getPodIp(review3pod)}:{srcK8sSvcPort}"
-        runcmd(f'kubectl exec -i {mbgctl3pod} -- ./mbgctl addService --id {destSvc} --ip {destSvcReview3Ip} --description v3')
-        runcmd(f'kubectl exec -i {mbgctl3pod} -- ./mbgctl addPolicyEngine --target {getPodIp(podMbg3)}:9990')
+        runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl addService --id {destSvc} --ip {destSvcReview3Ip} --description v3')
 
-        #Add host cluster to MBG1
-        useKindCluster(mbg1ClusterName)
-        printHeader("Add mbgctl to MBG1")
-        runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addMbgctl --id {mbgctl1Name} --ip {mbgctl1Ip}')
-
-        #Add dest cluster to MBG2
-        useKindCluster(mbg2ClusterName)
-        printHeader("Add mbgctl2 to MBG2")
-        runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addMbgctl --id {mbgctl2Name} --ip {mbgctl2Ip}')
-        
-        #Add dest cluster to MBG3
-        useKindCluster(mbg3ClusterName)
-        printHeader("Add mbgctl3 to MBG3")
-        runcmd(f'kubectl exec -i {podMbg3} -- ./mbg addMbgctl --id {mbgctl3Name} --ip {mbgctl3Ip}')
-        
         #Expose service
-        useKindCluster(mbg2ClusterName)
+        useKindCluster(mbg2Name)
         printHeader(f"\n\nStart exposing svc {destSvc}")
-        runcmd(f'kubectl exec -i {mbgctl2pod} -- ./mbgctl expose --serviceId {destSvc}')
-        useKindCluster(mbg3ClusterName)
+        runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl expose --serviceId {destSvc}')
+        useKindCluster(mbg3Name)
         printHeader(f"\n\nStart exposing svc {destSvc}")
-        runcmd(f'kubectl exec -i {mbgctl3pod} -- ./mbgctl expose --serviceId {destSvc}')
+        runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl expose --serviceId {destSvc}')
 
         #Get services
-        useKindCluster(mbg1ClusterName)
+        useKindCluster(mbg1Name)
         printHeader("\n\nStart get service")
         runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl getService')
     
         #set services
         runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl policy --command lb_set --policy ecmp')
         #connect
-        connectSvc(srcSvc, destSvc+"-MBG2",destSvc)
+        connectSvc(srcSvc, destSvc+"-mbg2",destSvc)

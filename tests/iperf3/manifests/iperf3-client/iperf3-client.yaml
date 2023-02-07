@@ -5,7 +5,7 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: iperf3-clients
+  name: iperf3-client
   labels:
     app: iperf3-client
 spec:
@@ -27,5 +27,5 @@ spec:
         image: mlabbe/iperf3
         imagePullPolicy: IfNotPresent
         command: ['/bin/sh', '-c', 'sleep infinity']
-        # To benchmark manually: kubectl exec iperf3-clients-jlfxq -- /bin/sh -c 'iperf3 -c iperf3-server'
+        # To benchmark manually: kubectl exec iperf3-client-jlfxq -- /bin/sh -c 'iperf3 -c iperf3-server'
       terminationGracePeriodSeconds: 0
