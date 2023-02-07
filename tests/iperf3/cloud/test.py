@@ -5,18 +5,16 @@
 import os,sys
 file_dir = os.path.dirname(__file__)
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
-sys.path.insert(0,f'{proj_dir}/tests/aux')
-print(f"{proj_dir}")
-from kindAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getPodNameApp, getMbgPorts,getPodIp,clean_cluster,getPodNameIp
+sys.path.insert(0,f'{proj_dir}')
 
-sys.path.append(file_dir+"/utils")
+from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getPodNameApp, getMbgPorts,getPodIp,clean_cluster,getPodNameIp
 
-from utils.check_k8s_cluster_ready import checkClusterIsReady,connectToCluster
-from utils.mbg_setup import mbgSetup,pushImage,mbgBuild
-from utils.create_k8s_cluster import createCluster
-from utils.clusterClass import cluster
-from utils.delete_k8s_cluster import deleteCluster
-from utils.PROJECT_PARAMS import PROJECT_PATH
+from tests.utils.cloud.check_k8s_cluster_ready import checkClusterIsReady,connectToCluster
+from tests.utils.cloud.mbg_setup import mbgSetup,pushImage,mbgBuild
+from tests.utils.cloud.create_k8s_cluster import createCluster
+from tests.utils.cloud.clusterClass import cluster
+from tests.utils.cloud.delete_k8s_cluster import deleteCluster
+from tests.utils.cloud.PROJECT_PARAMS import PROJECT_PATH
 import argparse
 
 mbg1 = cluster(name="mbg1",   zone = "us-west1-b",    platform = "gcp", type = "host")

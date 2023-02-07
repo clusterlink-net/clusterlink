@@ -5,10 +5,10 @@ import sys
 import argparse
 
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
+sys.path.insert(0,f'{proj_dir}')
 
-sys.path.insert(0,f'{proj_dir}/tests/')
-print(f"{proj_dir}/tests/")
-from aux.kindAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getKindIp, getMbgPorts,buildMbg,buildMbgctl,useKindCluster,getPodIp
+from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getKindIp, getMbgPorts,buildMbg,buildMbgctl,getPodIp
+from tests.utils.kind.kindAux import useKindCluster
 
 
 def iperf3Test(cmd ,blockFlag=False):
@@ -93,10 +93,10 @@ if __name__ == "__main__":
     ### build Kind clusters environment 
     ###first Mbg
     printHeader("\n\nStart building MBG1")
-    podMbg1, mbg1Ip= buildMbg(mbg1ClusterName,f"{proj_dir}/manifests/kind/mbg-config1.yaml")
+    podMbg1, mbg1Ip= buildMbg(mbg1ClusterName)
     ###Second Mbg
     printHeader("\n\nStart building MBG2")
-    podMbg2, mbg2Ip= buildMbg(mbg2ClusterName,f"{proj_dir}/manifests/kind/mbg-config2.yaml")
+    podMbg2, mbg2Ip= buildMbg(mbg2ClusterName)
     ###Third Mbg
     printHeader("\n\nStart building MBG3")
     podMbg3, mbg3Ip= buildMbg(mbg3ClusterName)

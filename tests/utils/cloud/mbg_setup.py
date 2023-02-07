@@ -11,7 +11,7 @@
 #Inputs: cluster_platform,target_ip
 ################################################################
 import os,sys
-from kindAux import runcmd, runcmdb, waitPod, getPodName,getPodNameIp
+from tests.utils.mbgAux import runcmd, runcmdb, waitPod, getPodName,getPodNameIp
 
 
 import subprocess as sp

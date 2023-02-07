@@ -22,4 +22,4 @@ FROM alpine:3.14
 WORKDIR /
 COPY --from=0  /mbg/bin/mbg /mbg
 COPY --from=0  /mbg/bin/mbgctl /mbgctl
-COPY ./tests/aux/mtls /mtls
+COPY ./tests/utils/mtls /mtls

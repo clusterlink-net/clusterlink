@@ -5,10 +5,11 @@ import sys
 import argparse
 
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
+sys.path.insert(0,f'{proj_dir}')
 
-sys.path.insert(0,f'{proj_dir}/tests/')
-print(f"{proj_dir}/tests/")
-from aux.kindAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getKindIp, getMbgPorts,buildMbg,buildMbgctl,useKindCluster,getPodIp
+from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getKindIp, getMbgPorts,buildMbg,buildMbgctl,getPodIp
+from tests.utils.kind.kindAux import useKindCluster
+
 from dotenv import load_dotenv
 
 

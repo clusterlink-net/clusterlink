@@ -73,9 +73,8 @@ def buildMbg(name,cfg=""):
     else:
         runcmd(f"kind create cluster --name={name}")
     runcmd(f"kind load docker-image mbg --name={name}")
-    runcmd(f"kind load docker-image tcp-split --name={name}")
     runcmd(f"kubectl create -f {folMfst}/mbg/mbg.yaml")
-    runcmd(f"kubectl create -f {folMfst}/mbg/mbg-client-svc.yaml")
+    runcmd(f"kubectl create -f {folMfst}/mbg/mbg-svc.yaml")
     waitPod("mbg")
     podMbg= getPodName("mbg")
     mbgIp=getKindIp(name)
@@ -88,9 +87,6 @@ def buildMbgctl(name, mbgMode):
     waitPod("mbgctl")
     ip= getPodIp("mbgctl") if mbgMode=="inside" else getKindIp(name)
     return podName, ip 
-
-def useKindCluster(name):
-    runcmd(f'kubectl config use-context kind-{name}')
 
 def clean_cluster():
     runcmd(f'kubectl delete --all deployments')
