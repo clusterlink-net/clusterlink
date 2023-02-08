@@ -7,6 +7,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
 	"github.ibm.com/mbg-agent/pkg/protocol"
@@ -47,9 +48,11 @@ func getAllPeersReq() {
 	if err := json.Unmarshal(resp, &pArr); err != nil {
 		fmt.Printf("Unable to unmarshal response :%v", err)
 	}
-	fmt.Printf("MBG peers:")
-	for i, p := range pArr {
+	fmt.Println("MBG peers:")
+	i := 1
+	for _, p := range pArr {
 		fmt.Printf("%d) MBG ID: %v IP: %v:%v\n", i, p.Id, p.Ip, p.Cport)
+		i++
 	}
 
 }
@@ -67,5 +70,5 @@ func getPeerReq(peerId string) {
 	if err := json.Unmarshal(resp, &p); err != nil {
 		fmt.Printf("Unable to unmarshal json :%v", err)
 	}
-	fmt.Printf("MBG peer details: ID: %v IP: %v:%v\n", p.Id, p.Ip, p.Cport)
+	fmt.Printf("MBG peer details: ID: %s IP: %v:%v\n", p.Id, p.Ip, p.Cport)
 }
