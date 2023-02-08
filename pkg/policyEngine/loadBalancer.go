@@ -6,6 +6,7 @@ package policyEngine
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"net/http"
 
@@ -120,34 +121,35 @@ func (lB *LoadBalancer) updateState(service string) {
 	lB.ServiceStateMap[service].totalConnections = lB.ServiceStateMap[service].totalConnections + 1
 }
 
-func (lB *LoadBalancer) LookupRandom(service string, mbgs []string) string {
+func (lB *LoadBalancer) LookupRandom(service string, mbgs []string) (string, error) {
 	index := rand.Intn(len(mbgs))
 	plog.Infof("LoadBalancer selects index(%d) - target MBG %s", index, mbgs[index])
-	return mbgs[index]
+	return mbgs[index], nil
 }
 
-func (lB *LoadBalancer) LookupEcmp(service string, mbgs []string) string {
+func (lB *LoadBalancer) LookupECMP(service string, mbgs []string) (string, error) {
 	index := lB.ServiceStateMap[service].totalConnections % len(mbgs)
-	return mbgs[index]
+	plog.Infof("LoadBalancer selects index(%d) - target MBG %s", index, mbgs[index])
+	return mbgs[index], nil
 }
 
-func (lB *LoadBalancer) LookupStatic(service string, mbgs []string) string {
+func (lB *LoadBalancer) LookupStatic(service string, mbgs []string) (string, error) {
 	mbg := lB.ServiceStateMap[service].defaultMbg
 	for _, m := range mbgs {
 		if m == mbg {
 			plog.Infof("LoadBalancer selects - target MBG %s", mbg)
-			return mbg
+			return mbg, nil
 		}
 	}
-	return ""
+	return "", fmt.Errorf("No available target MBG")
 }
 
-func (lB *LoadBalancer) Lookup(service string) string {
+func (lB *LoadBalancer) Lookup(service string) (string, error) {
 	policy := lB.Policy[service]
 	mbgList := lB.ServiceMap[service]
 	if mbgList == nil {
 		plog.Errorf("Unable to find MBG for %s", service)
-		return ""
+		return "", fmt.Errorf("No available target MBG")
 	}
 	mbgs := *mbgList
 	lB.updateState(service)
@@ -157,7 +159,7 @@ func (lB *LoadBalancer) Lookup(service string) string {
 	case Random:
 		return lB.LookupRandom(service, mbgs)
 	case Ecmp:
-		return lB.LookupEcmp(service, mbgs)
+		return lB.LookupECMP(service, mbgs)
 	case Static:
 		return lB.LookupStatic(service, mbgs)
 	default:
@@ -165,19 +167,19 @@ func (lB *LoadBalancer) Lookup(service string) string {
 	}
 }
 
-func (lB *LoadBalancer) LookupWith(service string, mbgs []string) string {
+func (lB *LoadBalancer) LookupWith(service string, mbgs []string) (string, error) {
 	policy := lB.Policy[service]
 
 	lB.updateState(service)
 	plog.Infof("LoadBalancer lookup for %s with policy %s with %+v", service, policy, mbgs)
 	if len(mbgs) == 0 {
-		return ""
+		return "", fmt.Errorf("No available target MBG")
 	}
 	switch policy {
 	case Random:
 		return lB.LookupRandom(service, mbgs)
 	case Ecmp:
-		return lB.LookupEcmp(service, mbgs)
+		return lB.LookupECMP(service, mbgs)
 	case Static:
 		return lB.LookupStatic(service, mbgs)
 	default:
@@ -185,14 +187,15 @@ func (lB *LoadBalancer) LookupWith(service string, mbgs []string) string {
 	}
 }
 
-func (lB *LoadBalancer) GetTargetMbgs(service string) []string {
+func (lB *LoadBalancer) GetTargetMbgs(service string) ([]string, error) {
 	mbgList := lB.ServiceMap[service]
 	if mbgList == nil {
 		plog.Errorf("Unable to find MBG for %s", service)
-		return []string{}
+		return []string{}, fmt.Errorf("No available target MBG")
 	}
-	return *mbgList
+	return *mbgList, nil
 }
+
 func (lB *LoadBalancer) checkMbgExist(service, mbg string) bool {
 	mbgList := lB.ServiceMap[service]
 	if mbgList != nil {

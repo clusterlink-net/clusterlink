@@ -86,8 +86,8 @@ func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Requ
 			plog.Infof("Looking up loadbalancer direction %v", requestAttr.Direction)
 			if requestAttr.Direction == event.Outgoing {
 				// Get a list of MBGs for the service
-				mbgList := pH.loadBalancer.GetTargetMbgs(requestAttr.DstService)
-				if len(mbgList) == 0 {
+				mbgList, err := pH.loadBalancer.GetTargetMbgs(requestAttr.DstService)
+				if err != nil {
 					action = event.Deny
 					break
 				} else {
@@ -102,8 +102,8 @@ func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Requ
 					}
 				}
 				// Perform loadbancing using the truncated mbgList
-				targetMbg = pH.loadBalancer.LookupWith(requestAttr.DstService, mbgValidList)
-				if targetMbg == "" {
+				targetMbg, err = pH.loadBalancer.LookupWith(requestAttr.DstService, mbgValidList)
+				if err != nil {
 					action = event.Deny
 				}
 			}
