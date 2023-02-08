@@ -29,8 +29,8 @@ In this step, we build the kind cluster with an MBG image.
 Build the first kind cluster with MBG, mbgctl, and iperf3-client:
 1) Create a Kind cluster with MBG image:
 
-        kind create cluster  --name=mbg-agent1
-        kind load docker-image mbg --name=mbg-agent1
+        kind create cluster  --name=mbg1
+        kind load docker-image mbg --name=mbg1
 
 2) Create a MBG deployment: 
     
@@ -48,8 +48,8 @@ Build the first kind cluster with MBG, mbgctl, and iperf3-client:
 Build the second kind cluster with MBG, mbgctl, and iperf3-server:
 1) Create a Kind cluster with MBG image:
 
-        kind create cluster  --name=mbg-agent2
-        kind load docker-image mbg --name=mbg-agent2
+        kind create cluster  --name=mbg2
+        kind load docker-image mbg --name=mbg2
 2) Create a MBG deployment:
    
         kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg.yaml
@@ -71,7 +71,7 @@ Check that container statuses are Running.
 In this step, start to run the MBG and mbgctl.  
 First, Initialize the parameters of the test (pods' names and IPs):
     
-    kubectl config use-context kind-mbg-agent1
+    kubectl config use-context kind-mbg1
     export MBG1=`kubectl get pods -l app=mbg -o custom-columns=:metadata.name`
     export MBG1IP=`kubectl get nodes -o jsonpath={.items[0].status.addresses[0].address}`
     export MBG1PODIP=`kubectl get pod $MBG1 --template '{{.status.podIP}}'`
@@ -80,7 +80,7 @@ First, Initialize the parameters of the test (pods' names and IPs):
     export IPERF3CLIENT_IP=`kubectl get pods -l app=iperf3-client -o jsonpath={.items[*].status.podIP}`
     export IPERF3CLIENT=`kubectl get pods -l app=iperf3-client -o custom-columns=:metadata.name`
 
-    kubectl config use-context kind-mbg-agent2
+    kubectl config use-context kind-mbg2
     export MBG2=`kubectl get pods -l app=mbg -o custom-columns=:metadata.name`
     export MBG2IP=`kubectl get nodes -o jsonpath={.items[0].status.addresses[0].address}`
     export MBG2PODIP=`kubectl get pod $MBG2 --template '{{.status.podIP}}'`
@@ -90,7 +90,7 @@ First, Initialize the parameters of the test (pods' names and IPs):
 
 Start MBG1: (the MBG creates an HTTP server, so it is better to run this command in a different terminal (using tmux) or run it in the background)
 
-    kubectl config use-context kind-mbg-agent1
+    kubectl config use-context kind-mbg1
     kubectl exec -i $MBG1 -- ./mbg start --id "MBG1" --ip $MBG1IP --cport 30443 --cportLocal 8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key
 
 Initialize mbgctl (mbg control):
@@ -103,7 +103,7 @@ Create K8s service nodeport to connect MBG cport to the MBG localcport.
 
 Start MBG2: (the MBG creates an HTTP server, so it is better to run this command in a different terminal (using tmux) or run it in the background)
 
-    kubectl config use-context kind-mbg-agent2
+    kubectl config use-context kind-mbg2
     kubectl exec -i $MBG2 -- ./mbg start --id "MBG2" --ip $MBG2IP --cport 30443 --cportLocal 8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key 
 
 Initialize mbgctl (mbg control):
@@ -120,7 +120,7 @@ Note: The MBG certificate and key files are located in $PROJECT_FOLDER/tests/aux
 In this step, we set the communication between the MBGs.  
 First, send MBG2 details information to MBG1 using mbgctl:
 
-    kubectl config use-context kind-mbg-agent1
+    kubectl config use-context kind-mbg1
     kubectl exec -i $MBGCTL1 -- ./mbgctl addPeer --id "MBG2" --ip $MBG2IP --cport 30443
 Send Hello message from MBG1 to MBG2:
 
@@ -132,7 +132,7 @@ Add an iperf3-client service to MBG1:
     kubectl exec -i $MBGCTL1 -- ./mbgctl addService --id iperf3-client --ip $IPERF3CLIENT_IP
 Add an iperf3-server service to MBG2:
 
-    kubectl config use-context kind-mbg-agent2
+    kubectl config use-context kind-mbg2
     kubectl exec -i $MBGCTL2 -- ./mbgctl addService --id iperf3-server --ip $IPERF3SERVER_IP:5000
 
 ### <ins> Step 6: Expose service <ins>
@@ -143,7 +143,7 @@ In this step, we expose the iperf3-server service from MBG2 to MBG1.
 ### <ins> Step 7: iPerf3 test <ins>
 In this step, we can check the secure communication between the iPerf3 client and server by sending the traffic using the MBGs.
     
-    kubectl config use-context kind-mbg-agent1
+    kubectl config use-context kind-mbg1
     export MBG1PORT_IPERF3SERVER=`python3 $PROJECT_FOLDER/tests/aux/getMbgLocalPort.py -m $MBG1 -s iperf3-server`
     kubectl exec -i $IPERF3CLIENT -- iperf3 -c $MBG1PODIP -p $MBG1PORT_IPERF3SERVER
 
@@ -162,45 +162,45 @@ Additionally, we have prepared individual scripts for a demo of the above scenar
 
 ### Start the Clusters and MBGs
 
-    ./start-cluster-mbg.py -d mtls -m mbg1
-    ./start-cluster-mbg.py -d mtls -m mbg2
-    ./start-cluster-mbg.py -d mtls -m mbg3
+    ./start_cluster_mbg.py -d mtls -m mbg1
+    ./start_cluster_mbg.py -d mtls -m mbg2
+    ./start_cluster_mbg.py -d mtls -m mbg3
 
 ### Connect the MBGs
 The below command create connection between MBG1-MBG2 and MBG2-MBG3
 
-    ./connect-mbgs.py
+    ./connect_mbgs.py
 
 ### Start iperf3 services at the three clusters 
 
-    ./iperf3-service-create.py
+    ./iperf3_service_create.py
 
 ### Expose iperf3-server server from Cluster 2 to other Clusters
     
-    ./iperf3-service-expose.py
+    ./iperf3_service_expose.py
 
 ### Start iperf3 client from Cluster 1 to Cluster2
 
-    ./iperf-client-start.py -m mbg1
-    ./iperf-client-start.py -m mbg3
+    ./iperf3_client_start.py -m mbg1
+    ./iperf3_client_start.py -m mbg3
 
 ### Apply Policy to Block connection at MBG3
-    ./apply-policy -m mbg3 -t deny
-    ./apply-policy -m mbg3 -t show
-    ./iperf-client-start.py -m mbg3
-    ./iperf-client-start.py -m mbg1
+    ./apply_policy.py -m mbg3 -t deny
+    ./apply_policy.py -m mbg3 -t show
+    ./iperf3_client_start.py -m mbg3
+    ./iperf3_client_start.py -m mbg1
 
 ### Apply Policy to Allow connection at MBG3
-    ./apply-policy -m mbg3 -t allow
-    ./apply-policy -m mbg3 -t show
-    ./iperf-client-start.py -m mbg3
+    ./apply_policy.py -m mbg3 -t allow
+    ./apply_policy.py -m mbg3 -t show
+    ./iperf3_client_start.py -m mbg3
 
 ### Apply Policy to Block connection at MBG2
-    ./apply-policy -m mbg2 -t deny
-    ./apply-policy -m mbg2 -t show
-    ./iperf-client-start.py -m mbg3
+    ./apply_policy.py -m mbg2 -t deny
+    ./apply_policy.py -m mbg2 -t show
+    ./iperf3_client_start.py -m mbg3
 
 ### Apply Policy to Allow connection at MBG3
-    ./apply-policy -m mbg2 -t allow
-    ./apply-policy -m mbg2 -t show
-    ./iperf-client-start.py -m mbg3
+    ./apply_policy.py -m mbg2 -t allow
+    ./apply_policy.py -m mbg2 -t show
+    ./iperf3_client-start.py -m mbg3

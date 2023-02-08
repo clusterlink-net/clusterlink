@@ -50,43 +50,31 @@ def runcmdb(cmd):
     os.system(cmd + ' &')
     time.sleep(7)
 
-def getKindIp(name):
-    clJson=json.loads(sp.getoutput(f' kubectl get nodes -o json'))
-    ip = clJson["items"][0]["status"]["addresses"][0]["address"]
-    print(f"Kind Cluster {name} ip address:{ip}")
-    return ip
-
 def printHeader(msg):
     print(f'{Fore.BLUE}{msg} {Style.RESET_ALL}')
     #print(msg)
 
 def getMbgPorts(podMbg, destSvc):
-    mbgJson=json.loads(sp.getoutput(f' kubectl exec -i {podMbg} -- cat ./root/.mbgApp'))
+    mbgJson =sp.getoutput(f' kubectl exec -i {podMbg} -- cat ./root/.mbgApp')
+    mbgJson=json.loads(mbgJson)
     localPort =(mbgJson["Connections"][destSvc]["Local"]).split(":")[1]
     externalPort =(mbgJson["Connections"][destSvc]["External"]).split(":")[1]
     print(f"Service nodeport will use local Port: {localPort} and externalPort:{externalPort}")
     return localPort, externalPort
 
-def buildMbg(name,cfg=""):
-    if cfg != "": 
-        runcmd(f"kind create cluster --config {cfg} --name={name}")
-    else:
-        runcmd(f"kind create cluster --name={name}")
-    runcmd(f"kind load docker-image mbg --name={name}")
+def buildMbg(name):
     runcmd(f"kubectl create -f {folMfst}/mbg/mbg.yaml")
     runcmd(f"kubectl create -f {folMfst}/mbg/mbg-svc.yaml")
     waitPod("mbg")
-    podMbg= getPodName("mbg")
-    mbgIp=getKindIp(name)
+    podMbg, mbgIp= getPodNameIp("mbg")
     return podMbg, mbgIp
 
-def buildMbgctl(name, mbgMode):
+def buildMbgctl(name):
     runcmd(f"kubectl create -f {folMfst}/mbgctl/mbgctl.yaml")
     runcmd(f"kubectl create -f {folMfst}/mbgctl/mbgctl-svc.yaml")
-    podName= getPodName("mbgctl")
     waitPod("mbgctl")
-    ip= getPodIp("mbgctl") if mbgMode=="inside" else getKindIp(name)
-    return podName, ip 
+    name,ip= getPodNameIp("mbgctl")
+    return name, ip 
 
 def clean_cluster():
     runcmd(f'kubectl delete --all deployments')
