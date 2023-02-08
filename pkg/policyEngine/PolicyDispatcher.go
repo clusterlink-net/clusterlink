@@ -79,15 +79,33 @@ func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Requ
 		plog.Infof("Applying Policy %s", agent)
 		switch agent {
 		case "AccessControl":
-			if requestAttr.Direction == event.Outgoing {
-				action, bitrate = pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, targetMbg)
-			} else {
+			if requestAttr.Direction == event.Incoming {
 				action, bitrate = pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, requestAttr.OtherMbg)
 			}
 		case "LoadBalancer":
 			plog.Infof("Looking up loadbalancer direction %v", requestAttr.Direction)
 			if requestAttr.Direction == event.Outgoing {
-				targetMbg = pH.loadBalancer.Lookup(requestAttr.DstService)
+				// Get a list of MBGs for the service
+				mbgList, err := pH.loadBalancer.GetTargetMbgs(requestAttr.DstService)
+				if err != nil {
+					action = event.Deny
+					break
+				} else {
+					action = event.Allow
+				}
+				// Truncate mbgs from mbgList based on the policy
+				var mbgValidList []string
+				for _, mbg := range mbgList {
+					act, _ := pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, mbg)
+					if act != event.Deny {
+						mbgValidList = append(mbgValidList, mbg)
+					}
+				}
+				// Perform loadbancing using the truncated mbgList
+				targetMbg, err = pH.loadBalancer.LookupWith(requestAttr.DstService, mbgValidList)
+				if err != nil {
+					action = event.Deny
+				}
 			}
 		default:
 			plog.Errorf("Unrecognized Policy Agent")
@@ -227,7 +245,7 @@ func (pH PolicyHandler) policyWelcome(w http.ResponseWriter, r *http.Request) {
 func (pH PolicyHandler) init(router *chi.Mux, ip string) {
 	pH.SubscriptionMap = make(map[string][]string)
 	pH.mbgState.mbgPeers = &([]string{})
-	policyList1 := []string{"LoadBalancer", "AccessControl"}
+	policyList1 := []string{"AccessControl", "LoadBalancer"}
 	policyList2 := []string{"AccessControl"}
 
 	pH.accessControl = &AccessControl{}
