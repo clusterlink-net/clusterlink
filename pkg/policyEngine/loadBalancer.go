@@ -84,16 +84,16 @@ func (lB *LoadBalancer) GetPolicyReq(w http.ResponseWriter, r *http.Request) {
 }
 
 /*********************  LodBalancer functions ***************************************************/
-func (lB *LoadBalancer) AddToServiceMap(srviceDst string, mbg string) {
-	if mbgs, ok := lB.ServiceMap[srviceDst]; ok {
+func (lB *LoadBalancer) AddToServiceMap(serviceDst string, mbg string) {
+	if mbgs, ok := lB.ServiceMap[serviceDst]; ok {
 		*mbgs = append(*mbgs, mbg)
-		lB.ServiceMap[srviceDst] = mbgs
+		lB.ServiceMap[serviceDst] = mbgs
 	} else {
-		lB.ServiceMap[srviceDst] = &([]string{mbg})
-		lB.setPolicy2Service(defaultSrcPolicy, srviceDst, lB.defaultPolicy, "") //set default random policy
+		lB.ServiceMap[serviceDst] = &([]string{mbg})
+		lB.setPolicy2Service(defaultSrcPolicy, serviceDst, lB.defaultPolicy, "") //set default random policy
 
 	}
-	llog.Infof("Remote serviceDst added %v->[%+v]", srviceDst, *(lB.ServiceMap[srviceDst]))
+	llog.Infof("Remote serviceDst added %v->[%+v]", serviceDst, *(lB.ServiceMap[serviceDst]))
 }
 
 func (lB *LoadBalancer) SetPolicy(serviceSrc, serviceDst string, policy PolicyLoadBalancer, defaultMbg string) {

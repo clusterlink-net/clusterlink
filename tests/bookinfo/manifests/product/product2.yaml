@@ -4,42 +4,42 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: productpage
+  name: productpage2
   labels:
-    app: productpage
-    service: productpage
+    app: productpage2
+    service: productpage2
 spec:
   ports:
   - port: 9080
     #targetPort: 9080
-    nodePort: 30001
+    nodePort: 30002
     #protocol: TCP
     name: http
   selector:
-    app: productpage
-  #type: LoadBalancer
-  type: NodePort
+    app: productpage2
+  type: LoadBalancer
+  #type: NodePort
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: productpage-v1
+  name: productpage2-v1
   labels:
-    app: productpage
+    app: productpage2
     version: v1
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: productpage
+      app: productpage2
   template:
     metadata:
       labels:
-        app: productpage
+        app: productpage2
         version: v1
     spec:
       containers:
-      - name: productpage
+      - name: productpage2
         image: docker.io/maistra/examples-bookinfo-productpage-v1
         imagePullPolicy: IfNotPresent
         ports:

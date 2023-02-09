@@ -19,7 +19,7 @@ from tests.utils.kind.kindAux import useKindCluster,startKindClusterMbg,getKindI
 
 
 def connectSvc(srcSvc,destSvc, k8sSvcName):
-    printHeader(f"\n\nStart connect {srcSvc} to {destSvc}")
+    printHeader(f"\n\nStart connect {destSvc}")
     useKindCluster(mbg1Name)    
     podMbg1= getPodName("mbg-deployment")        
     mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, destSvc)
@@ -53,7 +53,8 @@ if __name__ == "__main__":
     mbg1Name        = "mbg1"
     mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     mbgctl1Name     = "mbgctl1"
-    srcSvc          = "productpage"
+    srcSvc1         = "productpage"
+    srcSvc2         = "productpage2"
     srcK8sSvcPort   = "9080"
     srcK8sSvcIp     = ":"+srcK8sSvcPort
     srcDefaultGW    = "10.244.0.1"
@@ -122,11 +123,16 @@ if __name__ == "__main__":
         runcmd(f"kind load docker-image maistra/examples-bookinfo-productpage-v1 --name={mbg1Name}")
         runcmd(f"kind load docker-image maistra/examples-bookinfo-details-v1:0.12.0 --name={mbg1Name}")
         runcmd(f"kubectl create -f {folpdct}/product.yaml")
+        runcmd(f"kubectl create -f {folpdct}/product2.yaml")
         runcmd(f"kubectl create -f {folpdct}/details.yaml")
-        printHeader(f"Add {srcSvc} (client) service to host cluster")
-        waitPod(srcSvc)
-        srcSvcIp =getPodIp(srcSvc)  
-        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addService --id {srcSvc} --ip {srcSvcIp} --description product')
+        printHeader(f"Add {srcSvc1} {srcSvc2}  services to host cluster")
+        waitPod(srcSvc1)
+        waitPod(srcSvc2)
+        _ , srcSvcIp1 =getPodNameIp(srcSvc1)
+        _ , srcSvcIp2 =getPodNameIp(srcSvc2)
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addService --id {srcSvc1} --ip {srcSvcIp1} --description {srcSvc1}')
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addService --id {srcSvc2} --ip {srcSvcIp2} --description {srcSvc2}')
+
         
 
         # Add MBG Peer
@@ -176,4 +182,4 @@ if __name__ == "__main__":
         #set services
         runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl policy --command lb_set --policy ecmp')
         #connect
-        connectSvc(srcSvc, destSvc+"-mbg2",destSvc)
+        connectSvc(srcSvc1, destSvc+"-mbg2",destSvc)
