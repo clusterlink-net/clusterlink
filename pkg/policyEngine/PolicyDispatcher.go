@@ -102,7 +102,7 @@ func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Requ
 					}
 				}
 				// Perform loadbancing using the truncated mbgList
-				targetMbg, err = pH.loadBalancer.LookupWith(requestAttr.DstService, mbgValidList)
+				targetMbg, err = pH.loadBalancer.LookupWith(requestAttr.SrcService, requestAttr.DstService, mbgValidList)
 				if err != nil {
 					action = event.Deny
 				}
