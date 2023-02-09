@@ -18,6 +18,7 @@ folSv=f"{proj_dir}/tests/iperf3/manifests/iperf3-server"
 def setIperf3client(mbgName,srcSvc):
     printHeader(f"Create {srcSvc} (client) service in {mbgName}")
     useKindCluster(mbgName)
+    runcmd(f"kind load docker-image mlabbe/iperf3 --name={mbgName}")
     runcmd(f"kubectl create -f {folCl}/{srcSvc}.yaml")
     waitPod(srcSvc)
     srcSvcIp =getPodIp(srcSvc)
@@ -27,6 +28,7 @@ def setIperf3client(mbgName,srcSvc):
 def setIperf3Server(mbgName,destSvc):
     printHeader(f"Add {destSvc} (server) service in {mbgName}")
     useKindCluster(mbgName)
+    runcmd(f"kind load docker-image mlabbe/iperf3 --name={mbgName}")
     runcmd(f"kubectl create -f {folSv}/iperf3.yaml")
     waitPod(destSvc)
     runcmd(f"kubectl create service nodeport iperf3-server --tcp=5000:5000 --node-port={iperf3DestPort}")
