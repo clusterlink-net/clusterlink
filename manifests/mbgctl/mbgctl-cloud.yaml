@@ -1,28 +1,28 @@
 ################################################################
-#Name: mbg 
-#Desc: Run mbg pod that listen to port 5002
+#Name: mbgctl-deployment 
+#Desc: YAML file for creating mbgctl for CLI to MBG 
 ################################################################
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mbg-deployment
+  name: mbgctl-deployment
   labels:
-    app: mbg
+    app: mbgctl
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mbg
+      app: mbgctl
   template:
     metadata:
       labels:
-        app: mbg
+        app: mbgctl
     spec:
       containers:
-      - name: mbg
-        image: mbg
+      - name: mbgctl
+        image: gcr.io/multi-cloud-networks-4438/mbg:latest
         imagePullPolicy: IfNotPresent
         command: [ "sleep" ]
-        args: [ "infinity" ]        
+        args: [ "infinity" ]  
         ports:
         - containerPort: 50051

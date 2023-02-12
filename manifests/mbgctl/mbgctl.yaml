@@ -20,7 +20,6 @@ spec:
     spec:
       containers:
       - name: mbgctl
-        #image: gcr.io/multi-cloud-networks-4438/mbg:latest
         image: mbg
         imagePullPolicy: IfNotPresent
         command: [ "sleep" ]
