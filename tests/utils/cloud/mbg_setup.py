@@ -26,8 +26,8 @@ import time
 def mbgBuild(mbgcPort="8443" ,mbgcPortLocal="8443",externalIp=""):
 
   print("\n\ncreate mbg deploymnet")
-  os.system(f"kubectl create -f {PROJECT_PATH}/manifests/mbg/mbg.yaml")
-  runcmd(f"kubectl create -f {PROJECT_PATH}/manifests/mbgctl/mbgctl.yaml")
+  runcmd(f"kubectl create -f {PROJECT_PATH}/manifests/mbg/mbg-cloud.yaml")
+  runcmd(f"kubectl create -f {PROJECT_PATH}/manifests/mbgctl/mbgctl-cloud.yaml")
     
 
   waitPod("mbg")

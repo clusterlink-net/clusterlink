@@ -6,18 +6,16 @@
 ################################################################
 import os  
 import subprocess as sp
-import sys
 #sys.path.insert(1, 'project_metadata/')
-from clusterClass import cluster
-from PROJECT_PARAMS import METADATA_FILE,PROJECT_PATH
+from tests.utils.cloud.clusterClass import cluster
 
 
 ############################### functions ##########################
-def createCluster(cluster,run_in_bg, large_machine=True):
+def createCluster(cluster,run_in_bg, machineType="small"):
     print(f"create {cluster.name} cluster , zone {cluster.zone} , platform {cluster.platform}")
     bg_flags = " &" if run_in_bg else ""
     if cluster.platform == "gcp":
-        flags = "  --machine-type n2-standard-4" if large_machine else ""
+        flags = "  --machine-type n2-standard-4" if machineType=="large" else ""
         cmd=f"gcloud container clusters create {cluster.name} --zone {cluster.zone} --num-nodes 1 --tags tcpall {flags} {bg_flags}"
         print(cmd)
         os.system(cmd)

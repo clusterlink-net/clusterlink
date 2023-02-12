@@ -14,6 +14,6 @@ IBM_NAMESPACE        = "k8s-ns"
 IBM_CONT_REGESTRY    = "icr.io/" + IBM_NAMESPACE
 
 ############################### Project Parameters ##########################
-PROJECT_PATH=os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))))
+PROJECT_PATH=os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 METADATA_FILE= PROJECT_PATH + "/bin/metadata.json"
 

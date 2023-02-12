@@ -17,8 +17,8 @@ spec:
     name: http
   selector:
     app: productpage2
-  type: LoadBalancer
-  #type: NodePort
+  #type: LoadBalancer
+  type: NodePort
 ---
 apiVersion: apps/v1
 kind: Deployment

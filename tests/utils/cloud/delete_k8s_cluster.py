@@ -10,8 +10,9 @@ import argparse
 import os
 import subprocess as sp
 import sys
-from  PROJECT_PARAMS import GOOGLE_CONT_REGESTRY , IBM_CONT_REGESTRY, METADATA_FILE
-
+from PROJECT_PARAMS import GOOGLE_CONT_REGESTRY , IBM_CONT_REGESTRY
+from check_k8s_cluster_ready import connectToCluster
+from tests.utils.mbgAux import clean_cluster
 ############################### functions ##########################
 def deleteCluster(cluster, run_in_bg):
     bg_flag= "&" if run_in_bg else ""
@@ -49,3 +50,15 @@ def deleteProxyDockerImages(cluster):
             os.system("yes| ibmcloud cr image-prune-untagged")
         else:
             print ("ERROR: Cloud platform {} not supported".format(cluster.platform))
+
+def deleteClustersList(clusters):
+    print("Start delete all cluster")
+    for idx, mbg in enumerate(clusters):
+        run_in_bg= False if  idx == len(clusters)-1 else True
+        deleteCluster(mbg,run_in_bg=run_in_bg)
+
+def cleanClustersList(clusters):
+    print("Start clean all cluster")
+    for mbg in clusters:
+        connectToCluster(mbg)
+        clean_cluster()

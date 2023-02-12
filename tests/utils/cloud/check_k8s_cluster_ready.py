@@ -4,12 +4,10 @@
 #Inputs: cluster_zone, cluster_type, cluster_name ,cluster_platform
 ################################################################
 
-import os  
 import subprocess as sp
-import sys
 import time
 from PROJECT_PARAMS import GOOGLE_PROJECT_ID
-from clusterClass import cluster
+from tests.utils.cloud.clusterClass import cluster
 
 def connectToCluster(cluster):
     print(f"\n CONNECT TO: {cluster.name} in zone: {cluster.zone} ,platform: {cluster.platform}\n")
