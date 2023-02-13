@@ -24,7 +24,7 @@ from create_k8s_cluster import create_k8s_cluster
 from check_k8s_cluster_ready import checkClusterIsReady
 from set_k8s_cluster import deployTarget,deployServiceNode,deployHost,setupClientService
 from mbg_setup import serviceNodeSetup
-from clusterClass import cluster
+from tests.utils.cloud.clusterClass import cluster
 from iperf3_setup import iperf3Test, iperf3TestDB
 
 
