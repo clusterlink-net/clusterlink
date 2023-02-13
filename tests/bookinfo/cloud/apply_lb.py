@@ -25,13 +25,11 @@ def applyPolicy(mbg,type):
     mbgctlPod=getPodName("mbgctl")
     if type == "ecmp":
         printHeader(f"Set Ecmp poilicy")          
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command lb_set --serviceSrc {srcSvc1} --serviceDst {destSvc} --mbgDest mbg2 --policy ecmp')
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command lb_set --serviceSrc {srcSvc2} --serviceDst {destSvc} --mbgDest mbg2 --policy ecmp')
+        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command lb_set --serviceDst {destSvc} --policy ecmp')
 
     elif type == "same":
         printHeader(f"Set same policy to all services")          
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command lb_set --serviceSrc {srcSvc1} --serviceDst {destSvc} --mbgDest mbg2 --policy static')
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command lb_set --serviceSrc {srcSvc2} --serviceDst {destSvc} --mbgDest mbg2 --policy static')
+        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command lb_set --serviceDst {destSvc} --mbgDest mbg2 --policy static')
     elif type == "diff":
         runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command lb_set --serviceSrc {srcSvc1} --serviceDst {destSvc} --mbgDest mbg2 --policy static')
         runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command lb_set --serviceSrc {srcSvc2} --serviceDst {destSvc} --mbgDest mbg3 --policy static')
