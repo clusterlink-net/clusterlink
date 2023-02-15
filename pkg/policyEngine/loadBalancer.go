@@ -23,9 +23,6 @@ const (
 	Ecmp                      = "ecmp"
 	Static                    = "static"
 )
-const (
-	defaultSrcPolicy = "defaultPolicy"
-)
 
 type LoadBalancerRule struct {
 	ServiceSrc string
@@ -41,15 +38,15 @@ type ServiceState struct {
 type LoadBalancer struct {
 	ServiceMap      map[string]*[]string                       // Service to MBGs
 	Policy          map[string](map[string]PolicyLoadBalancer) // PolicyMap [serviceDst][serviceSrc]Policy
-	ServiceStateMap map[string]map[string]*ServiceState        // Per destination service
-	defaultPolicy   PolicyLoadBalancer
+	ServiceStateMap map[string]map[string]*ServiceState        // Per source and destination service
 }
 
 func (lB *LoadBalancer) Init() {
 	lB.ServiceMap = make(map[string]*[]string)
 	lB.Policy = make(map[string](map[string]PolicyLoadBalancer))
-	lB.ServiceStateMap = make(map[string]map[string]*ServiceState)
-	lB.defaultPolicy = Random
+	lB.ServiceStateMap = make(map[string](map[string]*ServiceState))
+	lB.Policy[event.Wildcard] = make(map[string]PolicyLoadBalancer)
+	lB.Policy[event.Wildcard][event.Wildcard] = Random //default policy
 }
 
 /*********************  HTTP functions ***************************************************/
@@ -63,6 +60,21 @@ func (lB *LoadBalancer) SetPolicyReq(w http.ResponseWriter, r *http.Request) {
 	plog.Infof("Set LB Policy request : %+v", requestAttr)
 
 	lB.SetPolicy(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.Policy, requestAttr.DefaultMbg)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+}
+
+func (lB *LoadBalancer) DeletePolicyReq(w http.ResponseWriter, r *http.Request) {
+	var requestAttr LoadBalancerRule
+	err := json.NewDecoder(r.Body).Decode(&requestAttr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	plog.Infof("Delete LB Policy request : %+v", requestAttr)
+
+	lB.deletePolicy(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.Policy, requestAttr.DefaultMbg)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -90,41 +102,13 @@ func (lB *LoadBalancer) AddToServiceMap(serviceDst string, mbg string) {
 		lB.ServiceMap[serviceDst] = mbgs
 	} else {
 		lB.ServiceMap[serviceDst] = &([]string{mbg})
-		lB.setPolicy2Service(defaultSrcPolicy, serviceDst, lB.defaultPolicy, "") //set default random policy
-
+		lB.ServiceStateMap[serviceDst] = make(map[string]*ServiceState)
+		lB.ServiceStateMap[serviceDst][event.Wildcard] = &ServiceState{totalConnections: 0, defaultMbg: mbg}
 	}
 	llog.Infof("Remote serviceDst added %v->[%+v]", serviceDst, *(lB.ServiceMap[serviceDst]))
 }
 
 func (lB *LoadBalancer) SetPolicy(serviceSrc, serviceDst string, policy PolicyLoadBalancer, defaultMbg string) {
-	if lB.Policy == nil {
-		lB.Init()
-	}
-
-	if serviceDst == event.Wildcard {
-		for d, val := range lB.Policy {
-			if serviceSrc == event.Wildcard {
-				for s, _ := range val {
-					lB.setPolicy2Service(s, d, policy, defaultMbg)
-				}
-			} else {
-				lB.setPolicy2Service(serviceSrc, d, policy, defaultMbg)
-			}
-		}
-	} else if serviceSrc == event.Wildcard { //&& serviceDst != event.Wildcard
-		if _, ok := lB.Policy[serviceDst]; !ok { //for case the destService is not exist
-			lB.setPolicy2Service(serviceSrc, serviceDst, policy, defaultMbg)
-		} else {
-			for s, _ := range lB.Policy[serviceDst] {
-				lB.setPolicy2Service(s, serviceDst, policy, defaultMbg)
-			}
-		}
-	} else { //serviceSrc != event.Wildcard && serviceDst != event.Wildcard
-		lB.setPolicy2Service(serviceSrc, serviceDst, policy, defaultMbg)
-	}
-}
-
-func (lB *LoadBalancer) setPolicy2Service(serviceSrc, serviceDst string, policy PolicyLoadBalancer, defaultMbg string) {
 	plog.Infof("Set LB policy %v for serviceSrc %+v serviceDst %+v defaultMbg %+v", policy, serviceSrc, serviceDst, defaultMbg)
 
 	if policy == Static && !lB.checkMbgExist(serviceDst, defaultMbg) {
@@ -132,29 +116,41 @@ func (lB *LoadBalancer) setPolicy2Service(serviceSrc, serviceDst string, policy 
 		defaultMbg = ""
 	}
 
-	plog.Infof("Set LB policy %v for serviceSrc %+v serviceDst %+v defaultMbg %+v", policy, serviceSrc, serviceDst, defaultMbg)
 	if _, ok := lB.Policy[serviceDst]; !ok { //Create default service if destination service is not exist
 		lB.Policy[serviceDst] = make(map[string]PolicyLoadBalancer)
-		lB.Policy[serviceDst][defaultSrcPolicy] = policy
-		lB.ServiceStateMap[serviceDst] = make(map[string]*ServiceState)
-		lB.ServiceStateMap[serviceDst][defaultSrcPolicy] = &ServiceState{totalConnections: 0, defaultMbg: defaultMbg}
 	}
-
-	if serviceSrc == event.Wildcard { //Can happen only if the default is not exist
-		return
-	}
-
 	//start to update policy
 	lB.Policy[serviceDst][serviceSrc] = policy
-	lB.ServiceStateMap[serviceDst][serviceSrc] = &ServiceState{totalConnections: 0, defaultMbg: defaultMbg}
+	if serviceDst != event.Wildcard { //ServiceStateMap[dst][*] is created only when the remote service is exposed
+		lB.ServiceStateMap[serviceDst][serviceSrc] = &ServiceState{totalConnections: 0, defaultMbg: defaultMbg}
+	}
+	if serviceDst != event.Wildcard && serviceSrc == event.Wildcard { //for [dst][*] update only defaultMbg
+		lB.ServiceStateMap[serviceDst][serviceSrc].defaultMbg = defaultMbg
+	}
+}
 
+func (lB *LoadBalancer) deletePolicy(serviceSrc, serviceDst string, policy PolicyLoadBalancer, defaultMbg string) {
+	plog.Infof("Delete LB policy %v for serviceSrc %+v serviceDst %+v defaultMbg %+v", policy, serviceSrc, serviceDst, defaultMbg)
+	if _, ok := lB.Policy[serviceDst][serviceSrc]; ok {
+		delete(lB.Policy[serviceDst], serviceSrc)
+		if len(lB.Policy[serviceDst]) == 0 {
+			delete(lB.Policy, serviceDst)
+		}
+	}
+
+	if serviceDst != event.Wildcard && serviceSrc != event.Wildcard { //ServiceStateMap apply only we set policy for specific serviceSrc and serviceDst
+		delete(lB.ServiceStateMap[serviceDst], serviceSrc)
+	}
 }
 
 func (lB *LoadBalancer) updateState(serviceSrc, serviceDst string) {
-	lB.ServiceStateMap[serviceDst][defaultSrcPolicy].totalConnections = lB.ServiceStateMap[serviceDst][defaultSrcPolicy].totalConnections + 1
 	if _, ok := lB.Policy[serviceDst][serviceSrc]; ok {
 		lB.ServiceStateMap[serviceDst][serviceSrc].totalConnections = lB.ServiceStateMap[serviceDst][serviceSrc].totalConnections + 1
 	}
+	if _, ok := lB.Policy[event.Wildcard][serviceSrc]; ok {
+		lB.ServiceStateMap[event.Wildcard][serviceSrc].totalConnections = lB.ServiceStateMap[event.Wildcard][serviceSrc].totalConnections + 1
+	}
+	lB.ServiceStateMap[serviceDst][event.Wildcard].totalConnections = lB.ServiceStateMap[serviceDst][event.Wildcard].totalConnections + 1 //always exist
 }
 
 /*********************  Policy functions ***************************************************/
@@ -165,7 +161,7 @@ func (lB *LoadBalancer) LookupRandom(service string, mbgs []string) (string, err
 }
 
 func (lB *LoadBalancer) LookupECMP(service string, mbgs []string) (string, error) {
-	index := lB.ServiceStateMap[service][defaultSrcPolicy].totalConnections % len(mbgs)
+	index := lB.ServiceStateMap[service][event.Wildcard].totalConnections % len(mbgs)
 	plog.Infof("LoadBalancer selects index(%d) - target MBG %s", index, mbgs[index])
 	return mbgs[index], nil
 }
@@ -204,23 +200,23 @@ func (lB *LoadBalancer) LookupWith(serviceSrc, serviceDst string, mbgs []string)
 	}
 }
 func (lB *LoadBalancer) getPolicy(serviceSrc, serviceDst string) PolicyLoadBalancer {
-	if _, ok := lB.Policy[serviceDst]; ok {
-		if p, ok := lB.Policy[serviceDst][serviceSrc]; ok {
-			return p
-		} else {
-			return lB.Policy[serviceDst][defaultSrcPolicy]
-		}
+	if p, ok := lB.Policy[serviceDst][serviceSrc]; ok {
+		return p
+	} else if p, ok := lB.Policy[event.Wildcard][serviceSrc]; ok {
+		return p
+	} else if p, ok := lB.Policy[serviceDst][event.Wildcard]; ok {
+		return p
 	} else {
-		plog.Errorf("Lookup policy for destination service (%s) that doesn't exist", serviceDst)
-		return ""
+		return lB.Policy[event.Wildcard][event.Wildcard]
 	}
 }
+
 func (lB *LoadBalancer) getDefaultMbg(serviceSrc, serviceDst string) string {
 	if _, ok := lB.Policy[serviceDst]; ok {
 		if _, ok := lB.Policy[serviceDst][serviceSrc]; ok {
 			return lB.ServiceStateMap[serviceDst][serviceSrc].defaultMbg
 		} else {
-			return lB.ServiceStateMap[serviceDst][defaultSrcPolicy].defaultMbg
+			return lB.ServiceStateMap[serviceDst][event.Wildcard].defaultMbg
 		}
 	} else {
 		plog.Errorf("Lookup policy for destination service (%s) that doesn't exist", serviceDst)

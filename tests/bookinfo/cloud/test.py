@@ -140,7 +140,7 @@ if __name__ == "__main__":
     #set Policy
     connectToCluster(mbg1)
     mbgctl1Pod =getPodName("mbgctl")
-    runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl policy --command lb_set --policy ecmp')
+    runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl policy --command lb_add --policy ecmp')
     
     #connect
     podMbg1= getPodName("mbg-deployment")        

@@ -23,7 +23,8 @@ const (
 	acl_add = "acl_add"
 	acl_del = "acl_del"
 	lb      = "lb"
-	lb_set  = "lb_set"
+	lb_add  = "lb_add"
+	lb_del  = "lb_del"
 	show    = "show"
 )
 
@@ -52,8 +53,10 @@ var PolicyCmd = &cobra.Command{
 			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), add)
 		case acl_del:
 			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), del)
-		case lb_set:
-			sendLBPolicy(serviceSrc, serviceDst, policyEngine.PolicyLoadBalancer(policy), mbgDest)
+		case lb_add:
+			sendLBPolicy(serviceSrc, serviceDst, policyEngine.PolicyLoadBalancer(policy), mbgDest, add)
+		case lb_del:
+			sendLBPolicy(serviceSrc, serviceDst, policyEngine.PolicyLoadBalancer(policy), mbgDest, del)
 		case show:
 			showAclPolicies()
 			showLBPolicies()
@@ -87,7 +90,6 @@ func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priorit
 	default:
 		fmt.Println("Unknown Command")
 		os.Exit(1)
-
 	}
 	jsonReq, err := json.Marshal(policyEngine.AclRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, MbgDest: mbgDest, Priority: priority, Action: action})
 	if err != nil {
@@ -97,8 +99,17 @@ func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priorit
 	httpAux.HttpPost(url, jsonReq, httpClient)
 }
 
-func sendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.PolicyLoadBalancer, mbgDest string) {
-	url := state.GetPolicyDispatcher() + "/" + lb + "/setPolicy"
+func sendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.PolicyLoadBalancer, mbgDest string, command int) {
+	url := state.GetPolicyDispatcher() + "/" + lb
+	switch command {
+	case add:
+		url += "/add"
+	case del:
+		url += "/delete"
+	default:
+		fmt.Println("Unknown Command")
+		os.Exit(1)
+	}
 	httpClient := http.Client{}
 
 	jsonReq, err := json.Marshal(policyEngine.LoadBalancerRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, Policy: policy, DefaultMbg: mbgDest})

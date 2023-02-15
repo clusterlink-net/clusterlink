@@ -53,7 +53,9 @@ func (pH PolicyHandler) Routes() chi.Router {
 
 	r.Route("/lb", func(r chi.Router) {
 		r.Get("/", pH.loadBalancer.GetPolicyReq)
-		r.Post("/setPolicy", pH.loadBalancer.SetPolicyReq) // Add LB Policy
+		r.Post("/add", pH.loadBalancer.SetPolicyReq)       // Add LB Policy
+		r.Post("/delete", pH.loadBalancer.DeletePolicyReq) // Delete LB Policy
+
 	})
 	return r
 }

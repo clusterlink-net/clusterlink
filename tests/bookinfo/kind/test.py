@@ -179,7 +179,5 @@ if __name__ == "__main__":
         printHeader("\n\nStart get service")
         runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl getService')
     
-        #set services
-        runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl policy --command lb_set --policy ecmp')
         #connect
         connectSvc(srcSvc1, destSvc+"-mbg2",destSvc)
