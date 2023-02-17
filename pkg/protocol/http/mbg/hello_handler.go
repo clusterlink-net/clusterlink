@@ -53,3 +53,18 @@ func (m MbgHandler) sendHello2All(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 }
+
+//Send hello to all mbg peers
+func (m MbgHandler) handleHB(w http.ResponseWriter, r *http.Request) {
+	var h protocol.HeartBeat
+	err := json.NewDecoder(r.Body).Decode(&h)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	mbgControlplane.RecvHeartbeat(h.Id)
+
+	//Response
+	w.WriteHeader(http.StatusOK)
+}

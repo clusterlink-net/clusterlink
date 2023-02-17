@@ -31,6 +31,7 @@ type mbgState struct {
 	MyInfo                MbgInfo
 	MbgctlArr             map[string]Mbgctl
 	MbgArr                map[string]MbgInfo
+	InactiveMbgArr        map[string]MbgInfo
 	MyServices            map[string]LocalService
 	RemoteServices        map[string][]RemoteService
 	Connections           map[string]ServicePort
@@ -51,6 +52,7 @@ type MbgInfo struct {
 	CertificateFile string
 	KeyFile         string
 	Dataplane       string
+	LastSeen        time.Time
 }
 
 type Mbgctl struct {
@@ -75,6 +77,7 @@ type ServicePort struct {
 var s = mbgState{MyInfo: MbgInfo{},
 	MbgctlArr:             make(map[string]Mbgctl),
 	MbgArr:                make(map[string]MbgInfo),
+	InactiveMbgArr:        make(map[string]MbgInfo),
 	MyServices:            make(map[string]LocalService),
 	RemoteServices:        make(map[string][]RemoteService),
 	Connections:           make(map[string]ServicePort),
@@ -161,6 +164,35 @@ func UpdateState() {
 	log = logrus.WithField("component", s.MyInfo.Id)
 }
 
+func UpdateLastSeen(mbgId string) {
+	mbgI, ok := s.MbgArr[mbgId]
+	if !ok {
+		log.Infof("Activating MBG %s", mbgId)
+		MbgActive(mbgId)
+		return
+	}
+	mbgI.LastSeen = time.Now()
+	s.MbgArr[mbgId] = mbgI
+	SaveState()
+}
+
+func MbgInactive(mbg MbgInfo) {
+	delete(s.MbgArr, mbg.Id)
+	s.InactiveMbgArr[mbg.Id] = mbg
+	SaveState()
+}
+
+func MbgActive(mbgId string) {
+	mbgI, ok := s.InactiveMbgArr[mbgId]
+	if !ok {
+		log.Errorf("Received heartbeat from un-peered MBG %s", mbgId)
+		return
+	}
+	s.MbgArr[mbgId] = mbgI
+	delete(s.InactiveMbgArr, mbgId)
+	SaveState()
+}
+
 //Return Function fields
 func GetLocalService(id string) LocalService {
 	val, ok := s.MyServices[id]
@@ -222,7 +254,7 @@ func IsServiceLocal(id string) bool {
 }
 
 func AddMbgNbr(id, ip, cport string) {
-	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ServicePort{External: cport, Local: ""}}
+	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ServicePort{External: cport, Local: ""}, LastSeen: time.Now()}
 	s.Print()
 	SaveState()
 }

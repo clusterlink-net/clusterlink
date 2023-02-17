@@ -12,13 +12,16 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 
+	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
+
 	handler "github.ibm.com/mbg-agent/pkg/protocol/http/mbg"
 )
 
@@ -59,10 +62,15 @@ var startCmd = &cobra.Command{
 		}
 
 		if dataplane == "mtls" {
-			StartMtlsServer(":"+cportLocal, caFile, certificateFile, keyFile)
+			go StartMtlsServer(":"+cportLocal, caFile, certificateFile, keyFile)
 		} else {
-			startHttpServer(":" + cportLocal)
+			go startHttpServer(":" + cportLocal)
 		}
+
+		time.Sleep(mbgControlplane.Interval)
+
+		go mbgControlplane.SendHeartBeats()
+		mbgControlplane.MonitorHeartBeats()
 	},
 }
 
