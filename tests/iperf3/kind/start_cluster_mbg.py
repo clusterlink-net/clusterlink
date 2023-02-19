@@ -17,6 +17,7 @@ if __name__ == "__main__":
     parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="mtls")
     parser.add_argument('-m','--mbg', help='Either mbg1/mbg2/mbg3', required=False, default="mbg1")
     parser.add_argument('-b','--build', help='Build Image', required=False, default=False)
+    parser.add_argument('-c','--cni', help='Which cni to use default(kindnet)/flannel/calico', required=False, default="default")
     parser.add_argument('-fg','--fg', help='Run MBg command in fg', action="store_true", default=True)
 
     args = vars(parser.parse_args())
@@ -24,7 +25,9 @@ if __name__ == "__main__":
     dataplane = args["dataplane"]
     mbg       = args["mbg"]
     build     = args["build"]
-    runInfg     = args["fg"]
+    runInfg   = args["fg"]
+    cni       = args["cni"]
+
 
     #MBG parameters 
     mbgDataPort    = "30001"
@@ -48,7 +51,7 @@ if __name__ == "__main__":
     
     ### build Kind clusters environment 
     if mbg in ["mbg1", "mbg2","mbg3"]:
-        startKindClusterMbg(mbg, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg)        
+        startKindClusterMbg(mbg, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg,cni=cni)        
     else:
         print("mbg value should be mbg1, mbg2 or mbg3")
 

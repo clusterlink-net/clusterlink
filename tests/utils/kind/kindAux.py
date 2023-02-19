@@ -1,13 +1,24 @@
 import json,os
 import subprocess as sp
+from tests.utils.manifests.kind.flannel.create_cni_bridge import createCniBridge,createKindCfgForflunnel
+from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getMbgPorts,buildMbg,buildMbgctl,getPodIp,proj_dir
 
-from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getMbgPorts,buildMbg,buildMbgctl,getPodIp
+def BuildKindCluster(name, cni="default", cfg="" ):
+    #Set config file
+    cfgFlag = f" --config {cfg}" if cfg != "" else  ""
+    cfgFlag = f" --config {proj_dir}/tests/utils/manifests/kind/calico/calico-config.yaml" if (cfg == "" and cni== "calico")  else cfgFlag
+    if  cni == "flannel" and cfg =="":
+        cfgFlag = f" --config {proj_dir}/bin/plugins/flannel-config.yaml"
+        createCniBridge()
+        createKindCfgForflunnel()
 
-def BuildKindCluster(name, cfg=""):
-    if cfg != "": 
-        runcmd(f"kind create cluster --config {cfg} --name={name}")
-    else:
-        runcmd(f"kind create cluster --name={name}")
+    runcmd(f"kind create cluster  --name={name} {cfgFlag}")
+    if  cni == "flannel":
+        runcmd("kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml")
+    if  cni == "calico":
+        runcmd("kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/tigera-operator.yaml")
+        runcmd("kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/custom-resources.yaml")
+
     runcmd(f"kind load docker-image mbg --name={name}")
     mbgIp=getKindIp(name)
     return mbgIp
@@ -21,11 +32,11 @@ def getKindIp(name):
     return ip
 
 
-def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg=False):
+def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg=False,cni="default"):
     os.system(f"kind delete cluster --name={mbgName}")
     ###first Mbg
     printHeader(f"\n\nStart building {mbgName}")
-    mbgKindIp           = BuildKindCluster(mbgName)
+    mbgKindIp           = BuildKindCluster(mbgName,cni)
     podMbg, podMbgIp    = buildMbg(mbgName)
     mbgctlPod, mbgctlIp = buildMbgctl(mbgctlName)
     destMbgIp          = f"{podMbgIp}:{mbgcPortLocal}"

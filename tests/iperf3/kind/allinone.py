@@ -22,12 +22,15 @@ from tests.utils.kind.kindAux import useKindCluster, getKindIp,startKindClusterM
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="tcp")
+    parser.add_argument('-c','--cni', help='Which cni to use default(kindnet)/flannel/calico/diff (different cni for each cluster)', required=False, default="default")
+
     args = vars(parser.parse_args())
 
     printHeader("\n\nStart Kind Test\n\n")
     printHeader("Start pre-setting")
 
     dataplane = args["dataplane"]
+    cni = args["cni"]
     #MBG1 parameters 
     mbg1DataPort    = "30001"
     mbg1cPort       = "30443"
@@ -35,6 +38,7 @@ if __name__ == "__main__":
     mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     mbg1Name        = "mbg1"
     mbgctl1Name     = "mbgctl1"
+    mbg1cni         = cni 
     srcSvc          = "iperf3-client"
     srck8sSvcPort   = "5000"
     
@@ -45,8 +49,11 @@ if __name__ == "__main__":
     mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     mbg2Name        = "mbg2"
     mbgctl2Name     = "mbgctl2"
+    mbg2cni         = "flannel" if cni == "diff" else cni
     destSvc         = "iperf3-server"
     iperf3DestPort  = "30001"
+    
+
     
     #MBG3 parameters 
     mbg3DataPort    = "30001"
@@ -55,6 +62,7 @@ if __name__ == "__main__":
     mbg3crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg3.crt --key ./mtls/mbg3.key"  if dataplane =="mtls" else ""
     mbg3Name        = "mbg3"
     mbgctl3Name     = "mbgctl3"
+    mbg3cni         = "calico" if cni == "diff" else cni
     srcSvc          = "iperf3-client"
     srck8sSvcPort   = "5000"
     srcSvc2         = "iperf3-client2"
@@ -77,9 +85,9 @@ if __name__ == "__main__":
     
     
     ### Build MBG in Kind clusters environment 
-    startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags)        
-    startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort,dataplane ,mbg2crtFlags)        
-    startKindClusterMbg(mbg3Name, mbgctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort,dataplane ,mbg3crtFlags)        
+    startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags, cni=mbg1cni)        
+    startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags, cni=mbg2cni)        
+    startKindClusterMbg(mbg3Name, mbgctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort, dataplane ,mbg3crtFlags, cni=mbg3cni)        
       
     ###get mbg parameters
     useKindCluster(mbg1Name)
