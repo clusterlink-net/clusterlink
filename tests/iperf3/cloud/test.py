@@ -24,7 +24,7 @@ mbg2 = cluster(name="mbg2", zone = "us-west1-b",    platform = "gcp", type = "ta
 
 destSvc  = "iperf3-server"
 srcSvc   = "iperf3-client"
-mbgcPort="8443"
+mbgcPort="443"
 folMn=f"{PROJECT_PATH}/tests/iperf3/manifests/"
 
 
