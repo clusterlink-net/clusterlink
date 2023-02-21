@@ -25,6 +25,8 @@ import (
 
 var log = logrus.WithField("component", s.MyInfo.Id)
 var dataMutex sync.Mutex
+var mbgArrMutex sync.Mutex
+var mbgLastSeenMutex sync.Mutex
 var ChiRouter *chi.Mux = chi.NewRouter()
 
 type mbgState struct {
@@ -32,6 +34,7 @@ type mbgState struct {
 	MbgctlArr             map[string]Mbgctl
 	MbgArr                map[string]MbgInfo
 	InactiveMbgArr        map[string]MbgInfo
+	MbgLastSeen           map[string]time.Time
 	MyServices            map[string]LocalService
 	RemoteServices        map[string][]RemoteService
 	Connections           map[string]ServicePort
@@ -52,7 +55,6 @@ type MbgInfo struct {
 	CertificateFile string
 	KeyFile         string
 	Dataplane       string
-	LastSeen        time.Time
 }
 
 type Mbgctl struct {
@@ -78,6 +80,7 @@ var s = mbgState{MyInfo: MbgInfo{},
 	MbgctlArr:             make(map[string]Mbgctl),
 	MbgArr:                make(map[string]MbgInfo),
 	InactiveMbgArr:        make(map[string]MbgInfo),
+	MbgLastSeen:           make(map[string]time.Time),
 	MyServices:            make(map[string]LocalService),
 	RemoteServices:        make(map[string][]RemoteService),
 	Connections:           make(map[string]ServicePort),
@@ -165,31 +168,66 @@ func UpdateState() {
 }
 
 func UpdateLastSeen(mbgId string) {
-	mbgI, ok := s.MbgArr[mbgId]
+	_, ok := s.MbgArr[mbgId]
 	if !ok {
-		log.Infof("Activating MBG %s", mbgId)
-		MbgActive(mbgId)
-		return
+		log.Infof("Update state before activating MBG %s", mbgId)
+		UpdateState()
+		_, ok = s.MbgArr[mbgId]
+		if !ok {
+			MbgActive(mbgId)
+			return
+		}
 	}
-	mbgI.LastSeen = time.Now()
-	s.MbgArr[mbgId] = mbgI
+	mbgLastSeenMutex.Lock()
+	s.MbgLastSeen[mbgId] = time.Now()
+	mbgLastSeenMutex.Unlock()
+	log.Infof("Updating last seen of %s to %v", mbgId, s.MbgLastSeen[mbgId])
 	SaveState()
 }
 
+func GetLastSeen(mbgId string) time.Time {
+	mbgLastSeenMutex.Lock()
+	lastSeen := s.MbgLastSeen[mbgId]
+	mbgLastSeenMutex.Unlock()
+	return lastSeen
+}
+
 func MbgInactive(mbg MbgInfo) {
+	mbgArrMutex.Lock()
 	delete(s.MbgArr, mbg.Id)
 	s.InactiveMbgArr[mbg.Id] = mbg
+	mbgArrMutex.Unlock()
+	PrintState()
 	SaveState()
 }
 
 func MbgActive(mbgId string) {
+	log.Infof("Activating MBG %s", mbgId)
+	peerResp, err := s.MyEventManager.RaiseAddPeerEvent(eventManager.AddPeerAttr{PeerMbg: mbgId})
+	if err != nil {
+		log.Errorf("Unable to raise connection request event")
+		return
+	}
+	if peerResp.Action == eventManager.Deny {
+		log.Infof("Denying add peer(%s) due to policy", mbgId)
+		return
+	}
+	mbgArrMutex.Lock()
 	mbgI, ok := s.InactiveMbgArr[mbgId]
 	if !ok {
-		log.Errorf("Received heartbeat from un-peered MBG %s", mbgId)
+		// Ignore
+		mbgArrMutex.Unlock()
 		return
 	}
 	s.MbgArr[mbgId] = mbgI
 	delete(s.InactiveMbgArr, mbgId)
+	mbgArrMutex.Unlock()
+
+	mbgLastSeenMutex.Lock()
+	s.MbgLastSeen[mbgId] = time.Now()
+	mbgLastSeenMutex.Unlock()
+
+	PrintState()
 	SaveState()
 }
 
@@ -231,7 +269,7 @@ func GetServiceMbgIp(Ip string) string {
 		}
 	}
 	log.Errorf("Service %v is not defined", Ip)
-	s.Print()
+	PrintState()
 	return ""
 }
 
@@ -254,8 +292,17 @@ func IsServiceLocal(id string) bool {
 }
 
 func AddMbgNbr(id, ip, cport string) {
-	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ServicePort{External: cport, Local: ""}, LastSeen: time.Now()}
-	s.Print()
+	mbgArrMutex.Lock()
+	if _, ok := s.MbgArr[id]; ok {
+		log.Infof("Neighbor already added %s", id)
+		return
+	}
+	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ServicePort{External: cport, Local: ""}}
+	mbgArrMutex.Unlock()
+	mbgLastSeenMutex.Lock()
+	s.MbgLastSeen[id] = time.Now()
+	mbgLastSeenMutex.Unlock()
+	PrintState()
 	SaveState()
 }
 
@@ -266,7 +313,7 @@ func GetFreePorts(connectionID string) (ServicePort, error) {
 	}
 	rand.NewSource(time.Now().UnixNano())
 	if len(s.Connections) == s.MyInfo.MaxPorts {
-		return ServicePort{}, fmt.Errorf("all Ports taken up, Try again after sometimes")
+		return ServicePort{}, fmt.Errorf("all ports taken up, Try again after sometime")
 	}
 	lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
 	eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
@@ -275,7 +322,7 @@ func GetFreePorts(connectionID string) (ServicePort, error) {
 		select {
 		// Got a timeout! fail with a timeout error
 		case <-timeout:
-			return ServicePort{}, fmt.Errorf("all Ports taken up, Try again after sometimes")
+			return ServicePort{}, fmt.Errorf("all ports taken up, Try again after sometime")
 		default:
 			random := rand.Intn(s.MyInfo.MaxPorts)
 			localPort := lval + random
@@ -314,7 +361,6 @@ func GetFreeLocalPort(serviceName string) (string, error) {
 			random := rand.Intn(s.MyInfo.MaxPorts)
 			localPort := lval + random
 			if !s.LocalPortMap[localPort] {
-				log.Infof("[MBG %v] Free Local Port available at %v", s.MyInfo.Id, localPort)
 				s.LocalPortMap[localPort] = true
 				myPort := ":" + strconv.Itoa(localPort)
 				s.LocalServiceEndpoints[serviceName] = myPort
@@ -336,9 +382,13 @@ func FreeUpPorts(connectionID string) {
 }
 
 func AddLocalService(id, ip, description string) {
+	if _, ok := s.MyServices[id]; ok {
+		log.Infof("Local Service already added %s", id)
+		return
+	}
 	s.MyServices[id] = LocalService{Service: service.Service{Id: id, Ip: ip, Description: description}}
 	log.Infof("Adding local service: %s", id)
-	s.Print()
+	PrintState()
 	SaveState()
 }
 
@@ -352,7 +402,7 @@ func AddRemoteService(id, ip, description, MbgId string) {
 		s.RemoteServices[id] = []RemoteService{svc}
 	}
 	log.Infof("Adding remote service: [%v]", s.RemoteServiceMap[id])
-	s.Print()
+	PrintState()
 	SaveState()
 }
 
@@ -393,15 +443,20 @@ func GetHttpClient() http.Client {
 	}
 }
 
-func (s *mbgState) Print() {
+func PrintState() {
 	log.Infof("****** MBG State ********")
 	log.Infof("ID: %v IP: %v%v", s.MyInfo.Id, s.MyInfo.Ip, s.MyInfo.Cport)
 	nb := ""
+	inb := ""
 	services := ""
 	for _, n := range s.MbgArr {
 		nb = nb + n.Id + " "
 	}
 	log.Infof("MBG neighbors : %s", nb)
+	for _, n := range s.InactiveMbgArr {
+		inb = inb + n.Id + " "
+	}
+	log.Infof("Inactive MBG neighbors : %s", inb)
 	for _, se := range s.MyServices {
 		services = services + se.Service.Id
 	}

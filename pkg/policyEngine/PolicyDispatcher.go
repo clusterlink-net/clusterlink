@@ -38,6 +38,11 @@ func (pH PolicyHandler) Routes() chi.Router {
 	r.Route("/"+event.AddPeerRequest, func(r chi.Router) {
 		r.Post("/", pH.addPeerRequest) // New connection Request
 	})
+
+	r.Route("/"+event.RemovePeerRequest, func(r chi.Router) {
+		r.Post("/", pH.removePeerRequest) // New connection Request
+	})
+
 	r.Route("/"+event.NewRemoteService, func(r chi.Router) {
 		r.Post("/", pH.newRemoteService) // New connection Request
 	})
@@ -61,6 +66,21 @@ func (pH PolicyHandler) Routes() chi.Router {
 func (pH PolicyHandler) addPeer(peerMbg string) {
 	*pH.mbgState.mbgPeers = append(*pH.mbgState.mbgPeers, peerMbg)
 	plog.Infof("Added Peer %+v", pH.mbgState.mbgPeers)
+}
+
+func (pH PolicyHandler) removePeer(peerMbg string) {
+	index := -1
+	for i, v := range *pH.mbgState.mbgPeers {
+		if v == peerMbg {
+			index = i
+			break
+		}
+	}
+	if index == -1 {
+		return
+	}
+	*pH.mbgState.mbgPeers = append((*pH.mbgState.mbgPeers)[:index], (*pH.mbgState.mbgPeers)[index+1:]...)
+	plog.Infof("Removed Peer(%s) %+v", peerMbg, pH.mbgState.mbgPeers)
 }
 
 func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Request) {
@@ -164,6 +184,19 @@ func (pH PolicyHandler) addPeerRequest(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (pH PolicyHandler) removePeerRequest(w http.ResponseWriter, r *http.Request) {
+	var requestAttr event.AddPeerAttr
+	err := json.NewDecoder(r.Body).Decode(&requestAttr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	plog.Infof("Remove Peer reqest : %+v ", requestAttr)
+	pH.removePeer(requestAttr.PeerMbg)
+	pH.loadBalancer.RemoveMbgFromServiceMap(requestAttr.PeerMbg)
+	w.WriteHeader(http.StatusOK)
+
+}
 func (pH PolicyHandler) newRemoteService(w http.ResponseWriter, r *http.Request) {
 	var requestAttr event.NewRemoteServiceAttr
 	err := json.NewDecoder(r.Body).Decode(&requestAttr)

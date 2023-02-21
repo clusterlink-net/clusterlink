@@ -45,12 +45,20 @@ var startCmd = &cobra.Command{
 		dataplane, _ := cmd.Flags().GetString("dataplane")
 		startPolicyEngine, _ := cmd.Flags().GetBool("startPolicyEngine")
 		policyEngineIp, _ := cmd.Flags().GetString("policyEngineIp")
+		restore, _ := cmd.Flags().GetBool("restore")
 
 		if ip == "" || id == "" || cport == "" {
 			fmt.Println("Error: please insert all flag arguments for Mbg start command")
 			os.Exit(1)
 		}
+
+		if restore {
+			log.Infof("Restoring existing state")
+			state.UpdateState()
+		}
 		state.SetState(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
+		state.PrintState()
+
 		if startPolicyEngine {
 			state.GetEventManager().AssignPolicyDispatcher("http://" + policyEngineIp + "/policy")
 			state.SaveState()
@@ -66,11 +74,13 @@ var startCmd = &cobra.Command{
 		} else {
 			go startHttpServer(":" + cportLocal)
 		}
-
 		time.Sleep(mbgControlplane.Interval)
 
-		go mbgControlplane.SendHeartBeats()
-		mbgControlplane.MonitorHeartBeats()
+		if restore {
+			mbgControlplane.RestoreRemoteServices()
+		}
+
+		mbgControlplane.SendHeartBeats()
 	},
 }
 
@@ -88,6 +98,7 @@ func init() {
 	startCmd.Flags().String("dataplane", "tcp", "tcp/mtls based data-plane proxies")
 	startCmd.Flags().Bool("startPolicyEngine", false, "Start policy engine in port")
 	startCmd.Flags().String("policyEngineIp", "localhost:9990", "Set the policy engine ip")
+	startCmd.Flags().Bool("restore", false, "Restore existing stored MBG states")
 }
 
 /********************************** Server **********************************************************/

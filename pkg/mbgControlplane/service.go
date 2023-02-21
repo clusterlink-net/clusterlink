@@ -36,6 +36,24 @@ func GetAllLocalServices() map[string]protocol.ServiceRequest {
 }
 
 /******************* Remote Service ****************************************/
+func RestoreRemoteServices() {
+	for svcId, svcArr := range state.GetRemoteServicesArr() {
+		for _, svc := range svcArr {
+			policyResp, err := state.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: svc.Service.Id, Mbg: svc.MbgId})
+			if err != nil {
+				slog.Errorf(" Unable to raise connection request event", state.GetMyId())
+				continue
+			}
+			if policyResp.Action == eventManager.Deny {
+				continue
+			}
+		}
+		myServicePort, _ := state.GetFreePorts(svcId)
+		rootCA, certFile, keyFile := state.GetMyMbgCerts()
+		mlog.Infof("Starting a Proxy Service for Remote service %s at %s with certs(%s,%s,%s)", svcId, myServicePort.Local, rootCA, certFile, keyFile)
+		go md.StartProxyRemoteService(svcId, myServicePort.Local, rootCA, certFile, keyFile)
+	}
+}
 func AddRemoteService(e protocol.ExposeRequest) {
 	state.AddRemoteService(e.Id, e.Ip, e.Description, e.MbgID)
 
@@ -48,14 +66,13 @@ func AddRemoteService(e protocol.ExposeRequest) {
 		return
 	}
 
-	myServicePort, err := state.GetFreePorts(e.Id + "-" + e.MbgID)
+	myServicePort, err := state.GetFreePorts(e.Id)
 	if err != nil {
-		slog.Errorf("Unable to get free port")
+		slog.Errorf("Unable to get free port: %v ", err)
 		return
 	}
-	mbgTarget := state.GetMbgTarget(e.MbgID)
 	rootCA, certFile, keyFile := state.GetMyMbgCerts()
-	mlog.Infof("Starting a Proxy Service for Remote service %s at %s->%s with certs(%s,%s,%s)", e.Id, myServicePort.Local, mbgTarget, rootCA, certFile, keyFile)
+	mlog.Infof("Starting a Proxy Service for Remote service %s at %s with certs(%s,%s,%s)", e.Id, myServicePort.Local, rootCA, certFile, keyFile)
 	go md.StartProxyRemoteService(e.Id, myServicePort.Local, rootCA, certFile, keyFile)
 }
 

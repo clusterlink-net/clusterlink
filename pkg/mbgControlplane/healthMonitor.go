@@ -7,6 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
+	"github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 )
@@ -26,6 +27,7 @@ func SendHeartBeats() error {
 		klog.Error(err)
 		return fmt.Errorf("unable to marshal json for heartbeat")
 	}
+	monitorStarted := false
 	for {
 		MbgArr := state.GetMbgArr()
 		for _, m := range MbgArr {
@@ -37,6 +39,11 @@ func SendHeartBeats() error {
 				continue
 			}
 			state.UpdateLastSeen(m.Id)
+		}
+		// Start monitoring only atleast after a round of sending heartbeats
+		if !monitorStarted {
+			monitorStarted = true
+			go MonitorHeartBeats()
 		}
 		time.Sleep(Interval)
 	}
@@ -51,11 +58,16 @@ func MonitorHeartBeats() {
 		state.UpdateState()
 		MbgArr := state.GetMbgArr()
 		for _, m := range MbgArr {
-
 			t := time.Now()
-			diff := t.Sub(m.LastSeen)
+			lastSeen := state.GetLastSeen(m.Id)
+			diff := t.Sub(lastSeen)
 			if diff.Seconds() > timeout {
-				klog.Errorf("Heartbeat Timeout reached, Inactivating MBG %s", m.Id)
+				klog.Errorf("Heartbeat Timeout reached, Inactivating MBG %s(LastSeen:%v)", m.Id, lastSeen)
+				err := state.GetEventManager().RaiseRemovePeerEvent(eventManager.RemovePeerAttr{PeerMbg: m.Id})
+				if err != nil {
+					plog.Errorf("Unable to raise remove peer event")
+					return
+				}
 				state.MbgInactive(m)
 			}
 		}

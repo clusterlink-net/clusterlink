@@ -92,6 +92,22 @@ func (lB *LoadBalancer) AddToServiceMap(service string, mbg string) {
 	llog.Infof("Remote service added %v->[%+v]", service, *(lB.ServiceMap[service]))
 }
 
+func (lB *LoadBalancer) RemoveMbgFromServiceMap(mbg string) {
+	for svc, mbgs := range lB.ServiceMap {
+		index := -1
+		for i, mbgVal := range *mbgs {
+			if mbg == mbgVal {
+				index = i
+				break
+			}
+		}
+		if index == -1 {
+			continue
+		}
+		*mbgs = append((*mbgs)[:index], (*mbgs)[index+1:]...)
+		llog.Infof("MBG removed from service %v->[%+v]", svc, *(lB.ServiceMap[svc]))
+	}
+}
 func (lB *LoadBalancer) SetPolicy(service string, policy PolicyLoadBalancer, defaultMbg string) {
 	if lB.Policy == nil {
 		lB.Init()

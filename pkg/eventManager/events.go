@@ -31,6 +31,7 @@ const (
 	AddPeerRequest       = "AddPeerRequest"
 	NewRemoteService     = "NewRemoteService"
 	ExposeRequest        = "ExposeRequest"
+	RemovePeerRequest    = "RemovePeerRequest"
 )
 
 type ConnectionRequestAttr struct {
@@ -70,6 +71,10 @@ type AddPeerAttr struct {
 
 type AddPeerResp struct {
 	Action Action
+}
+
+type RemovePeerAttr struct {
+	PeerMbg string
 }
 
 type ServiceListRequestAttr struct {
