@@ -46,7 +46,6 @@ Build the first kind cluster with MBG, mbgctl, Product and details micro-service
 3) Create a mbgctl deployment: 
    
         kubectl create -f $PROJECT_FOLDER/manifests/mbgctl/mbgctl.yaml
-        kubectl create -f $PROJECT_FOLDER/manifests/mbgctl/mbgctl-svc.yaml
 4) Create product and details microservices: 
    
         docker pull maistra/examples-bookinfo-productpage-v1
@@ -68,7 +67,6 @@ Build the second kind cluster with MBG, mbgctl, reviews(v2) and rating microserv
 3) Create a mbgctl deployment: 
 
         kubectl create -f $PROJECT_FOLDER/manifests/mbgctl/mbgctl.yaml
-        kubectl create -f $PROJECT_FOLDER/manifests/mbgctl/mbgctl-svc.yaml
 4) Create reviews and ratings microservices:
    
         docker pull maistra/examples-bookinfo-reviews-v2
@@ -90,7 +88,6 @@ Build the third kind cluster with MBG, mbgctl, reviews(v3) and rating microservi
 3) Create a mbgctl deployment: 
 
         kubectl create -f $PROJECT_FOLDER/manifests/mbgctl/mbgctl.yaml
-        kubectl create -f $PROJECT_FOLDER/manifests/mbgctl/mbgctl-svc.yaml
 4) Create review and ratings microservices:
    
         docker pull maistra/examples-bookinfo-reviews-v3
