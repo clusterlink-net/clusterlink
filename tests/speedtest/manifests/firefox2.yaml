@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: firefox2
+  labels:
+    app: firefox2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: firefox2
+  template:
+    metadata:
+      labels:
+        app: firefox2
+    spec:
+      containers:
+      - name: firefox2
+        image: jlesage/firefox
+        ports:
+        - containerPort: 5800
+        volumeMounts:
+        - name: config
+          mountPath: /config
+      volumes:
+      - name: config
+        hostPath:
+          path: /docker/appdata/firefox2
+          type: DirectoryOrCreate
