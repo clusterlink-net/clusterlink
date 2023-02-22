@@ -180,4 +180,4 @@ if __name__ == "__main__":
         runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl getService')
     
         #connect
-        connectSvc(srcSvc1, destSvc+"-mbg2",destSvc)
+        connectSvc(srcSvc1, destSvc,destSvc)

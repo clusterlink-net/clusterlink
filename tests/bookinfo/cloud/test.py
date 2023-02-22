@@ -150,7 +150,7 @@ if __name__ == "__main__":
     
     #connect
     podMbg1= getPodName("mbg-deployment")        
-    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, destSvc+"-mbg2")
+    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, destSvc)
     runcmd(f"kubectl delete service {destSvc}")
     runcmd(f"kubectl create service clusterip {destSvc} --tcp=9080:{mbg1LocalPort}")
     runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name

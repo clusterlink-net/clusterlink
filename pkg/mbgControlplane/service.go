@@ -48,9 +48,11 @@ func AddRemoteService(e protocol.ExposeRequest) {
 		return
 	}
 
-	myServicePort, err := state.GetFreePorts(e.Id + "-" + e.MbgID)
+	myServicePort, err := state.GetFreePorts(e.Id)
 	if err != nil {
-		slog.Errorf("Unable to get free port")
+		if err.Error() != state.ConnExist {
+			slog.Errorf("Unable to get free port")
+		}
 		return
 	}
 	mbgTarget := state.GetMbgTarget(e.MbgID)

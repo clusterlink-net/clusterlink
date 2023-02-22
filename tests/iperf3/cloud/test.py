@@ -108,7 +108,7 @@ if __name__ == "__main__":
     connectToCluster(mbg1)
     podIperf3= getPodName(srcSvc)
     mbgPod,mbgPodIP=getPodNameIp("mbg")
-    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbgPod,destSvc+"-"+mbg2.name)
+    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbgPod,destSvc)
     for i in range(2):
         printHeader(f"iPerf3 test {i}")
         cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {mbgPodIP} -p {mbg1LocalPort} -t 40'
