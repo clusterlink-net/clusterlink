@@ -40,7 +40,6 @@ Build the first kind cluster with MBG, mbgctl, and iperf3-client:
 3) Create a mbgctl deployment: 
    
         kubectl create -f $PROJECT_FOLDER/manifests/mbgctl/mbgctl.yaml
-        kubectl create -f $PROJECT_FOLDER/manifests/mbgctl/mbgctl-svc.yaml
 4) Create an iPerf3-client deployment: 
    
         kubectl create -f $PROJECT_FOLDER/tests/iperf3/manifests/iperf3-client/iperf3-client.yaml
@@ -57,7 +56,6 @@ Build the second kind cluster with MBG, mbgctl, and iperf3-server:
 3) Create a mbgctl deployment: 
 
         kubectl create -f $PROJECT_FOLDER/manifests/mbgctl/mbgctl.yaml
-        kubectl create -f $PROJECT_FOLDER/manifests/mbgctl/mbgctl-svc.yaml
 4) Create an iPerf3-server deployment:
    
         kubectl create -f $PROJECT_FOLDER/tests/iperf3/manifests/iperf3-server/iperf3.yaml

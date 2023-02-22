@@ -1,0 +1,48 @@
+################################################################
+#Name:  openspeedtest 
+#Desc: YAML file for creating openspeedtest server for testing.
+################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openspeedtest
+  labels:
+    app: openspeedtest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openspeedtest
+  template:
+    metadata:
+      labels:
+        app: openspeedtest
+    spec:
+      containers:
+      - name: speedtest
+        image: openspeedtest/latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        - containerPort: 3001
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          tcpSocket:
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
