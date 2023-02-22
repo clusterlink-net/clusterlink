@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -76,6 +77,7 @@ var startCmd = &cobra.Command{
 
 		if restore {
 			log.Infof("Restoring existing state")
+			time.Sleep(mbgControlplane.Interval)
 			state.RestoreMbg()
 			mbgControlplane.RestoreRemoteServices()
 		}

@@ -51,7 +51,7 @@ func RestoreRemoteServices() {
 		myServicePort, err := state.GetFreePorts(svcId)
 		if err != nil {
 			if err.Error() != state.ConnExist {
-				slog.Errorf("Unable to get free port")
+				slog.Errorf("Unable to get free port %s", err)
 			}
 		}
 		rootCA, certFile, keyFile := state.GetMyMbgCerts()
@@ -74,7 +74,7 @@ func AddRemoteService(e protocol.ExposeRequest) {
 	myServicePort, err := state.GetFreePorts(e.Id)
 	if err != nil {
 		if err.Error() != state.ConnExist {
-			slog.Errorf("Unable to get free port")
+			slog.Errorf("Unable to get free port %s", err)
 		}
 		return
 	}

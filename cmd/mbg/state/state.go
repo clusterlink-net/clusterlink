@@ -331,7 +331,6 @@ func RemoveMbgNbr(id string) {
 // Gets an available free port to use per connection
 func GetFreePorts(connectionID string) (ServicePort, error) {
 	if port, ok := s.Connections[connectionID]; ok {
-		log.Info(ConnExist)
 		return port, fmt.Errorf(ConnExist)
 	}
 	rand.NewSource(time.Now().UnixNano())
