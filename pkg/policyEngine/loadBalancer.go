@@ -108,7 +108,6 @@ func (lB *LoadBalancer) AddToServiceMap(serviceDst string, mbg string) {
 	llog.Infof("Remote serviceDst added %v->[%+v]", serviceDst, *(lB.ServiceMap[serviceDst]))
 }
 
-<<<<<<< HEAD
 func (lB *LoadBalancer) RemoveMbgFromServiceMap(mbg string) {
 	for svc, mbgs := range lB.ServiceMap {
 		index := -1
