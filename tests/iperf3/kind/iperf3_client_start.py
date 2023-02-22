@@ -38,7 +38,7 @@ def testIperf3Client(mbgName,srcSvc, destSvc, blockFlag=False):
     waitPod("iperf3-client")
     podIperf3= getPodNameApp(srcSvc)
     mbgPod,mbgIp  = getPodNameIp("mbg")
-    mbgLocalPort, mbgExternalPort = getMbgPorts(mbgPod,destSvc+"-mbg2")
+    mbgLocalPort, mbgExternalPort = getMbgPorts(mbgPod,destSvc)
     printHeader("Starting Client Service(iperf3 client1)->MBG1->MBG2->Dest Service(iperf3 server)")
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {mbgIp } -p {mbgLocalPort}'
     iperf3Test(cmd,blockFlag)
@@ -48,7 +48,7 @@ def directTestIperf3(mbgName,srcSvc,destSvc,destkindIp,iperf3DestPort):
     waitPod("iperf3-client")
     podIperf3= getPodNameApp(srcSvc)
     mbgPod,mbgIp  = getPodNameIp("mbg")
-    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbgPod,destSvc+"-mbg2")
+    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbgPod,destSvc)
     printHeader("The Iperf3 test connects directly to the destination")
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {destkindIp} -p {iperf3DestPort}'
     iperf3Test(cmd)
