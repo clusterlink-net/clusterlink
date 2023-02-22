@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -51,11 +50,11 @@ var startCmd = &cobra.Command{
 			fmt.Println("Error: please insert all flag arguments for Mbg start command")
 			os.Exit(1)
 		}
-
 		if restore {
 			log.Infof("Restoring existing state")
 			state.UpdateState()
 		}
+
 		state.SetState(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
 		state.PrintState()
 
@@ -74,13 +73,15 @@ var startCmd = &cobra.Command{
 		} else {
 			go startHttpServer(":" + cportLocal)
 		}
-		time.Sleep(mbgControlplane.Interval)
 
 		if restore {
+			log.Infof("Restoring existing state")
+			state.RestoreMbg()
 			mbgControlplane.RestoreRemoteServices()
 		}
+		go mbgControlplane.SendHeartBeats()
+		mbgControlplane.MonitorHeartBeats()
 
-		mbgControlplane.SendHeartBeats()
 	},
 }
 

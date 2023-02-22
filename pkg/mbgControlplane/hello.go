@@ -14,11 +14,10 @@ var hlog = logrus.WithField("component", "mbgControlPlane/Hello")
 //Send hello to other mbg using HelloReq
 func SendHello(mbgId string) string {
 	//Update MBG state
-	MbgArr := state.GetMbgArr()
 	MyInfo := state.GetMyInfo()
-	m, ok := MbgArr[mbgId]
+	ok := state.IsMbgPeer(mbgId)
 	if ok {
-		resp := HelloReq(m, MyInfo)
+		resp := HelloReq(mbgId, MyInfo)
 		return resp
 	} else {
 		hlog.Errorf("Unable to find MBG %v in the peers list", mbgId)
@@ -28,10 +27,9 @@ func SendHello(mbgId string) string {
 
 //Send hello to all mbg peers using HelloReq
 func SendHello2All() string {
-	MbgArr := state.GetMbgArr()
 	MyInfo := state.GetMyInfo()
-	for _, m := range MbgArr {
-		resp := HelloReq(m, MyInfo)
+	for _, mbgId := range state.GetMbgList() {
+		resp := HelloReq(mbgId, MyInfo)
 		if resp != httpAux.RESPOK {
 			return resp
 		}
@@ -40,8 +38,8 @@ func SendHello2All() string {
 }
 
 //send hello request(http) to other mbg
-func HelloReq(m, myInfo state.MbgInfo) string {
-	address := state.GetAddrStart() + m.Ip + m.Cport.External + "/peer/" + myInfo.Id
+func HelloReq(m string, myInfo state.MbgInfo) string {
+	address := state.GetAddrStart() + state.GetMbgTarget(m) + "/peer/" + myInfo.Id
 	hlog.Infof("Sending Hello message to MBG at %v", address)
 
 	j, err := json.Marshal(protocol.PeerRequest{Id: myInfo.Id, Ip: myInfo.Ip, Cport: myInfo.Cport.External})

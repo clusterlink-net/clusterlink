@@ -37,16 +37,15 @@ func ExposeToMbg(serviceId string) {
 	svcExp := s.Service
 	svcExp.Ip = myIp
 	if exposeResp.Action == eventManager.AllowAll {
-		MbgArr := state.GetMbgArr()
-		for _, m := range MbgArr {
-			destIp := m.Ip + m.Cport.External
+		for _, m := range state.GetMbgList() {
+			destIp := state.GetMbgTarget(m)
 			ExposeReq(svcExp, destIp, "MBG")
 		}
-	} else {
-		for _, mbgId := range exposeResp.TargetMbgs {
-			mbgAddr := state.GetMbgControlTarget(mbgId)
-			ExposeReq(svcExp, mbgAddr, "MBG")
-		}
+		return
+	}
+	for _, mbgId := range exposeResp.TargetMbgs {
+		mbgAddr := state.GetMbgTarget(mbgId)
+		ExposeReq(svcExp, mbgAddr, "MBG")
 	}
 }
 

@@ -3,6 +3,7 @@ package mbgControlplane
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -19,58 +20,86 @@ const (
 	Interval = 1 * time.Second
 )
 
+var mbgLastSeenMutex sync.RWMutex
+var mbgLastSeen map[string]time.Time
+
+func updateLastSeen(mbgId string) {
+	mbgLastSeenMutex.Lock()
+	mbgLastSeen[mbgId] = time.Now()
+	mbgLastSeenMutex.Unlock()
+}
+
+func getLastSeen(mbgId string) (time.Time, bool) {
+	mbgLastSeenMutex.RLock()
+	lastSeen, ok := mbgLastSeen[mbgId]
+	mbgLastSeenMutex.RUnlock()
+	return lastSeen, ok
+}
+
+func validateMBGs(mbgId string) {
+	ok := state.IsMbgPeer(mbgId)
+	if !ok {
+		klog.Infof("Update state before activating MBG %s", mbgId)
+		state.UpdateState()
+		ok = state.IsMbgPeer(mbgId)
+		if !ok {
+			state.ActivateMbg(mbgId)
+			return
+		}
+	}
+}
+
 // Send hello messages to peer MBGs every second
 func SendHeartBeats() error {
+	mbgLastSeen = make(map[string]time.Time)
 	state.UpdateState()
 	j, err := json.Marshal(protocol.HeartBeat{Id: state.GetMyId()})
 	if err != nil {
 		klog.Error(err)
 		return fmt.Errorf("unable to marshal json for heartbeat")
 	}
-	monitorStarted := false
 	for {
-		MbgArr := state.GetMbgArr()
-		for _, m := range MbgArr {
-			url := state.GetAddrStart() + m.Ip + m.Cport.External + "/hello/hb"
+		mList := state.GetMbgList()
+		for _, m := range mList {
+			url := state.GetAddrStart() + state.GetMbgTarget(m) + "/hello/hb"
 			resp := httpAux.HttpPost(url, j, state.GetHttpClient())
 
 			if string(resp) == httpAux.RESPFAIL {
 				klog.Errorf("Unable to send heartbeat to %s", url)
 				continue
 			}
-			state.UpdateLastSeen(m.Id)
-		}
-		// Start monitoring only atleast after a round of sending heartbeats
-		if !monitorStarted {
-			monitorStarted = true
-			go MonitorHeartBeats()
+			updateLastSeen(m)
 		}
 		time.Sleep(Interval)
 	}
 }
 
 func RecvHeartbeat(mbgID string) {
-	state.UpdateLastSeen(mbgID)
+	updateLastSeen(mbgID)
+	validateMBGs(mbgID)
 }
 
 func MonitorHeartBeats() {
 	for {
+		time.Sleep(Interval)
 		state.UpdateState()
-		MbgArr := state.GetMbgArr()
-		for _, m := range MbgArr {
+		mList := state.GetMbgList()
+		for _, m := range mList {
 			t := time.Now()
-			lastSeen := state.GetLastSeen(m.Id)
+			lastSeen, ok := getLastSeen(m)
+			if !ok {
+				continue
+			}
 			diff := t.Sub(lastSeen)
 			if diff.Seconds() > timeout {
-				klog.Errorf("Heartbeat Timeout reached, Inactivating MBG %s(LastSeen:%v)", m.Id, lastSeen)
-				err := state.GetEventManager().RaiseRemovePeerEvent(eventManager.RemovePeerAttr{PeerMbg: m.Id})
+				klog.Errorf("Heartbeat Timeout reached, Inactivating MBG %s(LastSeen:%v)", m, lastSeen)
+				err := state.GetEventManager().RaiseRemovePeerEvent(eventManager.RemovePeerAttr{PeerMbg: m})
 				if err != nil {
 					plog.Errorf("Unable to raise remove peer event")
 					return
 				}
-				state.MbgInactive(m)
+				state.InactivateMbg(m)
 			}
 		}
-		time.Sleep(Interval)
 	}
 }

@@ -30,8 +30,9 @@ func GetAllPeers() map[string]protocol.PeerRequest {
 	state.UpdateState()
 	pArr := make(map[string]protocol.PeerRequest)
 
-	for _, s := range state.GetMbgArr() {
-		pArr[s.Id] = protocol.PeerRequest{Id: s.Id, Ip: s.Ip, Cport: s.Cport.External}
+	for _, s := range state.GetMbgList() {
+		ip, port := state.GetMbgTargetPair(s)
+		pArr[s] = protocol.PeerRequest{Id: s, Ip: ip, Cport: port}
 	}
 	return pArr
 
@@ -40,10 +41,10 @@ func GetAllPeers() map[string]protocol.PeerRequest {
 func GetPeer(peerID string) protocol.PeerRequest {
 	//Update MBG state
 	state.UpdateState()
-	MbgArr := state.GetMbgArr()
-	m, ok := MbgArr[peerID]
+	ok := state.IsMbgPeer(peerID)
 	if ok {
-		return protocol.PeerRequest{Id: m.Id, Ip: m.Ip, Cport: m.Cport.External}
+		ip, port := state.GetMbgTargetPair(peerID)
+		return protocol.PeerRequest{Id: peerID, Ip: ip, Cport: port}
 	} else {
 		plog.Infof("MBG %s does not exist in the peers list ", peerID)
 		return protocol.PeerRequest{}
