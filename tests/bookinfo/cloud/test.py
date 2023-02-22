@@ -19,9 +19,12 @@ from tests.utils.cloud.delete_k8s_cluster import deleteClustersList, cleanCluste
 from tests.utils.cloud.PROJECT_PARAMS import PROJECT_PATH
 import argparse
 
-mbg1 = cluster(name="mbg1", zone = "us-west1-b"   , platform = "gcp", type = "host")   #Oregon
-mbg2 = cluster(name="mbg2", zone = "us-central1-b", platform = "gcp", type = "target") #Iowa
-mbg3 = cluster(name="mbg3", zone = "us-east4-b"   , platform = "gcp", type = "target") #Virginia
+mbg1gcp = cluster(name="mbg1", zone = "us-west1-b"   , platform = "gcp", type = "host")   #Oregon
+mbg1ibm = cluster(name="mbg1", zone = "sjc04"        , platform = "ibm", type = "host")   #San jose
+mbg2gcp = cluster(name="mbg2", zone = "us-central1-b", platform = "gcp", type = "target") #Iowa
+mbg2ibm = cluster(name="mbg2", zone = "dal10"        , platform = "ibm", type = "target") #Dallas
+mbg3gcp = cluster(name="mbg3", zone = "us-east4-b"   , platform = "gcp", type = "target") #Virginia
+mbg3ibm = cluster(name="mbg3", zone = "wdc04"        , platform = "ibm", type = "target") #Washington DC
 
 destSvc    = "iperf3-server"
 srcSvc1    = "productpage"
@@ -40,6 +43,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="tcp")
     parser.add_argument('-c','--command', help='Script command: test/delete', required=False, default="test")
+    parser.add_argument('-cloud','--cloud', help='Cloud setup using gcp/ibm/diff (different clouds)', required=False, default="gcp")
     parser.add_argument('-delete','--deleteCluster', help='Delete clusters in the end of the test', required=False, default="true")
 
     args = vars(parser.parse_args())
@@ -47,9 +51,14 @@ if __name__ == "__main__":
     dataplane = args["dataplane"]
     command = args["command"]
     dltCluster = args["deleteCluster"]
+    cloud = args["cloud"]
+
     mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     mbg3crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg3.crt --key ./mtls/mbg3.key"  if dataplane =="mtls" else ""
+    mbg1 = mbg1gcp if cloud in ["gcp","diff"] else mbg1ibm
+    mbg2 = mbg2gcp if cloud in ["gcp","diff"] else mbg2ibm
+    mbg3 = mbg3gcp if cloud in ["gcp"]        else mbg3ibm
 
     if command =="delete":
         deleteClustersList([mbg1, mbg2, mbg3])
@@ -62,9 +71,6 @@ if __name__ == "__main__":
     createCluster(cluster=mbg1,run_in_bg=True)
     createCluster(cluster=mbg2,run_in_bg=True)
     createCluster(cluster=mbg3,run_in_bg=False)
-        
-    #Push mbg image
-    pushImage(mbg1.platform)
     
     #Build MBG1
     checkClusterIsReady(mbg1)

@@ -25,8 +25,8 @@ def createCluster(cluster,run_in_bg, machineType="small"):
         os.system(cmd)
 
     elif cluster.platform == "ibm":
-        vlan_private_ip=sp.getoutput("ibmcloud ks vlans --zone {} |fgrep private |cut -d ' ' -f 1".format(cluster.zone))
-        vlan_public_ip=sp.getoutput("ibmcloud ks vlans --zone {}  |fgrep public |cut -d ' ' -f 1".format(cluster.zone))
+        vlan_private_ip=sp.getoutput(f"ibmcloud ks vlans --zone {cluster.zone} |fgrep private |cut -d ' ' -f 1")
+        vlan_public_ip=sp.getoutput(f"ibmcloud ks vlans --zone {cluster.zone}  |fgrep public |cut -d ' ' -f 1")
         print("vlan_public_ip:",vlan_public_ip)
         vlan_private_string = "--private-vlan " + vlan_private_ip  if (vlan_private_ip != "" and "FAILED" not in vlan_private_ip) else ""
         if (vlan_public_ip  != "" and "FAILED" not in vlan_public_ip):
@@ -35,7 +35,7 @@ def createCluster(cluster,run_in_bg, machineType="small"):
             vlan_public_string= ""
             vlan_private_string = vlan_private_string + " --private-only " if (vlan_private_string != "") else ""
         
-        cmd= f"ibmcloud ks cluster create  classic  --name {cluster.name} --zone={cluster.zone} --flavor u3c.2x4 --workers=1 {vlan_private_string} {vlan_public_string} {bg_flag}"
+        cmd= f"ibmcloud ks cluster create  classic  --name {cluster.name} --zone={cluster.zone} --flavor u3c.2x4 --workers=1 {vlan_private_string} {vlan_public_string} {bg_flags}"
         print(cmd)
         os.system(cmd)
     else:

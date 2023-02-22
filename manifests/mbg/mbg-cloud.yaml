@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: mbg
-        image: gcr.io/multi-cloud-networks-4438/mbg:latest
+        image: quay.io/kfirt/mbg
         imagePullPolicy: IfNotPresent
         command: [ "sleep" ]
         args: [ "infinity" ]        

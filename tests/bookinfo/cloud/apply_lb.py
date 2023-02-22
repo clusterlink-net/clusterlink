@@ -15,10 +15,12 @@ from tests.utils.cloud.clusterClass import cluster
 srcSvc1  = "productpage"
 srcSvc2  = "productpage2"
 destSvc  = "reviews"
-
-mbg1 = cluster(name="mbg1", zone = "us-west1-b"   , platform = "gcp", type = "host")
-mbg2 = cluster(name="mbg2", zone = "us-central1-b", platform = "gcp", type = "target")
-mbg3 = cluster(name="mbg3", zone = "us-east4-b"   , platform = "gcp", type = "target")
+mbglist = { "mbg1gcp" : cluster(name="mbg1", zone = "us-west1-b"    , platform = "gcp", type = "host"),   #Oregon
+            "mbg1ibm" : cluster(name="mbg1", zone = "sjc04"         , platform = "ibm", type = "host"),   #San jose
+            "mbg2gcp" : cluster(name="mbg2", zone = "us-central1-b" , platform = "gcp", type = "target"), #Iowa
+            "mbg2ibm" : cluster(name="mbg2", zone = "dal10"         , platform = "ibm", type = "target"), #Dallas
+            "mbg3gcp" : cluster(name="mbg3", zone = "us-east4-b"    , platform = "gcp", type = "target"), #Virginia
+            "mbg3ibm" : cluster(name="mbg3", zone = "wdc04"         , platform = "ibm", type = "target")} #Washington DC
     
 def applyPolicy(mbg,type):
     connectToCluster(mbg)
@@ -48,10 +50,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('-m','--mbg', help='Either mbg1/mbg2/mbg3', required=False, default="mbg1")
     parser.add_argument('-t','--type', help='Either ecmp/same/diff/show', required=False, default="ecmp")
+    parser.add_argument('-cloud','--cloud', help='Cloud setup using gcp/ibm', required=False, default="gcp")
 
     args = vars(parser.parse_args())
 
-    mbg = mbg1 if args["mbg"]=="mbg1" else(mbg2 if args["mbg"]=="mbg2" else mbg3)
+    mbg = mbglist[args["mbg"] + args["cloud"]]
     type = args["type"]
     
     print(f'Working directory {proj_dir}')

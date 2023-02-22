@@ -19,8 +19,10 @@ from tests.utils.cloud.delete_k8s_cluster import deleteClustersList, cleanCluste
 from tests.utils.cloud.PROJECT_PARAMS import PROJECT_PATH
 import argparse
 
-mbg1 = cluster(name="mbg1",   zone = "us-west1-b",    platform = "gcp", type = "host")
-mbg2 = cluster(name="mbg2", zone = "us-west1-b",    platform = "gcp", type = "target")
+mbg1gcp = cluster(name="mbg1", zone = "us-west1-b", platform = "gcp", type = "host") 
+mbg1ibm = cluster(name="mbg2", zone = "dal10",      platform = "ibm", type = "host")
+mbg2gcp = cluster(name="mbg2", zone = "us-west1-b", platform = "gcp", type = "target")
+mbg2ibm = cluster(name="mbg2", zone = "dal10",      platform = "ibm", type = "target")
 
 destSvc  = "iperf3-server"
 srcSvc   = "iperf3-client"
@@ -30,20 +32,24 @@ folMn=f"{PROJECT_PATH}/tests/iperf3/manifests/"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
-    parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="tcp")
+    parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="mtls")
     parser.add_argument('-c','--command', help='Script command: test/delete', required=False, default="test")
     parser.add_argument('-m','--machineType', help='Type of machine to create small/large', required=False, default="small")
+    parser.add_argument('-cloud','--cloud', help='Cloud setup using gcp/ibm/diff (different clouds)', required=False, default="gcp")
     parser.add_argument('-delete','--deleteCluster', help='Delete clusters in the end of the test', required=False, default="true")
 
     args = vars(parser.parse_args())
 
     dataplane = args["dataplane"]
     command = args["command"]
+    cloud = args["cloud"]
     dltCluster = args["deleteCluster"]
     machineType = args["machineType"]
     mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
-
+    mbg1 = mbg1gcp if cloud in ["gcp","diff"] else mbg1ibm
+    mbg2 = mbg2gcp if cloud in ["gcp"]        else mbg2ibm
+    
     if command =="delete":
         deleteClustersList([mbg1, mbg2])
         exit()
@@ -51,14 +57,13 @@ if __name__ == "__main__":
         cleanClustersList([mbg1, mbg2])
         exit()
     
+
+
     #Create k8s cluster
     createCluster(cluster=mbg1, run_in_bg=True , machineType = machineType)
     createCluster(cluster=mbg2, run_in_bg=False, machineType = machineType)
         
-    #Push mbg image
-    pushImage(mbg1.platform)
-    
-    #Setup MBG1
+    # #Setup MBG1
     checkClusterIsReady(mbg1)
     mbg1Ip=mbgBuild(mbgcPort=mbgcPort)
     mbgSetup(mbg1,dataplane,mbg1crtFlags,mbgctlName="mbgctl1",mbgIp=mbg1Ip, mbgcPort=mbgcPort)
@@ -104,7 +109,7 @@ if __name__ == "__main__":
     podIperf3= getPodName(srcSvc)
     mbgPod,mbgPodIP=getPodNameIp("mbg")
     mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbgPod,destSvc+"-"+mbg2.name)
-    for i in range(10):
+    for i in range(2):
         printHeader(f"iPerf3 test {i}")
         cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {mbgPodIP} -p {mbg1LocalPort} -t 40'
         runcmd(cmd)
