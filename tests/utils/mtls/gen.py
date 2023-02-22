@@ -22,14 +22,14 @@ with tempfile.NamedTemporaryFile(mode="w") as temp:
     # Generate mbg1 cert to be signed
     os.system(f'openssl req -nodes -newkey rsa:2048 -keyout mbg1.key -out mbg1.csr -subj "/CN=IL" -addext "subjectAltName={address}"')
     # Sign the mbg1 cert
-    os.system(f'openssl x509 -req -in mbg1.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out mbg1.crt -extfile {temp.name}')
+    os.system(f'openssl x509 -req  -days 358000 -in mbg1.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out mbg1.crt -extfile {temp.name}')
 
     # Generate mbg2 cert to be signed
     os.system(f'openssl req -nodes -newkey rsa:2048 -keyout mbg2.key -out mbg2.csr -subj "/CN=IL" -addext "subjectAltName={address}"')
     # Sign the mbg2 cert
-    os.system(f'openssl x509 -req -in mbg2.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out mbg2.crt -extfile {temp.name} ')
+    os.system(f'openssl x509 -req  -days 358000 -in mbg2.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out mbg2.crt -extfile {temp.name} ')
 
     # Generate mbg3 cert to be signed
     os.system(f'openssl req -nodes -newkey rsa:2048 -keyout mbg3.key -out mbg3.csr -subj "/CN=IL" -addext "subjectAltName={address}"')
     # Sign the mbg3 cert
-    os.system(f'openssl x509 -req -in mbg3.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out mbg3.crt -extfile {temp.name} ')
+    os.system(f'openssl x509 -req  -days 358000 -in mbg3.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out mbg3.crt -extfile {temp.name} ')

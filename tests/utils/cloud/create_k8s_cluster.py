@@ -6,18 +6,16 @@
 ################################################################
 import os  
 import subprocess as sp
-import sys
 #sys.path.insert(1, 'project_metadata/')
-from clusterClass import cluster
-from PROJECT_PARAMS import METADATA_FILE,PROJECT_PATH
+from tests.utils.cloud.clusterClass import cluster
 
 
 ############################### functions ##########################
-def createCluster(cluster,run_in_bg, large_machine=True):
+def createCluster(cluster,run_in_bg, machineType="small"):
     print(f"create {cluster.name} cluster , zone {cluster.zone} , platform {cluster.platform}")
     bg_flags = " &" if run_in_bg else ""
     if cluster.platform == "gcp":
-        flags = "  --machine-type n2-standard-4" if large_machine else ""
+        flags = "  --machine-type n2-standard-4" if machineType=="large" else ""
         cmd=f"gcloud container clusters create {cluster.name} --zone {cluster.zone} --num-nodes 1 --tags tcpall {flags} {bg_flags}"
         print(cmd)
         os.system(cmd)
@@ -27,8 +25,8 @@ def createCluster(cluster,run_in_bg, large_machine=True):
         os.system(cmd)
 
     elif cluster.platform == "ibm":
-        vlan_private_ip=sp.getoutput("ibmcloud ks vlans --zone {} |fgrep private |cut -d ' ' -f 1".format(cluster.zone))
-        vlan_public_ip=sp.getoutput("ibmcloud ks vlans --zone {}  |fgrep public |cut -d ' ' -f 1".format(cluster.zone))
+        vlan_private_ip=sp.getoutput(f"ibmcloud ks vlans --zone {cluster.zone} |fgrep private |cut -d ' ' -f 1")
+        vlan_public_ip=sp.getoutput(f"ibmcloud ks vlans --zone {cluster.zone}  |fgrep public |cut -d ' ' -f 1")
         print("vlan_public_ip:",vlan_public_ip)
         vlan_private_string = "--private-vlan " + vlan_private_ip  if (vlan_private_ip != "" and "FAILED" not in vlan_private_ip) else ""
         if (vlan_public_ip  != "" and "FAILED" not in vlan_public_ip):
@@ -37,7 +35,7 @@ def createCluster(cluster,run_in_bg, large_machine=True):
             vlan_public_string= ""
             vlan_private_string = vlan_private_string + " --private-only " if (vlan_private_string != "") else ""
         
-        cmd= f"ibmcloud ks cluster create  classic  --name {cluster.name} --zone={cluster.zone} --flavor u3c.2x4 --workers=1 {vlan_private_string} {vlan_public_string} {bg_flag}"
+        cmd= f"ibmcloud ks cluster create  classic  --name {cluster.name} --zone={cluster.zone} --flavor u3c.2x4 --workers=1 {vlan_private_string} {vlan_public_string} {bg_flags}"
         print(cmd)
         os.system(cmd)
     else:

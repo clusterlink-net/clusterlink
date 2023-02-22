@@ -88,6 +88,10 @@ var s = mbgState{MyInfo: MbgInfo{},
 	MyEventManager:        eventManager.MbgEventManager{},
 }
 
+const (
+	ConnExist = "connection already setup"
+)
+
 func GetMyIp() string {
 	return s.MyInfo.Ip
 }
@@ -327,7 +331,8 @@ func RemoveMbgNbr(id string) {
 // Gets an available free port to use per connection
 func GetFreePorts(connectionID string) (ServicePort, error) {
 	if port, ok := s.Connections[connectionID]; ok {
-		return port, fmt.Errorf("connection already setup")
+		log.Info(ConnExist)
+		return port, fmt.Errorf(ConnExist)
 	}
 	rand.NewSource(time.Now().UnixNano())
 	if len(s.Connections) == s.MyInfo.MaxPorts {
@@ -362,7 +367,7 @@ func GetFreePorts(connectionID string) (ServicePort, error) {
 // Gets an available free port to be used within the MBG for a remote service endpoint
 func GetFreeLocalPort(serviceName string) (string, error) {
 	if port, ok := s.LocalServiceEndpoints[serviceName]; ok {
-		return port, fmt.Errorf("connection already setup")
+		return port, fmt.Errorf(ConnExist)
 	}
 	rand.NewSource(time.Now().UnixNano())
 	if len(s.LocalServiceEndpoints) == s.MyInfo.MaxPorts {

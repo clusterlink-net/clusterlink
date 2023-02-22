@@ -4,12 +4,13 @@
 #Inputs: cluster_zone, cluster_type, cluster_name ,cluster_platform
 ################################################################
 
-import os  
+
 import subprocess as sp
-import sys
-import time
+import time,os,sys
+proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
+sys.path.insert(0,f'{proj_dir}')
 from PROJECT_PARAMS import GOOGLE_PROJECT_ID
-from clusterClass import cluster
+from tests.utils.cloud.clusterClass import cluster
 
 def connectToCluster(cluster):
     print(f"\n CONNECT TO: {cluster.name} in zone: {cluster.zone} ,platform: {cluster.platform}\n")
@@ -41,3 +42,7 @@ def checkClusterIsReady(cluster):
         time.sleep(20)
 
     print(f"\n Cluster Ready: {cluster.name} in zone: {cluster.zone} ,platform: {cluster.platform}\n")
+
+############################### MAIN ##########################
+if __name__ == "__main__":
+    checkClusterIsReady(cluster(name="mbg1", zone = "syd01"        , platform = "ibm", type = "target"))

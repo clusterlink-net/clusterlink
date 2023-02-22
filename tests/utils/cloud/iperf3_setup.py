@@ -13,7 +13,7 @@ import os
 import subprocess as sp
 from PROJECT_PARAMS import PROJECT_PATH
 from cr_aux_func import *
-from clusterClass import cluster
+from tests.utils.cloud.clusterClass import cluster
 parser = argparse.ArgumentParser()
 from meta_data_func import update_metadata
 

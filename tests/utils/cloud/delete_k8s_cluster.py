@@ -10,18 +10,19 @@ import argparse
 import os
 import subprocess as sp
 import sys
-from  PROJECT_PARAMS import GOOGLE_CONT_REGESTRY , IBM_CONT_REGESTRY, METADATA_FILE
-
+from PROJECT_PARAMS import GOOGLE_CONT_REGESTRY , IBM_CONT_REGESTRY
+from check_k8s_cluster_ready import connectToCluster
+from tests.utils.mbgAux import clean_cluster
 ############################### functions ##########################
 def deleteCluster(cluster, run_in_bg):
     bg_flag= "&" if run_in_bg else ""
     print(f"Deleting cluster {cluster}")
     if cluster.platform == "gcp" :
-        os.system("yes |gcloud container clusters delete {} --zone {} {}".format(cluster.name,cluster.zone,bg_flag))
+        os.system(f"yes |gcloud container clusters delete {cluster.name} --zone {cluster.zone} {bg_flag}")
     elif cluster.platform == "aws":
-        os.system("eksctl delete cluster --region {} --name {} {}".format(cluster.zone,cluster.name,bg_flag))
+        os.system(f"eksctl delete cluster --region {cluster.zone} --name {cluster.name} {bg_flag}")
     elif cluster.platform == "ibm":
-            os.system("yes |ibmcloud ks cluster rm --force-delete-storage --cluster {} {}".format(cluster.name,bg_flag))
+        os.system(f"yes |ibmcloud ks cluster rm --force-delete-storage --cluster {cluster.name} {bg_flag}")
     else:
         print ("ERROR: Cloud platform {} not supported".format(cluster.platform))
     if run_in_bg:
@@ -49,3 +50,15 @@ def deleteProxyDockerImages(cluster):
             os.system("yes| ibmcloud cr image-prune-untagged")
         else:
             print ("ERROR: Cloud platform {} not supported".format(cluster.platform))
+
+def deleteClustersList(clusters):
+    print("Start delete all cluster")
+    for idx, mbg in enumerate(clusters):
+        run_in_bg= False if  idx == len(clusters)-1 else True
+        deleteCluster(mbg,run_in_bg=run_in_bg)
+
+def cleanClustersList(clusters):
+    print("Start clean all cluster")
+    for mbg in clusters:
+        connectToCluster(mbg)
+        clean_cluster()

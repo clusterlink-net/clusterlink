@@ -48,7 +48,12 @@ func RestoreRemoteServices() {
 				continue
 			}
 		}
-		myServicePort, _ := state.GetFreePorts(svcId)
+		myServicePort, err := state.GetFreePorts(svcId)
+		if err != nil {
+			if err.Error() != state.ConnExist {
+				slog.Errorf("Unable to get free port")
+			}
+		}
 		rootCA, certFile, keyFile := state.GetMyMbgCerts()
 		mlog.Infof("Starting a Proxy Service for Remote service %s at %s with certs(%s,%s,%s)", svcId, myServicePort.Local, rootCA, certFile, keyFile)
 		go md.StartProxyRemoteService(svcId, myServicePort.Local, rootCA, certFile, keyFile)
@@ -68,7 +73,9 @@ func AddRemoteService(e protocol.ExposeRequest) {
 
 	myServicePort, err := state.GetFreePorts(e.Id)
 	if err != nil {
-		slog.Errorf("Unable to get free port: %v ", err)
+		if err.Error() != state.ConnExist {
+			slog.Errorf("Unable to get free port")
+		}
 		return
 	}
 	rootCA, certFile, keyFile := state.GetMyMbgCerts()

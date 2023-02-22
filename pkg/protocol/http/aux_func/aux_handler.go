@@ -2,6 +2,7 @@ package httpAux
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -85,11 +86,15 @@ func HttpConnect(address, url string, jsonData string) (net.Conn, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Errorln(err)
-		return nil, nil
+		return nil, err
 	}
-	log.Println("Connect resp: ", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		log.Errorln("Connect resp: ", resp.StatusCode)
+		return nil, fmt.Errorf("Connect resp: %v", resp.StatusCode)
+	} else {
+		return c, nil
+	}
 
-	return c, nil
 }
 
 func dial(addr string) (net.Conn, error) {

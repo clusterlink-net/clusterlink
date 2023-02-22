@@ -47,7 +47,7 @@ type ConnectRequest struct {
 }
 
 type ConnectReply struct {
-	Message     string
+	Error       error
 	ConnectType string
 	ConnectDest string
 }

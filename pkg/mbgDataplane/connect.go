@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 
 	"github.com/segmentio/ksuid"
 	"github.com/sirupsen/logrus"
@@ -20,36 +21,36 @@ const MTLS_TYPE = "mtls"
 
 /***************** Local Service function **********************************/
 
-func Connect(c protocol.ConnectRequest, targetMbgIP string, conn net.Conn) (string, string, string) {
+func Connect(c protocol.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (error, string, string) {
 	//Update MBG state
 	state.UpdateState()
 	clog = logrus.WithFields(logrus.Fields{
 		"component": state.GetMyId() + "-Dataplane",
 	})
 	if state.IsServiceLocal(c.IdDest) {
-		return StartProxyLocalService(c, targetMbgIP, conn)
+		return StartProxyLocalService(c, targetMbgIP, w)
 	} else { //For Remote service
 		clog.Errorf("Service %s does not exist", c.IdDest)
-		return "failure", "", ""
+		return fmt.Errorf("Failure"), "", ""
 	}
 }
 
 //ConnectLocalService waiting for connection from host and do two things:
 //1. Create tcp connection to destination (Not Secure)- TODO support also secure connection
 //2. Register new handle function and hijack the connection
-func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, conn net.Conn) (string, string, string) {
+func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (error, string, string) {
 	clog.Infof("Received Incoming Connect request from service: %v to service: %v", c.Id, c.IdDest)
 	connectionID := c.Id + ":" + c.IdDest
 	dataplane := state.GetDataplane()
 	localSvc := state.GetLocalService(c.IdDest)
 	policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: c.Id, DstService: c.IdDest, Direction: eventManager.Incoming, OtherMbg: c.MbgID})
 	if err != nil {
-		clog.Errorf("Unable to raise connection request event", state.GetMyId())
-		return "failure", "", ""
+		clog.Errorf("Unable to raise connection request event ", state.GetMyId())
+		return fmt.Errorf("Failure"), "", ""
 	}
 	if policyResp.Action == eventManager.Deny {
 		clog.Infof("Denying incoming connect request (%s,%s) due to policy", c.Id, c.IdDest)
-		return "Deny", "", ""
+		return fmt.Errorf("Deny"), "", ""
 	}
 
 	mbgTarget := state.GetMbgTarget(c.MbgID)
@@ -57,8 +58,13 @@ func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, conn 
 	switch dataplane {
 	case TCP_TYPE:
 		clog.Infof("Sending Connect reply to Connection(%v) to use Dest:%v", connectionID, "use connect hijack")
+		conn := hijackConn(w)
+		if conn == nil {
+			clog.Error("Hijack Failure")
+			return fmt.Errorf("Failure"), "", ""
+		}
 		go StartTcpProxyService("use connect mode", localSvc.Service.Ip, c.Policy, connectionID, conn, nil)
-		return "Success", dataplane, "use connect mode"
+		return nil, dataplane, "use connect mode"
 	case MTLS_TYPE:
 		uid := ksuid.New()
 		remoteEndPoint := connectionID + "-" + uid.String()
@@ -66,9 +72,9 @@ func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, conn 
 			localSvc.Service.Ip, mbgTarget, remoteEndPoint)
 
 		go StartMtlsProxyLocalService(localSvc.Service.Ip, mbgTarget, remoteEndPoint)
-		return "Success", dataplane, remoteEndPoint
+		return nil, dataplane, remoteEndPoint
 	default:
-		return "failure", "", ""
+		return fmt.Errorf("Failure"), "", ""
 	}
 }
 
@@ -165,7 +171,7 @@ func StartProxyRemoteService(serviceId, localServicePort, rootCA, certificate, k
 			connDest, err := tcpConnectReq(localSvc.Service.Id, serviceId, "forward", mbgIP)
 
 			if err != nil && err.Error() != "Connection already setup!" {
-				clog.Infof("Send connect failure to mbgctl = %v ", state.GetMyId(), err.Error())
+				clog.Infof("Send connect failure to mbgctl = %v ", err.Error())
 				ac.Close()
 				continue
 			}
@@ -213,15 +219,15 @@ func mtlsConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, 
 		clog.Error(err)
 		return "", "", err
 	}
-	if r.Message == "Success" {
+	if r.Error == nil {
 		clog.Infof("Successfully Connected : Using Connection:Port - %s:%s", r.ConnectType, r.ConnectDest)
 		return r.ConnectType, r.ConnectDest, nil
 	}
-	clog.Infof("Failed to Connect : %s", state.GetMyId(), r.Message)
-	if "Connection already setup!" == r.Message {
-		return r.ConnectType, r.ConnectDest, fmt.Errorf("Connection already setup!")
+	clog.Infof("Failed to Connect : %s", state.GetMyId(), r.Error.Error())
+	if "Connection already setup!" == r.Error.Error() {
+		return r.ConnectType, r.ConnectDest, r.Error
 	} else {
-		return "", "", fmt.Errorf("Connect Request Failed")
+		return "", "", r.Error
 	}
 
 }
@@ -244,6 +250,20 @@ func tcpConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (net.Conn, error) 
 	if "Connection already setup!" == resp.Error() {
 		return c, fmt.Errorf("Connection already setup!")
 	} else {
+
 		return nil, fmt.Errorf("Connect Request Failed")
 	}
+}
+
+func hijackConn(w http.ResponseWriter) net.Conn {
+	//Check if we can hijack connection
+	hj, ok := w.(http.Hijacker)
+	if !ok {
+		http.Error(w, "server doesn't support hijacking", http.StatusInternalServerError)
+		return nil
+	}
+	w.WriteHeader(http.StatusOK)
+	//Hijack the connection
+	conn, _, _ := hj.Hijack()
+	return conn
 }

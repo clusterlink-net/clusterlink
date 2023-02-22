@@ -23,7 +23,8 @@ const (
 	acl_add = "acl_add"
 	acl_del = "acl_del"
 	lb      = "lb"
-	lb_set  = "lb_set"
+	lb_add  = "lb_add"
+	lb_del  = "lb_del"
 	show    = "show"
 )
 
@@ -41,26 +42,21 @@ var PolicyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		pType, _ := cmd.Flags().GetString("command")
 		state.UpdateState()
+		serviceSrc, _ := cmd.Flags().GetString("serviceSrc")
+		serviceDst, _ := cmd.Flags().GetString("serviceDst")
+		mbgDest, _ := cmd.Flags().GetString("mbgDest")
+		priority, _ := cmd.Flags().GetInt("priority")
+		action, _ := cmd.Flags().GetInt("action")
+		policy, _ := cmd.Flags().GetString("policy")
 		switch pType {
 		case acl_add:
-			serviceSrc, _ := cmd.Flags().GetString("serviceSrc")
-			serviceDst, _ := cmd.Flags().GetString("serviceDst")
-			mbgDest, _ := cmd.Flags().GetString("mbgDest")
-			priority, _ := cmd.Flags().GetInt("priority")
-			action, _ := cmd.Flags().GetInt("action")
 			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), add)
 		case acl_del:
-			serviceSrc, _ := cmd.Flags().GetString("serviceSrc")
-			serviceDst, _ := cmd.Flags().GetString("serviceDst")
-			mbgDest, _ := cmd.Flags().GetString("mbgDest")
-			priority, _ := cmd.Flags().GetInt("priority")
-			action, _ := cmd.Flags().GetInt("action")
 			sendAclPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), del)
-		case lb_set:
-			service, _ := cmd.Flags().GetString("serviceDst")
-			policy, _ := cmd.Flags().GetString("policy")
-			mbgDest, _ := cmd.Flags().GetString("mbgDest")
-			sendLBPolicy(service, policyEngine.PolicyLoadBalancer(policy), mbgDest)
+		case lb_add:
+			sendLBPolicy(serviceSrc, serviceDst, policyEngine.PolicyLoadBalancer(policy), mbgDest, add)
+		case lb_del:
+			sendLBPolicy(serviceSrc, serviceDst, policyEngine.PolicyLoadBalancer(policy), mbgDest, del)
 		case show:
 			showAclPolicies()
 			showLBPolicies()
@@ -94,7 +90,6 @@ func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priorit
 	default:
 		fmt.Println("Unknown Command")
 		os.Exit(1)
-
 	}
 	jsonReq, err := json.Marshal(policyEngine.AclRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, MbgDest: mbgDest, Priority: priority, Action: action})
 	if err != nil {
@@ -104,11 +99,20 @@ func sendAclPolicy(serviceSrc string, serviceDst string, mbgDest string, priorit
 	httpAux.HttpPost(url, jsonReq, httpClient)
 }
 
-func sendLBPolicy(service string, policy policyEngine.PolicyLoadBalancer, mbgDest string) {
-	url := state.GetPolicyDispatcher() + "/" + lb + "/setPolicy"
+func sendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.PolicyLoadBalancer, mbgDest string, command int) {
+	url := state.GetPolicyDispatcher() + "/" + lb
+	switch command {
+	case add:
+		url += "/add"
+	case del:
+		url += "/delete"
+	default:
+		fmt.Println("Unknown Command")
+		os.Exit(1)
+	}
 	httpClient := http.Client{}
 
-	jsonReq, err := json.Marshal(policyEngine.LoadBalancerRule{Service: service, Policy: policy, DefaultMbg: mbgDest})
+	jsonReq, err := json.Marshal(policyEngine.LoadBalancerRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, Policy: policy, DefaultMbg: mbgDest})
 	if err != nil {
 		fmt.Errorf("Unable to marshal json %v", err)
 		return
@@ -132,7 +136,7 @@ func showAclPolicies() {
 }
 
 func showLBPolicies() {
-	var policies map[string]policyEngine.PolicyLoadBalancer
+	var policies map[string]map[string]policyEngine.PolicyLoadBalancer
 	httpClient := http.Client{}
 	url := state.GetPolicyDispatcher() + "/" + lb
 	resp := httpAux.HttpGet(url, httpClient)
@@ -141,8 +145,9 @@ func showLBPolicies() {
 		fmt.Printf("Unable to decode response:", err)
 	}
 	fmt.Printf("MBG Load-balancing policies\n")
-	for p, r := range policies {
-		fmt.Printf("Service: %v Policy: %v\n", p, r)
+	for d, val := range policies {
+		for s, p := range val {
+			fmt.Printf("ServiceSrc: %v ServiceDst: %v Policy: %v\n", s, d, p)
+		}
 	}
-
 }

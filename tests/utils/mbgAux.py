@@ -71,7 +71,6 @@ def buildMbg(name):
 
 def buildMbgctl(name):
     runcmd(f"kubectl create -f {folMfst}/mbgctl/mbgctl.yaml")
-    runcmd(f"kubectl create -f {folMfst}/mbgctl/mbgctl-svc.yaml")
     waitPod("mbgctl")
     name,ip= getPodNameIp("mbgctl")
     return name, ip 

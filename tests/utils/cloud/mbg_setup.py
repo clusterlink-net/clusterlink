@@ -23,11 +23,11 @@ import time
 
 ############################### MAIN ##########################
 
-def mbgBuild(mbgcPort="8443" ,mbgcPortLocal="8443",externalIp=""):
+def mbgBuild(mbgcPort="443" ,mbgcPortLocal="443",externalIp=""):
 
   print("\n\ncreate mbg deploymnet")
-  os.system(f"kubectl create -f {PROJECT_PATH}/manifests/mbg/mbg.yaml")
-  runcmd(f"kubectl create -f {PROJECT_PATH}/manifests/mbgctl/mbgctl.yaml")
+  runcmd(f"kubectl create -f {PROJECT_PATH}/manifests/mbg/mbg-cloud.yaml")
+  runcmd(f"kubectl create -f {PROJECT_PATH}/manifests/mbgctl/mbgctl-cloud.yaml")
     
 
   waitPod("mbg")
@@ -45,7 +45,7 @@ def mbgBuild(mbgcPort="8443" ,mbgcPortLocal="8443",externalIp=""):
 
   return mbgIp
 
-def mbgSetup(mbg, dataplane, mbgcrtFlags,mbgctlName, mbgIp ,mbgcPort="8443" ,mbgcPortLocal="8443"):  
+def mbgSetup(mbg, dataplane, mbgcrtFlags,mbgctlName, mbgIp ,mbgcPort="443" ,mbgcPortLocal="443"):  
   print(f"MBG load balancer ip {mbgIp}")
   
   mbgPod,mbgPodIp= getPodNameIp("mbg")
