@@ -25,6 +25,11 @@ type HelloResponse struct {
 	Status string
 }
 
+//Hello - HeartBeats
+type HeartBeat struct {
+	Id string
+}
+
 //Expose
 type ExposeRequest struct {
 	Id          string

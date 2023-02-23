@@ -25,12 +25,14 @@ import (
 
 var log = logrus.WithField("component", s.MyInfo.Id)
 var dataMutex sync.Mutex
+var mbgArrMutex sync.RWMutex
 var ChiRouter *chi.Mux = chi.NewRouter()
 
 type mbgState struct {
 	MyInfo                MbgInfo
 	MbgctlArr             map[string]Mbgctl
 	MbgArr                map[string]MbgInfo
+	InactiveMbgArr        map[string]MbgInfo
 	MyServices            map[string]LocalService
 	RemoteServices        map[string][]RemoteService
 	Connections           map[string]ServicePort
@@ -75,6 +77,7 @@ type ServicePort struct {
 var s = mbgState{MyInfo: MbgInfo{},
 	MbgctlArr:             make(map[string]Mbgctl),
 	MbgArr:                make(map[string]MbgInfo),
+	InactiveMbgArr:        make(map[string]MbgInfo),
 	MyServices:            make(map[string]LocalService),
 	RemoteServices:        make(map[string][]RemoteService),
 	Connections:           make(map[string]ServicePort),
@@ -105,8 +108,16 @@ func GetMyInfo() MbgInfo {
 	return s.MyInfo
 }
 
-func GetMbgArr() map[string]MbgInfo {
-	return s.MbgArr
+func GetMbgList() []string {
+	mList := []string{}
+	// Copied list is returned to avoid the caller iterate on the original map
+	// due to potential panic when iteration and map update happen simulataneously
+	mbgArrMutex.RLock()
+	for m, _ := range s.MbgArr {
+		mList = append(mList, m)
+	}
+	mbgArrMutex.RUnlock()
+	return mList
 }
 
 func GetConnectionArr() map[string]ServicePort {
@@ -126,6 +137,7 @@ func GetChiRouter() (r *chi.Mux) {
 func GetLocalServicesArr() map[string]LocalService {
 	return s.MyServices
 }
+
 func GetRemoteServicesArr() map[string][]RemoteService {
 	return s.RemoteServices
 }
@@ -165,6 +177,63 @@ func UpdateState() {
 	log = logrus.WithField("component", s.MyInfo.Id)
 }
 
+func restorePeer(id string) {
+	peerResp, err := s.MyEventManager.RaiseAddPeerEvent(eventManager.AddPeerAttr{PeerMbg: id})
+	if err != nil {
+		log.Errorf("Unable to raise connection request event")
+		return
+	}
+	if peerResp.Action == eventManager.Deny {
+		log.Infof("Denying add peer(%s) due to policy", id)
+		RemoveMbgNbr(id)
+		return
+	}
+}
+func RestoreMbg() {
+	// Getting a copy of MBG List since, there is a chance of MBG array modified downstream
+	for _, mbg := range GetMbgList() {
+		restorePeer(mbg)
+	}
+	// For now, we do expose of local services only when prompted by management and not by default
+}
+
+func InactivateMbg(mbg string) {
+	mbgArrMutex.Lock()
+	mbgI := s.MbgArr[mbg]
+	s.InactiveMbgArr[mbg] = mbgI
+	delete(s.MbgArr, mbg)
+	mbgArrMutex.Unlock()
+	RemoveMbgFromServiceMap(mbg)
+	PrintState()
+	SaveState()
+}
+
+func ActivateMbg(mbgId string) {
+	log.Infof("Activating MBG %s", mbgId)
+	peerResp, err := s.MyEventManager.RaiseAddPeerEvent(eventManager.AddPeerAttr{PeerMbg: mbgId})
+	if err != nil {
+		log.Errorf("Unable to raise connection request event")
+		return
+	}
+	if peerResp.Action == eventManager.Deny {
+		log.Infof("Denying add peer(%s) due to policy", mbgId)
+		return
+	}
+	mbgArrMutex.Lock()
+	mbgI, ok := s.InactiveMbgArr[mbgId]
+	if !ok {
+		// Ignore
+		mbgArrMutex.Unlock()
+		return
+	}
+	s.MbgArr[mbgId] = mbgI
+	delete(s.InactiveMbgArr, mbgId)
+	mbgArrMutex.Unlock()
+
+	PrintState()
+	SaveState()
+}
+
 //Return Function fields
 func GetLocalService(id string) LocalService {
 	val, ok := s.MyServices[id]
@@ -196,26 +265,40 @@ func LookupLocalService(network string) (LocalService, error) {
 }
 func GetServiceMbgIp(Ip string) string {
 	svcIp := strings.Split(Ip, ":")[0]
+	mbgArrMutex.RLock()
 	for _, m := range s.MbgArr {
 		if m.Ip == svcIp {
 			mbgIp := m.Ip + m.Cport.External
 			return mbgIp
 		}
 	}
+	mbgArrMutex.RUnlock()
 	log.Errorf("Service %v is not defined", Ip)
-	s.Print()
+	PrintState()
 	return ""
 }
 
 func GetMbgTarget(id string) string {
+	mbgArrMutex.RLock()
 	mbgI := s.MbgArr[id]
+	mbgArrMutex.RUnlock()
 	return mbgI.Ip + mbgI.Cport.External
 }
 
-func GetMbgControlTarget(id string) string {
+func GetMbgTargetPair(id string) (string, string) {
+	mbgArrMutex.RLock()
 	mbgI := s.MbgArr[id]
-	return mbgI.Ip + mbgI.Cport.External
+	mbgArrMutex.RUnlock()
+	return mbgI.Ip, mbgI.Cport.External
 }
+
+func IsMbgPeer(id string) bool {
+	mbgArrMutex.RLock()
+	_, ok := s.MbgArr[id]
+	mbgArrMutex.RUnlock()
+	return ok
+}
+
 func GetMyMbgCerts() (string, string, string) {
 	return s.MyInfo.CaFile, s.MyInfo.CertificateFile, s.MyInfo.KeyFile
 }
@@ -226,20 +309,33 @@ func IsServiceLocal(id string) bool {
 }
 
 func AddMbgNbr(id, ip, cport string) {
+	mbgArrMutex.Lock()
+	if _, ok := s.MbgArr[id]; ok {
+		log.Infof("Neighbor already added %s", id)
+		return
+	}
 	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ServicePort{External: cport, Local: ""}}
-	s.Print()
+	mbgArrMutex.Unlock()
+
+	PrintState()
+	SaveState()
+}
+
+func RemoveMbgNbr(id string) {
+	mbgArrMutex.Lock()
+	delete(s.MbgArr, id)
+	mbgArrMutex.Unlock()
 	SaveState()
 }
 
 // Gets an available free port to use per connection
 func GetFreePorts(connectionID string) (ServicePort, error) {
 	if port, ok := s.Connections[connectionID]; ok {
-		log.Info(ConnExist)
 		return port, fmt.Errorf(ConnExist)
 	}
 	rand.NewSource(time.Now().UnixNano())
 	if len(s.Connections) == s.MyInfo.MaxPorts {
-		return ServicePort{}, fmt.Errorf("all Ports taken up, Try again after sometimes")
+		return ServicePort{}, fmt.Errorf("all ports taken up, Try again after sometime")
 	}
 	lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
 	eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
@@ -248,7 +344,7 @@ func GetFreePorts(connectionID string) (ServicePort, error) {
 		select {
 		// Got a timeout! fail with a timeout error
 		case <-timeout:
-			return ServicePort{}, fmt.Errorf("all Ports taken up, Try again after sometimes")
+			return ServicePort{}, fmt.Errorf("all ports taken up, Try again after sometime")
 		default:
 			random := rand.Intn(s.MyInfo.MaxPorts)
 			localPort := lval + random
@@ -287,7 +383,6 @@ func GetFreeLocalPort(serviceName string) (string, error) {
 			random := rand.Intn(s.MyInfo.MaxPorts)
 			localPort := lval + random
 			if !s.LocalPortMap[localPort] {
-				log.Infof("[MBG %v] Free Local Port available at %v", s.MyInfo.Id, localPort)
 				s.LocalPortMap[localPort] = true
 				myPort := ":" + strconv.Itoa(localPort)
 				s.LocalServiceEndpoints[serviceName] = myPort
@@ -309,24 +404,54 @@ func FreeUpPorts(connectionID string) {
 }
 
 func AddLocalService(id, ip, description string) {
+	if _, ok := s.MyServices[id]; ok {
+		log.Infof("Local Service already added %s", id)
+		return
+	}
 	s.MyServices[id] = LocalService{Service: service.Service{Id: id, Ip: ip, Description: description}}
 	log.Infof("Adding local service: %s", id)
-	s.Print()
+	PrintState()
 	SaveState()
+}
+
+func exists(slice []string, entry string) (int, bool) {
+	for i, e := range slice {
+		if e == entry {
+			return i, true
+		}
+	}
+	return -1, false
 }
 
 func AddRemoteService(id, ip, description, MbgId string) {
 	svc := RemoteService{Service: service.Service{Id: id, Ip: ip, Description: description}, MbgId: MbgId}
 	if mbgs, ok := s.RemoteServiceMap[id]; ok {
-		s.RemoteServiceMap[id] = append(mbgs, MbgId) //TODO- check uniqueness
+		_, exist := exists(mbgs, MbgId)
+		if !exist {
+			s.RemoteServiceMap[id] = append(mbgs, MbgId)
+		}
 		s.RemoteServices[id] = append(s.RemoteServices[id], svc)
 	} else {
 		s.RemoteServiceMap[id] = []string{MbgId}
 		s.RemoteServices[id] = []RemoteService{svc}
 	}
 	log.Infof("Adding remote service: [%v]", s.RemoteServiceMap[id])
-	s.Print()
+	PrintState()
 	SaveState()
+}
+
+func RemoveMbgFromServiceMap(mbg string) {
+	for svc, mbgs := range s.RemoteServiceMap {
+		index, exist := exists(mbgs, mbg)
+		if !exist {
+			continue
+		}
+		s.RemoteServiceMap[svc] = append((mbgs)[:index], (mbgs)[index+1:]...)
+		log.Infof("MBG removed from remote service %v->[%+v]", svc, s.RemoteServiceMap[svc])
+		if len(s.RemoteServiceMap[svc]) == 0 {
+			// TODO Remove remote service and its endpoint(free up ports)
+		}
+	}
 }
 
 func GetAddrStart() string {
@@ -336,6 +461,7 @@ func GetAddrStart() string {
 		return "http://"
 	}
 }
+
 func GetHttpClient() http.Client {
 	if s.MyInfo.Dataplane == "mtls" {
 		cert, err := ioutil.ReadFile(s.MyInfo.CaFile)
@@ -366,17 +492,25 @@ func GetHttpClient() http.Client {
 	}
 }
 
-func (s *mbgState) Print() {
+func PrintState() {
 	log.Infof("****** MBG State ********")
 	log.Infof("ID: %v IP: %v%v", s.MyInfo.Id, s.MyInfo.Ip, s.MyInfo.Cport)
 	nb := ""
+	inb := ""
 	services := ""
+	mbgArrMutex.RLock()
 	for _, n := range s.MbgArr {
 		nb = nb + n.Id + " "
 	}
+	mbgArrMutex.RUnlock()
+
 	log.Infof("MBG neighbors : %s", nb)
+	for _, n := range s.InactiveMbgArr {
+		inb = inb + n.Id + ", "
+	}
+	log.Infof("Inactive MBG neighbors : %s", inb)
 	for _, se := range s.MyServices {
-		services = services + se.Service.Id
+		services = services + se.Service.Id + ", "
 	}
 	log.Infof("Myservices: %v", services)
 	log.Infof("Remoteservices: %v", s.RemoteServiceMap)

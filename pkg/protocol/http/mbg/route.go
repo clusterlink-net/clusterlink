@@ -23,6 +23,7 @@ func (m MbgHandler) Routes() chi.Router {
 
 	r.Route("/hello", func(r chi.Router) {
 		//r.Use(PostCtx)
+		r.Post("/hb", m.handleHB)       // Heartbeat messages
 		r.Post("/{mbgID}", m.sendHello) // send Hello to MBG peer
 		r.Post("/", m.sendHello2All)    // send Hello to MBG peer
 	})

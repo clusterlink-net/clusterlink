@@ -12,13 +12,16 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 
+	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
+
 	handler "github.ibm.com/mbg-agent/pkg/protocol/http/mbg"
 )
 
@@ -42,12 +45,20 @@ var startCmd = &cobra.Command{
 		dataplane, _ := cmd.Flags().GetString("dataplane")
 		startPolicyEngine, _ := cmd.Flags().GetBool("startPolicyEngine")
 		policyEngineIp, _ := cmd.Flags().GetString("policyEngineIp")
+		restore, _ := cmd.Flags().GetBool("restore")
 
 		if ip == "" || id == "" || cport == "" {
 			fmt.Println("Error: please insert all flag arguments for Mbg start command")
 			os.Exit(1)
 		}
+		if restore {
+			log.Infof("Restoring existing state")
+			state.UpdateState()
+		}
+
 		state.SetState(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
+		state.PrintState()
+
 		if startPolicyEngine {
 			state.GetEventManager().AssignPolicyDispatcher("http://" + policyEngineIp + "/policy")
 			state.SaveState()
@@ -59,10 +70,20 @@ var startCmd = &cobra.Command{
 		}
 
 		if dataplane == "mtls" {
-			StartMtlsServer(":"+cportLocal, caFile, certificateFile, keyFile)
+			go StartMtlsServer(":"+cportLocal, caFile, certificateFile, keyFile)
 		} else {
-			startHttpServer(":" + cportLocal)
+			go startHttpServer(":" + cportLocal)
 		}
+
+		if restore {
+			log.Infof("Restoring existing state")
+			time.Sleep(mbgControlplane.Interval)
+			state.RestoreMbg()
+			mbgControlplane.RestoreRemoteServices()
+		}
+		go mbgControlplane.SendHeartBeats()
+		mbgControlplane.MonitorHeartBeats()
+
 	},
 }
 
@@ -80,6 +101,7 @@ func init() {
 	startCmd.Flags().String("dataplane", "tcp", "tcp/mtls based data-plane proxies")
 	startCmd.Flags().Bool("startPolicyEngine", false, "Start policy engine in port")
 	startCmd.Flags().String("policyEngineIp", "localhost:9990", "Set the policy engine ip")
+	startCmd.Flags().Bool("restore", false, "Restore existing stored MBG states")
 }
 
 /********************************** Server **********************************************************/

@@ -17,9 +17,8 @@ var helloCmd = &cobra.Command{
 	Long:  `Hello command send hello message to all MBGs in thr MBG neighbor list.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		state.UpdateState()
-		MbgArr := state.GetMbgArr()
 		MyInfo := state.GetMyInfo()
-		for _, m := range MbgArr {
+		for _, m := range state.GetMbgList() {
 			mbgControlplane.HelloReq(m, MyInfo)
 		}
 	},

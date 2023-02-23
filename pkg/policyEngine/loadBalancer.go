@@ -96,16 +96,31 @@ func (lB *LoadBalancer) GetPolicyReq(w http.ResponseWriter, r *http.Request) {
 }
 
 /*********************  LodBalancer functions ***************************************************/
+
 func (lB *LoadBalancer) AddToServiceMap(serviceDst string, mbg string) {
 	if mbgs, ok := lB.ServiceMap[serviceDst]; ok {
-		*mbgs = append(*mbgs, mbg)
-		lB.ServiceMap[serviceDst] = mbgs
+		_, exist := exists(*mbgs, mbg)
+		if !exist {
+			*mbgs = append(*mbgs, mbg)
+			lB.ServiceMap[serviceDst] = mbgs
+		}
 	} else {
 		lB.ServiceMap[serviceDst] = &([]string{mbg})
 		lB.ServiceStateMap[serviceDst] = make(map[string]*ServiceState)
 		lB.ServiceStateMap[serviceDst][event.Wildcard] = &ServiceState{totalConnections: 0, defaultMbg: mbg}
 	}
 	llog.Infof("Remote serviceDst added %v->[%+v]", serviceDst, *(lB.ServiceMap[serviceDst]))
+}
+
+func (lB *LoadBalancer) RemoveMbgFromServiceMap(mbg string) {
+	for svc, mbgs := range lB.ServiceMap {
+		index, exist := exists(*mbgs, mbg)
+		if !exist {
+			continue
+		}
+		*mbgs = append((*mbgs)[:index], (*mbgs)[index+1:]...)
+		llog.Infof("MBG removed from service %v->[%+v]", svc, *(lB.ServiceMap[svc]))
+	}
 }
 
 func (lB *LoadBalancer) SetPolicy(serviceSrc, serviceDst string, policy PolicyLoadBalancer, defaultMbg string) {
