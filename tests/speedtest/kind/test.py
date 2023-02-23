@@ -145,14 +145,14 @@ if __name__ == "__main__":
     useKindCluster(mbg1Name)
     printHeader("\n\nStart get service")
     runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl getService')
-    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbg1Pod, destSvc+"-mbg2")
+    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbg1Pod, destSvc)
     runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg1LocalPort}")
     runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
 
     useKindCluster(mbg3Name)
     printHeader("\n\nStart get service")
     runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl getService')
-    mbg3LocalPort, mbg3ExternalPort = getMbgPorts(mbg3Pod, destSvc+"-mbg2")
+    mbg3LocalPort, mbg3ExternalPort = getMbgPorts(mbg3Pod, destSvc)
     runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg3LocalPort}")
     runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
     
