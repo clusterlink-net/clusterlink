@@ -96,10 +96,14 @@ func (lB *LoadBalancer) GetPolicyReq(w http.ResponseWriter, r *http.Request) {
 }
 
 /*********************  LodBalancer functions ***************************************************/
+
 func (lB *LoadBalancer) AddToServiceMap(serviceDst string, mbg string) {
 	if mbgs, ok := lB.ServiceMap[serviceDst]; ok {
-		*mbgs = append(*mbgs, mbg)
-		lB.ServiceMap[serviceDst] = mbgs
+		_, exist := exists(*mbgs, mbg)
+		if !exist {
+			*mbgs = append(*mbgs, mbg)
+			lB.ServiceMap[serviceDst] = mbgs
+		}
 	} else {
 		lB.ServiceMap[serviceDst] = &([]string{mbg})
 		lB.ServiceStateMap[serviceDst] = make(map[string]*ServiceState)
@@ -110,14 +114,8 @@ func (lB *LoadBalancer) AddToServiceMap(serviceDst string, mbg string) {
 
 func (lB *LoadBalancer) RemoveMbgFromServiceMap(mbg string) {
 	for svc, mbgs := range lB.ServiceMap {
-		index := -1
-		for i, mbgVal := range *mbgs {
-			if mbg == mbgVal {
-				index = i
-				break
-			}
-		}
-		if index == -1 {
+		index, exist := exists(*mbgs, mbg)
+		if !exist {
 			continue
 		}
 		*mbgs = append((*mbgs)[:index], (*mbgs)[index+1:]...)

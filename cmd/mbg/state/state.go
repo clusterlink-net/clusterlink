@@ -414,10 +414,22 @@ func AddLocalService(id, ip, description string) {
 	SaveState()
 }
 
+func exists(slice []string, entry string) (int, bool) {
+	for i, e := range slice {
+		if e == entry {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
 func AddRemoteService(id, ip, description, MbgId string) {
 	svc := RemoteService{Service: service.Service{Id: id, Ip: ip, Description: description}, MbgId: MbgId}
 	if mbgs, ok := s.RemoteServiceMap[id]; ok {
-		s.RemoteServiceMap[id] = append(mbgs, MbgId) //TODO- check uniqueness
+		_, exist := exists(mbgs, MbgId)
+		if !exist {
+			s.RemoteServiceMap[id] = append(mbgs, MbgId)
+		}
 		s.RemoteServices[id] = append(s.RemoteServices[id], svc)
 	} else {
 		s.RemoteServiceMap[id] = []string{MbgId}
@@ -430,18 +442,15 @@ func AddRemoteService(id, ip, description, MbgId string) {
 
 func RemoveMbgFromServiceMap(mbg string) {
 	for svc, mbgs := range s.RemoteServiceMap {
-		index := -1
-		for i, mbgVal := range mbgs {
-			if mbg == mbgVal {
-				index = i
-				break
-			}
-		}
-		if index == -1 {
+		index, exist := exists(mbgs, mbg)
+		if !exist {
 			continue
 		}
 		s.RemoteServiceMap[svc] = append((mbgs)[:index], (mbgs)[index+1:]...)
 		log.Infof("MBG removed from remote service %v->[%+v]", svc, s.RemoteServiceMap[svc])
+		if len(s.RemoteServiceMap[svc]) == 0 {
+			// TODO Remove remote service and its endpoint(free up ports)
+		}
 	}
 }
 
@@ -452,6 +461,7 @@ func GetAddrStart() string {
 		return "http://"
 	}
 }
+
 func GetHttpClient() http.Client {
 	if s.MyInfo.Dataplane == "mtls" {
 		cert, err := ioutil.ReadFile(s.MyInfo.CaFile)

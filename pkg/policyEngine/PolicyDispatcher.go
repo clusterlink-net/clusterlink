@@ -65,24 +65,31 @@ func (pH PolicyHandler) Routes() chi.Router {
 	return r
 }
 
+func exists(slice []string, entry string) (int, bool) {
+	for i, e := range slice {
+		if e == entry {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
 func (pH PolicyHandler) addPeer(peerMbg string) {
+	_, exist := exists(*pH.mbgState.mbgPeers, peerMbg)
+	if exist {
+		return
+	}
 	*pH.mbgState.mbgPeers = append(*pH.mbgState.mbgPeers, peerMbg)
 	plog.Infof("Added Peer %+v", pH.mbgState.mbgPeers)
 }
 
 func (pH PolicyHandler) removePeer(peerMbg string) {
-	index := -1
-	for i, v := range *pH.mbgState.mbgPeers {
-		if v == peerMbg {
-			index = i
-			break
-		}
-	}
-	if index == -1 {
+	index, exist := exists(*pH.mbgState.mbgPeers, peerMbg)
+	if !exist {
 		return
 	}
 	*pH.mbgState.mbgPeers = append((*pH.mbgState.mbgPeers)[:index], (*pH.mbgState.mbgPeers)[index+1:]...)
-	plog.Infof("Removed Peer(%s) %+v", peerMbg, pH.mbgState.mbgPeers)
+	plog.Infof("Removed Peer(%s, %d) %+v", peerMbg, index, *pH.mbgState.mbgPeers)
 }
 
 func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Request) {

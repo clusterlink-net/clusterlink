@@ -36,51 +36,59 @@ func GetAllLocalServices() map[string]protocol.ServiceRequest {
 }
 
 /******************* Remote Service ****************************************/
+
+func createServiceEndpoint(svcId string, force bool) error {
+	myServicePort, err := state.GetFreePorts(svcId)
+	if err != nil {
+		if err.Error() != state.ConnExist {
+			return err
+		}
+		if !force {
+			return nil
+		}
+	}
+	rootCA, certFile, keyFile := state.GetMyMbgCerts()
+	mlog.Infof("Starting an service endpoint for Remote service %s at port %s with certs(%s,%s,%s)", svcId, myServicePort.Local, rootCA, certFile, keyFile)
+	go md.StartProxyRemoteService(svcId, myServicePort.Local, rootCA, certFile, keyFile)
+	return nil
+}
+
 func RestoreRemoteServices() {
 	for svcId, svcArr := range state.GetRemoteServicesArr() {
+		allow := false
 		for _, svc := range svcArr {
 			policyResp, err := state.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: svc.Service.Id, Mbg: svc.MbgId})
 			if err != nil {
-				slog.Errorf(" Unable to raise connection request event", state.GetMyId())
+				slog.Errorf("unable to raise connection request event", state.GetMyId())
 				continue
 			}
 			if policyResp.Action == eventManager.Deny {
 				continue
 			}
+			allow = true
 		}
-		myServicePort, err := state.GetFreePorts(svcId)
-		if err != nil {
-			if err.Error() != state.ConnExist {
-				slog.Errorf("Unable to get free port %s", err)
-			}
+		// Create service endpoint only if the service from atleast one MBG is allowed as per policy
+		if allow {
+			createServiceEndpoint(svcId, true)
 		}
-		rootCA, certFile, keyFile := state.GetMyMbgCerts()
-		mlog.Infof("Starting a Proxy Service for Remote service %s at %s with certs(%s,%s,%s)", svcId, myServicePort.Local, rootCA, certFile, keyFile)
-		go md.StartProxyRemoteService(svcId, myServicePort.Local, rootCA, certFile, keyFile)
 	}
 }
-func AddRemoteService(e protocol.ExposeRequest) {
-	state.AddRemoteService(e.Id, e.Ip, e.Description, e.MbgID)
 
+func AddRemoteService(e protocol.ExposeRequest) {
 	policyResp, err := state.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: e.Id, Mbg: e.MbgID})
 	if err != nil {
-		slog.Errorf(" Unable to raise connection request event", state.GetMyId())
+		slog.Errorf("unable to raise connection request event", state.GetMyId())
 		return
 	}
 	if policyResp.Action == eventManager.Deny {
+		slog.Errorf("unable to create service endpoint due to policy")
 		return
 	}
-
-	myServicePort, err := state.GetFreePorts(e.Id)
+	err = createServiceEndpoint(e.Id, false)
 	if err != nil {
-		if err.Error() != state.ConnExist {
-			slog.Errorf("Unable to get free port %s", err)
-		}
 		return
 	}
-	rootCA, certFile, keyFile := state.GetMyMbgCerts()
-	mlog.Infof("Starting a Proxy Service for Remote service %s at %s with certs(%s,%s,%s)", e.Id, myServicePort.Local, rootCA, certFile, keyFile)
-	go md.StartProxyRemoteService(e.Id, myServicePort.Local, rootCA, certFile, keyFile)
+	state.AddRemoteService(e.Id, e.Ip, e.Description, e.MbgID)
 }
 
 func GetRemoteService(svcId string) []protocol.ServiceRequest {
