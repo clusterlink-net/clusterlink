@@ -35,6 +35,11 @@ func GetAllLocalServices() map[string]protocol.ServiceRequest {
 	return sArr
 }
 
+func DelLocalService(svcId string) {
+	state.UpdateState()
+	state.DelLocalService(svcId)
+}
+
 /******************* Remote Service ****************************************/
 
 func createServiceEndpoint(svcId string, force bool) error {
