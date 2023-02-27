@@ -160,7 +160,7 @@ if __name__ == "__main__":
     printHeader(f"Firefox urls")
     print(f"To use the mbg1 firefox client, run the command:\n    firefox http://{mbg1Ip}:30000/")
     print(f"To use the first mbg3 firefox client, run the command:\n    firefox http://{mbg3Ip}:30000/")
-    print(f"To use the second mbg3 firefox client, run the command:\n   firefox http://{mbg3Ip}:30000/")
+    print(f"To use the second mbg3 firefox client, run the command:\n   firefox http://{mbg3Ip}:30001/")
     
     print(f"The OpenSpeedTest url: http://{destSvc}:3000/ ")
 

@@ -33,7 +33,7 @@ destSvc    = "reviews"
 review2pod = "reviews-v2"
 review3pod = "reviews-v3"
 
-mbgcPort="8443"
+mbgcPort="443"
 folMn=f"{PROJECT_PATH}/tests/bookinfo/manifests/"
 folpdct   = f"{proj_dir}/tests/bookinfo/manifests/product/"
 folReview = f"{proj_dir}/tests/bookinfo/manifests/review"
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     mbg2Ip=mbgBuild(mbgcPort=mbgcPort)
     mbgSetup(mbg2,dataplane,mbg2crtFlags,mbgctlName="mbgctl2",mbgIp=mbg2Ip,mbgcPort=mbgcPort)
     
-    #Build MBG2
+    #Build MBG3
     checkClusterIsReady(mbg3)
     mbg3Ip=mbgBuild(mbgcPort=mbgcPort)
     mbgSetup(mbg3,dataplane,mbg3crtFlags,mbgctlName="mbgctl3",mbgIp=mbg3Ip,mbgcPort=mbgcPort)
