@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 ################################################################
 #Name: Service node test
 #Desc: create 1 proxy that send data to target ip
@@ -41,7 +43,7 @@ folReview = f"{proj_dir}/tests/bookinfo/manifests/review"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
-    parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="tcp")
+    parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="mtls")
     parser.add_argument('-c','--command', help='Script command: test/delete', required=False, default="test")
     parser.add_argument('-cloud','--cloud', help='Cloud setup using gcp/ibm/diff (different clouds)', required=False, default="gcp")
     parser.add_argument('-delete','--deleteCluster', help='Delete clusters in the end of the test', required=False, default="true")
@@ -143,11 +145,6 @@ if __name__ == "__main__":
     printHeader("\n\nStart get service")
     runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl getService')
 
-    #set Policy
-    connectToCluster(mbg1)
-    mbgctl1Pod =getPodName("mbgctl")
-    runcmdb(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl policy --command lb_add --policy ecmp')
-    
     #connect
     podMbg1= getPodName("mbg-deployment")        
     mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, destSvc)

@@ -61,7 +61,7 @@ func SendHeartBeats() error {
 	for {
 		mList := state.GetMbgList()
 		for _, m := range mList {
-			url := state.GetAddrStart() + state.GetMbgTarget(m) + "/hello/hb"
+			url := state.GetAddrStart() + state.GetMbgTarget(m) + "/hb"
 			resp := httpAux.HttpPost(url, j, state.GetHttpClient())
 
 			if string(resp) == httpAux.RESPFAIL {

@@ -25,11 +25,11 @@ destSvc  = "reviews"
 
 #MBG3 parameters 
 mbg1gcp = cluster(name="mbg1", zone = "us-west1-b"   , platform = "gcp", type = "host")   #Oregon
-mbg1ibm = cluster(name="mbg1", zone = "syd01"        , platform = "ibm", type = "host")   #San jose
+mbg1ibm = cluster(name="mbg1", zone = "sjc04"        , platform = "ibm", type = "host")   #San jose
 mbg2gcp = cluster(name="mbg2", zone = "us-central1-b", platform = "gcp", type = "target") #Iowa
-mbg2ibm = cluster(name="mbg2", zone = "syd01"        , platform = "ibm", type = "target") #Dallas
+mbg2ibm = cluster(name="mbg2", zone = "dal10"        , platform = "ibm", type = "target") #Dallas
 mbg3gcp = cluster(name="mbg3", zone = "us-east4-b"   , platform = "gcp", type = "target") #Virginia
-mbg3ibm = cluster(name="mbg3", zone = "syd01"        , platform = "ibm", type = "target") #Washington DC
+mbg3ibm = cluster(name="mbg3", zone = "wdc04"        , platform = "ibm", type = "target") #Washington DC
 
 mbg             = "mbg3"
 mbg3DataPort    = "30001"
@@ -59,7 +59,7 @@ def applyFail(mbg,type):
     elif type == "start":
         printHeader(f"Starting up and Restoring MBG")
         runcmdb(f'kubectl exec -i {mPod} -- ./mbg start --id "{mbg.name}" --ip {mbgIp} --cport {mbg3cPort} --cportLocal {mbg3cPortLocal}\
-        --dataplane tcp {mbg3crtFlags} --startPolicyEngine {True} --restore {True}')
+        --dataplane mtls {mbg3crtFlags} --startPolicyEngine {True} --restore {True}')
         time.sleep(2)
         exposeService(mbg,destSvc)
 
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
 
     type = args["type"]
-    mbg3 = mbg3gcp if args["type"] in ["gcp"]        else mbg3ibm
+    mbg3 = mbg3gcp if args["cloud"] in ["gcp"]        else mbg3ibm
 
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
