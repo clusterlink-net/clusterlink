@@ -190,7 +190,9 @@ func (lB *LoadBalancer) LookupStatic(serviceSrc, serviceDst string, mbgs []strin
 			return mbg, nil
 		}
 	}
-	return "", fmt.Errorf("No available target MBG")
+	plog.Errorf("Falling back to other MBGs due to unavailability of default MBG")
+
+	return lB.LookupRandom(serviceDst, mbgs)
 }
 
 func (lB *LoadBalancer) LookupWith(serviceSrc, serviceDst string, mbgs []string) (string, error) {
