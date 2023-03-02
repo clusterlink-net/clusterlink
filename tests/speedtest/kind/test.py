@@ -23,6 +23,7 @@ from tests.utils.kind.kindAux import useKindCluster,startKindClusterMbg,getKindI
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="mtls")
+    parser.add_argument('-c','--cni', help='choose diff to use different cnis', required=False, default="same")
 
     args = vars(parser.parse_args())
 
@@ -31,7 +32,8 @@ if __name__ == "__main__":
     
     folman   = f"{proj_dir}/tests/speedtest/manifests/"
     dataplane = args["dataplane"]
- 
+    cni       = args["cni"]
+
 
     srcSvc1         = "firefox"
     srcSvc2         = "firefox2"
@@ -75,10 +77,17 @@ if __name__ == "__main__":
     os.system("make docker-build")
     
     ## build Kind clusters environment 
-    startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags)        
-    startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort,dataplane ,mbg2crtFlags)        
-    startKindClusterMbg(mbg3Name, mbgctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort,dataplane ,mbg3crtFlags)        
-    
+
+    if cni == "diff":
+        printHeader(f"Cluster 1: Flannel, Cluster 2: KindNet, Cluster 3: Calico")
+        startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags, False,  "flannel")        
+        startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort,dataplane ,mbg2crtFlags)        
+        startKindClusterMbg(mbg3Name, mbgctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort,dataplane ,mbg3crtFlags, False, "calico")        
+    else:
+        startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags)        
+        startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort,dataplane ,mbg2crtFlags)        
+        startKindClusterMbg(mbg3Name, mbgctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort,dataplane ,mbg3crtFlags)        
+
     ###get mbg parameters
     useKindCluster(mbg1Name)
     mbg1Pod, _           = getPodNameIp("mbg")
@@ -136,32 +145,4 @@ if __name__ == "__main__":
     runcmd(f"kubectl create service nodeport {srcSvc1} --tcp=5800:5800 --node-port=30000")
     runcmd(f"kubectl create service nodeport {srcSvc2} --tcp=5800:5800 --node-port=30001")
     
-    #Expose service
-    useKindCluster(mbg2Name)
-    printHeader(f"\n\nStart exposing svc {destSvc}")
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl expose --serviceId {destSvc}')
-    
-    #Set K8s network services
-    useKindCluster(mbg1Name)
-    printHeader("\n\nStart get service")
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl getService')
-    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbg1Pod, destSvc)
-    runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg1LocalPort}")
-    runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
-
-    useKindCluster(mbg3Name)
-    printHeader("\n\nStart get service")
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl getService')
-    mbg3LocalPort, mbg3ExternalPort = getMbgPorts(mbg3Pod, destSvc)
-    runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg3LocalPort}")
-    runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
-    
-    #Firefox communications
-    printHeader(f"Firefox urls")
-    print(f"To use the mbg1 firefox client, run the command:\n    firefox http://{mbg1Ip}:30000/")
-    print(f"To use the first mbg3 firefox client, run the command:\n    firefox http://{mbg3Ip}:30000/")
-    print(f"To use the second mbg3 firefox client, run the command:\n   firefox http://{mbg3Ip}:30000/")
-    
-    print(f"The OpenSpeedTest url: http://{destSvc}:3000/ ")
-
-
+    print(f"Services created. Run service_expose.py")
