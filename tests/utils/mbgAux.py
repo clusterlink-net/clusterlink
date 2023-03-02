@@ -40,18 +40,18 @@ def getPodIp(name):
     return podIp
 
 def runcmd(cmd):
-    print(f'{Fore.GREEN}{cmd} {Style.RESET_ALL}')
+    print(f'{Fore.YELLOW}{cmd} {Style.RESET_ALL}')
     #sp.Popen(cmd,shell=True)
     os.system(cmd)
     
 def runcmdb(cmd):
-    print(f'{Fore.GREEN}{cmd} {Style.RESET_ALL}')
+    print(f'{Fore.YELLOW}{cmd} {Style.RESET_ALL}')
     #sp.Popen(cmd,shell=True)
     os.system(cmd + ' &')
     time.sleep(7)
 
 def printHeader(msg):
-    print(f'{Fore.BLUE}{msg} {Style.RESET_ALL}')
+    print(f'{Fore.GREEN}{msg} {Style.RESET_ALL}')
     #print(msg)
 
 def getMbgPorts(podMbg, destSvc):
