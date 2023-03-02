@@ -89,6 +89,16 @@ func AddService(id, ip, description string) {
 	s.Services[id] = MbgctlService{Service: service.Service{id, ip, description}}
 	SaveState()
 }
+func DelService(id string) {
+	if _, ok := s.Services[id]; ok {
+		delete(s.Services, id)
+		SaveState()
+		fmt.Printf("Service %v deleted\n", id)
+		return
+	} else {
+		fmt.Printf("Service %v does not exist\n", id)
+	}
+}
 
 func (s *MbgctlState) Print() {
 	fmt.Printf("Id: %v ip: %v mbgip: %v", s.Id, s.IP, s.MbgIP)

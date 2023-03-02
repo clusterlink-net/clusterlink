@@ -25,8 +25,7 @@ def deleteCluster(cluster, run_in_bg):
         os.system(f"yes |ibmcloud ks cluster rm --force-delete-storage --cluster {cluster.name} {bg_flag}")
     else:
         print ("ERROR: Cloud platform {} not supported".format(cluster.platform))
-    if run_in_bg:
-        deleteProxyDockerImages(cluster)
+
 
 def deleteProxyDockerImages(cluster):
     print(f"Deleting : all docker images {cluster}")
@@ -45,8 +44,7 @@ def deleteProxyDockerImages(cluster):
             #TODO add support to clean docker images
             print("NO support  on aws images clean")
         elif cluster.platform == "ibm":
-            os.system("ibmcloud cr image-rm {}/forwarding-proxy".format(IBM_CONT_REGESTRY))
-            os.system("ibmcloud cr image-rm {}/my-haproxy:custom".format(IBM_CONT_REGESTRY))
+            os.system("ibmcloud cr image-rm {}/mbg:latest".format(IBM_CONT_REGESTRY))
             os.system("yes| ibmcloud cr image-prune-untagged")
         else:
             print ("ERROR: Cloud platform {} not supported".format(cluster.platform))

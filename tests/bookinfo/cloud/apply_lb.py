@@ -27,7 +27,7 @@ def applyPolicy(mbg,type):
     mbgctlPod=getPodName("mbgctl")
     if type == "ecmp":
         printHeader(f"Set Ecmp poilicy")          
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command lb_add --serviceDst {destSvc} --mbgDest mbg2 --policy ecmp')
+        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command lb_add --serviceDst {destSvc}  --policy ecmp')
     elif type == "same":
         printHeader(f"Set same policy to all services")          
         runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command lb_add --serviceDst {destSvc} --mbgDest mbg2 --policy static')

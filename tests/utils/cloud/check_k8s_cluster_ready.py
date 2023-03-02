@@ -29,7 +29,7 @@ def connectToCluster(cluster):
         
         out_cmd=sp.getoutput(cmd)
         print("connection output: {}".format(out_cmd))
-        connect_flag = False if ("ERROR" in out_cmd or "Failed" in out_cmd) else True
+        connect_flag = False if ("ERROR" in out_cmd or "WARNING" in out_cmd or "Failed" in out_cmd) else True
         if not connect_flag: 
             time.sleep(30) #wait more time to connection
         return out_cmd

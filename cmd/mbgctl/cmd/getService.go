@@ -7,6 +7,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
 	"github.ibm.com/mbg-agent/pkg/protocol"
@@ -21,12 +22,21 @@ var getServiceCmd = &cobra.Command{
 	Long:  `get service list from the MBG`,
 	Run: func(cmd *cobra.Command, args []string) {
 		serviceId, _ := cmd.Flags().GetString("id")
-		servicetype, _ := cmd.Flags().GetString("type")
+		serviceType, _ := cmd.Flags().GetString("type")
 		state.UpdateState()
+		mbgIP := state.GetMbgIP()
 		if serviceId == "" {
-			getAllServicesReq(servicetype)
+			if serviceType == "local" {
+				getAllLocalServicesReq(mbgIP)
+			} else {
+				getAllRemoteServicesReq(mbgIP)
+			}
 		} else {
-			getServiceReq(serviceId, servicetype)
+			if serviceType == "local" {
+				getLocalServiceReq(serviceId, mbgIP)
+			} else {
+				getRemoteServiceReq(serviceId, mbgIP)
+			}
 		}
 	},
 }
@@ -38,14 +48,24 @@ func init() {
 
 }
 
-func getAllServicesReq(servicetype string) {
-	mbgIP := state.GetMbgIP()
-	var address string
-	if servicetype == "local" {
-		address = state.GetAddrStart() + mbgIP + "/service/"
-	} else {
-		address = state.GetAddrStart() + mbgIP + "/remoteservice/"
+func getAllLocalServicesReq(mbgIP string) {
+	address := state.GetAddrStart() + mbgIP + "/service/"
+	resp := httpAux.HttpGet(address, state.GetHttpClient())
+
+	sArr := make(map[string]protocol.ServiceRequest)
+	if err := json.Unmarshal(resp, &sArr); err != nil {
+		fmt.Printf("Unable to unmarshal response :%v", err)
 	}
+	fmt.Printf("Local services:\n")
+	i := 1
+	for _, s := range sArr {
+		state.AddService(s.Id, s.Ip, s.Description)
+		fmt.Printf("%d) Service ID: %s IP: %s Description: %s\n", i, s.Id, s.Ip, s.Description)
+		i++
+	}
+}
+func getAllRemoteServicesReq(mbgIP string) {
+	address := state.GetAddrStart() + mbgIP + "/remoteservice/"
 	resp := httpAux.HttpGet(address, state.GetHttpClient())
 
 	sArr := make(map[string][]protocol.ServiceRequest)
@@ -63,16 +83,20 @@ func getAllServicesReq(servicetype string) {
 	}
 }
 
-func getServiceReq(serviceId, servicetype string) {
-	mbgIP := state.GetMbgIP()
-	var address string
-	if servicetype == "local" {
-		address = state.GetAddrStart() + mbgIP + "/service/" + serviceId
-	} else {
-		address = state.GetAddrStart() + mbgIP + "/remoteservice/" + serviceId
-	}
+func getLocalServiceReq(serviceId, mbgIP string) {
+	address := state.GetAddrStart() + mbgIP + "/service/" + serviceId
+	resp := httpAux.HttpGet(address, state.GetHttpClient())
 
-	//Send request
+	var s protocol.ServiceRequest
+	if err := json.Unmarshal(resp, &s); err != nil {
+		fmt.Printf("Unable to unmarshal response :%v", err)
+	}
+	state.AddService(s.Id, s.Ip, s.Description)
+	fmt.Printf("Local service ID: %s with IP: %s Description %s \n", s.Id, s.Ip, s.Description)
+}
+
+func getRemoteServiceReq(serviceId, mbgIP string) {
+	address := state.GetAddrStart() + mbgIP + "/remoteservice/" + serviceId
 	resp := httpAux.HttpGet(address, state.GetHttpClient())
 
 	var sArr []protocol.ServiceRequest
@@ -81,6 +105,6 @@ func getServiceReq(serviceId, servicetype string) {
 	}
 	for _, s := range sArr {
 		state.AddService(s.Id, s.Ip, s.Description)
-		fmt.Printf(`Service ID: %s with IP: %s MBGID %s Description %s\n`, s.Id, s.Ip, s.MbgID, s.Description)
+		fmt.Printf("Remote service ID: %s with IP: %s MBGID %s Description %s \n", s.Id, s.Ip, s.MbgID, s.Description)
 	}
 }

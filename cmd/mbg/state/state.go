@@ -413,6 +413,19 @@ func AddLocalService(id, ip, description string) {
 	PrintState()
 	SaveState()
 }
+func DelLocalService(id string) {
+	if _, ok := s.MyServices[id]; ok {
+		delete(s.MyServices, id)
+		log.Infof("Delete local service: %s", id)
+		PrintState()
+		SaveState()
+
+		return
+	} else {
+		log.Errorf("Local Service %s doesn't exist", id)
+	}
+
+}
 
 func exists(slice []string, entry string) (int, bool) {
 	for i, e := range slice {

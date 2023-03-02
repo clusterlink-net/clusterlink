@@ -76,6 +76,23 @@ func (m MbgHandler) localServiceGet(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (m MbgHandler) delLocalService(w http.ResponseWriter, r *http.Request) {
+
+	//phrase del service struct from request
+	svcId := chi.URLParam(r, "svcId")
+
+	//AddService control plane logic
+	log.Debugf("Received delete local service command to service: %v", svcId)
+	mbgControlplane.DelLocalService(svcId)
+
+	//Response
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte("Service deleted successfully"))
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 /******************* Remote Service ****************************************/
 func (m MbgHandler) addRemoteServicePost(w http.ResponseWriter, r *http.Request) {
 

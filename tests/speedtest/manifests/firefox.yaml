@@ -17,13 +17,14 @@ spec:
       containers:
       - name: firefox
         image: jlesage/firefox
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5800
-        volumeMounts:
-        - name: config
-          mountPath: /config
-      volumes:
-      - name: config
-        hostPath:
-          path: /docker/appdata/firefox
-          type: DirectoryOrCreate
+      #   volumeMounts:
+      #   - name: config
+      #     mountPath: /config
+      # volumes:
+      # - name: config
+      #   hostPath:
+      #     path: /docker/appdata/firefox
+      #     type: DirectoryOrCreate
