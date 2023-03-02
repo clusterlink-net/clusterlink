@@ -8,9 +8,9 @@ pluginsFol=f'{projDir}/bin/plugins/'
 def createCniBridge():   
     if not os.path.exists(f"{pluginsFol}/bin/bridge"):
         print("Start building plugins for flannel")
-        os.makedirs(pluginsFol)
+        os.makedirs(pluginsFol, exist_ok=True)
         os.chdir(pluginsFol)
-        os.system('git clone git@github.com:containernetworking/plugins.git')
+        os.system('git clone https://github.com/containernetworking/plugins.git')
         os.chdir(f'{pluginsFol}/plugins')
         os.system(f'./build_linux.sh')
         os.chdir(projDir)
