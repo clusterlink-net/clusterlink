@@ -23,7 +23,7 @@ srcSvc2  = "productpage2"
 destSvc  = "reviews"
     
 
-#MBG3 parameters 
+#MBG3 parameters
 mbg1gcp = cluster(name="mbg1", zone = "us-west1-b"   , platform = "gcp", type = "host")   #Oregon
 mbg1ibm = cluster(name="mbg1", zone = "sjc04"        , platform = "ibm", type = "host")   #San jose
 mbg2gcp = cluster(name="mbg2", zone = "us-central1-b", platform = "gcp", type = "target") #Iowa
