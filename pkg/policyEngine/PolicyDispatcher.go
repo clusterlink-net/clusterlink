@@ -32,22 +32,25 @@ func (pH PolicyHandler) Routes() chi.Router {
 	r.Get("/", pH.policyWelcome)
 
 	r.Route("/"+event.NewConnectionRequest, func(r chi.Router) {
-		r.Post("/", pH.newConnectionRequest) // New connection Request
+		r.Post("/", pH.newConnectionRequest) // New connection request
 	})
 
 	r.Route("/"+event.AddPeerRequest, func(r chi.Router) {
-		r.Post("/", pH.addPeerRequest) // New connection Request
+		r.Post("/", pH.addPeerRequest) // New peer request
 	})
 
 	r.Route("/"+event.RemovePeerRequest, func(r chi.Router) {
-		r.Post("/", pH.removePeerRequest) // New connection Request
+		r.Post("/", pH.removePeerRequest) // Remove peer request
 	})
 
 	r.Route("/"+event.NewRemoteService, func(r chi.Router) {
-		r.Post("/", pH.newRemoteService) // New connection Request
+		r.Post("/", pH.newRemoteService) // New remote service request
+	})
+	r.Route("/"+event.RemoveRemoteService, func(r chi.Router) {
+		r.Post("/", pH.removeRemoteServiceRequest) // Remove remote service request
 	})
 	r.Route("/"+event.ExposeRequest, func(r chi.Router) {
-		r.Post("/", pH.exposeRequest) // New connection Request
+		r.Post("/", pH.exposeRequest) // New expose request
 	})
 
 	r.Route("/acl", func(r chi.Router) {
@@ -206,6 +209,7 @@ func (pH PolicyHandler) removePeerRequest(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusOK)
 
 }
+
 func (pH PolicyHandler) newRemoteService(w http.ResponseWriter, r *http.Request) {
 	var requestAttr event.NewRemoteServiceAttr
 	err := json.NewDecoder(r.Body).Decode(&requestAttr)
@@ -241,6 +245,19 @@ func (pH PolicyHandler) newRemoteService(w http.ResponseWriter, r *http.Request)
 	if action != event.Deny {
 		pH.loadBalancer.AddToServiceMap(requestAttr.Service, requestAttr.Mbg)
 	}
+}
+
+func (pH PolicyHandler) removeRemoteServiceRequest(w http.ResponseWriter, r *http.Request) {
+	var requestAttr event.RemoveRemoteServiceAttr
+	err := json.NewDecoder(r.Body).Decode(&requestAttr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	plog.Infof("Remove remote service request : %+v ", requestAttr)
+	pH.loadBalancer.RemoveDestService(requestAttr.Service, requestAttr.Mbg)
+	w.WriteHeader(http.StatusOK)
+
 }
 
 func (pH PolicyHandler) exposeRequest(w http.ResponseWriter, r *http.Request) {

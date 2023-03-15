@@ -66,7 +66,8 @@ type RemoteService struct {
 }
 
 type LocalService struct {
-	Service service.Service
+	Service      service.Service
+	PeersExposed []string //ToDo not uniqe
 }
 
 type ServicePort struct {
@@ -87,6 +88,7 @@ var s = mbgState{MyInfo: MbgInfo{},
 	RemoteServiceMap:      make(map[string][]string),
 	MyEventManager:        eventManager.MbgEventManager{},
 }
+var stopCh = make(map[string]chan bool)
 
 const (
 	ConnExist = "connection already setup"
@@ -279,10 +281,16 @@ func GetServiceMbgIp(Ip string) string {
 }
 
 func GetMbgTarget(id string) string {
-	mbgArrMutex.RLock()
-	mbgI := s.MbgArr[id]
-	mbgArrMutex.RUnlock()
-	return mbgI.Ip + mbgI.Cport.External
+	if _, ok := s.MbgArr[id]; ok {
+		mbgArrMutex.RLock()
+		mbgI := s.MbgArr[id]
+		mbgArrMutex.RUnlock()
+		return mbgI.Ip + mbgI.Cport.External
+	} else {
+		log.Infof("Peer(%s)  is not exist", id)
+		return ""
+	}
+
 }
 
 func GetMbgTargetPair(id string) (string, string) {
@@ -331,6 +339,9 @@ func RemoveMbgNbr(id string) {
 // Gets an available free port to use per connection
 func GetFreePorts(connectionID string) (ServicePort, error) {
 	if port, ok := s.Connections[connectionID]; ok {
+		if _, okStop := stopCh[connectionID]; !okStop { //Create stop channel for case is not exist link in MBG restore
+			stopCh[connectionID] = make(chan bool)
+		}
 		return port, fmt.Errorf(ConnExist)
 	}
 	rand.NewSource(time.Now().UnixNano())
@@ -353,13 +364,20 @@ func GetFreePorts(connectionID string) (ServicePort, error) {
 				if !s.ExternalPortMap[externalPort] {
 					s.LocalPortMap[localPort] = true
 					s.ExternalPortMap[externalPort] = true
-					myPort := ServicePort{Local: ":" + strconv.Itoa(localPort), External: ":" + strconv.Itoa(externalPort)}
-					s.Connections[connectionID] = myPort
+					s.Connections[connectionID] = ServicePort{Local: ":" + strconv.Itoa(localPort), External: ":" + strconv.Itoa(externalPort)}
+					stopCh[connectionID] = make(chan bool)
+					PrintState()
 					SaveState()
-					return myPort, nil
+					return s.Connections[connectionID], nil
 				}
 			}
 		}
+	}
+}
+func WaitServiceStopCh(connectionID, servicePort string) {
+	if _, ok := s.Connections[connectionID]; ok {
+		<-stopCh[connectionID]
+		log.Infof("Receive signal to close service %v: with local port %v\n", connectionID, servicePort)
 	}
 }
 
@@ -395,12 +413,15 @@ func GetFreeLocalPort(serviceName string) (string, error) {
 
 // Frees up used ports by a connection
 func FreeUpPorts(connectionID string) {
+	log.Infof("Start to FreeUpPorts for service: %s", connectionID)
 	port, _ := s.Connections[connectionID]
-	lval, _ := strconv.Atoi(port.Local)
-	eval, _ := strconv.Atoi(port.External)
+	lval, _ := strconv.Atoi(port.Local[1:])
+	eval, _ := strconv.Atoi(port.External[1:])
+	stopCh[connectionID] <- true
 	delete(s.LocalPortMap, lval)
 	delete(s.ExternalPortMap, eval)
 	delete(s.Connections, connectionID)
+	SaveState()
 }
 
 func AddLocalService(id, ip, description string) {
@@ -413,18 +434,24 @@ func AddLocalService(id, ip, description string) {
 	PrintState()
 	SaveState()
 }
+func AddPeerLocalService(id, peer string) {
+	if val, ok := s.MyServices[id]; ok {
+		val.PeersExposed = append(val.PeersExposed, peer)
+		s.MyServices[id] = val
+	}
+	SaveState()
+}
+
 func DelLocalService(id string) {
 	if _, ok := s.MyServices[id]; ok {
 		delete(s.MyServices, id)
 		log.Infof("Delete local service: %s", id)
 		PrintState()
 		SaveState()
-
 		return
 	} else {
 		log.Errorf("Local Service %s doesn't exist", id)
 	}
-
 }
 
 func exists(slice []string, entry string) (int, bool) {
@@ -453,18 +480,54 @@ func AddRemoteService(id, ip, description, MbgId string) {
 	SaveState()
 }
 
+func DelRemoteService(id, mbg string) {
+	if _, ok := s.RemoteServices[id]; ok {
+		if mbg == "" { //delete service fo all MBgs
+			delete(s.RemoteServices, id)
+			delete(s.RemoteServiceMap, id)
+			FreeUpPorts(id)
+			log.Infof("Delete Remote service: %s", id)
+			GetEventManager().RaiseRemoveRemoteServiceEvent(eventManager.RemoveRemoteServiceAttr{Service: id, Mbg: mbg})
+
+			PrintState()
+		} else {
+			RemoveMbgFromService(id, mbg, s.RemoteServiceMap[id])
+		}
+	} else {
+		log.Errorf("Remote Service %s doesn't exist", id)
+	}
+}
+
 func RemoveMbgFromServiceMap(mbg string) {
 	for svc, mbgs := range s.RemoteServiceMap {
-		index, exist := exists(mbgs, mbg)
-		if !exist {
-			continue
-		}
-		s.RemoteServiceMap[svc] = append((mbgs)[:index], (mbgs)[index+1:]...)
-		log.Infof("MBG removed from remote service %v->[%+v]", svc, s.RemoteServiceMap[svc])
-		if len(s.RemoteServiceMap[svc]) == 0 {
-			// TODO Remove remote service and its endpoint(free up ports)
+		RemoveMbgFromService(svc, mbg, mbgs)
+	}
+}
+
+func RemoveMbgFromService(svcId, mbg string, mbgs []string) {
+	//Remove from service map
+	index, exist := exists(mbgs, mbg)
+	if !exist {
+		return
+	}
+	s.RemoteServiceMap[svcId] = append((mbgs)[:index], (mbgs)[index+1:]...)
+	log.Infof("MBG removed from remote service %v->[%+v]", svcId, s.RemoteServiceMap[svcId])
+	//Remove from service array
+	for idx, reSvc := range s.RemoteServices[svcId] {
+		if reSvc.MbgId == mbg {
+			s.RemoteServices[svcId] = append((s.RemoteServices[svcId])[:idx], (s.RemoteServices[svcId])[idx+1:]...)
 		}
 	}
+
+	if len(s.RemoteServiceMap[svcId]) == 0 {
+		FreeUpPorts(svcId)
+		delete(s.RemoteServices, svcId)
+		delete(s.RemoteServiceMap, svcId)
+		GetEventManager().RaiseRemoveRemoteServiceEvent(eventManager.RemoveRemoteServiceAttr{Service: svcId, Mbg: ""}) //remove the service
+	} else { //remove specific mbg from the mbg
+		GetEventManager().RaiseRemoveRemoteServiceEvent(eventManager.RemoveRemoteServiceAttr{Service: svcId, Mbg: mbg})
+	}
+	SaveState()
 }
 
 func GetAddrStart() string {
@@ -527,6 +590,7 @@ func PrintState() {
 	}
 	log.Infof("Myservices: %v", services)
 	log.Infof("Remoteservices: %v", s.RemoteServiceMap)
+	log.Infof("Connections: %v", s.Connections)
 	log.Infof("****************************")
 }
 
@@ -545,7 +609,12 @@ func configPath() string {
 
 func SaveState() {
 	dataMutex.Lock()
-	jsonC, _ := json.MarshalIndent(s, "", "\t")
+	jsonC, err := json.MarshalIndent(s, "", "\t")
+	if err != nil {
+		log.Errorf("Unable to write json file Error: %v", err)
+		dataMutex.Unlock()
+		return
+	}
 	ioutil.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
 	dataMutex.Unlock()
 }

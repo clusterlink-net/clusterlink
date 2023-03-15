@@ -20,8 +20,8 @@ func (m MbgHandler) addLocalServicePost(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-
 	}
+
 	//AddService control plane logic
 	log.Debugf("Received Add local service command to service: %v", s.Id)
 	mbgControlplane.AddLocalService(s)
@@ -153,6 +153,30 @@ func (m MbgHandler) remoteServiceGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, err = w.Write(jsonResp)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func (m MbgHandler) delRemoteService(w http.ResponseWriter, r *http.Request) {
+
+	//phrase del service struct from request
+	svcId := chi.URLParam(r, "svcId")
+	//phrase add service struct from request
+	var s protocol.ServiceRequest
+	err := json.NewDecoder(r.Body).Decode(&s)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	//AddService control plane logic
+	log.Debugf("Received delete remote service command to service: %v", svcId)
+	mbgControlplane.DelRemoteService(svcId, s.MbgID)
+
+	//Response
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write([]byte("Service deleted successfully"))
 	if err != nil {
 		log.Println(err)
 	}

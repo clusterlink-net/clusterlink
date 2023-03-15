@@ -7,6 +7,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
 	"github.ibm.com/mbg-agent/pkg/protocol"
@@ -43,6 +44,7 @@ func addPeerReq(peerId, peerIp, peerCport string) {
 	if err != nil {
 		fmt.Printf("Unable to marshal json: %v", err)
 	}
-	//send expose
+	//send peer req
+	fmt.Printf("Send addPeerReq %v", address)
 	httpAux.HttpPost(address, j, state.GetHttpClient())
 }

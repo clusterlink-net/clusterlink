@@ -37,19 +37,18 @@ func ExposeToMbg(serviceId string) {
 	svcExp := s.Service
 	svcExp.Ip = myIp
 	if exposeResp.Action == eventManager.AllowAll {
-		for _, m := range state.GetMbgList() {
-			destIp := state.GetMbgTarget(m)
-			ExposeReq(svcExp, destIp, "MBG")
+		for _, mbgId := range state.GetMbgList() {
+			ExposeReq(svcExp, mbgId, "MBG")
 		}
 		return
 	}
 	for _, mbgId := range exposeResp.TargetMbgs {
-		mbgAddr := state.GetMbgTarget(mbgId)
-		ExposeReq(svcExp, mbgAddr, "MBG")
+		ExposeReq(svcExp, mbgId, "MBG")
 	}
 }
 
-func ExposeReq(svcExp service.Service, destIp, cType string) {
+func ExposeReq(svcExp service.Service, mbgId, cType string) {
+	destIp := state.GetMbgTarget(mbgId)
 	mlog.Printf("Starting to expose service %v (%v)", svcExp.Id, destIp)
 	address := state.GetAddrStart() + destIp + "/remoteservice"
 
@@ -61,4 +60,7 @@ func ExposeReq(svcExp service.Service, destIp, cType string) {
 	//Send expose
 	resp := httpAux.HttpPost(address, j, state.GetHttpClient())
 	mlog.Infof("Service(%s) Expose Response message:  %s", svcExp.Id, string(resp))
+	if string(resp) != httpAux.RESPFAIL {
+		state.AddPeerLocalService(svcExp.Id, mbgId)
+	}
 }

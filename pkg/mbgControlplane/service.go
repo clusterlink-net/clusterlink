@@ -1,11 +1,15 @@
 package mbgControlplane
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
 	md "github.ibm.com/mbg-agent/pkg/mbgDataplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
+	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 )
 
 var slog = logrus.WithField("component", "mbgControlPlane/AddService")
@@ -37,13 +41,31 @@ func GetAllLocalServices() map[string]protocol.ServiceRequest {
 
 func DelLocalService(svcId string) {
 	state.UpdateState()
+	svc := state.GetLocalService(svcId)
+	mbg := state.GetMyId()
+	for _, peer := range svc.PeersExposed {
+		peerIp := state.GetMbgTarget(peer)
+		delServiceInPeerReq(svcId, mbg, peerIp)
+	}
 	state.DelLocalService(svcId)
+}
+
+func delServiceInPeerReq(svcId, serviceMbg, peerIp string) {
+	address := state.GetAddrStart() + peerIp + "/remoteservice/" + svcId
+	j, err := json.Marshal(protocol.ServiceRequest{Id: svcId, MbgID: serviceMbg})
+	if err != nil {
+		fmt.Printf("Unable to marshal json: %v", err)
+	}
+
+	//send
+	resp := httpAux.HttpDelete(address, j, state.GetHttpClient())
+	fmt.Printf("Response message for deleting service [%s]:%s \n", svcId, string(resp))
 }
 
 /******************* Remote Service ****************************************/
 
 func createServiceEndpoint(svcId string, force bool) error {
-	myServicePort, err := state.GetFreePorts(svcId)
+	connPort, err := state.GetFreePorts(svcId)
 	if err != nil {
 		if err.Error() != state.ConnExist {
 			return err
@@ -53,8 +75,8 @@ func createServiceEndpoint(svcId string, force bool) error {
 		}
 	}
 	rootCA, certFile, keyFile := state.GetMyMbgCerts()
-	mlog.Infof("Starting an service endpoint for Remote service %s at port %s with certs(%s,%s,%s)", svcId, myServicePort.Local, rootCA, certFile, keyFile)
-	go md.StartProxyRemoteService(svcId, myServicePort.Local, rootCA, certFile, keyFile)
+	slog.Infof("Starting an service endpoint for Remote service %s at port %s with certs(%s,%s,%s)", svcId, connPort.Local, rootCA, certFile, keyFile)
+	go md.CreateProxyRemoteService(svcId, connPort.Local, rootCA, certFile, keyFile)
 	return nil
 }
 
@@ -120,4 +142,9 @@ func convertRemoteService2RemoteReq(svcId string) []protocol.ServiceRequest {
 		sArr = append(sArr, protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, MbgID: s.MbgId, Description: s.Service.Description})
 	}
 	return sArr
+}
+
+func DelRemoteService(svcId, mbgId string) {
+	state.UpdateState()
+	state.DelRemoteService(svcId, mbgId)
 }

@@ -38,7 +38,7 @@ type ServiceState struct {
 type LoadBalancer struct {
 	ServiceMap      map[string]*[]string                       // Service to MBGs
 	Policy          map[string](map[string]PolicyLoadBalancer) // PolicyMap [serviceDst][serviceSrc]Policy
-	ServiceStateMap map[string]map[string]*ServiceState        // Per source and destination service
+	ServiceStateMap map[string]map[string]*ServiceState        // State of policy Per destination and source
 }
 
 func (lB *LoadBalancer) Init() {
@@ -113,16 +113,20 @@ func (lB *LoadBalancer) AddToServiceMap(serviceDst string, mbg string) {
 }
 
 func (lB *LoadBalancer) RemoveMbgFromServiceMap(mbg string) {
-	for svc, mbgs := range lB.ServiceMap {
+	for svc, _ := range lB.ServiceMap {
+		lB.RemoveMbgFromService(svc, mbg)
+	}
+}
+func (lB *LoadBalancer) RemoveMbgFromService(svc, mbg string) {
+	if mbgs, ok := lB.ServiceMap[svc]; ok {
 		index, exist := exists(*mbgs, mbg)
 		if !exist {
-			continue
+			return
 		}
 		*mbgs = append((*mbgs)[:index], (*mbgs)[index+1:]...)
 		llog.Infof("MBG removed from service %v->[%+v]", svc, *(lB.ServiceMap[svc]))
 	}
 }
-
 func (lB *LoadBalancer) SetPolicy(serviceSrc, serviceDst string, policy PolicyLoadBalancer, defaultMbg string) {
 	plog.Infof("Set LB policy %v for serviceSrc %+v serviceDst %+v defaultMbg %+v", policy, serviceSrc, serviceDst, defaultMbg)
 
@@ -158,6 +162,15 @@ func (lB *LoadBalancer) deletePolicy(serviceSrc, serviceDst string, policy Polic
 	}
 }
 
+func (lB *LoadBalancer) RemoveDestService(serviceDst, mbg string) {
+	if mbg != "" {
+		lB.RemoveMbgFromService(serviceDst, mbg)
+	} else {
+		if _, ok := lB.ServiceMap[serviceDst]; ok {
+			delete(lB.ServiceMap, serviceDst)
+		}
+	}
+}
 func (lB *LoadBalancer) updateState(serviceSrc, serviceDst string) {
 	if _, ok := lB.Policy[serviceDst][serviceSrc]; ok {
 		lB.ServiceStateMap[serviceDst][serviceSrc].totalConnections = lB.ServiceStateMap[serviceDst][serviceSrc].totalConnections + 1

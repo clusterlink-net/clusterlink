@@ -114,15 +114,18 @@ func StartTcpProxyService(svcListenPort, svcIp, policy, connName string, serverC
 // Start a Local Service which is a proxy for remote service
 // It receives connections from local service and performs Connect API
 // and sets up an mTLS forwarding to the remote service upon accepted (policy checks, etc)
-func StartProxyRemoteService(serviceId, localServicePort, rootCA, certificate, key string) error {
-	var err error
-	var acceptor net.Listener
-	dataplane := state.GetDataplane()
-	acceptor, err = net.Listen("tcp", localServicePort) //TODO- need to support secure endpoint
-
+func CreateProxyRemoteService(serviceId, servicePort, rootCA, certificate, key string) {
+	acceptor, err := net.Listen("tcp", servicePort) //TODO- need to support secure endpoint
 	if err != nil {
-		return err
+		clog.Infof("Error Listen: to port  %v", err)
+
 	}
+	go StartProxyRemoteService(serviceId, acceptor, servicePort, rootCA, certificate, key)
+	state.WaitServiceStopCh(serviceId, servicePort)
+	acceptor.Close()
+}
+func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePort, rootCA, certificate, key string) error {
+	dataplane := state.GetDataplane()
 	// loop until signalled to stop
 	for {
 		ac, err := acceptor.Accept()
@@ -130,10 +133,11 @@ func StartProxyRemoteService(serviceId, localServicePort, rootCA, certificate, k
 		clog = logrus.WithFields(logrus.Fields{
 			"component": state.GetMyId() + "-Dataplane",
 		})
-		clog.Infof("Receiving Outgoing connection %s->%s ", ac.RemoteAddr().String(), ac.LocalAddr().String())
 		if err != nil {
+			clog.Info(err)
 			return err
 		}
+		clog.Infof("Receiving Outgoing connection %s->%s ", ac.RemoteAddr().String(), ac.LocalAddr().String())
 
 		// Ideally do a control plane connect API, Policy checks, and then create a mTLS forwarder
 		// RemoteEndPoint has to be in the connect Request/Response
@@ -178,7 +182,7 @@ func StartProxyRemoteService(serviceId, localServicePort, rootCA, certificate, k
 			connectDest := "Use open connect socket" //not needed ehr we use connect - destSvc.Service.Ip + ":" + connectDest
 			clog.Infof("Using %s for  %s/%s to connect to Service-%v", dataplane, mbgIP, connectDest, destSvc.Service.Id)
 			connectionID := localSvc.Service.Id + ":" + destSvc.Service.Id
-			go StartTcpProxyService(localServicePort, connectDest, "forward", connectionID, ac, connDest)
+			go StartTcpProxyService(servicePort, connectDest, "forward", connectionID, ac, connDest)
 
 		case MTLS_TYPE:
 			mtlsForward := MbgMtlsForwarder{ChiRouter: state.GetChiRouter()}

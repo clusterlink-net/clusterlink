@@ -38,9 +38,11 @@ func (m MbgHandler) Routes() chi.Router {
 	})
 
 	r.Route("/remoteservice", func(r chi.Router) {
-		r.Post("/", m.addRemoteServicePost)   // Post /remoteservice  - Add Remote service to the MBG
-		r.Get("/", m.allRemoteServicesGet)    // Get  /remoteservice  - Get all remote services in MBG
-		r.Get("/{svcId}", m.remoteServiceGet) // Get  /remoteservice  - Get specific remote service
+		r.Post("/", m.addRemoteServicePost)      // Post /remoteservice  - Add Remote service to the MBG
+		r.Get("/", m.allRemoteServicesGet)       // Get  /remoteservice  - Get all remote services in MBG
+		r.Get("/{svcId}", m.remoteServiceGet)    // Get  /remoteservice  - Get specific remote service
+		r.Delete("/{svcId}", m.delRemoteService) // Delete  /remoteservice  - Get specific remote service
+
 	})
 
 	r.Route("/expose", func(r chi.Router) {

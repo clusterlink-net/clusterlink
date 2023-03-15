@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strings"
 
 	event "github.ibm.com/mbg-agent/pkg/eventManager"
 )
@@ -97,6 +98,17 @@ func (A *AccessControl) DeleteRule(serviceSrc string, serviceDst string, mbgDest
 	delete(A.ACLRules, getKey(serviceSrc, serviceDst, mbgDest))
 }
 
+func (A *AccessControl) RemoveDestService(serviceDst, mbg string) {
+	str := "-" + serviceDst + "-"
+	if mbg != "" {
+		str = str + mbg
+	}
+	for key, _ := range A.ACLRules {
+		if strings.Contains(key, str) {
+			delete(A.ACLRules, key)
+		}
+	}
+}
 func (A *AccessControl) RulesLookup(serviceSrc string, serviceDst string, mbgDst string) (int, event.Action, int) {
 	resultAction := event.Allow
 	priority := math.MaxInt

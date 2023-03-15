@@ -32,6 +32,7 @@ const (
 	NewRemoteService     = "NewRemoteService"
 	ExposeRequest        = "ExposeRequest"
 	RemovePeerRequest    = "RemovePeerRequest"
+	RemoveRemoteService  = "RemoveRemoteService"
 )
 
 type ConnectionRequestAttr struct {
@@ -48,6 +49,11 @@ type ConnectionRequestResp struct {
 }
 
 type NewRemoteServiceAttr struct {
+	Service string
+	Mbg     string
+}
+
+type RemoveRemoteServiceAttr struct {
 	Service string
 	Mbg     string
 }

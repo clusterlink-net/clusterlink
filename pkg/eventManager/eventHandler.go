@@ -135,6 +135,28 @@ func (m *MbgEventManager) RaiseRemovePeerEvent(removePeerAttr RemovePeerAttr) er
 	}
 }
 
+func (m *MbgEventManager) RaiseRemoveRemoteServiceEvent(removeRemoteServiceAttr RemoveRemoteServiceAttr) error {
+	elog.Infof("Remove Remote service Event %+v", removeRemoteServiceAttr)
+	url := m.PolicyDispatcherTarget + "/" + RemoveRemoteService
+	// Send the event to PolicyDispatcher
+	if m.PolicyDispatcherTarget != "" {
+		elog.Infof("Sending to PolicyDispatcher : %s", m.PolicyDispatcherTarget)
+		jsonReq, err := json.Marshal(removeRemoteServiceAttr)
+		if err != nil {
+			elog.Errorf("Unable to marshal json %v", err)
+			return err
+		}
+		resp := httpAux.HttpPost(url, jsonReq, m.httpClient)
+		if string(resp) == httpAux.RESPFAIL {
+			elog.Errorf("Unable to send to Policy dispatcher %s", url)
+		}
+		return nil
+	} else {
+		// No Policy Dispatcher assigned
+		elog.Infof("No PolicyDispatcher ")
+		return nil
+	}
+}
 func (m *MbgEventManager) RaiseServiceListRequestEvent(serviceListRequestAttr ServiceListRequestAttr) (ServiceListRequestResp, error) {
 	elog.Infof("Service List Event %+v", serviceListRequestAttr)
 	return ServiceListRequestResp{Action: Allow, Services: nil}, nil
