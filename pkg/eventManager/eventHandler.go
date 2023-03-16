@@ -25,7 +25,8 @@ func (m *MbgEventManager) RaiseNewConnectionRequestEvent(connectionAttr Connecti
 			elog.Errorf("Unable to marshal json %v", err)
 			return ConnectionRequestResp{Action: Allow, TargetMbg: "", BitRate: 0}, err
 		}
-		resp := httpAux.HttpPost(url, jsonReq, m.httpClient)
+		resp, err := httpAux.HttpPost(url, jsonReq, m.httpClient)
+
 		var r ConnectionRequestResp
 		err = json.Unmarshal(resp, &r)
 		if err != nil {
@@ -49,7 +50,10 @@ func (m *MbgEventManager) RaiseNewRemoteServiceEvent(remoteServiceAttr NewRemote
 			elog.Errorf("Unable to marshal json %v", err)
 			return NewRemoteServiceResp{Action: Allow}, err
 		}
-		resp := httpAux.HttpPost(url, jsonReq, m.httpClient)
+		resp, err := httpAux.HttpPost(url, jsonReq, m.httpClient)
+		if err != nil {
+			return NewRemoteServiceResp{Action: Allow}, err
+		}
 		var r NewRemoteServiceResp
 		err = json.Unmarshal(resp, &r)
 		if err != nil {
@@ -74,7 +78,10 @@ func (m *MbgEventManager) RaiseExposeRequestEvent(exposeRequestAttr ExposeReques
 			elog.Errorf("Unable to marshal json %v", err)
 			return ExposeRequestResp{Action: Allow}, err
 		}
-		resp := httpAux.HttpPost(url, jsonReq, m.httpClient)
+		resp, err := httpAux.HttpPost(url, jsonReq, m.httpClient)
+		if err != nil {
+			return ExposeRequestResp{Action: Allow}, err
+		}
 		var r ExposeRequestResp
 		err = json.Unmarshal(resp, &r)
 		if err != nil {
@@ -99,7 +106,11 @@ func (m *MbgEventManager) RaiseAddPeerEvent(addPeerAttr AddPeerAttr) (AddPeerRes
 			elog.Errorf("Unable to marshal json %v", err)
 			return AddPeerResp{Action: Allow}, err
 		}
-		resp := httpAux.HttpPost(url, jsonReq, m.httpClient)
+		resp, err := httpAux.HttpPost(url, jsonReq, m.httpClient)
+		if err != nil {
+			elog.Errorf("Unable to unmarshal json %v", err)
+			return AddPeerResp{Action: Allow}, err
+		}
 		var r AddPeerResp
 		err = json.Unmarshal(resp, &r)
 		if err != nil {
@@ -124,8 +135,8 @@ func (m *MbgEventManager) RaiseRemovePeerEvent(removePeerAttr RemovePeerAttr) er
 			elog.Errorf("Unable to marshal json %v", err)
 			return err
 		}
-		resp := httpAux.HttpPost(url, jsonReq, m.httpClient)
-		if string(resp) == httpAux.RESPFAIL {
+		_, err = httpAux.HttpPost(url, jsonReq, m.httpClient)
+		if err != nil {
 			elog.Errorf("Unable to send to Policy dispatcher %s", url)
 		}
 		return nil
@@ -146,7 +157,7 @@ func (m *MbgEventManager) RaiseRemoveRemoteServiceEvent(removeRemoteServiceAttr 
 			elog.Errorf("Unable to marshal json %v", err)
 			return err
 		}
-		resp := httpAux.HttpPost(url, jsonReq, m.httpClient)
+		resp, _ := httpAux.HttpPost(url, jsonReq, m.httpClient)
 		if string(resp) == httpAux.RESPFAIL {
 			elog.Errorf("Unable to send to Policy dispatcher %s", url)
 		}

@@ -58,7 +58,7 @@ func delServiceInPeerReq(svcId, serviceMbg, peerIp string) {
 	}
 
 	//send
-	resp := httpAux.HttpDelete(address, j, state.GetHttpClient())
+	resp, _ := httpAux.HttpDelete(address, j, state.GetHttpClient())
 	fmt.Printf("Response message for deleting service [%s]:%s \n", svcId, string(resp))
 }
 

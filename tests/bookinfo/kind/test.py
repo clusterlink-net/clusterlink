@@ -130,18 +130,18 @@ if __name__ == "__main__":
         waitPod(srcSvc2)
         _ , srcSvcIp1 =getPodNameIp(srcSvc1)
         _ , srcSvcIp2 =getPodNameIp(srcSvc2)
-        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addService --id {srcSvc1} --ip {srcSvcIp1} --description {srcSvc1}')
-        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addService --id {srcSvc2} --ip {srcSvcIp2} --description {srcSvc2}')
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add service --myid {mbgctl1Name} --id {srcSvc1} --target {srcSvcIp1} --description {srcSvc1}')
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add service --myid {mbgctl1Name} --id {srcSvc2} --target {srcSvcIp2} --description {srcSvc2}')
 
         
 
         # Add MBG Peer
         printHeader("Add MBG2, MBG3 peer to MBG1")
-        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addPeer --id {mbg2Name} --ip {mbg2Ip} --cport {mbg2cPort}')
-        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl addPeer --id {mbg3Name} --ip {mbg3Ip} --cport {mbg3cPort}')
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add peer --myid {mbgctl1Name} --id {mbg2Name} --target {mbg2Ip} --port {mbg2cPort}')
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add peer --myid {mbgctl1Name} --id {mbg3Name} --target {mbg3Ip} --port {mbg3cPort}')
         # Send Hello
         printHeader("Send Hello commands")
-        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl hello')
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl hello --myid {mbgctl1Name}')
         
         ###Set mbg2 service
         useKindCluster(mbg2Name)
@@ -152,7 +152,7 @@ if __name__ == "__main__":
         printHeader(f"Add {destSvc} (server) service to destination cluster")
         waitPod(review2pod)
         destSvcReview2Ip = f"{getPodIp(review2pod)}:{srcK8sSvcPort}"
-        runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl addService --id {destSvc} --ip {destSvcReview2Ip} --description v2')
+        runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add service --myid {mbgctl2Name} --id {destSvc} --target {destSvcReview2Ip} --description v2')
         
 
         ###Set mbgctl3
@@ -164,20 +164,20 @@ if __name__ == "__main__":
         printHeader(f"Add {destSvc} (server) service to destination cluster")
         waitPod(review3pod)
         destSvcReview3Ip = f"{getPodIp(review3pod)}:{srcK8sSvcPort}"
-        runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl addService --id {destSvc} --ip {destSvcReview3Ip} --description v3')
+        runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl add service --myid {mbgctl3Name} --id {destSvc} --target {destSvcReview3Ip} --description v3')
 
         #Expose service
         useKindCluster(mbg2Name)
         printHeader(f"\n\nStart exposing svc {destSvc}")
-        runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl expose --serviceId {destSvc}')
+        runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl expose --myid {mbgctl2Name} --service {destSvc}')
         useKindCluster(mbg3Name)
         printHeader(f"\n\nStart exposing svc {destSvc}")
-        runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl expose --serviceId {destSvc}')
+        runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl expose --myid {mbgctl3Name} --service {destSvc}')
 
         #Get services
         useKindCluster(mbg1Name)
         printHeader("\n\nStart get service")
-        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl getService')
+        runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl get service --myid {mbgctl1Name}')
     
         #connect
         connectSvc(srcSvc1, destSvc,destSvc)

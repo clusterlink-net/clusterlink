@@ -10,26 +10,22 @@ sys.path.insert(0,f'{proj_dir}')
 from tests.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName
 from tests.utils.kind.kindAux import useKindCluster
 
-def exposeService(mbgName, mbgctlName, destSvc):
+def removePeer(mbgName, mbgctlName, peerName):
     useKindCluster(mbgName)
     mbgctlPod = getPodName("mbgctl")
-    printHeader(f"\n\nStart exposing {destSvc} service to {mbgName}")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl expose  --myid {mbgctlName}  --service {destSvc}')
-
+    printHeader(f"\n\Remove {peerName} peer to {mbgName}")
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove peer --myid {mbgctlName} --id {peerName}')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
     #parameters 
-    mbg2Name     = "mbg2"
-    mbgctl2Name  = "mbgctl2"
-    destSvc      = "iperf3-server"
-    
-        
-    
+    mbgName     = "mbg1"
+    mbgCtlName  = "mbgctl1"
+    peerName    = "mbg3"
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
 
-    exposeService(mbg2Name, mbgctl2Name, destSvc)
+    removePeer(mbgName,mbgCtlName,peerName)
     
 
     

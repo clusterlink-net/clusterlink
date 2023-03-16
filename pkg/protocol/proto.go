@@ -12,12 +12,23 @@ type PeerRequest struct {
 	Cport string
 }
 
-//Service
+//Remove Peer
+type PeerRemoveRequest struct {
+	Id        string
+	Propagate bool
+}
+
+//Service Add
 type ServiceRequest struct {
 	Id          string
 	Ip          string
 	Description string
 	MbgID       string
+}
+
+//Service Delete
+type ServiceDelete struct {
+	Ip string
 }
 
 //Hello
@@ -47,7 +58,7 @@ type ConnectRequest struct {
 }
 
 type ConnectReply struct {
-	Error       error
+	Connect     bool
 	ConnectType string
 	ConnectDest string
 }

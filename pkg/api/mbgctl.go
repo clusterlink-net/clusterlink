@@ -1,0 +1,350 @@
+package api
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
+	event "github.ibm.com/mbg-agent/pkg/eventManager"
+	"github.ibm.com/mbg-agent/pkg/policyEngine"
+	"github.ibm.com/mbg-agent/pkg/protocol"
+	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
+	service "github.ibm.com/mbg-agent/pkg/serviceMap"
+)
+
+type Mbgctl struct {
+	Id string
+}
+
+const (
+	Add int = iota
+	Del
+)
+
+const (
+	acl     = "acl"
+	acl_add = "acl_add"
+	acl_del = "acl_del"
+	lb      = "lb"
+	lb_add  = "lb_add"
+	lb_del  = "lb_del"
+	show    = "show"
+)
+
+func CreateMbgctl(ip, id, mbgIP, caFile, certificateFile, keyFile, dataplane string) (Mbgctl, error) {
+	err := state.SetState(ip, id, mbgIP, caFile, certificateFile, keyFile, dataplane)
+	if err != nil {
+		return Mbgctl{}, err
+	}
+	return Mbgctl{id}, nil
+}
+
+func (m *Mbgctl) AddPeer(id, target, peerCport string) error {
+	err := state.UpdateState(m.Id)
+	if err != nil {
+		return err
+	}
+	mbgIP := state.GetMbgIP()
+	address := state.GetAddrStart() + mbgIP + "/peer/" + id
+	j, err := json.Marshal(protocol.PeerRequest{Id: id, Ip: target, Cport: ":" + peerCport})
+	if err != nil {
+		return err
+	}
+	_, err = httpAux.HttpPost(address, j, state.GetHttpClient())
+	return err
+}
+
+func (m *Mbgctl) AddPolicyEngine(target string) error {
+	err := state.UpdateState(m.Id)
+	if err != nil {
+		return err
+	}
+	return state.AssignPolicyDispatcher(m.Id, "http://"+target+"/policy")
+}
+
+func (m *Mbgctl) AddService(id, target, description string) error {
+	state.UpdateState(m.Id)
+	state.AddService(m.Id, id, target, description)
+	mbgIP := state.GetMbgIP()
+
+	address := state.GetAddrStart() + mbgIP + "/service"
+	j, err := json.Marshal(protocol.ServiceRequest{Id: id, Ip: target, Description: description})
+	if err != nil {
+		return err
+	}
+	_, err = httpAux.HttpPost(address, j, state.GetHttpClient())
+	return err
+}
+
+func (m *Mbgctl) ExposeService(id string) error {
+	state.UpdateState(m.Id)
+
+	mbgIP := state.GetMbgIP()
+	s := state.GetService(id)
+	svcExp := s.Service
+
+	address := state.GetAddrStart() + mbgIP + "/expose"
+	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, MbgID: ""})
+	if err != nil {
+		return err
+	}
+	//send expose
+	_, err = httpAux.HttpPost(address, j, state.GetHttpClient())
+	return err
+}
+
+func (m *Mbgctl) SendHello(peer ...string) error {
+	state.UpdateState(m.Id)
+	mbgIP := state.GetMbgIP()
+	j := []byte{}
+	if len(peer) != 0 {
+		address := state.GetAddrStart() + mbgIP + "/hello/" + peer[0]
+		_, err := httpAux.HttpPost(address, j, state.GetHttpClient())
+		return err
+	}
+	address := state.GetAddrStart() + mbgIP + "/hello/"
+
+	_, err := httpAux.HttpPost(address, j, state.GetHttpClient())
+	return err
+}
+
+func (m *Mbgctl) GetPeer(peer string) (string, error) {
+	state.UpdateState(m.Id)
+	mbgIP := state.GetMbgIP()
+	address := state.GetAddrStart() + mbgIP + "/peer/" + peer
+
+	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
+	if err != nil {
+		return "", err
+	}
+	var p protocol.PeerRequest
+	if err := json.Unmarshal(resp, &p); err != nil {
+		return "", err
+	}
+	return p.Ip + ":" + p.Cport, nil
+}
+
+func (m *Mbgctl) GetPeers() ([]string, error) {
+	state.UpdateState(m.Id)
+	mbgIP := state.GetMbgIP()
+
+	address := state.GetAddrStart() + mbgIP + "/peer/"
+
+	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
+	if err != nil {
+		return []string{}, err
+	}
+	pArr := make(map[string]protocol.PeerRequest)
+	if err := json.Unmarshal(resp, &pArr); err != nil {
+		return []string{}, err
+	}
+	var peers []string
+	for _, p := range pArr {
+		peers = append(peers, p.Id)
+	}
+	return peers, nil
+}
+
+func (m *Mbgctl) GetLocalServices() ([]service.Service, error) {
+	state.UpdateState(m.Id)
+	mbgIP := state.GetMbgIP()
+	address := state.GetAddrStart() + mbgIP + "/service/"
+	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
+	if err != nil {
+		return []service.Service{}, err
+	}
+	sArr := make(map[string]protocol.ServiceRequest)
+	if err := json.Unmarshal(resp, &sArr); err != nil {
+		return []service.Service{}, err
+	}
+	var serviceArr []service.Service
+	for _, s := range sArr {
+		serviceArr = append(serviceArr, service.Service{Id: s.Id, Ip: s.Ip, Description: s.Description})
+	}
+	return serviceArr, nil
+}
+
+func (m *Mbgctl) GetLocalService(id string) (service.Service, error) {
+	state.UpdateState(m.Id)
+	mbgIP := state.GetMbgIP()
+	address := state.GetAddrStart() + mbgIP + "/service/" + id
+	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
+	if err != nil {
+		return service.Service{}, err
+	}
+	var s protocol.ServiceRequest
+	if err := json.Unmarshal(resp, &s); err != nil {
+		return service.Service{}, err
+	}
+	return service.Service{Id: s.Id, Ip: s.Ip, Description: s.Description}, nil
+}
+
+func (m *Mbgctl) GetRemoteService(id string) ([]service.Service, error) {
+	state.UpdateState(m.Id)
+	mbgIP := state.GetMbgIP()
+
+	address := state.GetAddrStart() + mbgIP + "/remoteservice/" + id
+	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
+	if err != nil {
+		return []service.Service{}, err
+	}
+	sArr := make(map[string]protocol.ServiceRequest)
+	if err := json.Unmarshal(resp, &sArr); err != nil {
+		return []service.Service{}, err
+	}
+	var serviceArr []service.Service
+	for _, s := range sArr {
+		serviceArr = append(serviceArr, service.Service{Id: s.Id, Ip: s.Ip, Description: s.Description})
+	}
+	return serviceArr, nil
+}
+
+func (m *Mbgctl) GetRemoteServices() ([]service.Service, error) {
+	state.UpdateState(m.Id)
+	mbgIP := state.GetMbgIP()
+
+	address := state.GetAddrStart() + mbgIP + "/remoteservice/"
+	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
+	if err != nil {
+		return []service.Service{}, err
+	}
+	sArr := make(map[string][]protocol.ServiceRequest)
+	if err := json.Unmarshal(resp, &sArr); err != nil {
+		return []service.Service{}, err
+	}
+	var serviceArr []service.Service
+	for _, sA := range sArr {
+		for _, s := range sA {
+			serviceArr = append(serviceArr, service.Service{Id: s.Id, Ip: s.Ip, Description: s.Description})
+		}
+	}
+	return serviceArr, nil
+}
+
+func (m *Mbgctl) RemovePeer(id string) error {
+	err := state.UpdateState(m.Id)
+	if err != nil {
+		return err
+	}
+	// Remove peer in local MBG
+	mbgIP := state.GetMbgIP()
+	address := state.GetAddrStart() + mbgIP + "/peer/" + id
+	j, err := json.Marshal(protocol.PeerRemoveRequest{Id: id, Propagate: true})
+	if err != nil {
+		return err
+	}
+	_, err = httpAux.HttpDelete(address, j, state.GetHttpClient())
+	return err
+}
+
+// func (m *Mbgctl) RemoveService(id, target string) error {
+// 	state.UpdateState(m.Id)
+// 	mbgIP := state.GetMbgIP()
+
+// 	address := state.GetAddrStart() + mbgIP + "/service/" + id
+// 	j, err := json.Marshal(protocol.ServiceDelete{Ip: target})
+// 	if err != nil {
+// 		return err
+// 	}
+// 	_, err = httpAux.HttpDelete(address, j, state.GetHttpClient())
+// 	return err
+// }
+
+func (m *Mbgctl) RemoveLocalService(serviceId string) {
+	state.UpdateState(m.Id)
+	state.DelService(m.Id, serviceId)
+	mbgIP := state.GetMbgIP()
+	address := state.GetAddrStart() + mbgIP + "/service/" + serviceId
+	resp, _ := httpAux.HttpDelete(address, nil, state.GetHttpClient())
+	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
+}
+
+func (m *Mbgctl) RemoveRemoteService(serviceId, serviceMbg string) {
+	state.UpdateState(m.Id)
+	state.DelService(m.Id, serviceId)
+	mbgIP := state.GetMbgIP()
+	address := state.GetAddrStart() + mbgIP + "/remoteservice/" + serviceId
+	j, err := json.Marshal(protocol.ServiceRequest{Id: serviceId, MbgID: serviceMbg})
+	if err != nil {
+		fmt.Printf("Unable to marshal json: %v", err)
+	}
+
+	resp, _ := httpAux.HttpDelete(address, j, state.GetHttpClient())
+	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
+}
+
+func (m *Mbgctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action, command int) error {
+	state.UpdateState(m.Id)
+	url := state.GetPolicyDispatcher() + "/" + acl
+	httpClient := http.Client{}
+	switch command {
+	case Add:
+		url += "/add"
+	case Del:
+		url += "/delete"
+	default:
+		return fmt.Errorf("unknow command")
+	}
+	jsonReq, err := json.Marshal(policyEngine.AclRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, MbgDest: mbgDest, Priority: priority, Action: action})
+	if err != nil {
+		return err
+	}
+	_, err = httpAux.HttpPost(url, jsonReq, httpClient)
+	return err
+}
+
+func (m *Mbgctl) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.PolicyLoadBalancer, mbgDest string, command int) error {
+	state.UpdateState(m.Id)
+	url := state.GetPolicyDispatcher() + "/" + lb
+	switch command {
+	case Add:
+		url += "/add"
+	case Del:
+		url += "/delete"
+	default:
+		return fmt.Errorf("unknow command")
+	}
+	httpClient := http.Client{}
+
+	jsonReq, err := json.Marshal(policyEngine.LoadBalancerRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, Policy: policy, DefaultMbg: mbgDest})
+	if err != nil {
+		return err
+	}
+	_, err = httpAux.HttpPost(url, jsonReq, httpClient)
+	return err
+}
+
+func (m *Mbgctl) GetACLPolicies() (policyEngine.ACL, error) {
+	state.UpdateState(m.Id)
+	var rules policyEngine.ACL
+	httpClient := http.Client{}
+	url := state.GetPolicyDispatcher() + "/" + acl
+	resp, err := httpAux.HttpGet(url, httpClient)
+	if err != nil {
+		return make(policyEngine.ACL), err
+	}
+	err = json.NewDecoder(bytes.NewBuffer(resp)).Decode(&rules)
+	if err != nil {
+		fmt.Printf("Unable to decode response %v\n", err)
+		return make(policyEngine.ACL), err
+	}
+	return rules, nil
+}
+
+func (m *Mbgctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBalancer, error) {
+	state.UpdateState(m.Id)
+	var policies map[string]map[string]policyEngine.PolicyLoadBalancer
+	httpClient := http.Client{}
+	url := state.GetPolicyDispatcher() + "/" + lb
+	resp, err := httpAux.HttpGet(url, httpClient)
+	if err != nil {
+		return make(map[string]map[string]policyEngine.PolicyLoadBalancer), err
+	}
+
+	if err := json.Unmarshal(resp, &policies); err != nil {
+		return make(map[string]map[string]policyEngine.PolicyLoadBalancer), err
+	}
+	return policies, nil
+}

@@ -48,7 +48,7 @@ func HelloReq(m string, myInfo state.MbgInfo) string {
 		return err.Error()
 	}
 	//Send hello
-	resp := httpAux.HttpPost(address, j, state.GetHttpClient())
+	resp, _ := httpAux.HttpPost(address, j, state.GetHttpClient())
 
 	if string(resp) == httpAux.RESPFAIL {
 		return string(resp)

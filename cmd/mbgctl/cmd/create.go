@@ -1,16 +1,12 @@
-/*
-Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
+	"github.ibm.com/mbg-agent/pkg/api"
 )
 
 // startCmd represents the start command
-var startCmd = &cobra.Command{
+var createCmd = &cobra.Command{
 	Use:   "start",
 	Short: "A start command set all parameter state of mbgctl (mbg control)",
 	Long: `A start command set all parameter state of mbgctl (mbg control)-
@@ -26,18 +22,18 @@ var startCmd = &cobra.Command{
 		dataplane, _ := cmd.Flags().GetString("dataplane")
 		keyFile, _ := cmd.Flags().GetString("key")
 
-		state.SetState(ip, id, mbgIP, caFile, certificateFile, keyFile, dataplane)
+		api.CreateMbgctl(ip, id, mbgIP, caFile, certificateFile, keyFile, dataplane)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(startCmd)
-	startCmd.Flags().String("id", "", "mbgctl Id")
-	startCmd.Flags().String("ip", "", "mbgctl IP")
-	startCmd.Flags().String("mbgIP", "", "IP address of the MBG (that the mbgctl is connected)")
-	startCmd.Flags().String("rootCa", "", "Path to the Root Certificate Auth File (.pem)")
-	startCmd.Flags().String("certificate", "", "Path to the Certificate File (.pem)")
-	startCmd.Flags().String("key", "", "Path to the Key File (.pem)")
-	startCmd.Flags().String("dataplane", "tcp", "tcp/mtls based data-plane proxies")
+	rootCmd.AddCommand(createCmd)
+	createCmd.Flags().String("id", "", "mbgctl Id")
+	createCmd.Flags().String("ip", "", "mbgctl IP")
+	createCmd.Flags().String("mbgIP", "", "IP address of the MBG (that the mbgctl is connected)")
+	createCmd.Flags().String("rootCa", "", "Path to the Root Certificate Auth File (.pem)")
+	createCmd.Flags().String("certificate", "", "Path to the Certificate File (.pem)")
+	createCmd.Flags().String("key", "", "Path to the Key File (.pem)")
+	createCmd.Flags().String("dataplane", "tcp", "tcp/mtls based data-plane proxies")
 
 }

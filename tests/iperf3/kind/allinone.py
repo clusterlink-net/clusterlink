@@ -107,28 +107,28 @@ if __name__ == "__main__":
     # Add MBG Peer
     useKindCluster(mbg2Name)
     printHeader("Add MBG2, MBG3 peer to MBG1")
-    connectMbgs(mbg2Name, mbgctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
-    connectMbgs(mbg2Name, mbgctl2Pod, mbg3Name, mbg3Ip, mbg3cPort)
+    connectMbgs(mbg2Name, mbgctl2Name, mbgctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
+    connectMbgs(mbg2Name, mbgctl2Name, mbgctl2Pod, mbg3Name, mbg3Ip, mbg3cPort)
 
     # Send Hello
-    sendHello(mbgctl2Pod)        
+    sendHello(mbgctl2Pod, mbgctl2Name)        
 
     
     # Set service iperf3-client in MBG1
-    setIperf3client(mbg1Name, srcSvc)
+    setIperf3client(mbg1Name, mbgctl1Name, srcSvc)
     
     # Set service iperf3-server in MBG2
-    setIperf3Server(mbg2Name,destSvc)
+    setIperf3Server(mbg2Name, mbgctl2Name, destSvc)
 
     # Set service iperf3-client in MBG3
-    setIperf3client(mbg3Name, srcSvc)
-    setIperf3client(mbg3Name, srcSvc2)
+    setIperf3client(mbg3Name, mbgctl3Name, srcSvc)
+    setIperf3client(mbg3Name, mbgctl3Name, srcSvc2)
     
     #Expose destination service
-    exposeService(mbg2Name,destSvc)
+    exposeService(mbg2Name, mbgctl2Name, destSvc)
 
     #Get services
-    getService(mbg1Name)
+    getService(mbg1Name, mbgctl1Name)
     
     #Testing
     printHeader("\n\nStart Iperf3 testing")
@@ -146,22 +146,18 @@ if __name__ == "__main__":
 
     #Block Traffic in MBG3
     printHeader("Start Block Traffic in MBG3")
-    applyPolicy(mbg3Name,type="deny")
+    applyPolicy(mbg3Name, mbgctl3Name, type="deny")
     testIperf3Client(mbg3Name,srcSvc,destSvc, blockFlag=True)
     print("Allow Traffic in MBG3")
-    applyPolicy(mbg3Name,type="allow")
+    applyPolicy(mbg3Name, mbgctl3Name, type="allow")
     testIperf3Client(mbg3Name,srcSvc,destSvc)
     
     #Block Traffic in MBG2
     printHeader("Start Block Traffic in MBG2")
     print("Block Traffic in MBG2")
-    applyPolicy(mbg2Name,type="deny")
+    applyPolicy(mbg2Name, mbgctl2Name, type="deny")
     testIperf3Client(mbg3Name,srcSvc,destSvc, blockFlag=True)
     print("Allow Traffic in MBG3")
-    applyPolicy(mbg2Name,type="allow")
+    applyPolicy(mbg2Name, mbgctl2Name, type="allow")
     testIperf3Client(mbg3Name,srcSvc,destSvc)
     
-
-    # #Close connection
-    # #printHeader("\n\nClose Iperf3 connection")
-    # #runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl disconnect --serviceId {srcSvc} --serviceIdDest {destSvc}')

@@ -24,12 +24,13 @@ func (m MbgHandler) connectPost(w http.ResponseWriter, r *http.Request) {
 	//Connect data plane logic
 	mbgIP := strings.Split(r.RemoteAddr, ":")[0]
 	log.Infof("Received connect to service %s from MBG: %s", c.Id, mbgIP)
-	err, connectType, connectDest := mbgDataplane.Connect(c, mbgIP, nil)
+	connect, connectType, connectDest := mbgDataplane.Connect(c, mbgIP, nil)
 
+	log.Errorf("Got {%+v, %+v, %+v} from connect ", connect, connectType, connectDest)
 	//Set Connect response
-	respJson, err := json.Marshal(protocol.ConnectReply{Error: err, ConnectType: connectType, ConnectDest: connectDest})
+	respJson, err := json.Marshal(protocol.ConnectReply{Connect: connect, ConnectType: connectType, ConnectDest: connectDest})
 	if err != nil {
-		panic(err)
+		log.Errorf("Unable to marshal json:%+v", err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -56,11 +57,10 @@ func (m MbgHandler) handleConnect(w http.ResponseWriter, r *http.Request) {
 	//connection logic
 	mbgIP := strings.Split(r.RemoteAddr, ":")[0]
 	log.Infof("Received connect to service %s from MBG: %s", c.Id, mbgIP)
-	err, connectType, connectDest := mbgDataplane.Connect(c, mbgIP, w)
+	allow, _, _ := mbgDataplane.Connect(c, mbgIP, w)
 
 	//Write response for error
-	if err != nil {
+	if allow != true {
 		w.WriteHeader(http.StatusForbidden)
-		log.Info("Result from connect handler:", err.Error(), connectType, connectDest)
 	}
 }

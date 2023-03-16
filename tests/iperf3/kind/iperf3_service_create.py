@@ -15,7 +15,7 @@ iperf3DestPort  = "30001"
 folCl=f"{proj_dir}/tests/iperf3/manifests/iperf3-client"
 folSv=f"{proj_dir}/tests/iperf3/manifests/iperf3-server"
     
-def setIperf3client(mbgName,srcSvc):
+def setIperf3client(mbgName, mbgctlName,srcSvc):
     printHeader(f"Create {srcSvc} (client) service in {mbgName}")
     useKindCluster(mbgName)
     runcmd(f"kind load docker-image mlabbe/iperf3 --name={mbgName}")
@@ -23,9 +23,9 @@ def setIperf3client(mbgName,srcSvc):
     waitPod(srcSvc)
     srcSvcIp =getPodIp(srcSvc)
     mbgctlPod =getPodName("mbgctl")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl addService --id {srcSvc} --ip {srcSvcIp}')
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add service --myid {mbgctlName} --id {srcSvc} --target {srcSvcIp}')
 
-def setIperf3Server(mbgName,destSvc):
+def setIperf3Server(mbgName, mbgctlName, destSvc):
     printHeader(f"Add {destSvc} (server) service in {mbgName}")
     useKindCluster(mbgName)
     runcmd(f"kind load docker-image mlabbe/iperf3 --name={mbgName}")
@@ -35,7 +35,7 @@ def setIperf3Server(mbgName,destSvc):
     destSvcIp = f"{getPodIp(destSvc)}:5000"
     destkindIp=getKindIp(mbgName)
     mbgctlPod =getPodName("mbgctl")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl addService --id {destSvc} --ip {destSvcIp} --description iperf3-server')
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add service --myid {mbgctlName} --id {destSvc} --target {destSvcIp} --description iperf3-server')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":

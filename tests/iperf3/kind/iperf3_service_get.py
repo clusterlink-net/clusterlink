@@ -10,11 +10,11 @@ sys.path.insert(0,f'{proj_dir}')
 from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodName
 from tests.utils.kind.kindAux import useKindCluster
 
-def getService(mbgName):
+def getService(mbgName, mbgctlName):
     useKindCluster(mbgName)
     mbgctlPod = getPodName("mbgctl")
     printHeader(f"\n\Query service from {mbgName}")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl getService')
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl get service  --myid {mbgctlName}')
     
 
 
@@ -28,10 +28,11 @@ if __name__ == "__main__":
     
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
-    
+
     ### build Kind clusters environment 
     if mbg in ["mbg1", "mbg2","mbg3"]:
-        getService(mbg)
+        mbgctlName     = mbg[:-1]+"ctl"+ mbg[-1]
+        getService(mbg, mbgctlName)
     else:
         print("mbg value should be mbg1, mbg2 or mbg3")
 

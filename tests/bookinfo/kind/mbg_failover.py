@@ -16,22 +16,23 @@ destSvc  = "reviews"
     
 
 #MBG3 parameters 
-mbg             = "mbg3"
 mbg3DataPort    = "30001"
 mbg3cPort       = "30443"
 mbg3cPortLocal  = "8443"
 mbg3crtFlags    = "--rootCa ./mtls/ca.crt --certificate ./mtls/mbg3.crt --key ./mtls/mbg3.key"
 mbg3Name        = "mbg3"
+mbgctl3Name     = "mbgctl3"
+
 destSvc      = "reviews"
     
 
-def exposeService(mbgName,destSvc):
+def exposeService(mbgName, mbgCtlName, destSvc):
     mbgctlPod = getPodName("mbgctl")
     printHeader(f"\n\nStart exposing {destSvc} service to {mbgName}")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl expose --serviceId {destSvc}')
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl expose --myid {mbgCtlName} --service {destSvc}')
 
 
-def applyFail(mbg,type):
+def applyFail(mbg, mbgctlName, type):
     useKindCluster(mbg)
     mPod=getPodName("mbg-")
     print(mPod)
@@ -46,7 +47,7 @@ def applyFail(mbg,type):
         runcmdb(f'kubectl exec -i {mPod} -- ./mbg start --id "{mbg3Name}" --ip {mbgKindIp} --cport {mbg3cPort} --cportLocal {mbg3cPortLocal}  --externalDataPortRange {mbg3DataPort}\
     --dataplane mtls {mbg3crtFlags} --startPolicyEngine {True} --restore {True}')
         time.sleep(2)
-        exposeService(mbg,destSvc)
+        exposeService(mbg, mbgctlName, destSvc)
 
 
 from tests.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName
@@ -64,5 +65,5 @@ if __name__ == "__main__":
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
 
-    applyFail(mbg,type)
+    applyFail(mbg3Name, mbgctl3Name, type)
     

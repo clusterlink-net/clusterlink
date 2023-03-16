@@ -56,7 +56,7 @@ func GetId() string {
 	return s.Id
 }
 
-func SetState(ip, id, mbgIp, caFile, certificateFile, keyFile, dataplane string) {
+func SetState(ip, id, mbgIp, caFile, certificateFile, keyFile, dataplane string) error {
 	s.Id = id
 	s.IP = ip
 	s.MbgIP = mbgIp
@@ -65,11 +65,13 @@ func SetState(ip, id, mbgIp, caFile, certificateFile, keyFile, dataplane string)
 	s.KeyFile = keyFile
 	s.CaFile = caFile
 
-	SaveState()
+	return SaveState(s.Id)
 }
 
-func UpdateState() {
-	s = readState()
+func UpdateState(id string) error {
+	var err error
+	s, err = readState(id)
+	return err
 }
 
 //Return Function fields
@@ -81,18 +83,18 @@ func GetService(id string) MbgctlService {
 	return val
 }
 
-func AddService(id, ip, description string) {
+func AddService(mId, id, ip, description string) {
 	if s.Services == nil {
 		s.Services = make(map[string]MbgctlService)
 	}
 
 	s.Services[id] = MbgctlService{Service: service.Service{id, ip, description}}
-	SaveState()
+	SaveState(mId)
 }
-func DelService(id string) {
+func DelService(mId, id string) {
 	if _, ok := s.Services[id]; ok {
 		delete(s.Services, id)
-		SaveState()
+		SaveState(mId)
 		fmt.Printf("Service %v deleted\n", id)
 		return
 	} else {
@@ -105,28 +107,28 @@ func (s *MbgctlState) Print() {
 	fmt.Printf("Services %v", s.Services)
 }
 
-func AssignPolicyDispatcher(targetUrl string) {
+func AssignPolicyDispatcher(mId, targetUrl string) error {
 	s.PolicyDispatcherTarget = targetUrl
-	SaveState()
+	return SaveState(mId)
 }
 
 func GetPolicyDispatcher() string {
 	return s.PolicyDispatcherTarget
 }
 
-func AddOpenConnection(svcId, svcIdDest string, pId int) {
+func AddOpenConnection(mId, svcId, svcIdDest string, pId int) {
 	s.OpenConnections[svcId+":"+svcIdDest] = OpenConnection{SvcId: svcId, SvcIdDest: svcIdDest, PId: pId}
-	SaveState()
+	SaveState(mId)
 	log.Info(s.OpenConnections)
 }
 
-func CloseOpenConnection(svcId, svcIdDest string) {
+func CloseOpenConnection(mId, svcId, svcIdDest string) {
 	val, ok := s.OpenConnections[svcId+":"+svcIdDest]
 	if ok {
 		delete(s.OpenConnections, svcId+":"+svcIdDest)
 		syscall.Kill(val.PId, syscall.SIGINT)
 		log.Infof("[%v]: Delete connection: %v", s.Id, val)
-		SaveState()
+		SaveState(mId)
 	}
 }
 
@@ -169,8 +171,12 @@ func GetHttpClient() http.Client {
 }
 
 /// Json code ////
-func configPath() string {
-	cfgFile := ".mbgctl"
+func configPath(id string) string {
+	cfgFile := ".mbgctl_" + id
+	if id == "" {
+		cfgFile = ".mbgctl"
+	}
+
 	//set cfg file in home directory
 	usr, _ := user.Current()
 	return path.Join(usr.HomeDir, cfgFile)
@@ -181,14 +187,23 @@ func configPath() string {
 
 }
 
-func SaveState() {
-	jsonC, _ := json.MarshalIndent(s, "", "\t")
-	ioutil.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
+func SaveState(id string) error {
+	jsonC, err := json.MarshalIndent(s, "", "\t")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(configPath(id), jsonC, 0644) // os.ModeAppend)
 }
 
-func readState() MbgctlState {
-	data, _ := ioutil.ReadFile(configPath())
+func readState(id string) (MbgctlState, error) {
+	data, err := ioutil.ReadFile(configPath(id))
+	if err != nil {
+		return MbgctlState{}, err
+	}
 	var s MbgctlState
-	json.Unmarshal(data, &s)
-	return s
+	err = json.Unmarshal(data, &s)
+	if err != nil {
+		return MbgctlState{}, err
+	}
+	return s, nil
 }

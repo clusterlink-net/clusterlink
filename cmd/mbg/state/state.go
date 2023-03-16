@@ -210,6 +210,16 @@ func InactivateMbg(mbg string) {
 	SaveState()
 }
 
+func RemoveMbg(mbg string) {
+	mbgArrMutex.Lock()
+	delete(s.MbgArr, mbg)
+	delete(s.InactiveMbgArr, mbg)
+	mbgArrMutex.Unlock()
+	RemoveMbgFromServiceMap(mbg)
+	PrintState()
+	SaveState()
+}
+
 func ActivateMbg(mbgId string) {
 	log.Infof("Activating MBG %s", mbgId)
 	peerResp, err := s.MyEventManager.RaiseAddPeerEvent(eventManager.AddPeerAttr{PeerMbg: mbgId})
@@ -287,7 +297,7 @@ func GetMbgTarget(id string) string {
 		mbgArrMutex.RUnlock()
 		return mbgI.Ip + mbgI.Cport.External
 	} else {
-		log.Infof("Peer(%s)  is not exist", id)
+		log.Infof("Peer(%s) does not exist", id)
 		return ""
 	}
 
@@ -307,6 +317,13 @@ func IsMbgPeer(id string) bool {
 	return ok
 }
 
+func IsMbgInactivePeer(id string) bool {
+	mbgArrMutex.RLock()
+	_, ok := s.InactiveMbgArr[id]
+	mbgArrMutex.RUnlock()
+	return ok
+}
+
 func GetMyMbgCerts() (string, string, string) {
 	return s.MyInfo.CaFile, s.MyInfo.CertificateFile, s.MyInfo.KeyFile
 }
@@ -320,6 +337,7 @@ func AddMbgNbr(id, ip, cport string) {
 	mbgArrMutex.Lock()
 	if _, ok := s.MbgArr[id]; ok {
 		log.Infof("Neighbor already added %s", id)
+		mbgArrMutex.Unlock()
 		return
 	}
 	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ServicePort{External: cport, Local: ""}}
@@ -469,8 +487,8 @@ func AddRemoteService(id, ip, description, MbgId string) {
 		_, exist := exists(mbgs, MbgId)
 		if !exist {
 			s.RemoteServiceMap[id] = append(mbgs, MbgId)
+			s.RemoteServices[id] = append(s.RemoteServices[id], svc)
 		}
-		s.RemoteServices[id] = append(s.RemoteServices[id], svc)
 	} else {
 		s.RemoteServiceMap[id] = []string{MbgId}
 		s.RemoteServices[id] = []RemoteService{svc}
@@ -516,6 +534,7 @@ func RemoveMbgFromService(svcId, mbg string, mbgs []string) {
 	for idx, reSvc := range s.RemoteServices[svcId] {
 		if reSvc.MbgId == mbg {
 			s.RemoteServices[svcId] = append((s.RemoteServices[svcId])[:idx], (s.RemoteServices[svcId])[idx+1:]...)
+			break
 		}
 	}
 

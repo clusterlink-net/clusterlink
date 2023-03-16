@@ -1,10 +1,13 @@
 package mbgControlplane
 
 import (
+	"encoding/json"
+
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/protocol"
+	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 )
 
 var plog = logrus.WithField("component", "mbgControlPlane/Peer")
@@ -50,4 +53,29 @@ func GetPeer(peerID string) protocol.PeerRequest {
 		return protocol.PeerRequest{}
 	}
 
+}
+
+func RemovePeer(p protocol.PeerRemoveRequest) {
+	//Update MBG state
+	state.UpdateState()
+
+	err := state.GetEventManager().RaiseRemovePeerEvent(eventManager.RemovePeerAttr{PeerMbg: p.Id})
+	if err != nil {
+		plog.Errorf("Unable to raise connection request event")
+		return
+	}
+	if p.Propagate {
+		// Remove this MBG from the remove MBG's peer list
+		peerIP := state.GetMbgTarget(p.Id)
+		address := state.GetAddrStart() + peerIP + "/peer/" + state.GetMyId()
+		j, err := json.Marshal(protocol.PeerRemoveRequest{Id: state.GetMyId(), Propagate: false})
+		if err != nil {
+			return
+		}
+		httpAux.HttpDelete(address, j, state.GetHttpClient())
+	}
+
+	// Remove remote MBG from current MBG's peer
+	state.RemoveMbg(p.Id)
+	RemoveLastSeen(p.Id)
 }

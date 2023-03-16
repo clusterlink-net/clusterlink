@@ -11,19 +11,19 @@ srcSvc   = "firefox"
 destSvc  = "openspeedtest"
     
     
-def applyPolicy(mbg,type,srcSvc=srcSvc,destSvc=destSvc ):
+def applyPolicy(mbg, mbgctlName, type,srcSvc=srcSvc,destSvc=destSvc ):
     if mbg in ["mbg1","mbg3"]:
         useKindCluster(mbg)
         mbgctlPod=getPodName("mbgctl")
         if type == "deny":
             printHeader(f"Block Traffic in {mbg}")          
-            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command acl_add --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority 0 --action 1')
+            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --command acl_add --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority 0 --action 1')
         elif type == "allow":
             printHeader(f"Allow Traffic in {mbg}")
-            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command acl_del --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority 0 --action 1')
+            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --command acl_del --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority 0 --action 1')
         elif type == "show":
             printHeader(f"Show Policies in {mbg}")
-            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl policy --command show')
+            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --command show')
 
         else:
             print("Unknown command")
@@ -32,10 +32,10 @@ def applyPolicy(mbg,type,srcSvc=srcSvc,destSvc=destSvc ):
         mbgctl2Pod=getPodName("mbgctl")
         if type == "deny":
             printHeader("Block Traffic in MBG2")
-            runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl policy --command acl_add --mbgDest mbg3 --priority 0 --action 1')
+            runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add policy --myid {mbgctlName} --command acl_add --mbgDest mbg3 --priority 0 --action 1')
         elif type == "allow":
             printHeader("Allow Traffic in MBG2")
-            runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl policy --command acl_del --mbgDest mbg3 --priority 0 --action 1')
+            runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add policy --myid {mbgctlName} --command acl_del --mbgDest mbg3 --priority 0 --action 1')
         else:
             print("Unknown command")
 
@@ -53,13 +53,11 @@ if __name__ == "__main__":
 
     mbg = args["mbg"]
     type = args["type"]
-    #MBG parameters 
-    mbg1Name ="mbg1"
-    mbg2Name = "mbg2"
-    mbg3Name = "mbg3"
-    
+    mbgctlName = mbg[:-1]+"ctl"+ mbg[-1]
+
+
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
 
-    applyPolicy(mbg,type)
+    applyPolicy(mbg, mbgctlName, type)
     

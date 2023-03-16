@@ -18,43 +18,39 @@ const (
 )
 
 //Helper gunction for get response
-func HttpGet(url string, cl http.Client) []byte {
+func HttpGet(url string, cl http.Client) ([]byte, error) {
 	resp, err := cl.Get(url)
 	if err != nil {
-		log.Errorln("Get Response", err)
-		return []byte(RESPFAIL)
+		return []byte(RESPFAIL), err
 	}
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Errorln("Get buffer read Response", err)
-		return []byte(RESPFAIL)
+		return []byte(RESPFAIL), err
 	}
 	//Convert the body to type string
-	return body
+	return body, nil
 }
 
-func HttpPost(url string, jsonData []byte, cl http.Client) []byte {
+func HttpPost(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 
 	resp, err := cl.Post(url, "application/json",
 		bytes.NewBuffer(jsonData))
 
 	if err != nil {
-		log.Errorln("Post Response", err)
-		return []byte(RESPFAIL)
+		return []byte(RESPFAIL), err
 	}
 
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Errorln("Post buffer read Response", err)
-		return []byte(RESPFAIL)
+		return []byte(RESPFAIL), err
 	}
 
-	return body
+	return body, nil
 }
 
-func HttpDelete(url string, jsonData []byte, cl http.Client) []byte {
+func HttpDelete(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 
 	req, err := http.NewRequest(http.MethodDelete, url, bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
@@ -62,18 +58,16 @@ func HttpDelete(url string, jsonData []byte, cl http.Client) []byte {
 	resp, err := cl.Do(req)
 
 	if err != nil {
-		log.Errorln("HttpDelete req:", err)
-		return []byte(RESPFAIL)
+		return []byte(RESPFAIL), err
 	}
 
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Errorln("HttpDelete Read:", err)
-		return []byte(RESPFAIL)
+		return []byte(RESPFAIL), err
 	}
 
-	return body
+	return body, nil
 }
 
 func HttpConnect(address, url string, jsonData string) (net.Conn, error) {
@@ -89,7 +83,6 @@ func HttpConnect(address, url string, jsonData string) (net.Conn, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		log.Errorln("Connect resp: ", resp.StatusCode)
 		return nil, fmt.Errorf("Connect resp: %v", resp.StatusCode)
 	} else {
 		return c, nil

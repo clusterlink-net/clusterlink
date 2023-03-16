@@ -25,7 +25,7 @@ func (m MbgHandler) peerPost(w http.ResponseWriter, r *http.Request) {
 
 	//Response
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write([]byte("Expose succeed"))
+	_, err = w.Write([]byte("Add Peer succeed"))
 	if err != nil {
 		log.Println(err)
 	}
@@ -66,6 +66,25 @@ func (m MbgHandler) peerGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, err = w.Write(jsonResp)
+	if err != nil {
+		log.Println(err)
+	}
+}
+func (m MbgHandler) peerRemove(w http.ResponseWriter, r *http.Request) {
+
+	//phrase add peer struct from request
+	var p protocol.PeerRemoveRequest
+	err := json.NewDecoder(r.Body).Decode(&p)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	//RemovePeer control plane logic
+	mbgControlplane.RemovePeer(p)
+
+	//Response
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write([]byte("Remove Peer succeed"))
 	if err != nil {
 		log.Println(err)
 	}

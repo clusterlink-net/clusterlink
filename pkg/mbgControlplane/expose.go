@@ -58,7 +58,7 @@ func ExposeReq(svcExp service.Service, mbgId, cType string) {
 		return
 	}
 	//Send expose
-	resp := httpAux.HttpPost(address, j, state.GetHttpClient())
+	resp, err := httpAux.HttpPost(address, j, state.GetHttpClient())
 	mlog.Infof("Service(%s) Expose Response message:  %s", svcExp.Id, string(resp))
 	if string(resp) != httpAux.RESPFAIL {
 		state.AddPeerLocalService(svcExp.Id, mbgId)

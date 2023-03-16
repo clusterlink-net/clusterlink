@@ -29,6 +29,12 @@ func updateLastSeen(mbgId string) {
 	mbgLastSeenMutex.Unlock()
 }
 
+func RemoveLastSeen(mbgId string) {
+	mbgLastSeenMutex.Lock()
+	delete(mbgLastSeen, mbgId)
+	mbgLastSeenMutex.Unlock()
+}
+
 func getLastSeen(mbgId string) (time.Time, bool) {
 	mbgLastSeenMutex.RLock()
 	lastSeen, ok := mbgLastSeen[mbgId]
@@ -39,13 +45,15 @@ func getLastSeen(mbgId string) (time.Time, bool) {
 func validateMBGs(mbgId string) {
 	ok := state.IsMbgPeer(mbgId)
 	if !ok {
-		klog.Infof("Update state before activating MBG %s", mbgId)
-		state.UpdateState()
-		ok = state.IsMbgPeer(mbgId)
-		if !ok {
+		// klog.Infof("Update state before activating MBG %s", mbgId)
+		// state.UpdateState()
+		// ok = state.IsMbgPeer(mbgId)
+		// if !ok {
+		// Activate MBG only if its present in inactive list
+		if state.IsMbgInactivePeer(mbgId) {
 			state.ActivateMbg(mbgId)
-			return
 		}
+		//}
 	}
 }
 
@@ -62,9 +70,9 @@ func SendHeartBeats() error {
 		mList := state.GetMbgList()
 		for _, m := range mList {
 			url := state.GetAddrStart() + state.GetMbgTarget(m) + "/hb"
-			resp := httpAux.HttpPost(url, j, state.GetHttpClient())
+			_, err := httpAux.HttpPost(url, j, state.GetHttpClient())
 
-			if string(resp) == httpAux.RESPFAIL {
+			if err != nil {
 				klog.Errorf("Unable to send heartbeat to %s", url)
 				continue
 			}

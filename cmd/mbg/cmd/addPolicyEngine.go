@@ -1,13 +1,8 @@
-/*
-Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.ibm.com/mbg-agent/cmd/mbg/state"
-	"github.ibm.com/mbg-agent/pkg/policyEngine"
+	api "github.ibm.com/mbg-agent/pkg/api"
 )
 
 // addPolicyCmd represents the addPolicy command
@@ -16,15 +11,11 @@ var addPolicyEngineCmd = &cobra.Command{
 	Short: "add the policy engine",
 	Long:  `add the policy engine`,
 	Run: func(cmd *cobra.Command, args []string) {
+		mId, _ := cmd.Flags().GetString("myid")
 		target, _ := cmd.Flags().GetString("target")
 		start, _ := cmd.Flags().GetBool("start")
-
-		state.UpdateState()
-		state.GetEventManager().AssignPolicyDispatcher("http://" + target + "/policy")
-		state.SaveState()
-		if start {
-			policyEngine.StartPolicyDispatcher(state.GetChiRouter(), target)
-		}
+		m := api.Mbg{mId}
+		m.AddPolicyEngine(target, start)
 	},
 }
 
