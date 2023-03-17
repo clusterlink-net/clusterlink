@@ -27,7 +27,7 @@ from tests.utils.kind.kindAux import useKindCluster, getKindIp,startKindClusterM
 ############################### MAIN ##########################
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
-    parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="tcp")
+    parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="mtls")
     parser.add_argument('-c','--cni', help='Which cni to use default(kindnet)/flannel/calico/diff (different cni for each cluster)', required=False, default="default")
 
     args = vars(parser.parse_args())
@@ -94,23 +94,23 @@ if __name__ == "__main__":
     # Add MBG Peer
     useKindCluster(mbg2Name)
     printHeader("Add MBG2 peer to MBG1")
-    connectMbgs(mbg2Name, mbgctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
+    connectMbgs(mbg2Name, mbgctl2Name, mbgctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
 
     # Send Hello
-    sendHello(mbgctl2Pod)        
+    sendHello(mbgctl2Pod, mbgctl2Name)        
 
     
     # Set service iperf3-client in MBG1
-    setIperf3client(mbg1Name, srcSvc)
+    setIperf3client(mbg1Name, mbgctl1Name, srcSvc)
     
     # Set service iperf3-server in MBG2
-    setIperf3Server(mbg2Name,destSvc)
+    setIperf3Server(mbg2Name, mbgctl2Name,destSvc)
 
     #Expose destination service
-    exposeService(mbg2Name,destSvc)
+    exposeService(mbg2Name, mbgctl2Name, destSvc)
 
     #Get services
-    getService(mbg1Name)
+    getService(mbg1Name, mbgctl1Name)
     
     #Testing
     printHeader("\n\nStart Iperf3 testing")

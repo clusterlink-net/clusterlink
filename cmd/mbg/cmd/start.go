@@ -31,8 +31,8 @@ var startCmd = &cobra.Command{
 		startPolicyEngine, _ := cmd.Flags().GetBool("startPolicyEngine")
 		policyEngineTarget, _ := cmd.Flags().GetString("policyEngineIp")
 		restore, _ := cmd.Flags().GetBool("restore")
-		logFile, _ := cmd.Flags().GetString("logFile")
-
+		logFile, _ := cmd.Flags().GetBool("logFile")
+		logLevel, _ := cmd.Flags().GetString("logLevel")
 		if ip == "" || id == "" || cport == "" {
 			fmt.Println("Error: please insert all flag arguments for Mbg start command")
 			os.Exit(1)
@@ -44,14 +44,14 @@ var startCmd = &cobra.Command{
 				fmt.Println("Error: Please specify policyEngineTarget")
 				os.Exit(1)
 			}
-			m, _ = api.RestoreMbg(id, policyEngineTarget, startPolicyEngine)
+			m, _ = api.RestoreMbg(id, policyEngineTarget, logLevel, logFile, startPolicyEngine)
 			log.Infof("Restoring MBG")
 			state.PrintState()
 			m.StartMbg()
 		}
 
 		m, err = api.CreateMbg(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, dataplane,
-			caFile, certificateFile, keyFile, logFile, restore)
+			caFile, certificateFile, keyFile, logLevel, logFile, restore)
 		if err != nil {
 			fmt.Printf("Unable to create MBG:%+v", err)
 		}
@@ -82,5 +82,7 @@ func init() {
 	startCmd.Flags().Bool("startPolicyEngine", false, "Start policy engine in port")
 	startCmd.Flags().String("policyEngineIp", "localhost:9990", "Set the policy engine ip")
 	startCmd.Flags().Bool("restore", false, "Restore existing stored MBG states")
-	startCmd.Flags().String("logFile", "", "Path where MBG logs would be stored")
+	startCmd.Flags().Bool("logFile", true, "Save the outputs to file")
+	startCmd.Flags().String("logLevel", "info", "Log level: debug, info, warning, error")
+
 }

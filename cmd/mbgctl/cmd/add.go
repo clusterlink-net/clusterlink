@@ -42,7 +42,7 @@ var peerCmd = &cobra.Command{
 			fmt.Printf("Failed to add peer :%v", err)
 			return
 		}
-		fmt.Printf("Peer added successfully")
+		fmt.Printf("Peer added successfully\n")
 	},
 }
 

@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"os"
 	"os/user"
 	"path"
 	"strconv"
@@ -91,7 +92,10 @@ var s = mbgState{MyInfo: MbgInfo{},
 var stopCh = make(map[string]chan bool)
 
 const (
-	ConnExist = "connection already setup"
+	ConnExist     = "connection already setup"
+	ProjectFolder = "/.mbg/"
+	LogFile       = "mbg.log"
+	DBFile        = "mbgApp"
 )
 
 func GetMyIp() string {
@@ -161,6 +165,7 @@ func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDat
 	s.MyInfo.KeyFile = key
 	s.MyInfo.Dataplane = dataplane
 	log = logrus.WithField("component", s.MyInfo.Id)
+	CreateProjectfolder()
 	SaveState()
 }
 
@@ -613,16 +618,55 @@ func PrintState() {
 	log.Infof("****************************")
 }
 
-/// Json code ////
+/** logfile **/
+func CreateProjectfolder() string {
+	usr, _ := user.Current()
+	fol := path.Join(usr.HomeDir, ProjectFolder)
+	//Create folder
+	err := os.MkdirAll(fol, 0755)
+	if err != nil {
+		log.Println(err)
+	}
+	return fol
+}
+
+func SetLog(logLevel string, logfile bool) {
+	fol := CreateProjectfolder()
+	if logfile {
+		f, err := os.OpenFile(path.Join(fol, LogFile), os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+		fmt.Printf("Creating log file: %v\n", path.Join(fol, LogFile))
+		if err != nil {
+			fmt.Printf("error opening file: %v", err)
+		}
+		// assign it to the standard logger
+		logrus.SetOutput(f)
+	}
+	//Set logrus
+	ll, err := logrus.ParseLevel(logLevel)
+	if err != nil {
+		ll = logrus.ErrorLevel
+	}
+	logrus.SetLevel(ll)
+	logrus.SetFormatter(&logrus.TextFormatter{
+		ForceColors:     true,
+		FullTimestamp:   true,
+		TimestampFormat: "2006-01-02 15:04:05",
+		PadLevelText:    true,
+		DisableQuote:    true,
+	},
+	)
+}
+
+func GetLogFile() string {
+	usr, _ := user.Current()
+	return path.Join(usr.HomeDir, ProjectFolder, LogFile)
+}
+
+/** Database **/
 func configPath() string {
-	cfgFile := ".mbgApp"
 	//set cfg file in home directory
 	usr, _ := user.Current()
-	return path.Join(usr.HomeDir, cfgFile)
-
-	//set cfg file in the git
-	//_, filename, _, _ := runtime.Caller(1)
-	//return path.Join(path.Dir(filename), cfgFile)
+	return path.Join(usr.HomeDir, ProjectFolder, DBFile)
 
 }
 

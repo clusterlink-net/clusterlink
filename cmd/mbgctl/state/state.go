@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"os/user"
 	"path"
 	"syscall"
@@ -18,6 +19,11 @@ import (
 )
 
 var log = logrus.WithField("component", "mbgctl")
+
+const (
+	ProjectFolder = "/.mbg/"
+	DBFile        = "mbgctl"
+)
 
 type MbgctlState struct {
 	MbgIP                  string `json:"MbgIP"`
@@ -64,7 +70,7 @@ func SetState(ip, id, mbgIp, caFile, certificateFile, keyFile, dataplane string)
 	s.CertificateFile = certificateFile
 	s.KeyFile = keyFile
 	s.CaFile = caFile
-
+	CreateProjectfolder()
 	return SaveState(s.Id)
 }
 
@@ -170,21 +176,28 @@ func GetHttpClient() http.Client {
 	}
 }
 
+/** logfile **/
+func CreateProjectfolder() string {
+	usr, _ := user.Current()
+	fol := path.Join(usr.HomeDir, ProjectFolder)
+	//Create folder
+	err := os.MkdirAll(fol, 0755)
+	if err != nil {
+		log.Println(err)
+	}
+	return fol
+}
+
 /// Json code ////
 func configPath(id string) string {
-	cfgFile := ".mbgctl_" + id
-	if id == "" {
-		cfgFile = ".mbgctl"
+	cfgFile := DBFile
+	if id != "" {
+		cfgFile += "_" + id
 	}
 
 	//set cfg file in home directory
 	usr, _ := user.Current()
-	return path.Join(usr.HomeDir, cfgFile)
-
-	//set cfg file in the git
-	//_, filename, _, _ := runtime.Caller(1)
-	//return path.Join(path.Dir(filename), cfgFile)
-
+	return path.Join(usr.HomeDir, ProjectFolder, cfgFile)
 }
 
 func SaveState(id string) error {

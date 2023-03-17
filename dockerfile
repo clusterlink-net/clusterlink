@@ -23,3 +23,5 @@ WORKDIR /
 COPY --from=0  /mbg/bin/mbg /mbg
 COPY --from=0  /mbg/bin/mbgctl /mbgctl
 COPY ./tests/utils/mtls /mtls
+# Create the .mbg folder
+RUN mkdir -p /root/.mbg/

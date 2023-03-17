@@ -8,7 +8,7 @@ if __name__ == "__main__":
     parser.add_argument('-m','--mbg', help='MBG pod name', required=True, default="")
     args = vars(parser.parse_args())
 
-    mbgJson=json.loads(sp.getoutput(f'kubectl exec -i {args["mbg"]} -- cat ./root/.mbgApp'))
+    mbgJson=json.loads(sp.getoutput(f'kubectl exec -i {args["mbg"]} -- cat ./root/.mbg/mbgApp'))
     localPort =(mbgJson["Connections"][args["service"]]["Local"]).split(":")[1]
     externalPort =(mbgJson["Connections"][args["service"]]["External"]).split(":")[1]
     

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
 	event "github.ibm.com/mbg-agent/pkg/eventManager"
@@ -181,46 +182,46 @@ func (m *Mbgctl) GetLocalService(id string) (service.Service, error) {
 	return service.Service{Id: s.Id, Ip: s.Ip, Description: s.Description}, nil
 }
 
-func (m *Mbgctl) GetRemoteService(id string) ([]service.Service, error) {
+func (m *Mbgctl) GetRemoteService(id string) ([]protocol.ServiceRequest, error) {
 	state.UpdateState(m.Id)
 	mbgIP := state.GetMbgIP()
 
 	address := state.GetAddrStart() + mbgIP + "/remoteservice/" + id
 	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
 	if err != nil {
-		return []service.Service{}, err
+		return []protocol.ServiceRequest{}, err
 	}
-	sArr := make(map[string]protocol.ServiceRequest)
+	var sArr []protocol.ServiceRequest
 	if err := json.Unmarshal(resp, &sArr); err != nil {
-		return []service.Service{}, err
+		return []protocol.ServiceRequest{}, err
 	}
-	var serviceArr []service.Service
-	for _, s := range sArr {
-		serviceArr = append(serviceArr, service.Service{Id: s.Id, Ip: s.Ip, Description: s.Description})
+	for i, s := range sArr {
+		ip := strings.Split(mbgIP, ":")[0] + s.Ip
+		sArr[i].Ip = ip
 	}
-	return serviceArr, nil
+	return sArr, nil
 }
 
-func (m *Mbgctl) GetRemoteServices() ([]service.Service, error) {
+func (m *Mbgctl) GetRemoteServices() (map[string][]protocol.ServiceRequest, error) {
 	state.UpdateState(m.Id)
 	mbgIP := state.GetMbgIP()
 
 	address := state.GetAddrStart() + mbgIP + "/remoteservice/"
 	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
 	if err != nil {
-		return []service.Service{}, err
+		return nil, err
 	}
 	sArr := make(map[string][]protocol.ServiceRequest)
 	if err := json.Unmarshal(resp, &sArr); err != nil {
-		return []service.Service{}, err
+		return nil, err
 	}
-	var serviceArr []service.Service
-	for _, sA := range sArr {
-		for _, s := range sA {
-			serviceArr = append(serviceArr, service.Service{Id: s.Id, Ip: s.Ip, Description: s.Description})
+	for i, sA := range sArr {
+		for j, s := range sA {
+			ip := strings.Split(mbgIP, ":")[0] + s.Ip
+			sArr[i][j].Ip = ip
 		}
 	}
-	return serviceArr, nil
+	return sArr, nil
 }
 
 func (m *Mbgctl) RemovePeer(id string) error {

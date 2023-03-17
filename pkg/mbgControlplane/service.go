@@ -137,8 +137,8 @@ func GetAllRemoteServices() map[string][]protocol.ServiceRequest {
 func convertRemoteService2RemoteReq(svcId string) []protocol.ServiceRequest {
 	sArr := []protocol.ServiceRequest{}
 	for _, s := range state.GetRemoteService(svcId) {
-		sPort := state.GetConnectionArr()[s.Service.Id].External
-		sIp := state.GetMyIp() + sPort
+		sPort := state.GetConnectionArr()[s.Service.Id].Local
+		sIp := sPort
 		sArr = append(sArr, protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, MbgID: s.MbgId, Description: s.Service.Description})
 	}
 	return sArr

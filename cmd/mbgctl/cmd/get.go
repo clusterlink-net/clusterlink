@@ -46,6 +46,7 @@ var serviceGetCmd = &cobra.Command{
 		serviceId, _ := cmd.Flags().GetString("id")
 		serviceType, _ := cmd.Flags().GetString("type")
 		m := api.Mbgctl{mId}
+		i := 1
 		if serviceId == "" {
 			if serviceType == "local" {
 				sArr, err := m.GetLocalServices()
@@ -53,14 +54,24 @@ var serviceGetCmd = &cobra.Command{
 					fmt.Printf("Unable to get local services: %v", err)
 					return
 				}
-				fmt.Printf("Local Services :%+v", sArr)
+				fmt.Printf("Local services:\n")
+				for _, s := range sArr {
+					fmt.Printf("%d) Service ID: %s IP: %s Description: %s\n", i, s.Id, s.Ip, s.Description)
+					i++
+				}
 			} else {
 				sArr, err := m.GetRemoteServices()
 				if err != nil {
 					fmt.Printf("Unable to get remote services: %v", err)
 					return
 				}
-				fmt.Printf("Remote Services :%+v", sArr)
+				fmt.Printf("Remote Services:\n")
+				for _, sA := range sArr {
+					for _, s := range sA {
+						fmt.Printf("%d) Service ID: %s Local IP: %s Remote MBGID: %s Description: %s\n", i, s.Id, s.Ip, s.MbgID, s.Description)
+						i++
+					}
+				}
 			}
 		} else {
 			if serviceType == "local" {
@@ -76,7 +87,9 @@ var serviceGetCmd = &cobra.Command{
 					fmt.Printf("Unable to get remote service: %v", err)
 					return
 				}
-				fmt.Printf("Remote Service :%+v", sArr)
+				for _, s := range sArr {
+					fmt.Printf("Remote service ID: %s with Local IP: %s Remote MBGID %s Description %s \n", s.Id, s.Ip, s.MbgID, s.Description)
+				}
 			}
 		}
 	},

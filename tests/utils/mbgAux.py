@@ -55,7 +55,7 @@ def printHeader(msg):
     #print(msg)
 
 def getMbgPorts(podMbg, destSvc):
-    mbgJson =sp.getoutput(f' kubectl exec -i {podMbg} -- cat ./root/.mbgApp')
+    mbgJson =sp.getoutput(f' kubectl exec -i {podMbg} -- cat ./root/.mbg/mbgApp')
     mbgJson=json.loads(mbgJson)
     localPort =(mbgJson["Connections"][destSvc]["Local"]).split(":")[1]
     externalPort =(mbgJson["Connections"][destSvc]["External"]).split(":")[1]

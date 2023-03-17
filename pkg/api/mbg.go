@@ -96,19 +96,10 @@ func initLogger(logLevel string, op *os.File) {
 }
 
 func CreateMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, dataplane,
-	caFile, certificateFile, keyFile, logFile string, restore bool) (Mbg, error) {
+	caFile, certificateFile, keyFile, logLevel string, logFile, restore bool) (Mbg, error) {
 
+	state.SetLog(logLevel, logFile)
 	state.SetState(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
-	var logger = os.Stderr
-	var err error
-	if logFile != "" {
-		logger, err = os.Create(logFile)
-		if err != nil {
-			return Mbg{}, err
-		}
-	}
-
-	initLogger("info", logger)
 
 	if dataplane == "mtls" {
 		go startMtlsServer(":"+cportLocal, caFile, certificateFile, keyFile)
@@ -119,9 +110,10 @@ func CreateMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalData
 	return Mbg{id}, nil
 }
 
-func RestoreMbg(id string, policyEngineTarget string, startPolicyEngine bool) (Mbg, error) {
+func RestoreMbg(id string, policyEngineTarget, logLevel string, logFile, startPolicyEngine bool) (Mbg, error) {
 
 	state.UpdateState()
+	state.SetLog(logLevel, logFile)
 	m := Mbg{state.GetMyId()}
 	if startPolicyEngine {
 		go m.AddPolicyEngine(policyEngineTarget, true)
