@@ -51,7 +51,9 @@ docker-build: docker-build-mbg
 proto-build:
 	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative pkg/protocol/protocol.proto
 
-
+install:
+	cp ./bin/mbgctl /usr/local/bin/
+	cp ./bin/mbg /usr/local/bin/
 #------------------------------------------------------
 # Run Targets
 #------------------------------------------------------
@@ -68,7 +70,7 @@ run-kind-bookinfo:
 	python3 tests/bookinfo/kind/test.py -d mtls
 
 #------------------------------------------------------
-# Clena targets
+# Clean targets
 #------------------------------------------------------
 clean-kind-iperf3:
 	kind delete cluster --name=mbg1
