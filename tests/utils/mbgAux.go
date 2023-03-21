@@ -158,8 +158,8 @@ func GetPodNameIp(name string) (string, string) {
 }
 
 func CreateK8sSvc(name, port string) {
-	RunCmd("kubectl create service clusterip " + name + " --tcp={" + port + "}:{" + port + "}")
-	RunCmd("kubectl patch service" + name + " -p " + "'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}'")
+	RunCmd("kubectl create service clusterip " + name + " --tcp=" + port + ":" + port)
+	RunCmd("kubectl patch service " + name + " -p " + "{\"spec\":{\"selector\":{\"app\":\"mbg\"}}}")
 }
 
 // func createK8sService(name, namespace, selectorKey, selectorValue string, port, targetPort int32) error {

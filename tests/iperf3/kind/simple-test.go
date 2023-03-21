@@ -59,28 +59,28 @@ func main() {
 	log.Print("Clean old kinds")
 	mbgAux.RunCmd("make clean-kind")
 
-	/// build docker environment
+	// build docker environment
 	mbgAux.PrintHeader("Build docker image")
 	mbgAux.RunCmd("make docker-build")
 	kindAux.CreateKindMbg(mbg1Name, dataplane)
 	kindAux.CreateKindMbg(mbg2Name, dataplane)
+
 	// //get parameters
 	mbg1Ip, _ := kindAux.GetKindIp(mbg1Name)
 	mbg2Ip, _ := kindAux.GetKindIp(mbg2Name)
 
 	//set mbgctl
-	mbgctl1, err := api.CreateMbgctl("127.0.0.1", mbgctl1Name, mbg1Ip+":"+mbg1cPort, mtlsFolder+mbgCaCrt, mtlsFolder+mbg1crt, mtlsFolder+mbg1key, dataplane)
+	mbgctl1, err := api.CreateMbgctl(mbgctl1Name, mbg1Ip+":"+mbg1cPort, mtlsFolder+mbgCaCrt, mtlsFolder+mbg1crt, mtlsFolder+mbg1key, dataplane)
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
 
-	mbgctl2, err := api.CreateMbgctl("127.0.0.1", mbgctl2Name, mbg2Ip+":"+mbg2cPort, mtlsFolder+mbgCaCrt, mtlsFolder+mbg2crt, mtlsFolder+mbg2key, dataplane)
+	mbgctl2, err := api.CreateMbgctl(mbgctl2Name, mbg2Ip+":"+mbg2cPort, mtlsFolder+mbgCaCrt, mtlsFolder+mbg2crt, mtlsFolder+mbg2key, dataplane)
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
-
 	//Add Peer
 	mbgctl1.AddPeer(mbg2Name, mbg2Ip, mbg2cPort)
 	mbgctl1.SendHello()
@@ -97,6 +97,9 @@ func main() {
 	mbgctl2.AddService(destSvc, destSvcIp, "iperf3 server")
 	log.Println(srcSvcPod, destSvcPod)
 
+	//Expose service
+	mbgAux.PrintHeader("Start expose")
+	kindAux.UseKindCluster(mbg2Name)
 	mbgctl2.ExposeService(destSvc)
 	svc, _ := mbgctl1.GetRemoteServices()
 	log.Println(svc[destSvc])
