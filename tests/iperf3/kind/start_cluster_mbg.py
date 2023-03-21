@@ -18,7 +18,8 @@ if __name__ == "__main__":
     parser.add_argument('-m','--mbg', help='Either mbg1/mbg2/mbg3', required=False, default="mbg1")
     parser.add_argument('-b','--build', help='Build Image', required=False, default=False)
     parser.add_argument('-c','--cni', help='Which cni to use default(kindnet)/flannel/calico', required=False, default="default")
-    parser.add_argument('-fg','--fg', help='Run MBg command in fg', action="store_true", default=True)
+    parser.add_argument('-fg','--fg', help='Run MBg command in fg', action="store_true", default=False)
+    parser.add_argument('-noLog','--nologFile', help='Print output to the screen', action="store_true", default=False)
 
     args = vars(parser.parse_args())
 
@@ -27,7 +28,7 @@ if __name__ == "__main__":
     build     = args["build"]
     runInfg   = args["fg"]
     cni       = args["cni"]
-
+    logFile   = not args["nologFile"]
 
     #MBG parameters 
     mbgDataPort    = "30001"
@@ -37,7 +38,6 @@ if __name__ == "__main__":
     mbgctlName     = mbg[:-1]+"ctl"+ mbg[-1]
     
     print("Starting mbg ("+mbg+") with dataplane "+ dataplane)
-    
         
     #print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     
     ### build Kind clusters environment 
     if mbg in ["mbg1", "mbg2","mbg3"]:
-        startKindClusterMbg(mbg, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg,cni=cni)        
+        startKindClusterMbg(mbg, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg,cni=cni,logFile=logFile)        
     else:
         print("mbg value should be mbg1, mbg2 or mbg3")
 

@@ -32,7 +32,7 @@ def getKindIp(name):
     return ip
 
 
-def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg=False,cni="default"):
+def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg=False,cni="default", logFile=True):
     os.system(f"kind delete cluster --name={mbgName}")
     ###first Mbg
     printHeader(f"\n\nStart building {mbgName}")
@@ -46,7 +46,7 @@ def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPor
     
     printHeader(f"\n\nStart {mbgName} (along with PolicyEngine)")
     startcmd= f'{podMbg} -- ./mbg start --id "{mbgName}" --ip {mbgKindIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --externalDataPortRange {mbgDataPort}\
-    --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine {True}'
+    --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine {True} --logFile {logFile}'
     
     if runInfg:
         runcmd("kubectl exec -it " + startcmd)

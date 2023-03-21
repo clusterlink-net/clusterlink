@@ -251,7 +251,7 @@ func ActivateMbg(mbgId string) {
 	SaveState()
 }
 
-//Return Function fields
+// Return Function fields
 func GetLocalService(id string) LocalService {
 	val, ok := s.MyServices[id]
 	if !ok {
@@ -449,8 +449,7 @@ func FreeUpPorts(connectionID string) {
 
 func AddLocalService(id, ip, description string) {
 	if _, ok := s.MyServices[id]; ok {
-		log.Infof("Local Service already added %s", id)
-		return
+		log.Infof("Local Service already added %s", id) //Allow overwrite service
 	}
 	s.MyServices[id] = LocalService{Service: service.Service{Id: id, Ip: ip, Description: description}}
 	log.Infof("Adding local service: %s", id)
