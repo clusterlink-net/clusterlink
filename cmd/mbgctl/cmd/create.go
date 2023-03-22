@@ -10,8 +10,7 @@ var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "A start command set all parameter state of mbgctl (mbg control)",
 	Long: `A start command set all parameter state of mbgctl (mbg control)-
-			1) The MBG that the mbgctl is connected
-			2) The IP of the mbgctl
+			The MBG that the mbgctl is connected, BY default the policy engine will be same as MBG ip
 			TBD now is done manually need to call some external `,
 	Run: func(cmd *cobra.Command, args []string) {
 		id, _ := cmd.Flags().GetString("id")
