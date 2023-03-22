@@ -64,6 +64,7 @@ func SetState(id, mbgIp, caFile, certificateFile, keyFile, dataplane string) err
 	s.CertificateFile = certificateFile
 	s.KeyFile = keyFile
 	s.CaFile = caFile
+	s.PolicyDispatcherTarget = GetAddrStart() + mbgIp + "/policy"
 	CreateProjectfolder()
 	return SaveState(s.Id)
 }
@@ -74,7 +75,7 @@ func UpdateState(id string) error {
 	return err
 }
 
-//Return Function fields
+// Return Function fields
 func GetService(id string) MbgctlService {
 	val, ok := s.Services[id]
 	if !ok {
@@ -182,7 +183,7 @@ func CreateProjectfolder() string {
 	return fol
 }
 
-/// Json code ////
+// / Json code ////
 func configPath(id string) string {
 	cfgFile := DBFile
 	if id != "" {
