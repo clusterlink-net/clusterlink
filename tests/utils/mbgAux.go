@@ -245,8 +245,9 @@ func readOutput(pipe io.Reader) {
 		if n > 0 {
 			fmt.Print(string(buf[:n]))
 		}
+
 		if err != nil {
-			if err != io.EOF && err != io.ErrClosedPipe {
+			if err != io.EOF && err != io.ErrClosedPipe && !strings.Contains(err.Error(), "file already closed") {
 				log.Error("Error reading output:", err, err.Error())
 			}
 			break

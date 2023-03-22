@@ -20,7 +20,7 @@ def applyPolicy(mbg, mbgctlName, type, srcSvc=srcSvc,destSvc=destSvc ):
             runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority 0 --action 1')
         elif type == "allow":
             printHeader(f"Allow Traffic in {mbg}")
-            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --myid {mbgctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc}')
+            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --myid {mbgctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2')
         elif type == "show":
             printHeader(f"Show Policies in {mbg}")
             runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl get policy --myid {mbgctlName}')
