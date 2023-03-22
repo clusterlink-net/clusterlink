@@ -15,6 +15,7 @@ import (
 )
 
 var plog = logrus.WithField("component", "PolicyEngine")
+var MyPolicyHandler PolicyHandler
 
 type MbgState struct {
 	mbgPeers *[]string
@@ -27,8 +28,8 @@ type PolicyHandler struct {
 	mbgState        MbgState
 }
 
-func (pH PolicyHandler) Routes() chi.Router {
-	r := chi.NewRouter()
+func (pH PolicyHandler) Routes(r *chi.Mux) chi.Router {
+
 	r.Get("/", pH.policyWelcome)
 
 	r.Route("/"+event.NewConnectionRequest, func(r chi.Router) {
@@ -301,7 +302,7 @@ func (pH PolicyHandler) policyWelcome(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 }
-func (pH PolicyHandler) init(router *chi.Mux, ip string) {
+func (pH PolicyHandler) init(router *chi.Mux) {
 	pH.SubscriptionMap = make(map[string][]string)
 	pH.mbgState.mbgPeers = &([]string{})
 	policyList1 := []string{"AccessControl", "LoadBalancer"}
@@ -319,23 +320,14 @@ func (pH PolicyHandler) init(router *chi.Mux, ip string) {
 
 	plog.Infof("Subscription Map - %+v", pH.SubscriptionMap)
 
-	routes := pH.Routes()
+	routes := pH.Routes(router)
 
 	router.Mount("/policy", routes)
 
-	//Use router to start the server
-	plog.Infof("Starting HTTP server, listening to: %v", ip)
-	err := http.ListenAndServe(ip, router)
-	if err != nil {
-		log.Println(err)
-	}
 }
 
-func StartPolicyDispatcher(router *chi.Mux, ip string) {
+func StartPolicyDispatcher(router *chi.Mux) {
 	plog.Infof("Policy Engine started")
-
-	var myPolicyHandler PolicyHandler
-
-	myPolicyHandler.init(router, ip)
+	MyPolicyHandler.init(router)
 
 }

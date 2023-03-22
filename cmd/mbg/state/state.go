@@ -683,7 +683,9 @@ func SaveState() {
 
 func readState() mbgState {
 	data, _ := ioutil.ReadFile(configPath())
-	var s mbgState
-	json.Unmarshal(data, &s)
-	return s
+	var state mbgState
+	json.Unmarshal(data, &state)
+	//Don't change part of the Fields
+	state.MyEventManager.HttpClient = s.MyEventManager.HttpClient
+	return state
 }

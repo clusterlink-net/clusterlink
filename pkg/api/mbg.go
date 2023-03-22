@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -21,15 +20,12 @@ type Mbg struct {
 }
 
 func (m *Mbg) AddPolicyEngine(policyEngineTarget string, start bool) {
-	state.GetEventManager().AssignPolicyDispatcher("http://" + policyEngineTarget + "/policy")
+	state.GetEventManager().AssignPolicyDispatcher(state.GetAddrStart()+policyEngineTarget+"/policy", state.GetHttpClient())
 	// TODO : Handle different MBG IDs
 	state.SaveState()
-	serverPolicyIp := policyEngineTarget
-	if strings.Contains(policyEngineTarget, "localhost") {
-		serverPolicyIp = ":" + strings.Split(policyEngineTarget, ":")[1]
-	}
+
 	if start {
-		policyEngine.StartPolicyDispatcher(state.GetChiRouter(), serverPolicyIp)
+		policyEngine.StartPolicyDispatcher(state.GetChiRouter())
 	}
 }
 
@@ -116,7 +112,7 @@ func RestoreMbg(id string, policyEngineTarget, logLevel string, logFile, startPo
 	state.SetLog(logLevel, logFile)
 	m := Mbg{state.GetMyId()}
 	if startPolicyEngine {
-		go m.AddPolicyEngine(policyEngineTarget, true)
+		go m.AddPolicyEngine(state.GetMyIp()+":"+state.GetMyCport().Local, true)
 	}
 
 	if state.GetDataplane() == "mtls" {
