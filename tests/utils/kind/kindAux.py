@@ -32,7 +32,29 @@ def getKindIp(name):
     return ip
 
 
-def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg=False,cni="default", logFile=True):
+def startKindClusterMbgOnly(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg=False,cni="default"):
+    os.system(f"kind delete cluster --name={mbgName}")
+    ###first Mbg
+    printHeader(f"\n\nStart building {mbgName}")
+    mbgKindIp           = BuildKindCluster(mbgName,cni)
+    podMbg, podMbgIp    = buildMbg(mbgName)
+    runcmd(f"kubectl create service nodeport mbg --tcp={mbgcPortLocal}:{mbgcPortLocal} --node-port={mbgcPort}")
+    runcmd(f"kubectl create service nodeport policy --tcp={9990}:{9990} --node-port={30444}")
+
+    printHeader(f"\n\nStart {mbgName} (along with PolicyEngine)")
+    startcmd= f'{podMbg} -- ./mbg start --id "{mbgName}" --ip {mbgKindIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --externalDataPortRange {mbgDataPort}\
+    --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine {True} --policyEngineIp {podMbgIp}:{mbgcPortLocal}'
+    
+    if runInfg:
+        runcmd("kubectl exec -it " + startcmd)
+    else:
+        runcmdb("kubectl exec -i " + startcmd)
+
+def startMbgctl(mbgctlName, mbgIP, mbgcPort, dataplane, mbgctlcrt):
+    runcmd(f'mbgctl create --id {mbgctlName} --mbgIP {mbgIP}:{mbgcPort}  --dataplane {dataplane} {mbgctlcrt} ')
+    runcmd(f'mbgctl add policyengine --myid {mbgctlName} --target {mbgIP}:{mbgcPort}')
+
+def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg=False,cni="default"):
     os.system(f"kind delete cluster --name={mbgName}")
     ###first Mbg
     printHeader(f"\n\nStart building {mbgName}")
@@ -46,6 +68,7 @@ def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPor
     printHeader(f"\n\nStart {mbgName} (along with PolicyEngine)")
     startcmd= f'{podMbg} -- ./mbg start --id "{mbgName}" --ip {mbgKindIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --externalDataPortRange {mbgDataPort}\
     --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine {True} --logFile {logFile}'
+    
     
     if runInfg:
         runcmd("kubectl exec -it " + startcmd)
