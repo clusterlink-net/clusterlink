@@ -44,6 +44,7 @@ if __name__ == "__main__":
     mbg1cPortLocal  = "8443"
     mbg1Name        = "mbg1"
     mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    mbgctl1crt    = f"--rootCa {crtFol}/ca.crt --certificate {crtFol}/mbg1.crt --key {crtFol}/mbg1.key"  if dataplane =="mtls" else ""
     mbgctl1Name     = "mbgctl1"
 
     
@@ -53,6 +54,7 @@ if __name__ == "__main__":
     mbg2cPort       = "30443"
     mbg2cPortLocal  = "8443"
     mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    mbgctl2crt    = f"--rootCa {crtFol}/ca.crt --certificate {crtFol}/mbg2.crt --key {crtFol}/mbg2.key"  if dataplane =="mtls" else ""
     mbg2Name        = "mbg2"
     mbgctl2Name     = "mbgctl2"
 
@@ -61,6 +63,7 @@ if __name__ == "__main__":
     mbg3cPort       = "30443"
     mbg3cPortLocal  = "8443"
     mbg3crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg3.crt --key ./mtls/mbg3.key"  if dataplane =="mtls" else ""
+    mbgctl3crt    = f"--rootCa {crtFol}/ca.crt --certificate {crtFol}/mbg3.crt --key {crtFol}/mbg3.key"  if dataplane =="mtls" else ""
     mbg3Name        = "mbg3"
     mbgctl3Name     = "mbgctl3"
     
@@ -109,9 +112,9 @@ if __name__ == "__main__":
 
 
     # Start mbgctl
-    startMbgctl(mbgctl1Name, mbg1Ip, mbg1cPort, dataplane, mbg1crtFlags)
-    startMbgctl(mbgctl2Name, mbg2Ip, mbg2cPort, dataplane, mbg1crtFlags)
-    startMbgctl(mbgctl3Name, mbg3Ip, mbg3cPort, dataplane, mbg1crtFlags)
+    startMbgctl(mbgctl1Name, mbg1Ip, mbg1cPort, dataplane, mbgctl1crt)
+    startMbgctl(mbgctl2Name, mbg2Ip, mbg2cPort, dataplane, mbgctl2crt)
+    startMbgctl(mbgctl3Name, mbg3Ip, mbg3cPort, dataplane, mbgctl3crt)
 
 
     # Add MBG Peer
