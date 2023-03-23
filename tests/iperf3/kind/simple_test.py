@@ -118,5 +118,5 @@ if __name__ == "__main__":
     waitPod("iperf3-server")
     
     #Test MBG1
-    directTestIperf3(mbg1Name, srcSvc, destSvc,destkindIp,iperf3DestPort)
+    directTestIperf3(mbg1Name, srcSvc, destkindIp, iperf3DestPort)
     testIperf3Client(mbg1Name,srcSvc,destSvc)

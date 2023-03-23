@@ -95,6 +95,38 @@ var serviceGetCmd = &cobra.Command{
 	},
 }
 
+var policyGetCmd = &cobra.Command{
+	Use:   "policy",
+	Short: "Get policy list from the MBG",
+	Long:  `Get policy list from the MBG (ACL and LB)`,
+	Run: func(cmd *cobra.Command, args []string) {
+		mId, _ := cmd.Flags().GetString("myid")
+		m := api.Mbgctl{mId}
+
+		rules, err := m.GetACLPolicies()
+		if err != nil {
+			fmt.Printf("Unable to get ACL Policies %v\n", err)
+		} else {
+			fmt.Printf("MBG ACL rules\n")
+			for r, v := range rules {
+				fmt.Printf("[Match]: %v [Action]: %v\n", r, v)
+			}
+		}
+
+		lPolicies, err := m.GetLBPolicies()
+		if err != nil {
+			fmt.Printf("Unable to Get LB Policies %v\n", err)
+		} else {
+			fmt.Printf("MBG Load-balancing policies\n")
+			for d, val := range lPolicies {
+				for s, p := range val {
+					fmt.Printf("ServiceSrc: %v ServiceDst: %v Policy: %v\n", s, d, p)
+				}
+			}
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(getCmd)
 	// Get Peer
@@ -106,4 +138,7 @@ func init() {
 	serviceGetCmd.Flags().String("myid", "", "MBGCtl Id")
 	serviceGetCmd.Flags().String("id", "", "service id field")
 	serviceGetCmd.Flags().String("type", "remote", "service type : remote/local")
+	// Get policy
+	getCmd.AddCommand(policyGetCmd)
+	policyGetCmd.Flags().String("myid", "", "MBGCtl Id")
 }

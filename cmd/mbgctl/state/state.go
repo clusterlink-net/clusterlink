@@ -27,7 +27,6 @@ const (
 
 type MbgctlState struct {
 	MbgIP                  string `json:"MbgIP"`
-	IP                     string `json:"IP"`
 	Id                     string `json:"Id"`
 	CaFile                 string
 	CertificateFile        string
@@ -48,28 +47,24 @@ type OpenConnection struct {
 	PId       int
 }
 
-var s = MbgctlState{MbgIP: "", IP: "", Id: "", Services: make(map[string]MbgctlService), OpenConnections: make(map[string]OpenConnection)}
+var s = MbgctlState{MbgIP: "", Id: "", Services: make(map[string]MbgctlService), OpenConnections: make(map[string]OpenConnection)}
 
 func GetMbgIP() string {
 	return s.MbgIP
-}
-
-func GetIP() string {
-	return s.IP
 }
 
 func GetId() string {
 	return s.Id
 }
 
-func SetState(ip, id, mbgIp, caFile, certificateFile, keyFile, dataplane string) error {
+func SetState(id, mbgIp, caFile, certificateFile, keyFile, dataplane string) error {
 	s.Id = id
-	s.IP = ip
 	s.MbgIP = mbgIp
 	s.Dataplane = dataplane
 	s.CertificateFile = certificateFile
 	s.KeyFile = keyFile
 	s.CaFile = caFile
+	s.PolicyDispatcherTarget = GetAddrStart() + mbgIp + "/policy"
 	CreateProjectfolder()
 	return SaveState(s.Id)
 }
@@ -80,7 +75,7 @@ func UpdateState(id string) error {
 	return err
 }
 
-//Return Function fields
+// Return Function fields
 func GetService(id string) MbgctlService {
 	val, ok := s.Services[id]
 	if !ok {
@@ -109,7 +104,7 @@ func DelService(mId, id string) {
 }
 
 func (s *MbgctlState) Print() {
-	fmt.Printf("Id: %v ip: %v mbgip: %v", s.Id, s.IP, s.MbgIP)
+	fmt.Printf("Id: %v,  mbgTarget: %v", s.Id, s.MbgIP)
 	fmt.Printf("Services %v", s.Services)
 }
 
@@ -188,7 +183,7 @@ func CreateProjectfolder() string {
 	return fol
 }
 
-/// Json code ////
+// / Json code ////
 func configPath(id string) string {
 	cfgFile := DBFile
 	if id != "" {

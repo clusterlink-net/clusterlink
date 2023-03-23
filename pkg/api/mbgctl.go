@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
@@ -34,8 +33,8 @@ const (
 	show    = "show"
 )
 
-func CreateMbgctl(ip, id, mbgIP, caFile, certificateFile, keyFile, dataplane string) (Mbgctl, error) {
-	err := state.SetState(ip, id, mbgIP, caFile, certificateFile, keyFile, dataplane)
+func CreateMbgctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane string) (Mbgctl, error) {
+	err := state.SetState(id, mbgIP, caFile, certificateFile, keyFile, dataplane)
 	if err != nil {
 		return Mbgctl{}, err
 	}
@@ -62,7 +61,7 @@ func (m *Mbgctl) AddPolicyEngine(target string) error {
 	if err != nil {
 		return err
 	}
-	return state.AssignPolicyDispatcher(m.Id, "http://"+target+"/policy")
+	return state.AssignPolicyDispatcher(m.Id, state.GetAddrStart()+target+"/policy")
 }
 
 func (m *Mbgctl) AddService(id, target, description string) error {
@@ -279,7 +278,6 @@ func (m *Mbgctl) RemoveRemoteService(serviceId, serviceMbg string) {
 func (m *Mbgctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action, command int) error {
 	state.UpdateState(m.Id)
 	url := state.GetPolicyDispatcher() + "/" + acl
-	httpClient := http.Client{}
 	switch command {
 	case Add:
 		url += "/add"
@@ -292,7 +290,7 @@ func (m *Mbgctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest str
 	if err != nil {
 		return err
 	}
-	_, err = httpAux.HttpPost(url, jsonReq, httpClient)
+	_, err = httpAux.HttpPost(url, jsonReq, state.GetHttpClient())
 	return err
 }
 
@@ -307,22 +305,19 @@ func (m *Mbgctl) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine
 	default:
 		return fmt.Errorf("unknow command")
 	}
-	httpClient := http.Client{}
-
 	jsonReq, err := json.Marshal(policyEngine.LoadBalancerRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, Policy: policy, DefaultMbg: mbgDest})
 	if err != nil {
 		return err
 	}
-	_, err = httpAux.HttpPost(url, jsonReq, httpClient)
+	_, err = httpAux.HttpPost(url, jsonReq, state.GetHttpClient())
 	return err
 }
 
 func (m *Mbgctl) GetACLPolicies() (policyEngine.ACL, error) {
 	state.UpdateState(m.Id)
 	var rules policyEngine.ACL
-	httpClient := http.Client{}
 	url := state.GetPolicyDispatcher() + "/" + acl
-	resp, err := httpAux.HttpGet(url, httpClient)
+	resp, err := httpAux.HttpGet(url, state.GetHttpClient())
 	if err != nil {
 		return make(policyEngine.ACL), err
 	}
@@ -337,9 +332,8 @@ func (m *Mbgctl) GetACLPolicies() (policyEngine.ACL, error) {
 func (m *Mbgctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBalancer, error) {
 	state.UpdateState(m.Id)
 	var policies map[string]map[string]policyEngine.PolicyLoadBalancer
-	httpClient := http.Client{}
 	url := state.GetPolicyDispatcher() + "/" + lb
-	resp, err := httpAux.HttpGet(url, httpClient)
+	resp, err := httpAux.HttpGet(url, state.GetHttpClient())
 	if err != nil {
 		return make(map[string]map[string]policyEngine.PolicyLoadBalancer), err
 	}

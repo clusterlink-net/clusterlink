@@ -9,7 +9,7 @@ import tempfile
 
 mbgctlAddress=",".join(f"DNS:mbgctl{x}" for x in range(0,10))
 mbgAddress=",".join(f"DNS:mbg{x}" for x in range(0,10))
-address=mbgctlAddress +","+ mbgAddress
+address=mbgctlAddress +","+ mbgAddress+","+"DNS:localhost"
 subject_alt_name = f"subjectAltName={address}"
 print(subject_alt_name)
 with tempfile.NamedTemporaryFile(mode="w") as temp:

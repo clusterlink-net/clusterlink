@@ -53,9 +53,7 @@ def mbgSetup(mbg, dataplane, mbgcrtFlags,mbgctlName, mbgIp ,mbgcPort="443" ,mbgc
   print("\n\nStart MBG (along with PolicyEngine)")
   runcmdb(f'kubectl exec -i {mbgPod} -- ./mbg start --id {mbg.name} --ip {mbgIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine {True}')
   destMbgIp = f"{mbgPodIp}:{mbgcPortLocal}" 
-
-  runcmd(f'kubectl exec -it {mbgctlPod} -- ./mbgctl start --id {mbgctlName}  --ip {mbgctlPodIp}  --mbgIP {destMbgIp} --dataplane {dataplane} {mbgcrtFlags}')
-  runcmd(f'kubectl exec -it {mbgctlPod} -- ./mbgctl addPolicyEngine --target {mbgPodIp}:9990')
+  runcmd(f'kubectl exec -it {mbgctlPod} -- ./mbgctl create --id {mbgctlName}  --mbgIP {destMbgIp} --dataplane {dataplane} {mbgcrtFlags}')
 
 
 

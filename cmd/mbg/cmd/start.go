@@ -10,7 +10,7 @@ import (
 	api "github.ibm.com/mbg-agent/pkg/api"
 )
 
-/// startCmd represents the start command
+// / startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "A start command set all parameter state of the Multi-cloud Border Gateway",
@@ -57,10 +57,9 @@ var startCmd = &cobra.Command{
 		}
 
 		if startPolicyEngine {
-			go m.AddPolicyEngine(policyEngineTarget, true)
-		} else {
-			m.AddPolicyEngine(policyEngineTarget, false)
+			m.AddPolicyEngine("localhost:"+cportLocal, true)
 		}
+
 		state.PrintState()
 
 		m.StartMbg()
@@ -80,7 +79,7 @@ func init() {
 	startCmd.Flags().String("key", "", "Path to the Key File (.pem)")
 	startCmd.Flags().String("dataplane", "mtls", "tcp/mtls based data-plane proxies")
 	startCmd.Flags().Bool("startPolicyEngine", false, "Start policy engine in port")
-	startCmd.Flags().String("policyEngineIp", "localhost:9990", "Set the policy engine ip")
+	startCmd.Flags().String("policyEngineIp", "", "Set the policy engine ip")
 	startCmd.Flags().Bool("restore", false, "Restore existing stored MBG states")
 	startCmd.Flags().Bool("logFile", true, "Save the outputs to file")
 	startCmd.Flags().String("logLevel", "info", "Log level: debug, info, warning, error")

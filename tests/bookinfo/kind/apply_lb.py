@@ -17,19 +17,19 @@ def applyPolicy(mbg, mbgctlName, type):
     mbgctlPod=getPodName("mbgctl")
     if type == "ecmp":
         printHeader(f"Set Ecmp poilicy")          
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --command lb_add --serviceDst {destSvc} --mbgDest mbg2 --policy ecmp')
+        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --type lb --serviceDst {destSvc} --mbgDest mbg2 --policy ecmp')
     elif type == "same":
         printHeader(f"Set same policy to all services")          
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --command lb_add --serviceDst {destSvc} --mbgDest mbg2 --policy static')
+        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --type lb --serviceDst {destSvc} --mbgDest mbg2 --policy static')
     elif type == "diff":
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --command lb_add --serviceSrc {srcSvc1} --serviceDst {destSvc} --mbgDest mbg2 --policy static')
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --command lb_add --serviceSrc {srcSvc2} --serviceDst {destSvc} --mbgDest mbg3 --policy static')
+        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} --mbgDest mbg2 --policy static')
+        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} --mbgDest mbg3 --policy static')
     elif type == "show":
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --command show')
+        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl get policy --myid {mbgctlName}')
     elif type == "clean":
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --command lb_del --serviceSrc {srcSvc2} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --command lb_del --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --command lb_del --serviceDst {destSvc}')
+        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --myid {mbgctlName} --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} ')
+        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --myid {mbgctlName} --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
+        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --myid {mbgctlName} --type lb --serviceDst {destSvc}')
 
 
 

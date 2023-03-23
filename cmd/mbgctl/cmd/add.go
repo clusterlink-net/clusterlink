@@ -12,11 +12,8 @@ import (
 func emptyRun(*cobra.Command, []string) {}
 
 const (
-	acl_add = "acl_add"
-	acl_del = "acl_del"
-	lb_add  = "lb_add"
-	lb_del  = "lb_del"
-	show    = "show"
+	acl = "acl"
+	lb  = "lb"
 )
 
 // updateCmd represents the update command
@@ -90,7 +87,7 @@ var PolicyAddCmd = &cobra.Command{
 	Long:  `An applyPolicy command send the MBG the policy for dedicated service.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
-		pType, _ := cmd.Flags().GetString("command")
+		pType, _ := cmd.Flags().GetString("type")
 		serviceSrc, _ := cmd.Flags().GetString("serviceSrc")
 		serviceDst, _ := cmd.Flags().GetString("serviceDst")
 		mbgDest, _ := cmd.Flags().GetString("mbgDest")
@@ -99,34 +96,14 @@ var PolicyAddCmd = &cobra.Command{
 		policy, _ := cmd.Flags().GetString("policy")
 		m := api.Mbgctl{mId}
 		switch pType {
-		case acl_add:
+		case acl:
 			m.SendACLPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), api.Add)
-		case acl_del:
-			m.SendACLPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), api.Del)
-		case lb_add:
+		case lb:
 			m.SendLBPolicy(serviceSrc, serviceDst, policyEngine.PolicyLoadBalancer(policy), mbgDest, api.Add)
-		case lb_del:
-			m.SendLBPolicy(serviceSrc, serviceDst, policyEngine.PolicyLoadBalancer(policy), mbgDest, api.Del)
-		case show:
-			rules, err := m.GetACLPolicies()
-			fmt.Printf("MBG ACL rules\n")
-			for r, v := range rules {
-				fmt.Printf("[Match]: %v [Action]: %v\n", r, v)
-			}
-			lPolicies, err := m.GetLBPolicies()
-			if err != nil {
-				fmt.Printf("Unable to Get LB Policies\n")
-			}
-			fmt.Printf("MBG Load-balancing policies\n")
-			for d, val := range lPolicies {
-				for s, p := range val {
-					fmt.Printf("ServiceSrc: %v ServiceDst: %v Policy: %v\n", s, d, p)
-				}
-			}
+
 		default:
 			fmt.Println("Unknown policy type")
 		}
-
 	},
 }
 
@@ -148,9 +125,10 @@ func init() {
 	serviceCmd.Flags().String("id", "", "Service id field")
 	serviceCmd.Flags().String("target", "", "Service IP/IP:Port/Hostname:port")
 	serviceCmd.Flags().String("description", "", "Service description")
+	// add policy
 	addCmd.AddCommand(PolicyAddCmd)
 	PolicyAddCmd.Flags().String("myid", "", "MBGCtl Id")
-	PolicyAddCmd.Flags().String("command", "", "Policy agent command (For now, acl_add/del lb_add/del/show)")
+	PolicyAddCmd.Flags().String("type", "", "Policy agent command (For now, acl,lb)")
 	PolicyAddCmd.Flags().String("serviceSrc", "*", "Name of Source Service (* for wildcard)")
 	PolicyAddCmd.Flags().String("serviceDst", "*", "Name of Dest Service (* for wildcard)")
 	PolicyAddCmd.Flags().String("mbgDest", "*", "Name of MBG the dest service belongs to (* for wildcard)")

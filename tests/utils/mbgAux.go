@@ -158,8 +158,8 @@ func GetPodNameIp(name string) (string, string) {
 }
 
 func CreateK8sSvc(name, port string) {
-	RunCmd("kubectl create service clusterip " + name + " --tcp={" + port + "}:{" + port + "}")
-	RunCmd("kubectl patch service" + name + " -p " + "'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}'")
+	RunCmd("kubectl create service clusterip " + name + " --tcp=" + port + ":" + port)
+	RunCmd("kubectl patch service " + name + " -p " + "{\"spec\":{\"selector\":{\"app\":\"mbg\"}}}")
 }
 
 // func createK8sService(name, namespace, selectorKey, selectorValue string, port, targetPort int32) error {
@@ -245,8 +245,9 @@ func readOutput(pipe io.Reader) {
 		if n > 0 {
 			fmt.Print(string(buf[:n]))
 		}
+
 		if err != nil {
-			if err != io.EOF && err != io.ErrClosedPipe {
+			if err != io.EOF && err != io.ErrClosedPipe && !strings.Contains(err.Error(), "file already closed") {
 				log.Error("Error reading output:", err, err.Error())
 			}
 			break

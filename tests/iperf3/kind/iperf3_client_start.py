@@ -43,12 +43,10 @@ def testIperf3Client(mbgName,srcSvc, destSvc, blockFlag=False):
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {mbgIp } -p {mbgLocalPort}'
     iperf3Test(cmd,blockFlag)
 
-def directTestIperf3(mbgName,srcSvc,destSvc,destkindIp,iperf3DestPort):
+def directTestIperf3(mbgName,srcSvc,destkindIp,iperf3DestPort):
     useKindCluster(mbgName)
     waitPod("iperf3-client")
     podIperf3= getPodNameApp(srcSvc)
-    mbgPod,mbgIp  = getPodNameIp("mbg")
-    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbgPod,destSvc)
     printHeader("The Iperf3 test connects directly to the destination")
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {destkindIp} -p {iperf3DestPort}'
     iperf3Test(cmd)
