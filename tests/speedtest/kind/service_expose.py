@@ -57,19 +57,17 @@ if __name__ == "__main__":
 
     #Expose service
     printHeader(f"\n\nStart exposing svc {destSvc}")
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl expose  --myid {mbgctl2Name} --service {destSvc}')
+    runcmd(f'mbgctl expose  --myid {mbgctl2Name} --service {destSvc}')
     
     #Set K8s network services
-    useKindCluster(mbg1Name)
     printHeader("\n\nStart get service")
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl get service --myid {mbgctl1Name} ')
+    runcmd(f'mbgctl get service --myid {mbgctl1Name} ')
     mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbg1Pod, destSvc)
     runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg1LocalPort}")
     runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
 
-    useKindCluster(mbg3Name)
     printHeader("\n\nStart get service")
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl get service  --myid {mbgctl3Name} ')
+    runcmd(f'mbgctl get service  --myid {mbgctl3Name} ')
     mbg3LocalPort, mbg3ExternalPort = getMbgPorts(mbg3Pod, destSvc)
     runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg3LocalPort}")
     runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
