@@ -29,7 +29,7 @@ var peerGetCmd = &cobra.Command{
 				fmt.Printf("Unable to get peers: %v", err)
 				return
 			}
-			fmt.Printf("Peers :%+v", pArr)
+			fmt.Printf("Peers :%+v\n", pArr)
 		} else {
 			m.GetPeer(peerId)
 		}
@@ -62,7 +62,7 @@ var serviceGetCmd = &cobra.Command{
 			} else {
 				sArr, err := m.GetRemoteServices()
 				if err != nil {
-					fmt.Printf("Unable to get remote services: %v", err)
+					fmt.Printf("Unable to get remote services: %v\n", err)
 					return
 				}
 				fmt.Printf("Remote Services:\n")
@@ -77,14 +77,14 @@ var serviceGetCmd = &cobra.Command{
 			if serviceType == "local" {
 				s, err := m.GetLocalService(serviceId)
 				if err != nil {
-					fmt.Printf("Unable to get local service: %v", err)
+					fmt.Printf("Unable to get local service: %v\n", err)
 					return
 				}
 				fmt.Printf("Local Service :%+v", s)
 			} else {
 				sArr, err := m.GetRemoteService(serviceId)
 				if err != nil {
-					fmt.Printf("Unable to get remote service: %v", err)
+					fmt.Printf("Unable to get remote service: %v\n", err)
 					return
 				}
 				for _, s := range sArr {
