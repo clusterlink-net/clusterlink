@@ -36,7 +36,7 @@ var peerCmd = &cobra.Command{
 		m := api.Mbgctl{mId}
 		err := m.AddPeer(id, target, cport)
 		if err != nil {
-			fmt.Printf("Failed to add peer :%v", err)
+			fmt.Printf("Failed to add peer :%v\n", err)
 			return
 		}
 		fmt.Printf("Peer added successfully\n")
@@ -53,10 +53,10 @@ var policyengineCmd = &cobra.Command{
 		m := api.Mbgctl{mId}
 		err := m.AddPolicyEngine(target)
 		if err != nil {
-			fmt.Printf("Failed to add policy engine :%v", err)
+			fmt.Printf("Failed to add policy engine :%v\n", err)
 			return
 		}
-		fmt.Printf("Policy engine added successfully")
+		fmt.Printf("Policy engine added successfully\n")
 	},
 }
 
@@ -73,10 +73,10 @@ var serviceCmd = &cobra.Command{
 		m := api.Mbgctl{mId}
 		err := m.AddService(serviceId, serviceIp, description)
 		if err != nil {
-			fmt.Printf("Failed to add service :%v", err)
+			fmt.Printf("Failed to add service :%v\n", err)
 			return
 		}
-		fmt.Printf("Service added successfully")
+		fmt.Printf("Service added successfully\n")
 	},
 }
 

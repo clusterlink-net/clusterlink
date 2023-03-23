@@ -17,13 +17,13 @@ def applyPolicy(mbg, mbgctlName, type,srcSvc=srcSvc,destSvc=destSvc ):
         mbgctlPod=getPodName("mbgctl")
         if type == "deny":
             printHeader(f"Block Traffic in {mbg}")          
-            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority 0 --action 1')
+            runcmd(f'mbgctl add policy --myid {mbgctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority 0 --action 1')
         elif type == "allow":
             printHeader(f"Allow Traffic in {mbg}")
-            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --myid {mbgctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2')
+            runcmd(f'mbgctl remove policy --myid {mbgctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2')
         elif type == "show":
             printHeader(f"Show Policies in {mbg}")
-            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl get policy --myid {mbgctlName}')
+            runcmd(f'mbgctl get policy --myid {mbgctlName}')
 
         else:
             print("Unknown command")
@@ -32,10 +32,10 @@ def applyPolicy(mbg, mbgctlName, type,srcSvc=srcSvc,destSvc=destSvc ):
         mbgctl2Pod=getPodName("mbgctl")
         if type == "deny":
             printHeader("Block Traffic in MBG2")
-            runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add policy --myid {mbgctlName} --type acl --mbgDest mbg3 --priority 0 --action 1')
+            runcmd(f'mbgctl add policy --myid {mbgctlName} --type acl --mbgDest mbg3 --priority 0 --action 1')
         elif type == "allow":
             printHeader("Allow Traffic in MBG2")
-            runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl remove policy --myid {mbgctlName} --type acl --mbgDest mbg3')
+            runcmd(f'mbgctl remove policy --myid {mbgctlName} --type acl --mbgDest mbg3')
         else:
             print("Unknown command")
 

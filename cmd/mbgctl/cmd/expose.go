@@ -18,7 +18,7 @@ var exposeCmd = &cobra.Command{
 		m := api.Mbgctl{mId}
 		err := m.ExposeService(serviceId)
 		if err != nil {
-			fmt.Printf("Failed to expose service :%v", err)
+			fmt.Printf("Failed to expose service :%v\n", err)
 			return
 		}
 	},
