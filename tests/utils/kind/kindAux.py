@@ -31,45 +31,29 @@ def getKindIp(name):
     ip = clJson["items"][0]["status"]["addresses"][0]["address"]
     return ip
 
-
-def startKindClusterMbgOnly(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg=False,cni="default", logFile=True):
-    os.system(f"kind delete cluster --name={mbgName}")
-    ###first Mbg
-    printHeader(f"\n\nStart building {mbgName}")
-    mbgKindIp           = BuildKindCluster(mbgName,cni)
-    podMbg, podMbgIp    = buildMbg(mbgName)
-    runcmd(f"kubectl create service nodeport mbg --tcp={mbgcPortLocal}:{mbgcPortLocal} --node-port={mbgcPort}")
-
-    printHeader(f"\n\nStart {mbgName} (along with PolicyEngine)")
-    startcmd= f'{podMbg} -- ./mbg start --id "{mbgName}" --ip {mbgKindIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --externalDataPortRange {mbgDataPort}\
-    --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine {True} --logFile {logFile}'
-    
-    if runInfg:
-        runcmd("kubectl exec -it " + startcmd)
-    else:
-        runcmdb("kubectl exec -i " + startcmd)
-
 def startMbgctl(mbgctlName, mbgIP, mbgcPort, dataplane, mbgctlcrt):
     runcmd(f'mbgctl create --id {mbgctlName} --mbgIP {mbgIP}:{mbgcPort}  --dataplane {dataplane} {mbgctlcrt} ')
     runcmd(f'mbgctl add policyengine --myid {mbgctlName} --target {mbgIP}:{mbgcPort}')
 
-def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg=False,cni="default", logFile=True):
+def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane, mbgcrtFlags, mbgctl=True, mbgctlLocal=True, runInfg=False, cni="default", logFile=True):
     os.system(f"kind delete cluster --name={mbgName}")
     ###first Mbg
     printHeader(f"\n\nStart building {mbgName}")
     mbgKindIp           = BuildKindCluster(mbgName,cni)
     podMbg, podMbgIp    = buildMbg(mbgName)
-    mbgctlPod, mbgctlIp = buildMbgctl(mbgctlName)
     destMbgIp          = f"{podMbgIp}:{mbgcPortLocal}"
     runcmd(f"kubectl create service nodeport mbg --tcp={mbgcPortLocal}:{mbgcPortLocal} --node-port={mbgcPort}")
-    runcmdb(f'kubectl exec -i {mbgctlPod} -- ./mbgctl create --id {mbgctlName} --mbgIP {destMbgIp}  --dataplane {dataplane} {mbgcrtFlags} ')
     
     printHeader(f"\n\nStart {mbgName} (along with PolicyEngine)")
     startcmd= f'{podMbg} -- ./mbg start --id "{mbgName}" --ip {mbgKindIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --externalDataPortRange {mbgDataPort}\
     --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine {True} --logFile {logFile}'
-    
-    
+
     if runInfg:
         runcmd("kubectl exec -it " + startcmd)
     else:
         runcmdb("kubectl exec -i " + startcmd)
+
+    if mbgctl:
+        mbgctlPod, mbgctlIp = buildMbgctl(mbgctlName)
+        runcmdb(f'kubectl exec -i {mbgctlPod} -- ./mbgctl create --id {mbgctlName} --mbgIP {destMbgIp}  --dataplane {dataplane} {mbgcrtFlags} ')
+

@@ -15,7 +15,7 @@ proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.p
 sys.path.insert(0,f'{proj_dir}')
 
 from tests.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName, waitPod,getMbgPorts,buildMbg,buildMbgctl,getPodIp,getPodNameIp
-from tests.utils.kind.kindAux import startKindClusterMbgOnly, startMbgctl, useKindCluster,getKindIp
+from tests.utils.kind.kindAux import startKindClusterMbg, startMbgctl, useKindCluster,getKindIp
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -87,13 +87,13 @@ if __name__ == "__main__":
 
     if cni == "diff":
         printHeader(f"Cluster 1: Flannel, Cluster 2: KindNet, Cluster 3: Calico")
-        startKindClusterMbgOnly(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags, False,  "flannel")
-        startKindClusterMbgOnly(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags)
-        startKindClusterMbgOnly(mbg3Name, mbgctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort, dataplane ,mbg3crtFlags, False, "calico")
+        startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags,False, False,  "flannel")
+        startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags, False)
+        startKindClusterMbg(mbg3Name, mbgctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort, dataplane ,mbg3crtFlags, False, False, "calico")
     else:
-        startKindClusterMbgOnly(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags)
-        startKindClusterMbgOnly(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags)
-        startKindClusterMbgOnly(mbg3Name, mbgctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort, dataplane ,mbg3crtFlags)
+        startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags, False)
+        startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags, False)
+        startKindClusterMbg(mbg3Name, mbgctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort, dataplane ,mbg3crtFlags, False)
     ###get mbg parameters
     useKindCluster(mbg1Name)
     mbg1Pod, _            = getPodNameIp("mbg")
