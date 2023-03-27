@@ -14,7 +14,7 @@ def getService(mbgName, mbgctlName):
     useKindCluster(mbgName)
     mbgctlPod = getPodName("mbgctl")
     printHeader(f"\n\Query service from {mbgName}")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl get service  --myid {mbgctlName}')
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl get service ')
     
 
 

@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -14,8 +15,21 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
+	SetLog()
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
+
+}
+
+func SetLog() {
+	logrus.SetFormatter(&logrus.TextFormatter{
+		ForceColors:     true,
+		FullTimestamp:   true,
+		TimestampFormat: "2006-01-02 15:04:05",
+		PadLevelText:    true,
+		DisableQuote:    true,
+	},
+	)
 }

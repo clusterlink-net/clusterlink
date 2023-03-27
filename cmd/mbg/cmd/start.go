@@ -53,7 +53,8 @@ var startCmd = &cobra.Command{
 		m, err = api.CreateMbg(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, dataplane,
 			caFile, certificateFile, keyFile, logLevel, logFile, restore)
 		if err != nil {
-			fmt.Printf("Unable to create MBG:%+v", err)
+			fmt.Println("Error: Unable to create MBG:%+v", err)
+			os.Exit(1)
 		}
 
 		if startPolicyEngine {

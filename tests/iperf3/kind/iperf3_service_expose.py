@@ -14,7 +14,7 @@ def exposeService(mbgName, mbgctlName, destSvc):
     useKindCluster(mbgName)
     mbgctlPod = getPodName("mbgctl")
     printHeader(f"\n\nStart exposing {destSvc} service to {mbgName}")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl expose  --myid {mbgctlName}  --service {destSvc}')
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl expose --service {destSvc}')
 
 
 ############################### MAIN ##########################

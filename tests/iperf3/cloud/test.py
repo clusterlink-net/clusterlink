@@ -20,7 +20,7 @@ from tests.utils.cloud.PROJECT_PARAMS import PROJECT_PATH
 import argparse
 
 mbg1gcp = cluster(name="mbg1", zone = "us-west1-b", platform = "gcp", type = "host") 
-mbg1ibm = cluster(name="mbg2", zone = "dal10",      platform = "ibm", type = "host")
+mbg1ibm = cluster(name="mbg1", zone = "dal10",      platform = "ibm", type = "host")
 mbg2gcp = cluster(name="mbg2", zone = "us-west1-b", platform = "gcp", type = "target")
 mbg2ibm = cluster(name="mbg2", zone = "dal10",      platform = "ibm", type = "target")
 
@@ -78,12 +78,12 @@ if __name__ == "__main__":
     connectToCluster(mbg2)
     mbgctl2Pod =getPodName("mbgctl")
     printHeader("Add MBG1 MBG2")
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add peer --myid {mbgctl2} --id "MBG1" --target {mbg1Ip} --port {mbgcPort}')
+    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add peer --id {mbg1.name} --target {mbg1Ip} --port {mbgcPort}')
 
             
     # Send Hello
     printHeader("Send Hello commands")
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl hello --myid {mbgctl2}')
+    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl hello')
         
     #Add services 
     connectToCluster(mbg1)
@@ -91,18 +91,18 @@ if __name__ == "__main__":
     runcmd(f"kubectl create -f {folMn}/iperf3-client/iperf3-client.yaml")
     waitPod(srcSvc)
     podIperf3 =getPodIp(srcSvc)
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add service --myid {mbgctl1} --id {srcSvc} --target {podIperf3} --description {srcSvc}')
+    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add service --id {srcSvc} --target {podIperf3} --description {srcSvc}')
     
     connectToCluster(mbg2)
     runcmd(f"kubectl create -f {folMn}/iperf3-server/iperf3.yaml")
     runcmd(f"kubectl create service nodeport iperf3-server --tcp=5000:5000 --node-port=30001")
     waitPod(destSvc)
     destSvcIp =getPodIp(destSvc)
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add service --myid {mbgctl2} --id {destSvc} --target {destSvcIp}:5000 --description {destSvc}')
+    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add service --id {destSvc} --target {destSvcIp}:5000 --description {destSvc}')
     
     #Expose destination service
     printHeader("\n\nStart exposing connection")
-    runcmdb(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl expose --myid {mbgctl2} --service {destSvc}')
+    runcmdb(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl expose --service {destSvc}')
 
     #Test MBG1
     connectToCluster(mbg1)

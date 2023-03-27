@@ -14,7 +14,7 @@ def removePeer(mbgName, mbgctlName, peerName):
     useKindCluster(mbgName)
     mbgctlPod = getPodName("mbgctl")
     printHeader(f"\n\Remove {peerName} peer to {mbgName}")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove peer --myid {mbgctlName} --id {peerName}')
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove peer --id {peerName}')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":

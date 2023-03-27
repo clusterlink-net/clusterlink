@@ -19,18 +19,18 @@ var removeCmd = &cobra.Command{
 
 var peerRemCmd = &cobra.Command{
 	Use:   "peer",
-	Short: "Add MBG peer to MBG",
-	Long:  `Add MBG peer to MBG`,
+	Short: "Remove MBG peer",
+	Long:  `Remove MBG peer`,
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
 		id, _ := cmd.Flags().GetString("id")
 		m := api.Mbgctl{mId}
 		err := m.RemovePeer(id)
 		if err != nil {
-			fmt.Printf("Failed to add peer :%v", err)
+			fmt.Printf("Failed to remove peer :%v", err)
 			return
 		}
-		fmt.Printf("Peer added successfully")
+		fmt.Printf("Peer removed successfully")
 	},
 }
 
@@ -91,7 +91,7 @@ func init() {
 	ServiceRemCmd.Flags().String("id", "", "Service id")
 	ServiceRemCmd.Flags().String("type", "local", "Service type : remote/local")
 	ServiceRemCmd.Flags().String("peer", "", "Optional Service from a remote peer")
-	// add policy
+	// remove policy
 	removeCmd.AddCommand(PolicyRemCmd)
 	PolicyRemCmd.Flags().String("myid", "", "MBGCtl Id")
 	PolicyRemCmd.Flags().String("type", "", "Policy agent command (For now, acl,lb)")

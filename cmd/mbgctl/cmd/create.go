@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/pkg/api"
 )
@@ -19,7 +21,11 @@ var createCmd = &cobra.Command{
 		certificateFile, _ := cmd.Flags().GetString("certificate")
 		dataplane, _ := cmd.Flags().GetString("dataplane")
 		keyFile, _ := cmd.Flags().GetString("key")
-
+		//Require mbgctlId
+		if !cmd.Flags().Lookup("id").Changed {
+			fmt.Println("The id flag must be set")
+			return
+		}
 		api.CreateMbgctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane)
 	},
 }

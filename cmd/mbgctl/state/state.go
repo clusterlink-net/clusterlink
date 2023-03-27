@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -56,6 +57,10 @@ func GetMbgIP() string {
 func GetId() string {
 	return s.Id
 }
+func GetState(id string) (MbgctlState, error) {
+	m, err := readState(id)
+	return m, err
+}
 
 func SetState(id, mbgIp, caFile, certificateFile, keyFile, dataplane string) error {
 	s.Id = id
@@ -66,7 +71,7 @@ func SetState(id, mbgIp, caFile, certificateFile, keyFile, dataplane string) err
 	s.CaFile = caFile
 	s.PolicyDispatcherTarget = GetAddrStart() + mbgIp + "/policy"
 	CreateProjectfolder()
-	return SaveState(s.Id)
+	return CreateState(s.Id)
 }
 
 func UpdateState(id string) error {
@@ -171,47 +176,97 @@ func GetHttpClient() http.Client {
 	}
 }
 
-/** logfile **/
+/** DB file **/
 func CreateProjectfolder() string {
 	usr, _ := user.Current()
 	fol := path.Join(usr.HomeDir, ProjectFolder)
 	//Create folder
 	err := os.MkdirAll(fol, 0755)
 	if err != nil {
-		log.Println(err)
+		log.Errorln(err)
 	}
 	return fol
 }
 
-// / Json code ////
-func configPath(id string) string {
+func mbgctlPath(id string) string {
 	cfgFile := DBFile
 	if id != "" {
 		cfgFile += "_" + id
 	}
-
 	//set cfg file in home directory
 	usr, _ := user.Current()
 	return path.Join(usr.HomeDir, ProjectFolder, cfgFile)
 }
 
+func CreateState(id string) error {
+	jsonC, err := json.MarshalIndent(s, "", "\t")
+	if err != nil {
+		log.Errorln("Mbgctl create config File", err)
+		return err
+	}
+	f := mbgctlPath(id)
+	err = ioutil.WriteFile(f, jsonC, 0644) // os.ModeAppend)
+	log.Println("create MbgCTL config File:", f)
+	if err != nil {
+		log.Errorln("Mbgctl- create config File", err)
+		return err
+	}
+	SetDefaultLink(id)
+	return nil
+}
+
 func SaveState(id string) error {
 	jsonC, err := json.MarshalIndent(s, "", "\t")
 	if err != nil {
+		log.Errorln("Mbgctl save config File", err)
 		return err
 	}
-	return ioutil.WriteFile(configPath(id), jsonC, 0644) // os.ModeAppend)
+	f := mbgctlPath(id)
+	if id == "" { //get original file
+		f, _ = os.Readlink(mbgctlPath(id))
+	}
+
+	err = ioutil.WriteFile(f, jsonC, 0644) // os.ModeAppend)
+	if err != nil {
+		log.Errorln("Mbgctl save config File", err)
+		return err
+	}
+	return nil
 }
 
 func readState(id string) (MbgctlState, error) {
-	data, err := ioutil.ReadFile(configPath(id))
+	file := mbgctlPath(id)
+	data, err := ioutil.ReadFile(file)
 	if err != nil {
+		log.Errorln("Mbgctl config File", err)
 		return MbgctlState{}, err
 	}
 	var s MbgctlState
 	err = json.Unmarshal(data, &s)
 	if err != nil {
+		log.Errorln("Mbgctl config File", err)
 		return MbgctlState{}, err
 	}
 	return s, nil
+}
+
+func SetDefaultLink(id string) error {
+	file := mbgctlPath(id)
+	link := mbgctlPath("")
+	//Check if the file exist
+	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
+		log.Errorf("Mbgctl config File with id %v is not exist\n", id)
+		return err
+	}
+	//Remove if the link exist
+	if _, err := os.Lstat(link); err == nil {
+		os.Remove(link)
+	}
+	//Create a link
+	err := os.Symlink(file, link)
+	if err != nil {
+		log.Errorln("Error creating symlink:", err)
+		return err
+	}
+	return nil
 }

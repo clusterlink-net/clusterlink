@@ -52,6 +52,7 @@ var (
 func main() {
 	// call a Python function
 	dataplane := "mtls"
+	nologfile := true
 	mbgAux.SetLog()
 	log.Println("Working directory", mbgAux.ProjDir)
 	//exec.chdir(proj_dir)
@@ -62,8 +63,8 @@ func main() {
 	// build docker environment
 	mbgAux.PrintHeader("Build docker image")
 	mbgAux.RunCmd("make docker-build")
-	kindAux.CreateKindMbg(mbg1Name, dataplane)
-	kindAux.CreateKindMbg(mbg2Name, dataplane)
+	kindAux.CreateKindMbg(mbg1Name, dataplane, nologfile)
+	kindAux.CreateKindMbg(mbg2Name, dataplane, nologfile)
 
 	// //get parameters
 	mbg1Ip, _ := kindAux.GetKindIp(mbg1Name)

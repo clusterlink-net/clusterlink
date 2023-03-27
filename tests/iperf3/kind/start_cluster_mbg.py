@@ -19,7 +19,7 @@ if __name__ == "__main__":
     parser.add_argument('-b','--build', help='Build Image', required=False, default=False)
     parser.add_argument('-c','--cni', help='Which cni to use default(kindnet)/flannel/calico', required=False, default="default")
     parser.add_argument('-fg','--fg', help='Run MBg command in fg', action="store_true", default=False)
-    parser.add_argument('-noLog','--nologFile', help='Print output to the screen', action="store_true", default=False)
+    parser.add_argument('-noLogFile','--noLogFile', help='Print output to the screen', action="store_false", default=True)
 
     args = vars(parser.parse_args())
 
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     build     = args["build"]
     runInfg   = args["fg"]
     cni       = args["cni"]
-    logFile   = not args["nologFile"]
+    logFile   = args["noLogFile"]
 
     #MBG parameters 
     mbgDataPort    = "30001"

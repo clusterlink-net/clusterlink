@@ -13,13 +13,13 @@ from tests.utils.kind.kindAux import useKindCluster, getKindIp
 # Add MBG Peer
 def connectMbgs(mbgName, mbgctlName, mbgctlPod, peerName, peerIp, peercPort):
     useKindCluster(mbgName)
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add peer --myid {mbgctlName} --id {peerName} --target {peerIp} --port {peercPort}')
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add peer  --id {peerName} --target {peerIp} --port {peercPort}')
     
 
 def sendHello(mbgctlPod, mbgctlName):
     # Send Hello
     printHeader("Send Hello commands")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl --myid {mbgctlName} hello')       
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl hello')       
 
 
 ############################### MAIN ##########################

@@ -343,3 +343,12 @@ func (m *Mbgctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadB
 	}
 	return policies, nil
 }
+
+/***** config *****/
+func (m *Mbgctl) ConfigCurrentContext() (state.MbgctlState, error) {
+	return state.GetState("")
+}
+
+func (m *Mbgctl) ConfigUseContext() error {
+	return state.SetDefaultLink(m.Id)
+}

@@ -14,7 +14,7 @@ def removeService(mbgName, mbgctlName, destSvc):
     useKindCluster(mbgName)
     mbgctlPod = getPodName("mbgctl")
     printHeader(f"\n\nDelete {destSvc} service to {mbgName}")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove service --myid {mbgctlName} --id {destSvc} --type local')
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove service --id {destSvc} --type local')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
