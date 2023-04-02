@@ -35,7 +35,7 @@ def startMbgctl(mbgctlName, mbgIP, mbgcPort, dataplane, mbgctlcrt):
     runcmd(f'mbgctl create --id {mbgctlName} --mbgIP {mbgIP}:{mbgcPort}  --dataplane {dataplane} {mbgctlcrt} ')
     runcmd(f'mbgctl add policyengine --myid {mbgctlName} --target {mbgIP}:{mbgcPort}')
 
-def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane, mbgcrtFlags, mbgctl=True, mbgctlLocal=True, runInfg=False, cni="default", logFile=True):
+def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane, mbgcrtFlags, mbgctlLocal=True, runInfg=False, cni="default", logFile=True):
     os.system(f"kind delete cluster --name={mbgName}")
     ###first Mbg
     printHeader(f"\n\nStart building {mbgName}")
@@ -53,7 +53,7 @@ def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPor
     else:
         runcmdb("kubectl exec -i " + startcmd)
 
-    if mbgctl:
+    if mbgctlLocal:
         mbgctlPod, mbgctlIp = buildMbgctl(mbgctlName)
         runcmdb(f'kubectl exec -i {mbgctlPod} -- ./mbgctl create --id {mbgctlName} --mbgIP {destMbgIp}  --dataplane {dataplane} {mbgcrtFlags} ')
 
