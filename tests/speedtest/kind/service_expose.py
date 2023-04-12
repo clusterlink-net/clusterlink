@@ -62,11 +62,13 @@ if __name__ == "__main__":
     #Set K8s network services
     printHeader("\n\nStart get service")
     runcmd(f'mbgctl get service --myid {mbgctl1Name} ')
+    useKindCluster(mbg1Name)
     mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbg1Pod, destSvc)
     runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg1LocalPort}")
     runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
 
     printHeader("\n\nStart get service")
+    useKindCluster(mbg3Name)
     runcmd(f'mbgctl get service  --myid {mbgctl3Name} ')
     mbg3LocalPort, mbg3ExternalPort = getMbgPorts(mbg3Pod, destSvc)
     runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg3LocalPort}")
