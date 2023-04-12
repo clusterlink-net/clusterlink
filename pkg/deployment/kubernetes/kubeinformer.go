@@ -22,7 +22,7 @@ var Data kubeDataInterface = &KubeData{}
 
 const (
 	kubeConfigEnvVariable = "KUBECONFIG"
-	syncTime              = 10 * time.Minute
+	syncTime              = 1 * time.Minute
 	IndexIP               = "byIP"
 	typePod               = "Pod"
 	typeService           = "Service"

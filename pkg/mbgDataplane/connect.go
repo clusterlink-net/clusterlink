@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/segmentio/ksuid"
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
+	"github.ibm.com/mbg-agent/pkg/deployment/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
@@ -141,6 +143,11 @@ func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePor
 		// Ideally do a control plane connect API, Policy checks, and then create a mTLS forwarder
 		// RemoteEndPoint has to be in the connect Request/Response
 
+		info, err := kubernetes.Data.GetInfo(strings.Split(ac.RemoteAddr().String(), ":")[0])
+		if err != nil {
+			clog.Errorf("Unable to get App Info :%+v", err)
+		}
+		clog.Infof("App Info:%+v", info)
 		localSvc, err := state.LookupLocalService(ac.RemoteAddr().String())
 		if err != nil {
 			clog.Infof("Denying Outgoing connection from: %v ,Error: %v", ac.RemoteAddr().String(), err)
