@@ -63,6 +63,7 @@ def getMbgPorts(podMbg, destSvc):
     return localPort, externalPort
 
 def buildMbg(name):
+    runcmd(f"kubectl apply -f {folMfst}/mbg/pod-reader.yaml")
     runcmd(f"kubectl create -f {folMfst}/mbg/mbg.yaml")
     waitPod("mbg")
     podMbg, mbgIp= getPodNameIp("mbg")
