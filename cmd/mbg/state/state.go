@@ -682,10 +682,12 @@ func SaveState() {
 }
 
 func readState() mbgState {
+	dataMutex.Lock()
 	data, _ := ioutil.ReadFile(configPath())
 	var state mbgState
 	json.Unmarshal(data, &state)
 	//Don't change part of the Fields
 	state.MyEventManager.HttpClient = s.MyEventManager.HttpClient
+	dataMutex.Unlock()
 	return state
 }
