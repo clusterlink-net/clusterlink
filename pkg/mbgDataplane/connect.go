@@ -134,7 +134,8 @@ func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePor
 			"component": state.GetMyId() + "-Dataplane",
 		})
 		if err != nil {
-			continue
+			clog.Infof("Accept() returned error: %v", err)
+			return err
 		}
 		clog.Infof("Receiving Outgoing connection %s->%s ", ac.RemoteAddr().String(), ac.LocalAddr().String())
 
