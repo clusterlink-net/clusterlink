@@ -456,12 +456,18 @@ func AddLocalService(id, ip, description string) {
 	PrintState()
 	SaveState()
 }
+
 func AddPeerLocalService(id, peer string) {
 	if val, ok := s.MyServices[id]; ok {
-		val.PeersExposed = append(val.PeersExposed, peer)
-		s.MyServices[id] = val
+		_, exist := exists(val.PeersExposed, peer)
+		if !exist {
+			val.PeersExposed = append(val.PeersExposed, peer)
+			s.MyServices[id] = val
+			SaveState()
+		} else {
+			log.Warnf("Peer: %s already exposed", peer)
+		}
 	}
-	SaveState()
 }
 
 func DelLocalService(id string) {
