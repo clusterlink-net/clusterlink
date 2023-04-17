@@ -150,7 +150,9 @@ func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePor
 		}
 		clog.Infof("App Label:%s", appLabel)
 		// Need to look up the label to find local service
-		// If label isnt found, Check for IP
+		// If label isnt found, Check for IP.
+		// If we cant find the service, we get the "service id" as a wildcard
+		// which is sent to the policy engine to decide.
 		localSvc, err := state.LookupLocalServiceFromLabel(appLabel)
 		if err != nil {
 			clog.Infof("Unable to find id local service for label: %v, error: %v", ac.RemoteAddr().String(), err)

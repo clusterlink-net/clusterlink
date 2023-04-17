@@ -277,6 +277,7 @@ func LookupLocalServiceFromLabel(label string) (LocalService, error) {
 			return service, nil
 		}
 	}
+	// If the local app/service is not defined, we send the name as a "wildcard"
 	return LocalService{Service: service.Service{Id: "*", Ip: "", Description: ""}}, errors.New("unable to find local service")
 }
 
@@ -288,6 +289,7 @@ func LookupLocalServiceFromIP(network string) (LocalService, error) {
 			return service, nil
 		}
 	}
+	// If the local app/service is not defined, we send the name as a "wildcard"
 	return LocalService{Service: service.Service{Id: "*", Ip: "", Description: ""}}, errors.New("unable to find local service")
 }
 func GetServiceMbgIp(Ip string) string {
