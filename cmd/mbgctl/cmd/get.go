@@ -22,7 +22,7 @@ var peerGetCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
 		peerId, _ := cmd.Flags().GetString("id")
-		m := api.Mbgctl{mId}
+		m := api.Mbgctl{Id: mId}
 		if peerId == "" {
 			pArr, err := m.GetPeers()
 			if err != nil {
@@ -45,7 +45,7 @@ var serviceGetCmd = &cobra.Command{
 		mId, _ := cmd.Flags().GetString("myid")
 		serviceId, _ := cmd.Flags().GetString("id")
 		serviceType, _ := cmd.Flags().GetString("type")
-		m := api.Mbgctl{mId}
+		m := api.Mbgctl{Id: mId}
 		i := 1
 		if serviceId == "" {
 			if serviceType == "local" {
@@ -101,7 +101,7 @@ var policyGetCmd = &cobra.Command{
 	Long:  `Get policy list from the MBG (ACL and LB)`,
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
-		m := api.Mbgctl{mId}
+		m := api.Mbgctl{Id: mId}
 
 		rules, err := m.GetACLPolicies()
 		if err != nil {
@@ -141,4 +141,5 @@ func init() {
 	// Get policy
 	getCmd.AddCommand(policyGetCmd)
 	policyGetCmd.Flags().String("myid", "", "MBGCtl Id")
+
 }

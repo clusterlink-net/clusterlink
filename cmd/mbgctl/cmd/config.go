@@ -37,7 +37,7 @@ var useContextCmd = &cobra.Command{
 	Long:  `use mbgctl context.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
-		m := api.Mbgctl{mId}
+		m := api.Mbgctl{Id: mId}
 		err := m.ConfigUseContext()
 		if err != nil {
 			fmt.Printf("Failed to use context %v: %v\n", mId, err)

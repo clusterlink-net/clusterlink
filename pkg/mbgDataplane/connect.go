@@ -38,9 +38,9 @@ func Connect(c protocol.ConnectRequest, targetMbgIP string, w http.ResponseWrite
 	}
 }
 
-//ConnectLocalService waiting for connection from host and do two things:
-//1. Create tcp connection to destination (Not Secure)- TODO support also secure connection
-//2. Register new handle function and hijack the connection
+// ConnectLocalService waiting for connection from host and do two things:
+// 1. Create tcp connection to destination (Not Secure)- TODO support also secure connection
+// 2. Register new handle function and hijack the connection
 func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (bool, string, string) {
 	clog.Infof("Received Incoming Connect request from service: %v to service: %v", c.Id, c.IdDest)
 	connectionID := c.Id + ":" + c.IdDest
@@ -48,7 +48,7 @@ func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, w htt
 	localSvc := state.GetLocalService(c.IdDest)
 	policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: c.Id, DstService: c.IdDest, Direction: eventManager.Incoming, OtherMbg: c.MbgID})
 	if err != nil {
-		clog.Errorf("Unable to raise connection request event ", state.GetMyId())
+		clog.Error("Unable to raise connection request event ", state.GetMyId())
 		return false, "", ""
 	}
 	if policyResp.Action == eventManager.Deny {
@@ -93,8 +93,8 @@ func StartMtlsProxyLocalService(localServicePort, targetMbgIPPort, remoteEndPoin
 	return nil
 }
 
-//Run server for Data connection - we have one server and client that we can add some network functions e.g: TCP-split
-//By default we just forward the data
+// Run server for Data connection - we have one server and client that we can add some network functions e.g: TCP-split
+// By default we just forward the data
 func StartTcpProxyService(svcListenPort, svcIp, policy, connName string, serverConn, clientConn net.Conn) {
 
 	srcIp := svcListenPort
@@ -137,7 +137,8 @@ func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePor
 			"component": state.GetMyId() + "-Dataplane",
 		})
 		if err != nil {
-			continue
+			clog.Infof("Accept() returned error: %v", err)
+			return err
 		}
 		clog.Infof("Receiving Outgoing connection %s->%s ", ac.RemoteAddr().String(), ac.LocalAddr().String())
 
@@ -219,7 +220,7 @@ func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePor
 	}
 }
 
-//Send control request to connect
+// Send control request to connect
 func mtlsConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, error) {
 	clog.Infof("Starting mTLS Connect Request to MBG at %v for Service %v", mbgIp, svcIdDest)
 	address := state.GetAddrStart() + mbgIp + "/connect"

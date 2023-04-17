@@ -11,7 +11,7 @@ import (
 
 var hlog = logrus.WithField("component", "mbgControlPlane/Hello")
 
-//Send hello to other mbg using HelloReq
+// Send hello to other mbg using HelloReq
 func SendHello(mbgId string) string {
 	//Update MBG state
 	MyInfo := state.GetMyInfo()
@@ -25,7 +25,7 @@ func SendHello(mbgId string) string {
 	}
 }
 
-//Send hello to all mbg peers using HelloReq
+// Send hello to all mbg peers using HelloReq
 func SendHello2All() string {
 	MyInfo := state.GetMyInfo()
 	for _, mbgId := range state.GetMbgList() {
@@ -37,7 +37,7 @@ func SendHello2All() string {
 	return httpAux.RESPOK
 }
 
-//send hello request(http) to other mbg
+// send hello request(http) to other mbg
 func HelloReq(m string, myInfo state.MbgInfo) string {
 	address := state.GetAddrStart() + state.GetMbgTarget(m) + "/peer/" + myInfo.Id
 	hlog.Infof("Sending Hello message to MBG at %v", address)

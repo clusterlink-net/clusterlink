@@ -14,7 +14,7 @@ var addPolicyEngineCmd = &cobra.Command{
 		mId, _ := cmd.Flags().GetString("myid")
 		target, _ := cmd.Flags().GetString("target")
 		start, _ := cmd.Flags().GetBool("start")
-		m := api.Mbg{mId}
+		m := api.Mbg{Id: mId}
 		m.AddPolicyEngine(target, start)
 	},
 }

@@ -24,7 +24,7 @@ var peerRemCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
 		id, _ := cmd.Flags().GetString("id")
-		m := api.Mbgctl{mId}
+		m := api.Mbgctl{Id: mId}
 		err := m.RemovePeer(id)
 		if err != nil {
 			fmt.Printf("Failed to remove peer :%v", err)
@@ -36,17 +36,21 @@ var peerRemCmd = &cobra.Command{
 
 var ServiceRemCmd = &cobra.Command{
 	Use:   "service",
-	Short: "delete local service to the MBG",
-	Long:  `delete local service to the MBG and save it also in the state of the mbgctl`,
+	Short: "delete local service from the MBG or from a MBG peer",
+	Long:  `delete local service from the MBG  and save it also in the state of the mbgctl`,
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
 		serviceId, _ := cmd.Flags().GetString("id")
 		serviceType, _ := cmd.Flags().GetString("type")
 		serviceMbg, _ := cmd.Flags().GetString("mbg")
-
-		m := api.Mbgctl{mId}
+		peer, _ := cmd.Flags().GetString("peer")
+		m := api.Mbgctl{Id: mId}
 		if serviceType == "local" {
-			m.RemoveLocalService(serviceId)
+			if peer == "" {
+				m.RemoveLocalService(serviceId)
+			} else {
+				m.RemoveLocalServiceFromPeer(serviceId, peer)
+			}
 		} else {
 			m.RemoveRemoteService(serviceId, serviceMbg)
 		}
@@ -67,7 +71,7 @@ var PolicyRemCmd = &cobra.Command{
 		policy, _ := cmd.Flags().GetString("policy")
 		priority := 0 //Doesn't matter when deleting a rule
 		action := 0   //Doesn't matter when deleting a rule
-		m := api.Mbgctl{mId}
+		m := api.Mbgctl{Id: mId}
 		switch pType {
 		case acl:
 			m.SendACLPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), api.Del)
@@ -90,7 +94,8 @@ func init() {
 	ServiceRemCmd.Flags().String("myid", "", "MBGCtl Id")
 	ServiceRemCmd.Flags().String("id", "", "Service id")
 	ServiceRemCmd.Flags().String("type", "local", "Service type : remote/local")
-	ServiceRemCmd.Flags().String("peer", "", "Optional Service from a remote peer")
+	ServiceRemCmd.Flags().String("peer", "", "Optional, allow to remove local service from a remote peer."+
+		"If this option is specified it will not remove the local service from the local MBg")
 	// remove policy
 	removeCmd.AddCommand(PolicyRemCmd)
 	PolicyRemCmd.Flags().String("myid", "", "MBGCtl Id")

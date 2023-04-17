@@ -204,7 +204,7 @@ func (pH PolicyHandler) removePeerRequest(w http.ResponseWriter, r *http.Request
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	plog.Infof("Remove Peer reqest : %+v ", requestAttr)
+	plog.Infof("Remove Peer request : %+v ", requestAttr)
 	pH.removePeer(requestAttr.PeerMbg)
 	pH.loadBalancer.RemoveMbgFromServiceMap(requestAttr.PeerMbg)
 	w.WriteHeader(http.StatusOK)

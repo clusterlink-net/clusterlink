@@ -73,7 +73,7 @@ func SendHeartBeats() error {
 			_, err := httpAux.HttpPost(url, j, state.GetHttpClient())
 
 			if err != nil {
-				klog.Errorf("Unable to send heartbeat to %s", url)
+				klog.Errorf("Unable to send heartbeat to %s, Error: %v", url, err.Error())
 				continue
 			}
 			updateLastSeen(m)

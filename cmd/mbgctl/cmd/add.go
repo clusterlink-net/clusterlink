@@ -33,7 +33,7 @@ var peerCmd = &cobra.Command{
 		target, _ := cmd.Flags().GetString("target")
 		id, _ := cmd.Flags().GetString("id")
 		cport, _ := cmd.Flags().GetString("port")
-		m := api.Mbgctl{mId}
+		m := api.Mbgctl{Id: mId}
 		err := m.AddPeer(id, target, cport)
 		if err != nil {
 			fmt.Printf("Failed to add peer :%v\n", err)
@@ -50,7 +50,7 @@ var policyengineCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
 		target, _ := cmd.Flags().GetString("target")
-		m := api.Mbgctl{mId}
+		m := api.Mbgctl{Id: mId}
 		err := m.AddPolicyEngine(target)
 		if err != nil {
 			fmt.Printf("Failed to add policy engine :%v\n", err)
@@ -70,7 +70,7 @@ var serviceCmd = &cobra.Command{
 		serviceIp, _ := cmd.Flags().GetString("target")
 		description, _ := cmd.Flags().GetString("description")
 
-		m := api.Mbgctl{mId}
+		m := api.Mbgctl{Id: mId}
 		err := m.AddService(serviceId, serviceIp, description)
 		if err != nil {
 			fmt.Printf("Failed to add service :%v\n", err)
@@ -94,7 +94,7 @@ var PolicyAddCmd = &cobra.Command{
 		priority, _ := cmd.Flags().GetInt("priority")
 		action, _ := cmd.Flags().GetInt("action")
 		policy, _ := cmd.Flags().GetString("policy")
-		m := api.Mbgctl{mId}
+		m := api.Mbgctl{Id: mId}
 		switch pType {
 		case acl:
 			m.SendACLPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), api.Add)

@@ -468,9 +468,27 @@ func AddLocalService(id, ip, description string) {
 	PrintState()
 	SaveState()
 }
+
 func AddPeerLocalService(id, peer string) {
 	if val, ok := s.MyServices[id]; ok {
-		val.PeersExposed = append(val.PeersExposed, peer)
+		_, exist := exists(val.PeersExposed, peer)
+		if !exist {
+			val.PeersExposed = append(val.PeersExposed, peer)
+			s.MyServices[id] = val
+			SaveState()
+		} else {
+			log.Warnf("Peer: %s already exposed", peer)
+		}
+	}
+}
+
+func DelPeerLocalService(id, peer string) {
+	if val, ok := s.MyServices[id]; ok {
+		index, exist := exists(val.PeersExposed, peer)
+		if !exist {
+			return
+		}
+		val.PeersExposed = append((val.PeersExposed)[:index], (val.PeersExposed)[index+1:]...)
 		s.MyServices[id] = val
 	}
 	SaveState()
@@ -516,7 +534,7 @@ func AddRemoteService(id, ip, description, MbgId string) {
 
 func DelRemoteService(id, mbg string) {
 	if _, ok := s.RemoteServices[id]; ok {
-		if mbg == "" { //delete service fo all MBgs
+		if mbg == "" { //delete service for all MBgs
 			delete(s.RemoteServices, id)
 			delete(s.RemoteServiceMap, id)
 			FreeUpPorts(id)
@@ -553,11 +571,11 @@ func RemoveMbgFromService(svcId, mbg string, mbgs []string) {
 			break
 		}
 	}
-
+	log.Infof("MBG service %v len %v", svcId, len(s.RemoteServiceMap[svcId]))
 	if len(s.RemoteServiceMap[svcId]) == 0 {
-		FreeUpPorts(svcId)
 		delete(s.RemoteServices, svcId)
 		delete(s.RemoteServiceMap, svcId)
+		FreeUpPorts(svcId)
 		GetEventManager().RaiseRemoveRemoteServiceEvent(eventManager.RemoveRemoteServiceAttr{Service: svcId, Mbg: ""}) //remove the service
 	} else { //remove specific mbg from the mbg
 		GetEventManager().RaiseRemoveRemoteServiceEvent(eventManager.RemoveRemoteServiceAttr{Service: svcId, Mbg: mbg})
@@ -694,10 +712,12 @@ func SaveState() {
 }
 
 func readState() mbgState {
+	dataMutex.Lock()
 	data, _ := ioutil.ReadFile(configPath())
 	var state mbgState
 	json.Unmarshal(data, &state)
 	//Don't change part of the Fields
 	state.MyEventManager.HttpClient = s.MyEventManager.HttpClient
+	dataMutex.Unlock()
 	return state
 }

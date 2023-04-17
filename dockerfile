@@ -1,4 +1,4 @@
-FROM docker.io/library/golang:1.19 
+FROM golang:1.19
 
 # Create dockerfile with multi-stagets: stage 0: compile src and client
 # Set destination for COPY

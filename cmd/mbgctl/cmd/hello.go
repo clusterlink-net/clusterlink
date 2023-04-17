@@ -13,7 +13,7 @@ var helloCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
 		peerId, _ := cmd.Flags().GetString("peer")
-		m := api.Mbgctl{mId}
+		m := api.Mbgctl{Id: mId}
 
 		if peerId == "" {
 			m.SendHello()

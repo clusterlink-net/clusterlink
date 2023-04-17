@@ -10,6 +10,7 @@ import (
 	md "github.ibm.com/mbg-agent/pkg/mbgDataplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
+	"golang.org/x/exp/slices"
 )
 
 var slog = logrus.WithField("component", "mbgControlPlane/AddService")
@@ -50,6 +51,17 @@ func DelLocalService(svcId string) {
 	state.DelLocalService(svcId)
 }
 
+func DelLocalServiceFromPeer(svcId, peer string) {
+	state.UpdateState()
+	svc := state.GetLocalService(svcId)
+	mbg := state.GetMyId()
+	if slices.Contains(svc.PeersExposed, peer) {
+		peerIp := state.GetMbgTarget(peer)
+		delServiceInPeerReq(svcId, mbg, peerIp)
+	}
+	state.DelPeerLocalService(svcId, peer)
+}
+
 func delServiceInPeerReq(svcId, serviceMbg, peerIp string) {
 	address := state.GetAddrStart() + peerIp + "/remoteservice/" + svcId
 	j, err := json.Marshal(protocol.ServiceRequest{Id: svcId, MbgID: serviceMbg})
@@ -86,7 +98,7 @@ func RestoreRemoteServices() {
 		for _, svc := range svcArr {
 			policyResp, err := state.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: svc.Service.Id, Mbg: svc.MbgId})
 			if err != nil {
-				slog.Errorf("unable to raise connection request event", state.GetMyId())
+				slog.Error("unable to raise connection request event", state.GetMyId())
 				continue
 			}
 			if policyResp.Action == eventManager.Deny {
@@ -104,7 +116,7 @@ func RestoreRemoteServices() {
 func AddRemoteService(e protocol.ExposeRequest) {
 	policyResp, err := state.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: e.Id, Mbg: e.MbgID})
 	if err != nil {
-		slog.Errorf("unable to raise connection request event", state.GetMyId())
+		slog.Error("unable to raise connection request event ", state.GetMyId())
 		return
 	}
 	if policyResp.Action == eventManager.Deny {

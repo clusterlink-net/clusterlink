@@ -93,6 +93,27 @@ func (m MbgHandler) delLocalService(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (m MbgHandler) delLocalServiceFromPeer(w http.ResponseWriter, r *http.Request) {
+	//phrase del service struct from request
+	var s protocol.ServiceDeleteRequest
+	err := json.NewDecoder(r.Body).Decode(&s)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+
+	}
+	//AddService control plane logic
+	log.Infof("Received delete local service : %v from peer: %v", s.Id, s.Peer)
+	mbgControlplane.DelLocalServiceFromPeer(s.Id, s.Peer)
+
+	//Response
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write([]byte("Service " + s.Id + " deleted successfully from peer " + s.Peer))
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 /******************* Remote Service ****************************************/
 func (m MbgHandler) addRemoteServicePost(w http.ResponseWriter, r *http.Request) {
 

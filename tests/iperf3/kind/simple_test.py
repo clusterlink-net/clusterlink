@@ -1,10 +1,10 @@
+#!/usr/bin/env python3
 ################################################################
 #Name: Simple iperf3  test
 #Desc: create 2 kind clusters :
 # 1) MBG and iperf3 client
 # 2) MBG and iperf3 server    
 ###############################################################
-#!/usr/bin/env python3
 import os,time
 import subprocess as sp
 import sys

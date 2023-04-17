@@ -23,7 +23,7 @@ type ProxyClient struct {
 	CloseConn chan bool
 }
 
-//Init client fields
+// Init client fields
 func (c *ProxyClient) InitClient(listener, target, name string) {
 	c.Listener = listener
 	c.Target = target
@@ -31,7 +31,7 @@ func (c *ProxyClient) InitClient(listener, target, name string) {
 	c.CloseConn = make(chan bool, 2)
 }
 
-//Run client object
+// Run client object
 func (c *ProxyClient) RunClient(wg *sync.WaitGroup) {
 	defer wg.Done()
 	fmt.Printf("[%v] start connection : listen: %v  send to : %v \n", c.Name, c.Listener, c.Target)
@@ -46,7 +46,7 @@ func (c *ProxyClient) RunClient(wg *sync.WaitGroup) {
 	fmt.Printf("[%v] Close connection \n", c.Name)
 }
 
-//Start listen loop and pass data to destination according to controlFrame
+// Start listen loop and pass data to destination according to controlFrame
 func (c *ProxyClient) acceptLoop() {
 	// open listener
 	acceptor, err := net.Listen("tcp", c.Listener)
@@ -64,7 +64,7 @@ func (c *ProxyClient) acceptLoop() {
 	}
 }
 
-//Connect to client and call ioLoop function
+// Connect to client and call ioLoop function
 func (c *ProxyClient) dispatch(ac net.Conn) error {
 	fmt.Printf("[%v]: before dial TCP %v\n", c.Name, c.Target)
 	nodeConn, err := net.Dial("tcp", c.Target)
@@ -75,7 +75,7 @@ func (c *ProxyClient) dispatch(ac net.Conn) error {
 	return c.ioLoop(ac, nodeConn)
 }
 
-//Transfer data from server to client and back
+// Transfer data from server to client and back
 func (c *ProxyClient) ioLoop(cl, mbg net.Conn) error {
 	defer cl.Close()
 	defer mbg.Close()
@@ -93,7 +93,7 @@ func (c *ProxyClient) ioLoop(cl, mbg net.Conn) error {
 	return nil
 }
 
-//Copy data from client to server and send control frame
+// Copy data from client to server and send control frame
 func (c *ProxyClient) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) error {
 	defer wg.Done()
 	var err error
@@ -125,7 +125,7 @@ func (c *ProxyClient) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) error
 
 }
 
-//Copy data from server to client
+// Copy data from server to client
 func (c *ProxyClient) serverToClient(wg *sync.WaitGroup, cl, mbg net.Conn) error {
 	defer wg.Done()
 
