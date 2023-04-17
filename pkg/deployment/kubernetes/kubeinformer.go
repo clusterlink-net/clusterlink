@@ -30,6 +30,7 @@ const (
 
 type kubeDataInterface interface {
 	GetInfo(string) (*Info, error)
+	GetLabel(string, string) (string, error)
 	InitFromConfig(string) error
 }
 
@@ -79,6 +80,19 @@ func (k *KubeData) GetInfo(ip string) (*Info, error) {
 	}
 
 	return nil, fmt.Errorf("informers can't find IP %s", ip)
+}
+
+func (k *KubeData) GetLabel(ip string, key string) (string, error) {
+	if info, ok := k.fetchInformers(ip); ok {
+		// Owner data might be discovered after the owned, so we fetch it
+		// at the last moment
+		if info.Owner.Name == "" {
+			info.Owner = k.getOwner(info)
+		}
+		return info.Labels[key], nil
+	}
+
+	return "", fmt.Errorf("informers can't find IP %s", ip)
 }
 
 func (k *KubeData) fetchInformers(ip string) (*Info, bool) {
