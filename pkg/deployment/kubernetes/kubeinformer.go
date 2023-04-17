@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -11,6 +12,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -32,6 +34,7 @@ type kubeDataInterface interface {
 	GetInfo(string) (*Info, error)
 	GetLabel(string, string) (string, error)
 	InitFromConfig(string) error
+	CreateServiceEndpoint(string, int32, int, string) error
 }
 
 type KubeData struct {
@@ -41,6 +44,7 @@ type KubeData struct {
 	services cache.SharedIndexInformer
 	// replicaSets caches the ReplicaSets as partially-filled *ObjectMeta pointers
 	replicaSets cache.SharedIndexInformer
+	kubeClient  *kubernetes.Clientset
 	stopChan    chan struct{}
 }
 
@@ -247,12 +251,12 @@ func (k *KubeData) InitFromConfig(kubeConfigPath string) error {
 		return err
 	}
 
-	kubeClient, err := kubernetes.NewForConfig(config)
+	k.kubeClient, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		return err
 	}
 
-	err = k.initInformers(kubeClient)
+	err = k.initInformers(k.kubeClient)
 	if err != nil {
 		return err
 	}
@@ -308,5 +312,25 @@ func (k *KubeData) initInformers(client kubernetes.Interface) error {
 	informerFactory.WaitForCacheSync(k.stopChan)
 	log.Infof("Kubernetes informers started")
 
+	return nil
+}
+
+// Add support to create a service/Nodeport for a target port
+func (k *KubeData) CreateServiceEndpoint(serviceName string, port int32, targetPort int, mbgAppName string) error {
+	serviceSpec := &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: serviceName},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{
+				{
+					Protocol:   v1.ProtocolTCP,
+					Port:       port,
+					TargetPort: intstr.FromInt(targetPort),
+				},
+			},
+			ClusterIP: "",
+			Selector:  map[string]string{"app": mbgAppName},
+		},
+	}
+	k.kubeClient.CoreV1().Services("").Create(context.TODO(), serviceSpec, metav1.CreateOptions{})
 	return nil
 }
