@@ -94,7 +94,7 @@ func AddService(mId, id, ip, description string) {
 		s.Services = make(map[string]MbgctlService)
 	}
 
-	s.Services[id] = MbgctlService{Service: service.Service{id, ip, description}}
+	s.Services[id] = MbgctlService{Service: service.Service{Id: id, Ip: ip, Description: description}}
 	SaveState(mId)
 }
 func DelService(mId, id string) {

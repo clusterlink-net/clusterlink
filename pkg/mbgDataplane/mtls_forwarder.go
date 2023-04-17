@@ -199,7 +199,7 @@ func CloseMtlsServer(ip string) {
 	server.Shutdown(context.Background())
 }
 
-//Get rootCA, certificate, key  and create tls config
+// Get rootCA, certificate, key  and create tls config
 func (m *MbgMtlsForwarder) CreateTlsConfig(rootCA, certificate, key, ServerName string) *tls.Config {
 	// Read the key pair to create certificate
 	cert, err := tls.LoadX509KeyPair(certificate, key)
@@ -223,10 +223,10 @@ func (m *MbgMtlsForwarder) CreateTlsConfig(rootCA, certificate, key, ServerName 
 	return TLSConfig
 }
 
-//method for debug only -use to debug mtls connection
-func (m *MbgMtlsForwarder) certDebg(target, name string, tlsConfig tls.Config) string {
+// method for debug only -use to debug mtls connection
+func (m *MbgMtlsForwarder) certDebg(target, name string, tlsConfig *tls.Config) string {
 	clog.Infof("Starting tls debug to addr %v name %v", target, name)
-	conn, err := tls.Dial("tcp", target, &tlsConfig)
+	conn, err := tls.Dial("tcp", target, tlsConfig)
 	if err != nil {
 		panic("Server doesn't support SSL certificate err: " + err.Error())
 	}

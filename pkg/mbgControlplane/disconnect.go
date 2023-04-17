@@ -5,7 +5,7 @@ import (
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
-//Todo to replace with dexpose
+// Todo to replace with dexpose
 func Disconnect(d protocol.DisconnectRequest) {
 	//Update MBG state
 	state.UpdateState()

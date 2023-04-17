@@ -470,6 +470,18 @@ func AddPeerLocalService(id, peer string) {
 	}
 }
 
+func DelPeerLocalService(id, peer string) {
+	if val, ok := s.MyServices[id]; ok {
+		index, exist := exists(val.PeersExposed, peer)
+		if !exist {
+			return
+		}
+		val.PeersExposed = append((val.PeersExposed)[:index], (val.PeersExposed)[index+1:]...)
+		s.MyServices[id] = val
+	}
+	SaveState()
+}
+
 func DelLocalService(id string) {
 	if _, ok := s.MyServices[id]; ok {
 		delete(s.MyServices, id)
@@ -510,7 +522,7 @@ func AddRemoteService(id, ip, description, MbgId string) {
 
 func DelRemoteService(id, mbg string) {
 	if _, ok := s.RemoteServices[id]; ok {
-		if mbg == "" { //delete service fo all MBgs
+		if mbg == "" { //delete service for all MBgs
 			delete(s.RemoteServices, id)
 			delete(s.RemoteServiceMap, id)
 			FreeUpPorts(id)
@@ -547,11 +559,11 @@ func RemoveMbgFromService(svcId, mbg string, mbgs []string) {
 			break
 		}
 	}
-
+	log.Infof("MBG service %v len %v", svcId, len(s.RemoteServiceMap[svcId]))
 	if len(s.RemoteServiceMap[svcId]) == 0 {
-		FreeUpPorts(svcId)
 		delete(s.RemoteServices, svcId)
 		delete(s.RemoteServiceMap, svcId)
+		FreeUpPorts(svcId)
 		GetEventManager().RaiseRemoveRemoteServiceEvent(eventManager.RemoveRemoteServiceAttr{Service: svcId, Mbg: ""}) //remove the service
 	} else { //remove specific mbg from the mbg
 		GetEventManager().RaiseRemoveRemoteServiceEvent(eventManager.RemoveRemoteServiceAttr{Service: svcId, Mbg: mbg})

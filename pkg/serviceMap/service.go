@@ -12,11 +12,11 @@ type Service struct {
 	Description string
 }
 
-//Init all Functions inside the mbg
+// Init all Functions inside the mbg
 func init() {
 }
 
-//Return Function fields
+// Return Function fields
 func GetService(s string) Service {
 	return Arr[s]
 }

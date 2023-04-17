@@ -239,25 +239,23 @@ func (m *Mbgctl) RemovePeer(id string) error {
 	return err
 }
 
-// func (m *Mbgctl) RemoveService(id, target string) error {
-// 	state.UpdateState(m.Id)
-// 	mbgIP := state.GetMbgIP()
-
-// 	address := state.GetAddrStart() + mbgIP + "/service/" + id
-// 	j, err := json.Marshal(protocol.ServiceDelete{Ip: target})
-// 	if err != nil {
-// 		return err
-// 	}
-// 	_, err = httpAux.HttpDelete(address, j, state.GetHttpClient())
-// 	return err
-// }
-
 func (m *Mbgctl) RemoveLocalService(serviceId string) {
 	state.UpdateState(m.Id)
 	state.DelService(m.Id, serviceId)
 	mbgIP := state.GetMbgIP()
 	address := state.GetAddrStart() + mbgIP + "/service/" + serviceId
 	resp, _ := httpAux.HttpDelete(address, nil, state.GetHttpClient())
+	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
+}
+func (m *Mbgctl) RemoveLocalServiceFromPeer(serviceId, peer string) {
+	state.UpdateState(m.Id)
+	mbgIP := state.GetMbgIP()
+	address := state.GetAddrStart() + mbgIP + "/service/" + serviceId + "/peer"
+	j, err := json.Marshal(protocol.ServiceDeleteRequest{Id: serviceId, Peer: peer})
+	if err != nil {
+		fmt.Printf("Unable to marshal json: %v", err)
+	}
+	resp, _ := httpAux.HttpDelete(address, j, state.GetHttpClient())
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
 
@@ -284,7 +282,7 @@ func (m *Mbgctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest str
 	case Del:
 		url += "/delete"
 	default:
-		return fmt.Errorf("unknow command")
+		return fmt.Errorf("unknown command")
 	}
 	jsonReq, err := json.Marshal(policyEngine.AclRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, MbgDest: mbgDest, Priority: priority, Action: action})
 	if err != nil {

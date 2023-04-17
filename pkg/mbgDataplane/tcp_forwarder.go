@@ -24,7 +24,7 @@ type MbgTcpForwarder struct {
 	CloseConn  chan bool
 }
 
-//Init client fields
+// Init client fields
 func (c *MbgTcpForwarder) InitTcpForwarder(listener, target, name string) {
 	c.Listener = listener
 	c.Target = target
@@ -38,7 +38,7 @@ func (c *MbgTcpForwarder) SetClientConnection(ClientConn net.Conn) {
 	c.ClientConn = ClientConn
 }
 
-//Run client object
+// Run client object
 func (c *MbgTcpForwarder) RunTcpForwarder() {
 	clog.Infof("*** Start TCP Forwarder ***")
 	clog.Infof("[%v] Start listen: %v  send to : %v \n", c.Name, c.Listener, c.Target)
@@ -47,7 +47,7 @@ func (c *MbgTcpForwarder) RunTcpForwarder() {
 
 }
 
-//Start listen loop and pass data to destination according to controlFrame
+// Start listen loop and pass data to destination according to controlFrame
 func (c *MbgTcpForwarder) acceptLoop() {
 	if c.SeverConn != nil {
 		c.dispatch(c.SeverConn)
@@ -69,7 +69,7 @@ func (c *MbgTcpForwarder) acceptLoop() {
 	}
 }
 
-//Connect to client and call ioLoop function
+// Connect to client and call ioLoop function
 func (c *MbgTcpForwarder) dispatch(ac net.Conn) error {
 	var nodeConn net.Conn
 	if c.ClientConn == nil {
@@ -86,13 +86,13 @@ func (c *MbgTcpForwarder) dispatch(ac net.Conn) error {
 	return c.ioLoop(ac, nodeConn)
 }
 
-//Transfer data from server to client and back
+// Transfer data from server to client and back
 func (c *MbgTcpForwarder) ioLoop(cl, mbg net.Conn) error {
 	defer cl.Close()
 	defer mbg.Close()
 
-	clog.Debugf("[Cient] listen to:", cl.LocalAddr().String(), "in port:", cl.RemoteAddr().String())
-	clog.Debugf("[Cient] send data to:", mbg.RemoteAddr().String(), "from port:", mbg.LocalAddr().String())
+	clog.Debug("[Cient] listen to:", cl.LocalAddr().String(), "in port:", cl.RemoteAddr().String())
+	clog.Debug("[Cient] send data to:", mbg.RemoteAddr().String(), "from port:", mbg.LocalAddr().String())
 	done := &sync.WaitGroup{}
 	done.Add(2)
 
@@ -104,7 +104,7 @@ func (c *MbgTcpForwarder) ioLoop(cl, mbg net.Conn) error {
 	return nil
 }
 
-//Copy data from client to server and send control frame
+// Copy data from client to server and send control frame
 func (c *MbgTcpForwarder) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) error {
 	defer wg.Done()
 	var err error
@@ -136,7 +136,7 @@ func (c *MbgTcpForwarder) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) e
 
 }
 
-//Copy data from server to client
+// Copy data from server to client
 func (c *MbgTcpForwarder) serverToClient(wg *sync.WaitGroup, cl, mbg net.Conn) error {
 	defer wg.Done()
 

@@ -11,7 +11,7 @@ import (
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
-//Send hello to specific mbg
+// Send hello to specific mbg
 func (m MbgHandler) sendHello(w http.ResponseWriter, r *http.Request) {
 
 	//phrase hello struct from request
@@ -34,7 +34,7 @@ func (m MbgHandler) sendHello(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//Send hello to all mbg peers
+// Send hello to all mbg peers
 func (m MbgHandler) sendHello2All(w http.ResponseWriter, r *http.Request) {
 
 	//Hello control plane logic
@@ -54,7 +54,7 @@ func (m MbgHandler) sendHello2All(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//Send hello to all mbg peers
+// Send hello to all mbg peers
 func (m MbgHandler) handleHB(w http.ResponseWriter, r *http.Request) {
 	var h protocol.HeartBeat
 	err := json.NewDecoder(r.Body).Decode(&h)

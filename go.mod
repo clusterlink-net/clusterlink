@@ -1,12 +1,13 @@
 module github.ibm.com/mbg-agent
 
-go 1.17
+go 1.19
 
 require (
 	github.com/go-chi/chi v1.5.4
 	github.com/segmentio/ksuid v1.0.4
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
+	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
 	k8s.io/client-go v0.26.3

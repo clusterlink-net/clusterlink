@@ -17,7 +17,7 @@ const (
 	RESPFAIL string = "Fail"
 )
 
-//Helper gunction for get response
+// Helper gunction for get response
 func HttpGet(url string, cl http.Client) ([]byte, error) {
 	resp, err := cl.Get(url)
 	if err != nil {
@@ -91,13 +91,13 @@ func HttpConnect(address, url string, jsonData string) (net.Conn, error) {
 }
 
 func dial(addr string) (net.Conn, error) {
-	log.Info("Start dial to address: %v", addr)
+	log.Infof("Start dial to address: %v\n", addr)
 	c, err := net.Dial("tcp", addr)
 
 	if err != nil {
 		return nil, err
 	}
-	log.Info("Finish dial to address: %v", addr)
+	log.Infof("Finish dial to address: %v\n", addr)
 
 	return c, err
 }

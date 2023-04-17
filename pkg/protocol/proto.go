@@ -1,24 +1,25 @@
 /*
 Name: protocol package
 Desc: protocol package contain all struct for communicate (Request and Response)
-	  with the MBG
+
+	with the MBG
 */
 package protocol
 
-//AddPeer
+// AddPeer
 type PeerRequest struct {
 	Id    string
 	Ip    string
 	Cport string
 }
 
-//Remove Peer
+// Remove Peer
 type PeerRemoveRequest struct {
 	Id        string
 	Propagate bool
 }
 
-//Service Add
+// Service Add
 type ServiceRequest struct {
 	Id          string
 	Ip          string
@@ -26,22 +27,23 @@ type ServiceRequest struct {
 	MbgID       string
 }
 
-//Service Delete
-type ServiceDelete struct {
-	Ip string
+// Service Delete
+type ServiceDeleteRequest struct {
+	Id   string
+	Peer string
 }
 
-//Hello
+// Hello
 type HelloResponse struct {
 	Status string
 }
 
-//Hello - HeartBeats
+// Hello - HeartBeats
 type HeartBeat struct {
 	Id string
 }
 
-//Expose
+// Expose
 type ExposeRequest struct {
 	Id          string
 	Ip          string
@@ -49,7 +51,7 @@ type ExposeRequest struct {
 	MbgID       string
 }
 
-//Connect
+// Connect
 type ConnectRequest struct {
 	Id     string
 	IdDest string
@@ -63,7 +65,7 @@ type ConnectReply struct {
 	ConnectDest string
 }
 
-//Disconnect
+// Disconnect
 type DisconnectRequest struct {
 	Id     string
 	IdDest string
