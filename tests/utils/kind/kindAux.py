@@ -42,6 +42,7 @@ def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPor
     mbgKindIp           = BuildKindCluster(mbgName,cni)
     podMbg, podMbgIp    = buildMbg(mbgName)
     destMbgIp          = f"{podMbgIp}:{mbgcPortLocal}"
+
     runcmd(f"kubectl create service nodeport mbg --tcp={mbgcPortLocal}:{mbgcPortLocal} --node-port={mbgcPort}")
     
     printHeader(f"\n\nStart {mbgName} (along with PolicyEngine)")

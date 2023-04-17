@@ -10,6 +10,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
+	"github.ibm.com/mbg-agent/pkg/deployment/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 	handler "github.ibm.com/mbg-agent/pkg/protocol/http/mbg"
@@ -31,6 +32,10 @@ func (m *Mbg) AddPolicyEngine(policyEngineTarget string, start bool) {
 
 func (m *Mbg) StartMbg() {
 	go mbgControlplane.SendHeartBeats()
+	err := kubernetes.InitializeKubeDeployment("")
+	if err != nil {
+		log.Errorf("Failed to initialize kube deployment: %+v", err)
+	}
 	mbgControlplane.MonitorHeartBeats()
 }
 

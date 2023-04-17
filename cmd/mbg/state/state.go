@@ -269,8 +269,19 @@ func GetRemoteService(id string) []RemoteService {
 
 }
 
-func LookupLocalService(network string) (LocalService, error) {
+func LookupLocalServiceFromLabel(label string) (LocalService, error) {
+	for _, service := range s.MyServices {
+		// Compare Service Labels
+		// TODO : Change to Service Label
+		if service.Service.Id == label {
+			return service, nil
+		}
+	}
+	// If the local app/service is not defined, we send the name as a "wildcard"
+	return LocalService{Service: service.Service{Id: "*", Ip: "", Description: ""}}, errors.New("unable to find local service")
+}
 
+func LookupLocalServiceFromIP(network string) (LocalService, error) {
 	serviceNetwork := strings.Split(network, ":")
 	for _, service := range s.MyServices {
 		// Compare Service IPs
@@ -278,7 +289,8 @@ func LookupLocalService(network string) (LocalService, error) {
 			return service, nil
 		}
 	}
-	return LocalService{}, errors.New("unable to find local service")
+	// If the local app/service is not defined, we send the name as a "wildcard"
+	return LocalService{Service: service.Service{Id: "*", Ip: "", Description: ""}}, errors.New("unable to find local service")
 }
 func GetServiceMbgIp(Ip string) string {
 	svcIp := strings.Split(Ip, ":")[0]

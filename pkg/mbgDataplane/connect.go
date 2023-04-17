@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/segmentio/ksuid"
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
+	"github.ibm.com/mbg-agent/pkg/deployment/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
@@ -18,6 +20,7 @@ var clog *logrus.Entry
 
 const TCP_TYPE = "tcp"
 const MTLS_TYPE = "mtls"
+const APP_LABEL = "app"
 
 /***************** Local Service function **********************************/
 
@@ -142,12 +145,24 @@ func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePor
 		// Ideally do a control plane connect API, Policy checks, and then create a mTLS forwarder
 		// RemoteEndPoint has to be in the connect Request/Response
 
-		localSvc, err := state.LookupLocalService(ac.RemoteAddr().String())
+		appLabel, err := kubernetes.Data.GetLabel(strings.Split(ac.RemoteAddr().String(), ":")[0], APP_LABEL)
 		if err != nil {
-			clog.Infof("Denying Outgoing connection from: %v ,Error: %v", ac.RemoteAddr().String(), err)
-			ac.Close()
-			continue
+			clog.Errorf("Unable to get App Info :%+v", err)
 		}
+		clog.Infof("App Label:%s", appLabel)
+		// Need to look up the label to find local service
+		// If label isnt found, Check for IP.
+		// If we cant find the service, we get the "service id" as a wildcard
+		// which is sent to the policy engine to decide.
+		localSvc, err := state.LookupLocalServiceFromLabel(appLabel)
+		if err != nil {
+			clog.Infof("Unable to find id local service for label: %v, error: %v", ac.RemoteAddr().String(), err)
+			localSvc, err = state.LookupLocalServiceFromIP(ac.RemoteAddr().String())
+			if err != nil {
+				clog.Infof("Unable to find id local service for ip: %v, error: %v", ac.RemoteAddr().String(), err)
+			}
+		}
+
 		policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: localSvc.Service.Id, DstService: serviceId, Direction: eventManager.Outgoing, OtherMbg: eventManager.Wildcard})
 		if err != nil {
 			clog.Errorf("Unable to raise connection request event")
