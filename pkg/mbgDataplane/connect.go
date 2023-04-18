@@ -20,7 +20,6 @@ var clog *logrus.Entry
 
 const TCP_TYPE = "tcp"
 const MTLS_TYPE = "mtls"
-const APP_LABEL = "app"
 
 /***************** Local Service function **********************************/
 
@@ -145,7 +144,7 @@ func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePor
 
 		// Ideally do a control plane connect API, Policy checks, and then create a mTLS forwarder
 		// RemoteEndPoint has to be in the connect Request/Response
-		appLabel, err := kubernetes.Data.GetLabel(strings.Split(ac.RemoteAddr().String(), ":")[0], APP_LABEL)
+		appLabel, err := kubernetes.Data.GetLabel(strings.Split(ac.RemoteAddr().String(), ":")[0], kubernetes.APP_LABEL)
 		if err != nil {
 			clog.Errorf("Unable to get App Info :%+v", err)
 		}
