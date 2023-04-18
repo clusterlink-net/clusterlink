@@ -9,7 +9,6 @@ import (
 	"github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
-	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
 
 var mlog = logrus.WithField("component", "mbgControlPlane/Expose")
@@ -33,8 +32,7 @@ func ExposeToMbg(serviceId string) {
 	}
 
 	myIp := state.GetMyIp()
-	s := state.GetLocalService(serviceId)
-	svcExp := s.Service
+	svcExp := state.GetLocalService(serviceId)
 	svcExp.Ip = myIp
 	if exposeResp.Action == eventManager.AllowAll {
 		for _, mbgId := range state.GetMbgList() {
@@ -47,7 +45,7 @@ func ExposeToMbg(serviceId string) {
 	}
 }
 
-func ExposeReq(svcExp service.Service, mbgId, cType string) {
+func ExposeReq(svcExp state.LocalService, mbgId, cType string) {
 	destIp := state.GetMbgTarget(mbgId)
 	mlog.Printf("Starting to expose service %v (%v)", svcExp.Id, destIp)
 	address := state.GetAddrStart() + destIp + "/remoteservice"

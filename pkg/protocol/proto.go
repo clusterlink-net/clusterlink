@@ -23,6 +23,7 @@ type PeerRemoveRequest struct {
 type ServiceRequest struct {
 	Id          string
 	Ip          string
+	Port        string
 	Description string
 	MbgID       string
 }

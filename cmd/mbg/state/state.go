@@ -21,7 +21,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.ibm.com/mbg-agent/pkg/eventManager"
-	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
 
 var log = logrus.WithField("component", s.MyInfo.Id)
@@ -62,12 +61,17 @@ type Mbgctl struct {
 }
 
 type RemoteService struct {
-	Service service.Service
-	MbgId   string // For now to identify a service to a MBG
+	Id          string
+	MbgId       string
+	MbgIp       string
+	Description string
 }
 
 type LocalService struct {
-	Service      service.Service
+	Id           string
+	Ip           string
+	Port         string
+	Description  string
 	PeersExposed []string //ToDo not uniqe
 }
 
@@ -77,17 +81,16 @@ type ServicePort struct {
 }
 
 var s = mbgState{MyInfo: MbgInfo{},
-	MbgctlArr:             make(map[string]Mbgctl),
-	MbgArr:                make(map[string]MbgInfo),
-	InactiveMbgArr:        make(map[string]MbgInfo),
-	MyServices:            make(map[string]LocalService),
-	RemoteServices:        make(map[string][]RemoteService),
-	Connections:           make(map[string]ServicePort),
-	LocalServiceEndpoints: make(map[string]string),
-	LocalPortMap:          make(map[int]bool),
-	ExternalPortMap:       make(map[int]bool),
-	RemoteServiceMap:      make(map[string][]string),
-	MyEventManager:        eventManager.MbgEventManager{},
+	MbgctlArr:        make(map[string]Mbgctl),
+	MbgArr:           make(map[string]MbgInfo),
+	InactiveMbgArr:   make(map[string]MbgInfo),
+	MyServices:       make(map[string]LocalService),
+	RemoteServices:   make(map[string][]RemoteService),
+	Connections:      make(map[string]ServicePort),
+	LocalPortMap:     make(map[int]bool),
+	ExternalPortMap:  make(map[int]bool),
+	RemoteServiceMap: make(map[string][]string),
+	MyEventManager:   eventManager.MbgEventManager{},
 }
 var stopCh = make(map[string]chan bool)
 
@@ -269,28 +272,42 @@ func GetRemoteService(id string) []RemoteService {
 
 }
 
+func LookupLocalService(label, ip string) (LocalService, error) {
+	// Need to look up the label to find local service
+	// If label isnt found, Check for IP.
+	// If we cant find the service, we get the "service id" as a wildcard
+	// which is sent to the policy engine to decide.
+	localSvc, err := LookupLocalServiceFromLabel(label)
+	if err != nil {
+		log.Infof("Unable to find id local service for label: %v, error: %v", label, err)
+		localSvc, err = LookupLocalServiceFromIP(ip)
+		if err != nil {
+			log.Infof("Unable to find id local service for ip: %v, error: %v", ip, err)
+		}
+	}
+	return localSvc, err
+}
 func LookupLocalServiceFromLabel(label string) (LocalService, error) {
 	for _, service := range s.MyServices {
 		// Compare Service Labels
-		// TODO : Change to Service Label
-		if service.Service.Id == label {
+		if service.Id == label {
 			return service, nil
 		}
 	}
 	// If the local app/service is not defined, we send the name as a "wildcard"
-	return LocalService{Service: service.Service{Id: "*", Ip: "", Description: ""}}, errors.New("unable to find local service")
+	return LocalService{Id: "*", Ip: "", Description: ""}, errors.New("unable to find local service")
 }
 
 func LookupLocalServiceFromIP(network string) (LocalService, error) {
 	serviceNetwork := strings.Split(network, ":")
 	for _, service := range s.MyServices {
 		// Compare Service IPs
-		if strings.Split(service.Service.Ip, ":")[0] == serviceNetwork[0] {
+		if strings.Split(service.Ip, ":")[0] == serviceNetwork[0] {
 			return service, nil
 		}
 	}
 	// If the local app/service is not defined, we send the name as a "wildcard"
-	return LocalService{Service: service.Service{Id: "*", Ip: "", Description: ""}}, errors.New("unable to find local service")
+	return LocalService{Id: "*", Ip: "", Description: ""}, errors.New("unable to find local service")
 }
 func GetServiceMbgIp(Ip string) string {
 	svcIp := strings.Split(Ip, ":")[0]
@@ -416,36 +433,6 @@ func WaitServiceStopCh(connectionID, servicePort string) {
 	}
 }
 
-// Gets an available free port to be used within the MBG for a remote service endpoint
-func GetFreeLocalPort(serviceName string) (string, error) {
-	if port, ok := s.LocalServiceEndpoints[serviceName]; ok {
-		return port, fmt.Errorf(ConnExist)
-	}
-	rand.NewSource(time.Now().UnixNano())
-	if len(s.LocalServiceEndpoints) == s.MyInfo.MaxPorts {
-		return "", fmt.Errorf("all ports taken up, Try again after sometimes")
-	}
-	lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
-	timeout := time.After(10 * time.Second)
-	for {
-		select {
-		// Got a timeout! fail with a timeout error
-		case <-timeout:
-			return "", fmt.Errorf("all Ports taken up, Try again after sometimes")
-		default:
-			random := rand.Intn(s.MyInfo.MaxPorts)
-			localPort := lval + random
-			if !s.LocalPortMap[localPort] {
-				s.LocalPortMap[localPort] = true
-				myPort := ":" + strconv.Itoa(localPort)
-				s.LocalServiceEndpoints[serviceName] = myPort
-				SaveState()
-				return myPort, nil
-			}
-		}
-	}
-}
-
 // Frees up used ports by a connection
 func FreeUpPorts(connectionID string) {
 	log.Infof("Start to FreeUpPorts for service: %s", connectionID)
@@ -459,11 +446,11 @@ func FreeUpPorts(connectionID string) {
 	SaveState()
 }
 
-func AddLocalService(id, ip, description string) {
+func AddLocalService(id, ip, port, description string) {
 	if _, ok := s.MyServices[id]; ok {
 		log.Infof("Local Service already added %s", id) //Allow overwrite service
 	}
-	s.MyServices[id] = LocalService{Service: service.Service{Id: id, Ip: ip, Description: description}}
+	s.MyServices[id] = LocalService{Id: id, Ip: ip, Port: port, Description: description}
 	log.Infof("Adding local service: %s", id)
 	PrintState()
 	SaveState()
@@ -516,7 +503,7 @@ func exists(slice []string, entry string) (int, bool) {
 }
 
 func AddRemoteService(id, ip, description, MbgId string) {
-	svc := RemoteService{Service: service.Service{Id: id, Ip: ip, Description: description}, MbgId: MbgId}
+	svc := RemoteService{Id: id, MbgId: MbgId, MbgIp: ip, Description: description}
 	if mbgs, ok := s.RemoteServiceMap[id]; ok {
 		_, exist := exists(mbgs, MbgId)
 		if !exist {
@@ -583,6 +570,12 @@ func RemoveMbgFromService(svcId, mbg string, mbgs []string) {
 	SaveState()
 }
 
+func (s *LocalService) GetIpAndPort() string {
+	//Todo add option to support label services
+	target := s.Ip + ":" + s.Port
+	return target
+}
+
 func GetAddrStart() string {
 	if s.MyInfo.Dataplane == "mtls" {
 		return "https://"
@@ -639,7 +632,7 @@ func PrintState() {
 	}
 	log.Infof("Inactive MBG neighbors : %s", inb)
 	for _, se := range s.MyServices {
-		services = services + se.Service.Id + ", "
+		services = services + se.Id + ", "
 	}
 	log.Infof("Myservices: %v", services)
 	log.Infof("Remoteservices: %v", s.RemoteServiceMap)

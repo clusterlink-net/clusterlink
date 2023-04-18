@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"strings"
 
+	mbg "github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
+
 	event "github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
-	service "github.ibm.com/mbg-agent/pkg/serviceMap"
 )
 
 type Mbgctl struct {
@@ -64,13 +65,13 @@ func (m *Mbgctl) AddPolicyEngine(target string) error {
 	return state.AssignPolicyDispatcher(m.Id, state.GetAddrStart()+target+"/policy")
 }
 
-func (m *Mbgctl) AddService(id, target, description string) error {
+func (m *Mbgctl) AddService(id, target, port, description string) error {
 	state.UpdateState(m.Id)
-	state.AddService(m.Id, id, target, description)
+	state.AddService(m.Id, id, target, port, description)
 	mbgIP := state.GetMbgIP()
 
 	address := state.GetAddrStart() + mbgIP + "/service"
-	j, err := json.Marshal(protocol.ServiceRequest{Id: id, Ip: target, Description: description})
+	j, err := json.Marshal(protocol.ServiceRequest{Id: id, Ip: target, Port: port, Description: description})
 	if err != nil {
 		return err
 	}
@@ -147,38 +148,38 @@ func (m *Mbgctl) GetPeers() ([]string, error) {
 	return peers, nil
 }
 
-func (m *Mbgctl) GetLocalServices() ([]service.Service, error) {
+func (m *Mbgctl) GetLocalServices() ([]mbg.LocalService, error) {
 	state.UpdateState(m.Id)
 	mbgIP := state.GetMbgIP()
 	address := state.GetAddrStart() + mbgIP + "/service/"
 	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
 	if err != nil {
-		return []service.Service{}, err
+		return []mbg.LocalService{}, err
 	}
 	sArr := make(map[string]protocol.ServiceRequest)
 	if err := json.Unmarshal(resp, &sArr); err != nil {
-		return []service.Service{}, err
+		return []mbg.LocalService{}, err
 	}
-	var serviceArr []service.Service
+	var serviceArr []mbg.LocalService
 	for _, s := range sArr {
-		serviceArr = append(serviceArr, service.Service{Id: s.Id, Ip: s.Ip, Description: s.Description})
+		serviceArr = append(serviceArr, mbg.LocalService{Id: s.Id, Ip: s.Ip, Port: s.Port, Description: s.Description})
 	}
 	return serviceArr, nil
 }
 
-func (m *Mbgctl) GetLocalService(id string) (service.Service, error) {
+func (m *Mbgctl) GetLocalService(id string) (mbg.LocalService, error) {
 	state.UpdateState(m.Id)
 	mbgIP := state.GetMbgIP()
 	address := state.GetAddrStart() + mbgIP + "/service/" + id
 	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
 	if err != nil {
-		return service.Service{}, err
+		return mbg.LocalService{}, err
 	}
 	var s protocol.ServiceRequest
 	if err := json.Unmarshal(resp, &s); err != nil {
-		return service.Service{}, err
+		return mbg.LocalService{}, err
 	}
-	return service.Service{Id: s.Id, Ip: s.Ip, Description: s.Description}, nil
+	return mbg.LocalService{Id: s.Id, Ip: s.Ip, Port: s.Port, Description: s.Description}, nil
 }
 
 func (m *Mbgctl) GetRemoteService(id string) ([]protocol.ServiceRequest, error) {

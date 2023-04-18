@@ -18,13 +18,13 @@ var slog = logrus.WithField("component", "mbgControlPlane/AddService")
 /******************* Local Service ****************************************/
 func AddLocalService(s protocol.ServiceRequest) {
 	state.UpdateState()
-	state.AddLocalService(s.Id, s.Ip, s.Description)
+	state.AddLocalService(s.Id, s.Ip, s.Port, s.Description)
 }
 
 func GetLocalService(svcId string) protocol.ServiceRequest {
 	state.UpdateState()
-	s := state.GetLocalService(svcId).Service
-	return protocol.ServiceRequest{Id: s.Id, Ip: s.Ip}
+	s := state.GetLocalService(svcId)
+	return protocol.ServiceRequest{Id: s.Id, Ip: s.Ip, Port: s.Port, Description: s.Description}
 }
 
 func GetAllLocalServices() map[string]protocol.ServiceRequest {
@@ -32,9 +32,9 @@ func GetAllLocalServices() map[string]protocol.ServiceRequest {
 	sArr := make(map[string]protocol.ServiceRequest)
 
 	for _, s := range state.GetLocalServicesArr() {
-		sPort := state.GetConnectionArr()[s.Service.Id].External
-		sIp := state.GetMyIp() + sPort
-		sArr[s.Service.Id] = protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, Description: s.Service.Description}
+		sPort := state.GetConnectionArr()[s.Id].External
+		sIp := state.GetMyIp()
+		sArr[s.Id] = protocol.ServiceRequest{Id: s.Id, Ip: sIp, Port: sPort, Description: s.Description}
 	}
 
 	return sArr
@@ -96,7 +96,7 @@ func RestoreRemoteServices() {
 	for svcId, svcArr := range state.GetRemoteServicesArr() {
 		allow := false
 		for _, svc := range svcArr {
-			policyResp, err := state.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: svc.Service.Id, Mbg: svc.MbgId})
+			policyResp, err := state.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: svc.Id, Mbg: svc.MbgId})
 			if err != nil {
 				slog.Error("unable to raise connection request event", state.GetMyId())
 				continue
@@ -149,9 +149,9 @@ func GetAllRemoteServices() map[string][]protocol.ServiceRequest {
 func convertRemoteService2RemoteReq(svcId string) []protocol.ServiceRequest {
 	sArr := []protocol.ServiceRequest{}
 	for _, s := range state.GetRemoteService(svcId) {
-		sPort := state.GetConnectionArr()[s.Service.Id].Local
+		sPort := state.GetConnectionArr()[s.Id].Local
 		sIp := sPort
-		sArr = append(sArr, protocol.ServiceRequest{Id: s.Service.Id, Ip: sIp, MbgID: s.MbgId, Description: s.Service.Description})
+		sArr = append(sArr, protocol.ServiceRequest{Id: s.Id, Ip: sIp, MbgID: s.MbgId, Description: s.Description})
 	}
 	return sArr
 }

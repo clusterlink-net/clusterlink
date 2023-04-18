@@ -68,10 +68,12 @@ var serviceCmd = &cobra.Command{
 		mId, _ := cmd.Flags().GetString("myid")
 		serviceId, _ := cmd.Flags().GetString("id")
 		serviceIp, _ := cmd.Flags().GetString("target")
+		servicePort, _ := cmd.Flags().GetString("port")
+
 		description, _ := cmd.Flags().GetString("description")
 
 		m := api.Mbgctl{Id: mId}
-		err := m.AddService(serviceId, serviceIp, description)
+		err := m.AddService(serviceId, serviceIp, servicePort, description)
 		if err != nil {
 			fmt.Printf("Failed to add service :%v\n", err)
 			return
@@ -122,9 +124,10 @@ func init() {
 	// add service
 	addCmd.AddCommand(serviceCmd)
 	serviceCmd.Flags().String("myid", "", "MBGCtl Id")
-	serviceCmd.Flags().String("id", "", "Service id field")
-	serviceCmd.Flags().String("target", "", "Service IP/IP:Port/Hostname:port")
-	serviceCmd.Flags().String("description", "", "Service description")
+	serviceCmd.Flags().String("id", "", "Service id field ")
+	serviceCmd.Flags().String("target", "", "Service IP/Hostname if not specified use service id as the target id")
+	serviceCmd.Flags().String("port", "", "Service port")
+	serviceCmd.Flags().String("description", "", "Service description (Optional)")
 	// add policy
 	addCmd.AddCommand(PolicyAddCmd)
 	PolicyAddCmd.Flags().String("myid", "", "MBGCtl Id")
