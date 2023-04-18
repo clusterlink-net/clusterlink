@@ -14,9 +14,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	mbg "github.ibm.com/mbg-agent/cmd/mbg/state"
 
-	service "github.ibm.com/mbg-agent/pkg/serviceMap"
+	"github.com/sirupsen/logrus"
 )
 
 var log = logrus.WithField("component", "mbgctl")
@@ -39,7 +39,7 @@ type MbgctlState struct {
 }
 
 type MbgctlService struct {
-	Service service.Service
+	Service mbg.LocalService
 }
 
 type OpenConnection struct {
@@ -89,12 +89,12 @@ func GetService(id string) MbgctlService {
 	return val
 }
 
-func AddService(mId, id, ip, description string) {
+func AddService(mId, id, ip, port, description string) {
 	if s.Services == nil {
 		s.Services = make(map[string]MbgctlService)
 	}
 
-	s.Services[id] = MbgctlService{Service: service.Service{Id: id, Ip: ip, Description: description}}
+	s.Services[id] = MbgctlService{Service: mbg.LocalService{Id: id, Ip: ip, Port: port, Description: description}}
 	SaveState(mId)
 }
 func DelService(mId, id string) {

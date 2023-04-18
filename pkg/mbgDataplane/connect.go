@@ -20,7 +20,6 @@ var clog *logrus.Entry
 
 const TCP_TYPE = "tcp"
 const MTLS_TYPE = "mtls"
-const APP_LABEL = "app"
 
 /***************** Local Service function **********************************/
 
@@ -66,15 +65,15 @@ func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, w htt
 			clog.Error("Hijack Failure")
 			return false, "", ""
 		}
-		go StartTcpProxyService("httpconnect", localSvc.Service.Ip, c.Policy, connectionID, conn, nil)
+		go StartTcpProxyService("httpconnect", localSvc.GetIpAndPort(), c.Policy, connectionID, conn, nil)
 		return true, dataplane, "httpconnect"
 	case MTLS_TYPE:
 		uid := ksuid.New()
 		remoteEndPoint := connectionID + "-" + uid.String()
 		clog.Infof("Starting a Receiver service for %s Using RemoteEndpoint : %s/%s",
-			localSvc.Service.Ip, mbgTarget, remoteEndPoint)
+			localSvc.Ip, mbgTarget, remoteEndPoint)
 
-		go StartMtlsProxyLocalService(localSvc.Service.Ip, mbgTarget, remoteEndPoint)
+		go StartMtlsProxyLocalService(localSvc.GetIpAndPort(), mbgTarget, remoteEndPoint)
 		return true, dataplane, remoteEndPoint
 	default:
 		return false, "", ""
@@ -140,12 +139,12 @@ func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePor
 			clog.Infof("Accept() returned error: %v", err)
 			return err
 		}
+		appIp := ac.RemoteAddr().String()
 		clog.Infof("Receiving Outgoing connection %s->%s ", ac.RemoteAddr().String(), ac.LocalAddr().String())
 
 		// Ideally do a control plane connect API, Policy checks, and then create a mTLS forwarder
 		// RemoteEndPoint has to be in the connect Request/Response
-
-		appLabel, err := kubernetes.Data.GetLabel(strings.Split(ac.RemoteAddr().String(), ":")[0], APP_LABEL)
+		appLabel, err := kubernetes.Data.GetLabel(strings.Split(ac.RemoteAddr().String(), ":")[0], kubernetes.APP_LABEL)
 		if err != nil {
 			clog.Errorf("Unable to get App Info :%+v", err)
 		}
@@ -154,16 +153,9 @@ func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePor
 		// If label isnt found, Check for IP.
 		// If we cant find the service, we get the "service id" as a wildcard
 		// which is sent to the policy engine to decide.
-		localSvc, err := state.LookupLocalServiceFromLabel(appLabel)
-		if err != nil {
-			clog.Infof("Unable to find id local service for label: %v, error: %v", ac.RemoteAddr().String(), err)
-			localSvc, err = state.LookupLocalServiceFromIP(ac.RemoteAddr().String())
-			if err != nil {
-				clog.Infof("Unable to find id local service for ip: %v, error: %v", ac.RemoteAddr().String(), err)
-			}
-		}
+		localSvc, err := state.LookupLocalService(appLabel, appIp)
 
-		policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: localSvc.Service.Id, DstService: serviceId, Direction: eventManager.Outgoing, OtherMbg: eventManager.Wildcard})
+		policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: localSvc.Id, DstService: serviceId, Direction: eventManager.Outgoing, OtherMbg: eventManager.Wildcard})
 		if err != nil {
 			clog.Errorf("Unable to raise connection request event")
 			ac.Close()
@@ -175,19 +167,19 @@ func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePor
 			continue
 		}
 
-		clog.Infof("Accepting Outgoing Connect request from service: %v to service: %v", localSvc.Service.Id, serviceId)
+		clog.Infof("Accepting Outgoing Connect request from service: %v to service: %v", localSvc.Id, serviceId)
 
 		destSvc := state.GetRemoteService(serviceId)[0]
 		var mbgIP string
 		if policyResp.TargetMbg == "" {
 			// Policy Agent hasnt suggested anything any target MBG, hence we fall back to our defaults
-			mbgIP = state.GetServiceMbgIp(destSvc.Service.Ip)
+			mbgIP = destSvc.MbgIp
 		} else {
 			mbgIP = state.GetMbgTarget(policyResp.TargetMbg)
 		}
 		switch dataplane {
 		case TCP_TYPE:
-			connDest, err := tcpConnectReq(localSvc.Service.Id, serviceId, "forward", mbgIP)
+			connDest, err := tcpConnectReq(localSvc.Id, serviceId, "forward", mbgIP)
 
 			if err != nil {
 				clog.Infof("Unable to connect(tcp): %v ", err.Error())
@@ -195,22 +187,22 @@ func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePor
 				continue
 			}
 			connectDest := "Use open connect socket" //not needed ehr we use connect - destSvc.Service.Ip + ":" + connectDest
-			clog.Infof("Using %s for  %s/%s to connect to Service-%v", dataplane, mbgIP, connectDest, destSvc.Service.Id)
-			connectionID := localSvc.Service.Id + ":" + destSvc.Service.Id
+			clog.Infof("Using %s for  %s/%s to connect to Service-%v", dataplane, mbgIP, connectDest, destSvc.Id)
+			connectionID := localSvc.Id + ":" + destSvc.Id
 			go StartTcpProxyService(servicePort, connectDest, "forward", connectionID, ac, connDest)
 
 		case MTLS_TYPE:
 			mtlsForward := MbgMtlsForwarder{ChiRouter: state.GetChiRouter()}
 
 			//Send connection request to other MBG
-			connectType, connectDest, err := mtlsConnectReq(localSvc.Service.Id, serviceId, "forward", mbgIP)
+			connectType, connectDest, err := mtlsConnectReq(localSvc.Id, serviceId, "forward", mbgIP)
 
 			if err != nil {
 				clog.Infof("Unable to connect(mtls): %v ", err.Error())
 				ac.Close()
 				continue
 			}
-			clog.Infof("Using %s for  %s/%s to connect to Service-%v", connectType, mbgIP, connectDest, destSvc.Service.Id)
+			clog.Infof("Using %s for  %s/%s to connect to Service-%v", connectType, mbgIP, connectDest, destSvc.Id)
 			serverName := state.GetMyId()
 			mtlsForward.StartMtlsForwarderClient(mbgIP, connectDest, rootCA, certificate, key, serverName, ac)
 		default:

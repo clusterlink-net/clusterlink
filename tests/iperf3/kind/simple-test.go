@@ -52,7 +52,7 @@ var (
 func main() {
 	// call a Python function
 	dataplane := "mtls"
-	nologfile := true
+	nologfile := false
 	mbgAux.SetLog()
 	log.Println("Working directory", mbgAux.ProjDir)
 	//exec.chdir(proj_dir)
@@ -90,15 +90,15 @@ func main() {
 	//Set iperf3 client
 	mbgAux.PrintHeader("Add iperf3 client")
 	kindAux.CreateServiceInKind(mbg1Name, srcSvc, "mlabbe/iperf3", folCl+"/"+srcSvc+".yaml")
-	srcSvcPod, srcSvcIp := mbgAux.GetPodNameIp(srcSvc)
-	mbgctl1.AddService(srcSvc, srcSvcIp, "iperf3 client")
+	srcSvcPod, _ := mbgAux.GetPodNameIp(srcSvc)
+	mbgctl1.AddService(srcSvc, "", "", "iperf3 client")
 
 	//Set iperf3 server
 	mbgAux.PrintHeader("Add iperf3 server")
 	kindAux.CreateServiceInKind(mbg2Name, destSvc, "mlabbe/iperf3", folSv+"/iperf3.yaml")
-	destSvcPod, destSvcIp := mbgAux.GetPodNameIp(destSvc)
-	destSvcIp += ":5000"
-	mbgctl2.AddService(destSvc, destSvcIp, "iperf3 server")
+	destSvcPod, _ := mbgAux.GetPodNameIp(destSvc)
+	destSvcPort := "5000"
+	mbgctl2.AddService(destSvc, "", destSvcPort, "iperf3 server")
 	log.Println(srcSvcPod, destSvcPod)
 
 	//Expose service

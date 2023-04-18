@@ -21,7 +21,6 @@ def setIperf3client(mbgName, mbgctlName,srcSvc):
     runcmd(f"kind load docker-image mlabbe/iperf3 --name={mbgName}")
     runcmd(f"kubectl create -f {folCl}/{srcSvc}.yaml")
     waitPod(srcSvc)
-    srcSvcIp =getPodIp(srcSvc)
     mbgctlPod =getPodName("mbgctl")
     runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add service --id {srcSvc} --target {srcSvcIp}')
 
