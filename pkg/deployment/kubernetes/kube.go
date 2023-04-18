@@ -8,5 +8,3 @@ func InitializeKubeDeployment(KubeConfigPath string) error {
 	}
 	return nil
 }
-
-// Add support to create a service/Nodeport

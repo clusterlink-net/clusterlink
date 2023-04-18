@@ -12,6 +12,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -27,14 +28,15 @@ const (
 	IndexIP               = "byIP"
 	typePod               = "Pod"
 	typeService           = "Service"
+	AppLabel              = "app"
 )
-const APP_LABEL = "app"
 
 type kubeDataInterface interface {
 	GetInfo(string) (*Info, error)
 	GetLabel(string, string) (string, error)
 	GetIpFromLabel(string) ([]string, error)
 	InitFromConfig(string) error
+	CreateServiceEndpoint(string, int32, int, string) error
 }
 
 type KubeData struct {
@@ -44,6 +46,7 @@ type KubeData struct {
 	services cache.SharedIndexInformer
 	// replicaSets caches the ReplicaSets as partially-filled *ObjectMeta pointers
 	replicaSets cache.SharedIndexInformer
+	kubeClient  *kubernetes.Clientset
 	stopChan    chan struct{}
 }
 
@@ -102,20 +105,9 @@ func (k *KubeData) GetLabel(ip string, key string) (string, error) {
 // Get label(prefix of label) and return pod ip
 func (k *KubeData) GetIpFromLabel(label string) ([]string, error) {
 	namespace := "default"
-	label = APP_LABEL + "=" + label
-	// Create a Kubernetes clientset using the in-cluster configuration
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
+	label = AppLabel + "=" + label
 
-	podList, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
+	podList, err := k.kubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: label,
 	})
 	if err != nil {
@@ -124,7 +116,7 @@ func (k *KubeData) GetIpFromLabel(label string) ([]string, error) {
 	}
 	if len(podList.Items) == 0 {
 		log.Error("No pods found for label selector %v", label)
-		return nil, fmt.Errorf("No pods found for label selector %q", label)
+		return nil, fmt.Errorf("no pods found for label selector %q", label)
 	}
 
 	var podIPs []string
@@ -290,12 +282,12 @@ func (k *KubeData) InitFromConfig(kubeConfigPath string) error {
 		return err
 	}
 
-	kubeClient, err := kubernetes.NewForConfig(config)
+	k.kubeClient, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		return err
 	}
 
-	err = k.initInformers(kubeClient)
+	err = k.initInformers(k.kubeClient)
 	if err != nil {
 		return err
 	}
@@ -351,5 +343,25 @@ func (k *KubeData) initInformers(client kubernetes.Interface) error {
 	informerFactory.WaitForCacheSync(k.stopChan)
 	log.Infof("Kubernetes informers started")
 
+	return nil
+}
+
+// Add support to create a service/Nodeport for a target port
+func (k *KubeData) CreateServiceEndpoint(serviceName string, port int32, targetPort int, mbgAppName string) error {
+	serviceSpec := &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: serviceName},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{
+				{
+					Protocol:   v1.ProtocolTCP,
+					Port:       port,
+					TargetPort: intstr.FromInt(targetPort),
+				},
+			},
+			ClusterIP: "",
+			Selector:  map[string]string{"app": mbgAppName},
+		},
+	}
+	k.kubeClient.CoreV1().Services("").Create(context.TODO(), serviceSpec, metav1.CreateOptions{})
 	return nil
 }
