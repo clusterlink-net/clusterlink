@@ -28,8 +28,8 @@ const (
 	IndexIP               = "byIP"
 	typePod               = "Pod"
 	typeService           = "Service"
+	AppLabel              = "app"
 )
-const APP_LABEL = "app"
 
 type kubeDataInterface interface {
 	GetInfo(string) (*Info, error)
@@ -105,20 +105,9 @@ func (k *KubeData) GetLabel(ip string, key string) (string, error) {
 // Get label(prefix of label) and return pod ip
 func (k *KubeData) GetIpFromLabel(label string) ([]string, error) {
 	namespace := "default"
-	label = APP_LABEL + "=" + label
-	// Create a Kubernetes clientset using the in-cluster configuration
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
+	label = AppLabel + "=" + label
 
-	podList, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
+	podList, err := k.kubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: label,
 	})
 	if err != nil {
@@ -127,7 +116,7 @@ func (k *KubeData) GetIpFromLabel(label string) ([]string, error) {
 	}
 	if len(podList.Items) == 0 {
 		log.Error("No pods found for label selector %v", label)
-		return nil, fmt.Errorf("No pods found for label selector %q", label)
+		return nil, fmt.Errorf("no pods found for label selector %q", label)
 	}
 
 	var podIPs []string

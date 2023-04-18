@@ -140,20 +140,23 @@ func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePor
 			return err
 		}
 		appIp := ac.RemoteAddr().String()
-		clog.Infof("Receiving Outgoing connection %s->%s ", ac.RemoteAddr().String(), ac.LocalAddr().String())
 
 		// Ideally do a control plane connect API, Policy checks, and then create a mTLS forwarder
 		// RemoteEndPoint has to be in the connect Request/Response
-		appLabel, err := kubernetes.Data.GetLabel(strings.Split(ac.RemoteAddr().String(), ":")[0], kubernetes.APP_LABEL)
+		appLabel, err := kubernetes.Data.GetLabel(strings.Split(ac.RemoteAddr().String(), ":")[0], kubernetes.AppLabel)
 		if err != nil {
 			clog.Errorf("Unable to get App Info :%+v", err)
 		}
-		clog.Infof("App Label:%s", appLabel)
+		clog.Infof("Receiving Outgoing connection %s(%s)->%s ", ac.RemoteAddr().String(), ac.LocalAddr().String(), appLabel)
+
 		// Need to look up the label to find local service
 		// If label isnt found, Check for IP.
 		// If we cant find the service, we get the "service id" as a wildcard
 		// which is sent to the policy engine to decide.
 		localSvc, err := state.LookupLocalService(appLabel, appIp)
+		if err != nil {
+			clog.Infof("Unable to lookup local service :%v", err)
+		}
 
 		policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: localSvc.Id, DstService: serviceId, Direction: eventManager.Outgoing, OtherMbg: eventManager.Wildcard})
 		if err != nil {
