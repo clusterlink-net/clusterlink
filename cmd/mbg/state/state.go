@@ -578,7 +578,7 @@ func (s *LocalService) GetIpAndPort() string {
 		target = s.Ip
 	} else {
 		ipList, _ := kubernetes.Data.GetIpFromLabel(s.Id)
-		target = ipList[0] //Todo cuse the first pod
+		target = ipList[0] //Todo Choose the first pod
 	}
 	target += ":" + s.Port
 	return target
