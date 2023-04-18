@@ -22,7 +22,7 @@ def setIperf3client(mbgName, mbgctlName,srcSvc):
     runcmd(f"kubectl create -f {folCl}/{srcSvc}.yaml")
     waitPod(srcSvc)
     mbgctlPod =getPodName("mbgctl")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add service --id {srcSvc} --target {srcSvcIp}')
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add service --id {srcSvc}')
 
 def setIperf3Server(mbgName, mbgctlName, destSvc):
     printHeader(f"Add {destSvc} (server) service in {mbgName}")
@@ -31,10 +31,10 @@ def setIperf3Server(mbgName, mbgctlName, destSvc):
     runcmd(f"kubectl create -f {folSv}/iperf3.yaml")
     waitPod(destSvc)
     runcmd(f"kubectl create service nodeport iperf3-server --tcp=5000:5000 --node-port={iperf3DestPort}")
-    destSvcIp = f"{getPodIp(destSvc)}:5000"
+    destSvcPort = f"5000"
     destkindIp=getKindIp(mbgName)
     mbgctlPod =getPodName("mbgctl")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add service --id {destSvc} --target {destSvcIp} --description iperf3-server')
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add service --id {destSvc} --port {destSvcPort} --description iperf3-server')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
