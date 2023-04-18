@@ -26,11 +26,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: reviews-v2
+      app: reviews
   template:
     metadata:
       labels:
-        app: reviews-v2
+        app: reviews
         version: v2
     spec:
       containers:

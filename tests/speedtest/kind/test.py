@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 ##############################################################################################
 # Name: Bookinfo
 # Info: support bookinfo application with mbgctl inside the clusters 
@@ -132,8 +133,7 @@ if __name__ == "__main__":
     runcmd(f"kubectl create -f {folman}/firefox.yaml")    
     printHeader(f"Add {srcSvc1} services to host cluster")
     waitPod(srcSvc1)
-    _ , srcSvcIp1 =getPodNameIp(srcSvc1)
-    runcmd(f'mbgctl add service  --myid {mbgctl1Name} --id {srcSvc1} --target {srcSvcIp1} --description {srcSvc1}')
+    runcmd(f'mbgctl add service  --myid {mbgctl1Name} --id {srcSvc1} --description {srcSvc1}')
     runcmd(f"kubectl create service nodeport {srcSvc1} --tcp=5800:5800 --node-port=30000")
     
     ### Set mbg2 service
@@ -153,10 +153,8 @@ if __name__ == "__main__":
     printHeader(f"Add {srcSvc1} {srcSvc2} services to host cluster")
     waitPod(srcSvc1)
     waitPod(srcSvc2)
-    _ , srcSvcIp1 =getPodNameIp(srcSvc1)
-    _ , srcSvcIp2 =getPodNameIp(srcSvc2)
-    runcmd(f'mbgctl add service  --myid {mbgctl3Name} --id {srcSvc1} --target {srcSvcIp1} --description {srcSvc1}')
-    runcmd(f'mbgctl add service  --myid {mbgctl3Name} --id {srcSvc2} --target {srcSvcIp2} --description {srcSvc2}')
+    runcmd(f'mbgctl add service  --myid {mbgctl3Name} --id {srcSvc1} --description {srcSvc1}')
+    runcmd(f'mbgctl add service  --myid {mbgctl3Name} --id {srcSvc2} --description {srcSvc2}')
     runcmd(f"kubectl create service nodeport {srcSvc1} --tcp=5800:5800 --node-port=30000")
     runcmd(f"kubectl create service nodeport {srcSvc2} --tcp=5800:5800 --node-port=30001")
     
