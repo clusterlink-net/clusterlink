@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -27,10 +28,12 @@ const (
 	typePod               = "Pod"
 	typeService           = "Service"
 )
+const APP_LABEL = "app"
 
 type kubeDataInterface interface {
 	GetInfo(string) (*Info, error)
 	GetLabel(string, string) (string, error)
+	GetIpFromLabel(string) ([]string, error)
 	InitFromConfig(string) error
 }
 
@@ -82,6 +85,7 @@ func (k *KubeData) GetInfo(ip string) (*Info, error) {
 	return nil, fmt.Errorf("informers can't find IP %s", ip)
 }
 
+// Get Ip and key(prefix of label) and return pod label
 func (k *KubeData) GetLabel(ip string, key string) (string, error) {
 	if info, ok := k.fetchInformers(ip); ok {
 		// Owner data might be discovered after the owned, so we fetch it
@@ -93,6 +97,45 @@ func (k *KubeData) GetLabel(ip string, key string) (string, error) {
 	}
 
 	return "", fmt.Errorf("informers can't find IP %s", ip)
+}
+
+// Get label(prefix of label) and return pod ip
+func (k *KubeData) GetIpFromLabel(label string) ([]string, error) {
+	namespace := "default"
+	label = APP_LABEL + "=" + label
+	// Create a Kubernetes clientset using the in-cluster configuration
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	podList, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: label,
+	})
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	if len(podList.Items) == 0 {
+		log.Error("No pods found for label selector %v", label)
+		return nil, fmt.Errorf("No pods found for label selector %q", label)
+	}
+
+	var podIPs []string
+
+	// We assume that the first matching pod is the correct one
+	for _, p := range podList.Items {
+		podIPs = append(podIPs, p.Status.PodIP)
+	}
+
+	log.Infof("The label %v match to pod ips %v\n", label, podIPs)
+	return podIPs, nil
 }
 
 func (k *KubeData) fetchInformers(ip string) (*Info, bool) {
