@@ -142,8 +142,8 @@ if __name__ == "__main__":
     runcmd(f"kubectl create -f {folman}/speedtest.yaml")
     printHeader(f"Add {destSvc} (server) service to destination cluster")
     waitPod(destSvc)
-    destSvcIp = f"{getPodIp(destSvc)}:3000"
-    runcmd(f'mbgctl add service  --myid {mbgctl2Name} --id {destSvc} --target {destSvcIp} --description v2')
+    destSvcPort = "3000"
+    runcmd(f'mbgctl add service  --myid {mbgctl2Name} --id {destSvc} --port {destSvcPort} --description v2')
     
     ### Set mbgctl3
     useKindCluster(mbg3Name)
