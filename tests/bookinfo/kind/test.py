@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 ##############################################################################################
 # Name: Bookinfo
 # Info: support bookinfo application with mbgctl inside the clusters 
@@ -58,7 +59,6 @@ if __name__ == "__main__":
     mbg2Name        = "mbg2"
     mbgctl2Name     = "mbgctl2"
     review2DestPort = "30001"
-    review2pod      = "reviews-v2"
 
     #MBG3 parameters 
     mbg3DataPort    = "30001"
@@ -68,7 +68,6 @@ if __name__ == "__main__":
     mbg3Name        = "mbg3"
     mbgctl3Name     = "mbgctl3"
     review3DestPort = "30001"
-    review3pod      = "reviews-v3"
     
 
     print(f'Working directory {proj_dir}')
@@ -113,8 +112,8 @@ if __name__ == "__main__":
     waitPod(srcSvc2)
     _ , srcSvcIp1 =getPodNameIp(srcSvc1)
     _ , srcSvcIp2 =getPodNameIp(srcSvc2)
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add service --id {srcSvc1} --target {srcSvcIp1} --description {srcSvc1}')
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add service --id {srcSvc2} --target {srcSvcIp2} --description {srcSvc2}')
+    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add service --id {srcSvc1}  --description {srcSvc1}')
+    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add service --id {srcSvc2} --description {srcSvc2}')
 
     
 
@@ -133,9 +132,9 @@ if __name__ == "__main__":
     runcmd(f"kubectl create -f {folReview}/review-v2.yaml")
     runcmd(f"kubectl create -f {folReview}/rating.yaml")
     printHeader(f"Add {destSvc} (server) service to destination cluster")
-    waitPod(review2pod)
-    destSvcReview2Ip = f"{getPodIp(review2pod)}:{srcK8sSvcPort}"
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add service --id {destSvc} --target {destSvcReview2Ip} --description v2')
+    waitPod(destSvc)
+    destSvcReview2Port = f"{srcK8sSvcPort}"
+    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add service --id {destSvc} --port {destSvcReview2Port} --description v2')
     
 
     ###Set mbgctl3
@@ -145,9 +144,9 @@ if __name__ == "__main__":
     runcmd(f"kubectl create -f {folReview}/review-v3.yaml")
     runcmd(f"kubectl create -f {folReview}/rating.yaml")
     printHeader(f"Add {destSvc} (server) service to destination cluster")
-    waitPod(review3pod)
-    destSvcReview3Ip = f"{getPodIp(review3pod)}:{srcK8sSvcPort}"
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl add service --id {destSvc} --target {destSvcReview3Ip} --description v3')
+    waitPod(destSvc)
+    destSvcReview3Port = f"{srcK8sSvcPort}"
+    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl add service --id {destSvc} --port {destSvcReview3Port} --description v3')
 
     #Expose service
     useKindCluster(mbg2Name)
