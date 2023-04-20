@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -677,14 +678,37 @@ func SetLog(logLevel string, logfile bool) {
 		ll = logrus.ErrorLevel
 	}
 	logrus.SetLevel(ll)
-	logrus.SetFormatter(&logrus.TextFormatter{
-		ForceColors:     true,
-		FullTimestamp:   true,
-		TimestampFormat: "2006-01-02 15:04:05",
-		PadLevelText:    true,
-		DisableQuote:    true,
-	},
-	)
+	logrus.SetFormatter(&MyFormatter{
+		TextFormatter: &logrus.TextFormatter{
+			ForceColors:     true,
+			FullTimestamp:   true,
+			TimestampFormat: "2006-01-02 15:04:05",
+			PadLevelText:    true,
+			DisableQuote:    true,
+		},
+	})
+}
+
+type MyFormatter struct {
+	*logrus.TextFormatter
+}
+
+func (f *MyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	if entry.Level == logrus.ErrorLevel {
+		file, line := getLineNumber()
+		entry.Data["file"] = file
+		entry.Data["line"] = line
+	}
+
+	return f.TextFormatter.Format(entry)
+}
+
+func getLineNumber() (string, int) {
+	_, file, line, ok := runtime.Caller(2)
+	if !ok {
+		return "", 0
+	}
+	return file, line
 }
 
 func GetLogFile() string {
