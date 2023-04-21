@@ -32,7 +32,7 @@ func (m *MbgEventManager) RaiseNewConnectionRequestEvent(connectionAttr Connecti
 		var r ConnectionRequestResp
 		err = json.Unmarshal(resp, &r)
 		if err != nil {
-			elog.Errorf("Unable to unmarshal json %v", err)
+			elog.Errorf("Unable to unmarshal ConnectionRequestResp json %v", err)
 			return ConnectionRequestResp{Action: Allow, TargetMbg: "", BitRate: 0}, err
 		}
 		return r, nil
@@ -59,7 +59,7 @@ func (m *MbgEventManager) RaiseNewRemoteServiceEvent(remoteServiceAttr NewRemote
 		var r NewRemoteServiceResp
 		err = json.Unmarshal(resp, &r)
 		if err != nil {
-			elog.Errorf("Unable to unmarshal json %v", err)
+			elog.Errorf("Unable to unmarshal RaiseNewRemoteServiceEvent json %v", err)
 			return NewRemoteServiceResp{Action: Allow}, err
 		}
 		return r, nil
@@ -87,7 +87,7 @@ func (m *MbgEventManager) RaiseExposeRequestEvent(exposeRequestAttr ExposeReques
 		var r ExposeRequestResp
 		err = json.Unmarshal(resp, &r)
 		if err != nil {
-			elog.Errorf("Unable to unmarshal json %v", err)
+			elog.Errorf("Unable to unmarshal RaiseExposeRequestEvent json %v", err)
 			return ExposeRequestResp{Action: Allow}, err
 		}
 		return r, nil
@@ -110,7 +110,7 @@ func (m *MbgEventManager) RaiseAddPeerEvent(addPeerAttr AddPeerAttr) (AddPeerRes
 		}
 		resp, err := httpAux.HttpPost(url, jsonReq, m.HttpClient)
 		if err != nil {
-			elog.Errorf("Unable to unmarshal json %v", err)
+			elog.Errorf("Unable to unmarshal RaiseAddPeerEvent json %v", err)
 			return AddPeerResp{Action: Allow}, err
 		}
 		var r AddPeerResp

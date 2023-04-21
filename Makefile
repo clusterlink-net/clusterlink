@@ -44,7 +44,7 @@ build:
 	go build -o ./bin/mbg ./cmd/mbg/main.go
 
 docker-build-mbg:
-	docker build --rm --tag mbg .
+	docker build --progress=plain --rm --tag mbg .
 
 docker-build: docker-build-mbg 
 
