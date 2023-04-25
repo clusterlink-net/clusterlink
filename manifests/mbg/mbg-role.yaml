@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: pod-reader
+  name: mbg-role
   namespace: default
 rules:
 - apiGroups: [ "" ]
@@ -15,12 +15,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: default-pod-reader
+  name: default-mbg-role
   namespace: default
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: pod-reader
+  name: mbg-role
 subjects:
 - kind: ServiceAccount
   name: default

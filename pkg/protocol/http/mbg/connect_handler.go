@@ -26,7 +26,7 @@ func (m MbgHandler) connectPost(w http.ResponseWriter, r *http.Request) {
 	log.Infof("Received connect to service %s from MBG: %s", c.Id, mbgIP)
 	connect, connectType, connectDest := mbgDataplane.Connect(c, mbgIP, nil)
 
-	log.Errorf("Got {%+v, %+v, %+v} from connect ", connect, connectType, connectDest)
+	log.Infof("Got {%+v, %+v, %+v} from connect \n", connect, connectType, connectDest)
 	//Set Connect response
 	respJson, err := json.Marshal(protocol.ConnectReply{Connect: connect, ConnectType: connectType, ConnectDest: connectDest})
 	if err != nil {
