@@ -79,7 +79,7 @@ func (m *Mbgctl) AddService(id, target, port, description string) error {
 	return err
 }
 
-func (m *Mbgctl) ExposeService(id string) error {
+func (m *Mbgctl) ExposeService(id, peer string) error {
 	state.UpdateState(m.Id)
 
 	mbgIP := state.GetMbgIP()
@@ -87,7 +87,7 @@ func (m *Mbgctl) ExposeService(id string) error {
 	svcExp := s.Service
 
 	address := state.GetAddrStart() + mbgIP + "/expose"
-	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, MbgID: ""})
+	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, MbgID: peer})
 	if err != nil {
 		return err
 	}

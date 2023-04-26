@@ -104,7 +104,7 @@ func main() {
 	//Expose service
 	mbgAux.PrintHeader("Start expose")
 	kindAux.UseKindCluster(mbg2Name)
-	mbgctl2.ExposeService(destSvc)
+	mbgctl2.ExposeService(destSvc, "")
 	svc, _ := mbgctl1.GetRemoteServices()
 	log.Println(svc[destSvc])
 

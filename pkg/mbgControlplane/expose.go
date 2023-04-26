@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
@@ -16,10 +17,10 @@ var mlog = logrus.WithField("component", "mbgControlPlane/Expose")
 func Expose(e protocol.ExposeRequest) {
 	//Update MBG state
 	state.UpdateState()
-	ExposeToMbg(e.Id)
+	ExposeToMbg(e.Id, e.MbgID)
 }
 
-func ExposeToMbg(serviceId string) {
+func ExposeToMbg(serviceId, peerId string) {
 	exposeResp, err := state.GetEventManager().RaiseExposeRequestEvent(eventManager.ExposeRequestAttr{Service: serviceId})
 	if err != nil {
 		mlog.Errorf("Unable to raise expose request event")
@@ -34,14 +35,20 @@ func ExposeToMbg(serviceId string) {
 	myIp := state.GetMyIp()
 	svcExp := state.GetLocalService(serviceId)
 	svcExp.Ip = myIp
-	if exposeResp.Action == eventManager.AllowAll {
-		for _, mbgId := range state.GetMbgList() {
+	if peerId == "" { //Expose to all
+		if exposeResp.Action == eventManager.AllowAll {
+			for _, mbgId := range state.GetMbgList() {
+				ExposeReq(svcExp, mbgId, "MBG")
+			}
+			return
+		}
+		for _, mbgId := range exposeResp.TargetMbgs {
 			ExposeReq(svcExp, mbgId, "MBG")
 		}
-		return
-	}
-	for _, mbgId := range exposeResp.TargetMbgs {
-		ExposeReq(svcExp, mbgId, "MBG")
+	} else { //Expose to specific peer
+		if slices.Contains(exposeResp.TargetMbgs, peerId) {
+			ExposeReq(svcExp, peerId, "MBG")
+		}
 	}
 }
 

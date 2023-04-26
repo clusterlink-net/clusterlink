@@ -6,15 +6,16 @@ from colorama import Style
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 folMfst=f"{proj_dir}/manifests"
 
-def waitPod(name):
+def waitPod(name, namespace="default"):
     time.sleep(2) #Initial start
     podStatus=""
-    while(podStatus != "Running"):
+    while("Running" not in podStatus):
         #cmd=f"kubectl get pods -l app={name} -o jsonpath" + "=\'{.items[0].status.containerStatuses[0].ready}\'"
-        cmd=f"kubectl get pods -l app={name} "+ '--no-headers -o custom-columns=":status.phase"'
+        cmd=f"kubectl get pods -l app={name} -n {namespace} "+ '--no-headers -o custom-columns=":status.phase"'
+        print(cmd)
         podStatus =sp.getoutput(cmd)
-        if (podStatus != "Running"):
-            print (f"Waiting for pod {name} to start current status: {podStatus}")
+        if ("Running" not in podStatus):
+            print (f"Waiting for pod {name} in namespace {namespace} to start current status: {podStatus}")
             time.sleep(7)
         else:
             time.sleep(5)
@@ -75,6 +76,26 @@ def buildMbgctl(name):
     name,ip= getPodNameIp("mbgctl")
     return name, ip 
 
+#Creating k8s service for svc name
+def creatMbgK8sService(appName,svcName, namespace, port):
+    podMbg= getPodName("mbg-deployment")        
+    mbgLocalPort, _ = getMbgPorts(podMbg, appName)
+    runcmd(f"kubectl delete service {svcName} -n {namespace}")
+    runcmd(f"kubectl create service clusterip {svcName} -n {namespace} --tcp={port}:{mbgLocalPort}")
+    runcmd(f"kubectl patch service {svcName} -n {namespace} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
+    #runcmd(f"kubectl create endpoints {svcName} --namespace={namespace} --addreses=mbg.{mbgNS}.:{mbgLocalPort}")
+
+def createK8sService(name, namespace, port, targetPort):
+    runcmd(f"kubectl delete service {name} -n {namespace}")
+    runcmd(f"kubectl create service clusterip {name} -n {namespace} --tcp={port}:{targetPort}")
+    
 def clean_cluster():
     runcmd(f'kubectl delete --all deployments')
     runcmd(f'kubectl delete --all svc')
+
+class app:
+    def __init__(self, name, namespace, target, port):  
+        self.name       = name
+        self.namespace  = namespace
+        self.target     = target
+        self.port       = port
