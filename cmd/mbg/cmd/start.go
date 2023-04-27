@@ -79,7 +79,7 @@ func init() {
 	startCmd.Flags().String("certificate", "", "Path to the Certificate File (.pem)")
 	startCmd.Flags().String("key", "", "Path to the Key File (.pem)")
 	startCmd.Flags().String("dataplane", "mtls", "tcp/mtls based data-plane proxies")
-	startCmd.Flags().Bool("startPolicyEngine", false, "Start policy engine in port")
+	startCmd.Flags().Bool("startPolicyEngine", true, "Start policy engine in port")
 	startCmd.Flags().String("policyEngineIp", "", "Set the policy engine ip")
 	startCmd.Flags().Bool("restore", false, "Restore existing stored MBG states")
 	startCmd.Flags().Bool("logFile", true, "Save the outputs to file")
