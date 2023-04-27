@@ -332,7 +332,7 @@ func GetMbgTarget(id string) string {
 		mbgArrMutex.RUnlock()
 		return mbgI.Ip + mbgI.Cport.External
 	} else {
-		log.Infof("Peer(%s) does not exist", id)
+		log.Errorf("Peer(%s) does not exist", id)
 		return ""
 	}
 
