@@ -32,9 +32,9 @@ def setIperf3Server(mbgName, mbgctlName, destSvc):
     waitPod(destSvc)
     runcmd(f"kubectl create service nodeport iperf3-server --tcp=5000:5000 --node-port={iperf3DestPort}")
     destSvcPort = f"5000"
-    destkindIp=getKindIp(mbgName)
     mbgctlPod =getPodName("mbgctl")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add service --id {destSvc} --port {destSvcPort} --description iperf3-server')
+    destSvcIp  = getPodIp(destSvc)
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add service --id {destSvc} --target {destSvcIp} --port {destSvcPort} --description iperf3-server')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":

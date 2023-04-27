@@ -143,7 +143,8 @@ if __name__ == "__main__":
     printHeader(f"Add {destSvc} (server) service to destination cluster")
     waitPod(destSvc)
     destSvcPort = "3000"
-    runcmd(f'mbgctl add service  --myid {mbgctl2Name} --id {destSvc} --port {destSvcPort} --description v2')
+    _ , destSvcIp =getPodNameIp(destSvc)
+    runcmd(f'mbgctl add service  --myid {mbgctl2Name} --id {destSvc} --target {destSvcIp} --port {destSvcPort} --description v2')
     
     ### Set mbgctl3
     useKindCluster(mbg3Name)

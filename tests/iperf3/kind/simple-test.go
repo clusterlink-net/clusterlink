@@ -96,9 +96,9 @@ func main() {
 	//Set iperf3 server
 	mbgAux.PrintHeader("Add iperf3 server")
 	kindAux.CreateServiceInKind(mbg2Name, destSvc, "mlabbe/iperf3", folSv+"/iperf3.yaml")
-	destSvcPod, _ := mbgAux.GetPodNameIp(destSvc)
+	destSvcPod, destSvcIp := mbgAux.GetPodNameIp(destSvc)
 	destSvcPort := "5000"
-	mbgctl2.AddService(destSvc, "", destSvcPort, "iperf3 server")
+	mbgctl2.AddService(destSvc, destSvcIp, destSvcPort, "iperf3 server")
 	log.Println(srcSvcPod, destSvcPod)
 
 	//Expose service

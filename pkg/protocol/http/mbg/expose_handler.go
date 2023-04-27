@@ -22,12 +22,15 @@ func (m MbgHandler) exposePost(w http.ResponseWriter, r *http.Request) {
 	}
 	//Expose control plane logic
 	log.Infof("Received expose to service: %v", e.Id)
-	mbgControlplane.Expose(e)
+	err = mbgControlplane.Expose(e)
 
 	//Response
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write([]byte("Expose succeed"))
 	if err != nil {
-		log.Println(err)
+		log.Error("Expose error:", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	} else {
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write([]byte("Expose succeed"))
 	}
+
 }

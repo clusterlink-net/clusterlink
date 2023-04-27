@@ -15,7 +15,7 @@ import argparse
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{proj_dir}')
 
-from tests.utils.mbgAux import printHeader, waitPod,getPodNameIp,app
+from tests.utils.mbgAux import printHeader, waitPod,getPodNameIp,runcmd,createMbgK8sService, app
 from tests.utils.kind.kindAux import useKindCluster,startKindClusterMbg,getKindIp
 
 
@@ -182,15 +182,15 @@ if __name__ == "__main__":
 
     #Create k8s service
     useKindCluster(mbg1Name)    
-    creatMbgK8sService(quoteApp.name  , quoteApp.name ,mbgNS, quoteApp.port)
-    creatMbgK8sService(authorApp.name , authorApp.name, mbgNS, authorApp.port)
-    creatMbgK8sService(dbApp.name     , dbApp.name    , mbgNS, dbApp.port)
-    creatMbgK8sService(imageApp.name  , imageApp.name , mbgNS, imageApp.port)
-    creatMbgK8sService(pdfApp.name    , pdfApp.name   , mbgNS, pdfApp.port)
-    creatMbgK8sService(ratingApp.name , ratingApp.name   , mbgNS, ratingApp.port)
+    createMbgK8sService(quoteApp.name  , quoteApp.name ,mbgNS, quoteApp.port)
+    createMbgK8sService(authorApp.name , authorApp.name, mbgNS, authorApp.port)
+    createMbgK8sService(dbApp.name     , dbApp.name    , mbgNS, dbApp.port)
+    createMbgK8sService(imageApp.name  , imageApp.name , mbgNS, imageApp.port)
+    createMbgK8sService(pdfApp.name    , pdfApp.name   , mbgNS, pdfApp.port)
+    createMbgK8sService(ratingApp.name , ratingApp.name   , mbgNS, ratingApp.port)
 
     useKindCluster(mbg3Name)    
-    creatMbgK8sService(quoteApp.name  , quoteApp.name , mbgNS, quoteApp.port)
+    createMbgK8sService(quoteApp.name  , quoteApp.name , mbgNS, quoteApp.port)
 
     webApp.target=mbg1Ip
     print(f"Application url: http://{webApp.target}:{webApp.port}")

@@ -3,6 +3,7 @@ package mbgControlplane
 import (
 	"encoding/json"
 	"strconv"
+	"fmt"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
@@ -16,33 +17,35 @@ import (
 
 var mlog = logrus.WithField("component", "mbgControlPlane/Expose")
 
-func Expose(e protocol.ExposeRequest) {
+func Expose(e protocol.ExposeRequest) error {
 	//Update MBG state
 	state.UpdateState()
-	ExposeToMbg(e.Id, e.MbgID)
+	return ExposeToMbg(e.Id, e.MbgID)
 }
 
-func ExposeToMbg(serviceId, peerId string) {
+func ExposeToMbg(serviceId, peerId string) error {
 	exposeResp, err := state.GetEventManager().RaiseExposeRequestEvent(eventManager.ExposeRequestAttr{Service: serviceId})
 	if err != nil {
-		mlog.Errorf("Unable to raise expose request event")
-		return
+		return fmt.Errorf("Unable to raise expose request event")
 	}
 	mlog.Infof("Response = %+v", exposeResp)
 	if exposeResp.Action == eventManager.Deny {
 		mlog.Errorf("Denying Expose of service %s", serviceId)
-		return
+		return fmt.Errorf("Denying Expose of service %s", serviceId)
 	}
 
 	myIp := state.GetMyIp()
 	svcExp := state.GetLocalService(serviceId)
+	if svcExp.Ip == "" {
+		return fmt.Errorf("Denying Expose of service %s - target is not set", serviceId)
+	}
 	svcExp.Ip = myIp
 	if peerId == "" { //Expose to all
 		if exposeResp.Action == eventManager.AllowAll {
 			for _, mbgId := range state.GetMbgList() {
 				ExposeReq(svcExp, mbgId, "MBG")
 			}
-			return
+			return nil
 		}
 		for _, mbgId := range exposeResp.TargetMbgs {
 			ExposeReq(svcExp, mbgId, "MBG")
@@ -52,6 +55,7 @@ func ExposeToMbg(serviceId, peerId string) {
 			ExposeReq(svcExp, peerId, "MBG")
 		}
 	}
+	return nil
 }
 
 func ExposeReq(svcExp state.LocalService, mbgId, cType string) {
