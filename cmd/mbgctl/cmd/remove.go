@@ -60,8 +60,8 @@ var ServiceRemCmd = &cobra.Command{
 
 var bindingRemCmd = &cobra.Command{
 	Use:   "binding",
-	Short: "Bind a remote service to a k8s service endpoint/port",
-	Long:  `Creates a K8s service with the port binding for a remote service`,
+	Short: "Removes binding of a remote service to a k8s service port",
+	Long:  `Removes a K8s service with the port binding for a remote service`,
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
 		serviceId, _ := cmd.Flags().GetString("service")

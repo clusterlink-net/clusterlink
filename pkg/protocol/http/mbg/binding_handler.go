@@ -25,6 +25,7 @@ func (m MbgHandler) bindingCreate(w http.ResponseWriter, r *http.Request) {
 	err = mbgControlplane.CreateLocalServiceEndpoint(b.Id, b.Port, b.Namespace, b.MbgApp)
 	if err != nil {
 		log.Errorf("Unable to create binding: %+v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	//Response
@@ -38,6 +39,7 @@ func (m MbgHandler) bindingDelete(w http.ResponseWriter, r *http.Request) {
 	err := mbgControlplane.DeleteLocalServiceEndpoint(svcId)
 	if err != nil {
 		log.Errorf("Unable to delete binding: %+v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	//Response
