@@ -12,8 +12,9 @@ import (
 func emptyRun(*cobra.Command, []string) {}
 
 const (
-	acl = "acl"
-	lb  = "lb"
+	acl    = "acl"
+	lb     = "lb"
+	mbgApp = "mbg"
 )
 
 // updateCmd represents the update command
@@ -82,6 +83,26 @@ var serviceCmd = &cobra.Command{
 	},
 }
 
+var bindingCmd = &cobra.Command{
+	Use:   "binding",
+	Short: "Bind a remote service to a k8s service endpoint/port",
+	Long:  `Creates a K8s service with the port binding for a remote service`,
+	Run: func(cmd *cobra.Command, args []string) {
+		mId, _ := cmd.Flags().GetString("myid")
+		serviceId, _ := cmd.Flags().GetString("service")
+		servicePort, _ := cmd.Flags().GetInt("port")
+		namespace, _ := cmd.Flags().GetString("namespace")
+
+		m := api.Mbgctl{Id: mId}
+		err := m.CreateServiceEndpoint(serviceId, servicePort, namespace, mbgApp)
+		if err != nil {
+			fmt.Printf("Failed to create binding :%v\n", err)
+			return
+		}
+		fmt.Printf("Binding service added successfully\n")
+	},
+}
+
 // PolicyCmd represents the applyPolicy command
 var PolicyAddCmd = &cobra.Command{
 	Use:   "policy",
@@ -128,6 +149,12 @@ func init() {
 	serviceCmd.Flags().String("target", "", "Service IP/Hostname if not specified use service id as the target id")
 	serviceCmd.Flags().String("port", "", "Service port")
 	serviceCmd.Flags().String("description", "", "Service description (Optional)")
+	// add service binding
+	addCmd.AddCommand(bindingCmd)
+	bindingCmd.Flags().String("myid", "", "MBGCtl Id")
+	bindingCmd.Flags().String("service", "", "Service id")
+	bindingCmd.Flags().Int("port", 0, "local port to be bound for remote service")
+	bindingCmd.Flags().String("namespace", "default", "Namespace where the service binding to be created")
 	// add policy
 	addCmd.AddCommand(PolicyAddCmd)
 	PolicyAddCmd.Flags().String("myid", "", "MBGCtl Id")

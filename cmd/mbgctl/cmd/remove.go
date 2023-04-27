@@ -58,6 +58,24 @@ var ServiceRemCmd = &cobra.Command{
 	},
 }
 
+var bindingRemCmd = &cobra.Command{
+	Use:   "binding",
+	Short: "Bind a remote service to a k8s service endpoint/port",
+	Long:  `Creates a K8s service with the port binding for a remote service`,
+	Run: func(cmd *cobra.Command, args []string) {
+		mId, _ := cmd.Flags().GetString("myid")
+		serviceId, _ := cmd.Flags().GetString("service")
+
+		m := api.Mbgctl{Id: mId}
+		err := m.DeleteServiceEndpoint(serviceId)
+		if err != nil {
+			fmt.Printf("Failed to delete binding :%v\n", err)
+			return
+		}
+		fmt.Printf("Binding service delete successfully\n")
+	},
+}
+
 var PolicyRemCmd = &cobra.Command{
 	Use:   "policy",
 	Short: "Remove service policy from MBG.",
@@ -96,6 +114,10 @@ func init() {
 	ServiceRemCmd.Flags().String("type", "local", "Service type : remote/local")
 	ServiceRemCmd.Flags().String("peer", "", "Optional, allow to remove local service from a remote peer."+
 		"If this option is specified it will not remove the local service from the local MBg")
+	// remove service binding
+	removeCmd.AddCommand(bindingRemCmd)
+	bindingRemCmd.Flags().String("myid", "", "MBGCtl Id")
+	bindingRemCmd.Flags().String("service", "", "Service id")
 	// remove policy
 	removeCmd.AddCommand(PolicyRemCmd)
 	PolicyRemCmd.Flags().String("myid", "", "MBGCtl Id")

@@ -248,6 +248,7 @@ func (m *Mbgctl) RemoveLocalService(serviceId string) {
 	resp, _ := httpAux.HttpDelete(address, nil, state.GetHttpClient())
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
+
 func (m *Mbgctl) RemoveLocalServiceFromPeer(serviceId, peer string) {
 	state.UpdateState(m.Id)
 	mbgIP := state.GetMbgIP()
@@ -341,6 +342,32 @@ func (m *Mbgctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadB
 		return make(map[string]map[string]policyEngine.PolicyLoadBalancer), err
 	}
 	return policies, nil
+}
+
+func (m *Mbgctl) CreateServiceEndpoint(serviceId string, port int, namespace, mbgAppName string) error {
+	state.UpdateState(m.Id)
+
+	mbgIP := state.GetMbgIP()
+	address := state.GetAddrStart() + mbgIP + "/binding"
+	j, err := json.Marshal(protocol.BindingRequest{Id: serviceId, Port: port, Namespace: namespace, MbgApp: mbgAppName})
+	if err != nil {
+		return err
+	}
+	//send Binding request
+	_, err = httpAux.HttpPost(address, j, state.GetHttpClient())
+	return err
+}
+
+func (m *Mbgctl) DeleteServiceEndpoint(serviceId string) error {
+	err := state.UpdateState(m.Id)
+	if err != nil {
+		return err
+	}
+	mbgIP := state.GetMbgIP()
+	address := state.GetAddrStart() + mbgIP + "/binding/" + serviceId
+
+	_, err = httpAux.HttpDelete(address, []byte{}, state.GetHttpClient())
+	return err
 }
 
 /***** config *****/

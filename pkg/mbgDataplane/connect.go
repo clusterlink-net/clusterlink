@@ -122,10 +122,12 @@ func CreateProxyRemoteService(serviceId, servicePort, rootCA, certificate, key s
 		clog.Infof("Error Listen: to port  %v", err)
 
 	}
+
 	go StartProxyRemoteService(serviceId, acceptor, servicePort, rootCA, certificate, key)
 	state.WaitServiceStopCh(serviceId, servicePort)
 	acceptor.Close()
 }
+
 func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePort, rootCA, certificate, key string) error {
 	dataplane := state.GetDataplane()
 	// loop until signalled to stop

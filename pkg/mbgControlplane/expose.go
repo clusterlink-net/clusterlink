@@ -2,10 +2,12 @@ package mbgControlplane
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/sirupsen/logrus"
 
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
+	"github.ibm.com/mbg-agent/pkg/deployment/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
@@ -61,4 +63,20 @@ func ExposeReq(svcExp state.LocalService, mbgId, cType string) {
 	if string(resp) != httpAux.RESPFAIL {
 		state.AddPeerLocalService(svcExp.Id, mbgId)
 	}
+}
+
+func CreateLocalServiceEndpoint(serviceId string, port int, namespace, mbgAppName string) error {
+	sPort := state.GetConnectionArr()[serviceId].Local
+
+	targetPort, err := strconv.Atoi(sPort[1:])
+	if err != nil {
+		return err
+	}
+	mlog.Infof("Creating service end point at %s:%d:%d", serviceId, port, targetPort)
+	return kubernetes.Data.CreateServiceEndpoint(serviceId, port, targetPort, namespace, mbgAppName)
+}
+
+func DeleteLocalServiceEndpoint(serviceId string) error {
+	mlog.Infof("Deleting service end point at %s", serviceId)
+	return kubernetes.Data.DeleteServiceEndpoint(serviceId)
 }

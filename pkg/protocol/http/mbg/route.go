@@ -52,6 +52,11 @@ func (m MbgHandler) Routes() chi.Router {
 		r.Post("/", m.exposePost) // Post /expose  - Expose mbg service
 	})
 
+	r.Route("/binding", func(r chi.Router) {
+		r.Post("/", m.bindingCreate)          // Post /expose  - Bind remote service to local port
+		r.Delete("/{svcId}", m.bindingDelete) // Disconnect /connect  - Disconnect mbg service
+	})
+
 	r.Route("/connect", func(r chi.Router) {
 		r.Post("/", m.connectPost)      // Post /connect  - Connect mbg service
 		r.Connect("/", m.handleConnect) // Connect /connect  - Connect mbg service

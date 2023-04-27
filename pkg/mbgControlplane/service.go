@@ -76,7 +76,7 @@ func delServiceInPeerReq(svcId, serviceMbg, peerIp string) {
 
 /******************* Remote Service ****************************************/
 
-func createServiceEndpoint(svcId string, force bool) error {
+func createRemoteServiceEndpoint(svcId string, force bool) error {
 	connPort, err := state.GetFreePorts(svcId)
 	if err != nil {
 		if err.Error() != state.ConnExist {
@@ -108,7 +108,7 @@ func RestoreRemoteServices() {
 		}
 		// Create service endpoint only if the service from atleast one MBG is allowed as per policy
 		if allow {
-			createServiceEndpoint(svcId, true)
+			createRemoteServiceEndpoint(svcId, true)
 		}
 	}
 }
@@ -123,7 +123,7 @@ func AddRemoteService(e protocol.ExposeRequest) {
 		slog.Errorf("unable to create service endpoint due to policy")
 		return
 	}
-	err = createServiceEndpoint(e.Id, false)
+	err = createRemoteServiceEndpoint(e.Id, false)
 	if err != nil {
 		return
 	}
@@ -151,7 +151,7 @@ func convertRemoteService2RemoteReq(svcId string) []protocol.ServiceRequest {
 	for _, s := range state.GetRemoteService(svcId) {
 		sPort := state.GetConnectionArr()[s.Id].Local
 		sIp := sPort
-		sArr = append(sArr, protocol.ServiceRequest{Id: s.Id, Ip: sIp, MbgID: s.MbgId, Description: s.Description})
+		sArr = append(sArr, protocol.ServiceRequest{Id: s.Id, Ip: sIp, Port: sPort, MbgID: s.MbgId, Description: s.Description})
 	}
 	return sArr
 }
