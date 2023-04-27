@@ -15,8 +15,10 @@ var exposeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
 		serviceId, _ := cmd.Flags().GetString("service")
+		peer, _ := cmd.Flags().GetString("peer")
+
 		m := api.Mbgctl{Id: mId}
-		err := m.ExposeService(serviceId)
+		err := m.ExposeService(serviceId, peer)
 		if err != nil {
 			fmt.Printf("Failed to expose service :%v\n", err)
 			return
@@ -28,4 +30,6 @@ func init() {
 	rootCmd.AddCommand(exposeCmd)
 	exposeCmd.Flags().String("myid", "", "MBGCtl Id")
 	exposeCmd.Flags().String("service", "", "Service Id for exposing")
+	exposeCmd.Flags().String("peer", "", "Peer to expose ,if empty expose to all peers")
+
 }

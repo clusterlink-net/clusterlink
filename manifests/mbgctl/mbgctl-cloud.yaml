@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: mbgctl
-        image: quay.io/kfirt/mbg
+        image: quay.io/mcnet/mbg
         imagePullPolicy: IfNotPresent
         command: [ "sleep" ]
         args: [ "infinity" ]  

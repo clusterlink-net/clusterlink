@@ -1,3 +1,8 @@
+SW_VERSION ?= latest
+IMAGE_ORG ?= mcnet
+
+IMAGE_TAG_BASE ?= quay.io/$(IMAGE_ORG)/mbg
+IMG ?= $(IMAGE_TAG_BASE):$(SW_VERSION)
 #-----------------------------------------------------------------------------
 # Target: clean
 #-----------------------------------------------------------------------------
@@ -44,9 +49,15 @@ build:
 	go build -o ./bin/mbg ./cmd/mbg/main.go
 
 docker-build-mbg:
-	docker build --rm --tag mbg .
+	docker build --progress=plain --rm --tag mbg .
 
 docker-build: docker-build-mbg 
+
+build-image:
+	docker build --build-arg SW_VERSION="$(SW_VERSION)" -t ${IMG} .
+
+push-image:
+	docker push ${IMG}
 
 proto-build:
 	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative pkg/protocol/protocol.proto

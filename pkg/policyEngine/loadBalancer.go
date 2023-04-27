@@ -45,6 +45,7 @@ func (lB *LoadBalancer) Init() {
 	lB.ServiceMap = make(map[string]*[]string)
 	lB.Policy = make(map[string](map[string]PolicyLoadBalancer))
 	lB.ServiceStateMap = make(map[string](map[string]*ServiceState))
+	lB.ServiceStateMap[event.Wildcard] = make(map[string]*ServiceState)
 	lB.Policy[event.Wildcard] = make(map[string]PolicyLoadBalancer)
 	lB.Policy[event.Wildcard][event.Wildcard] = Random //default policy
 }
@@ -175,7 +176,7 @@ func (lB *LoadBalancer) updateState(serviceSrc, serviceDst string) {
 	if _, ok := lB.Policy[serviceDst][serviceSrc]; ok {
 		lB.ServiceStateMap[serviceDst][serviceSrc].totalConnections = lB.ServiceStateMap[serviceDst][serviceSrc].totalConnections + 1
 	}
-	if _, ok := lB.Policy[event.Wildcard][serviceSrc]; ok {
+	if _, ok := lB.Policy[event.Wildcard][serviceSrc]; ok && serviceDst == event.Wildcard {
 		lB.ServiceStateMap[event.Wildcard][serviceSrc].totalConnections = lB.ServiceStateMap[event.Wildcard][serviceSrc].totalConnections + 1
 	}
 	lB.ServiceStateMap[serviceDst][event.Wildcard].totalConnections = lB.ServiceStateMap[serviceDst][event.Wildcard].totalConnections + 1 //always exist

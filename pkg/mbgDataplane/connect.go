@@ -42,7 +42,7 @@ func Connect(c protocol.ConnectRequest, targetMbgIP string, w http.ResponseWrite
 // 2. Register new handle function and hijack the connection
 func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (bool, string, string) {
 	clog.Infof("Received Incoming Connect request from service: %v to service: %v", c.Id, c.IdDest)
-	connectionID := c.Id + ":" + c.IdDest
+	connectionID := createConnId(c.Id, c.IdDest)
 	dataplane := state.GetDataplane()
 	localSvc := state.GetLocalService(c.IdDest)
 	policyResp, err := state.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: c.Id, DstService: c.IdDest, Direction: eventManager.Incoming, OtherMbg: c.MbgID})
@@ -193,7 +193,7 @@ func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePor
 			}
 			connectDest := "Use open connect socket" //not needed ehr we use connect - destSvc.Service.Ip + ":" + connectDest
 			clog.Infof("Using %s for  %s/%s to connect to Service-%v", dataplane, mbgIP, connectDest, destSvc.Id)
-			connectionID := localSvc.Id + ":" + destSvc.Id
+			connectionID := createConnId(localSvc.Id, destSvc.Id)
 			go StartTcpProxyService(servicePort, connectDest, "forward", connectionID, ac, connDest)
 
 		case MTLS_TYPE:
@@ -277,4 +277,9 @@ func hijackConn(w http.ResponseWriter) net.Conn {
 	//Hijack the connection
 	conn, _, _ := hj.Hijack()
 	return conn
+}
+func createConnId(srcId, destId string) string {
+	connectionID := srcId + ":" + destId
+	connectionID = strings.Replace(connectionID, "*", "wildcard", 2)
+	return connectionID
 }

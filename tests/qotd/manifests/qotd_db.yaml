@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qotd-db
+  namespace: qotd-svc-iks
+  labels:
+    app: qotd
+    tier: data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qotd-db
+  template:
+    metadata:
+      labels:
+        app: qotd-db
+    spec:
+      containers:
+        - name: qotd-db
+          image: registry.gitlab.com/quote-of-the-day/qotd-db/v4.0.0:latest
+          imagePullPolicy: Always
+          ports:
+            - name: mysql
+              containerPort: 3306
+              protocol: TCP
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "root"
+            - name: MYSQL_DATABASE
+              value: "qotd"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qotd-db
+  namespace: qotd-svc-iks
+  labels:
+    app: qotd-db
+    tier: data
+spec:
+  type: ClusterIP
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+      protocol: TCP 
+  selector:
+    app: qotd-db

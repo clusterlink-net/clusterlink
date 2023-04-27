@@ -175,7 +175,19 @@ func (m *MbgMtlsForwarder) dispatch() error {
 			}
 			break
 		}
-		m.mtlsConnection.Write(bufData[:numBytes])
+		if m.mtlsConnection == nil {
+			clog.Info("Start Waiting for mtlsConnection") //start infinite loop
+			for m.mtlsConnection == nil {
+				time.Sleep(time.Microsecond)
+			}
+			clog.Info("Finish Waiting for mtlsConnection ") //Finish infinite loop
+		}
+		_, err = m.mtlsConnection.Write(bufData[:numBytes])
+		if err != nil {
+			clog.Errorf("Dispatch: Write error %v  connection: (local:%s Remote:%s)->,(local: %s Remote%s) ", err,
+				m.Connection.LocalAddr(), m.Connection.RemoteAddr(), m.mtlsConnection.LocalAddr(), m.mtlsConnection.RemoteAddr())
+			break
+		}
 	}
 	clog.Infof("Initiating end of connection(%s)", m.Name)
 	m.CloseConnection()
@@ -187,8 +199,13 @@ func (m *MbgMtlsForwarder) dispatch() error {
 }
 
 func (m *MbgMtlsForwarder) CloseConnection() {
-	m.Connection.Close()
-	m.mtlsConnection.Close()
+	if m.Connection != nil {
+		m.Connection.Close()
+	}
+	if m.mtlsConnection != nil {
+		m.mtlsConnection.Close()
+	}
+
 }
 
 func CloseMtlsServer(ip string) {
