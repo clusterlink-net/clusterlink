@@ -61,19 +61,22 @@ if __name__ == "__main__":
     
     #Set K8s network services
     printHeader("\n\nStart get service")
-    runcmd(f'mbgctl get service --myid {mbgctl1Name} ')
     useKindCluster(mbg1Name)
+    runcmd(f'mbgctl get service --myid {mbgctl1Name} ')
+    runcmd(f'mbgctl add binding  --myid {mbgctl1Name} --service {destSvc} --port 3000')
+
     mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbg1Pod, destSvc)
-    runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg1LocalPort}")
-    runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
+    #runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg1LocalPort}")
+    #runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
 
     printHeader("\n\nStart get service")
     useKindCluster(mbg3Name)
     runcmd(f'mbgctl get service  --myid {mbgctl3Name} ')
-    mbg3LocalPort, mbg3ExternalPort = getMbgPorts(mbg3Pod, destSvc)
-    runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg3LocalPort}")
-    runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
-    
+    #mbg3LocalPort, mbg3ExternalPort = getMbgPorts(mbg3Pod, destSvc)
+    runcmd(f'mbgctl add binding  --myid {mbgctl3Name} --service {destSvc} --port 3000')
+
+    #runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg3LocalPort}")
+    #runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
     #Firefox communications
     printHeader(f"Firefox urls")
     print(f"To use the mbg1 firefox client, run the command:\n    firefox http://{mbg1Ip}:30000/")

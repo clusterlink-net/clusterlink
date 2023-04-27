@@ -52,6 +52,14 @@ type ExposeRequest struct {
 	MbgID       string
 }
 
+// Service Binding request
+type BindingRequest struct {
+	Id        string
+	Port      int
+	Namespace string
+	MbgApp    string
+}
+
 // Connect
 type ConnectRequest struct {
 	Id     string

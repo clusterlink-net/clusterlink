@@ -36,7 +36,8 @@ type kubeDataInterface interface {
 	GetLabel(string, string) (string, error)
 	GetIpFromLabel(string) ([]string, error)
 	InitFromConfig(string) error
-	CreateServiceEndpoint(string, int32, int, string) error
+	CreateServiceEndpoint(string, int, int, string, string) error
+	DeleteServiceEndpoint(string) error
 }
 
 type KubeData struct {
@@ -47,6 +48,7 @@ type KubeData struct {
 	// replicaSets caches the ReplicaSets as partially-filled *ObjectMeta pointers
 	replicaSets cache.SharedIndexInformer
 	kubeClient  *kubernetes.Clientset
+	serviceMap  map[string]string
 	stopChan    chan struct{}
 }
 
@@ -347,21 +349,34 @@ func (k *KubeData) initInformers(client kubernetes.Interface) error {
 }
 
 // Add support to create a service/Nodeport for a target port
-func (k *KubeData) CreateServiceEndpoint(serviceName string, port int32, targetPort int, mbgAppName string) error {
+func (k *KubeData) CreateServiceEndpoint(serviceName string, port int, targetPort int, namespace, mbgAppName string) error {
 	serviceSpec := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: serviceName},
 		Spec: v1.ServiceSpec{
 			Ports: []v1.ServicePort{
 				{
 					Protocol:   v1.ProtocolTCP,
-					Port:       port,
+					Port:       int32(port),
 					TargetPort: intstr.FromInt(targetPort),
 				},
 			},
-			ClusterIP: "",
-			Selector:  map[string]string{"app": mbgAppName},
+			Type:     v1.ServiceTypeClusterIP,
+			Selector: map[string]string{"app": mbgAppName},
 		},
 	}
-	k.kubeClient.CoreV1().Services("").Create(context.TODO(), serviceSpec, metav1.CreateOptions{})
+	_, err := k.kubeClient.CoreV1().Services(namespace).Create(context.TODO(), serviceSpec, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+	if k.serviceMap == nil {
+		k.serviceMap = make(map[string]string)
+	}
+	k.serviceMap[serviceName] = namespace
+
 	return nil
+}
+
+func (k *KubeData) DeleteServiceEndpoint(serviceName string) error {
+	namespace := k.serviceMap[serviceName]
+	return k.kubeClient.CoreV1().Services(namespace).Delete(context.TODO(), serviceName, metav1.DeleteOptions{})
 }
