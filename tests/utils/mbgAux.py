@@ -77,7 +77,7 @@ def buildMbgctl(name):
     return name, ip 
 
 #Creating k8s service for svc name
-def creatMbgK8sService(appName,svcName, namespace, port):
+def createMbgK8sService(appName,svcName, namespace, port):
     podMbg= getPodName("mbg-deployment")        
     mbgLocalPort, _ = getMbgPorts(podMbg, appName)
     runcmd(f"kubectl delete service {svcName} -n {namespace}")

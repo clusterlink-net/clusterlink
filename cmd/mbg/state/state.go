@@ -21,7 +21,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/deployment/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
 )
 
@@ -573,15 +572,8 @@ func RemoveMbgFromService(svcId, mbg string, mbgs []string) {
 }
 
 func (s *LocalService) GetIpAndPort() string {
-	//Todo add option to support label services
-	var target string
-	if s.Ip != "" {
-		target = s.Ip
-	} else {
-		ipList, _ := kubernetes.Data.GetIpFromLabel(s.Id)
-		target = ipList[0] //Todo Choose the first pod
-	}
-	target += ":" + s.Port
+	//Support only DNS target
+	target := s.Ip + ":" + s.Port
 	return target
 }
 
