@@ -181,16 +181,16 @@ if __name__ == "__main__":
     runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl get policy --myid {mbgctl1Name}')
 
     #Create k8s service
-    useKindCluster(mbg1Name)    
-    createMbgK8sService(quoteApp.name  , quoteApp.name ,mbgNS, quoteApp.port)
-    createMbgK8sService(authorApp.name , authorApp.name, mbgNS, authorApp.port)
-    createMbgK8sService(dbApp.name     , dbApp.name    , mbgNS, dbApp.port)
-    createMbgK8sService(imageApp.name  , imageApp.name , mbgNS, imageApp.port)
-    createMbgK8sService(pdfApp.name    , pdfApp.name   , mbgNS, pdfApp.port)
-    createMbgK8sService(ratingApp.name , ratingApp.name   , mbgNS, ratingApp.port)
-
+    useKindCluster(mbg1Name)
+    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add binding --service {quoteApp.name}  --port {quoteApp.port}')
+    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add binding --service {authorApp.name} --port {authorApp.port}')
+    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add binding --service {dbApp.name}     --port {dbApp.port}')
+    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add binding --service {imageApp.name}  --port {imageApp.port}')
+    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add binding --service {pdfApp.name}    --port {pdfApp.port}')
+    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add binding --service {ratingApp.name} --port {ratingApp.port}')
+    
     useKindCluster(mbg3Name)    
-    createMbgK8sService(quoteApp.name  , quoteApp.name , mbgNS, quoteApp.port)
+    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl add binding --service {quoteApp.name}  --port {quoteApp.port}')
 
     webApp.target=mbg1Ip
     print(f"Application url: http://{webApp.target}:{webApp.port}")
