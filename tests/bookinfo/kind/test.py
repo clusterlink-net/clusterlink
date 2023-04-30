@@ -124,7 +124,7 @@ if __name__ == "__main__":
     runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add peer --id {mbg3Name} --target {mbg3Ip} --port {mbg3cPort}')
     # Send Hello
     printHeader("Send Hello commands")
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl hello --myid {mbgctl1Name}')
+    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl hello')
     
     ###Set mbg2 service
     useKindCluster(mbg2Name)
@@ -162,8 +162,8 @@ if __name__ == "__main__":
     #Get services
     useKindCluster(mbg1Name)
     printHeader("\n\nStart get service")
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl get service --myid {mbgctl1Name}')
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl get policy --myid {mbgctl1Name}')
+    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl get service')
+    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl get policy')
 
     #Create k8s service for destSvc
     useKindCluster(mbg1Name)    

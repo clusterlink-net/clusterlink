@@ -32,8 +32,7 @@ destSvc    = "iperf3-server"
 srcSvc1    = "productpage"
 srcSvc2    = "productpage2"
 destSvc    = "reviews"
-review2pod = "reviews-v2"
-review3pod = "reviews-v3"
+
 
 mbgcPort="443"
 folMn=f"{PROJECT_PATH}/tests/bookinfo/manifests/"
@@ -44,7 +43,7 @@ folReview = f"{proj_dir}/tests/bookinfo/manifests/review"
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="mtls")
-    parser.add_argument('-c','--command', help='Script command: test/delete', required=False, default="test")
+    parser.add_argument('-c','--command', help='Script command: test/delete/clean', required=False, default="test")
     parser.add_argument('-cloud','--cloud', help='Cloud setup using gcp/ibm/diff (different clouds)', required=False, default="gcp")
     parser.add_argument('-delete','--deleteCluster', help='Delete clusters in the end of the test', required=False, default="true")
 
@@ -101,7 +100,7 @@ if __name__ == "__main__":
             
     # Send Hello
     printHeader("Send Hello commands")
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl hello --myid {mbgctl1}')
+    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl hello')
         
     #Add services 
     connectToCluster(mbg1)
@@ -121,18 +120,20 @@ if __name__ == "__main__":
     runcmd(f"kubectl create -f {folReview}/review-v2.yaml")
     runcmd(f"kubectl create -f {folReview}/rating.yaml")
     printHeader(f"Add {destSvc} (server) service to destination cluster")
-    waitPod(review2pod)
-    destSvcReview2Ip = f"{getPodIp(review2pod)}:9080"
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add service --id {destSvc} --target {destSvcReview2Ip} --description v2')
+    waitPod(destSvc)
+    destSvcReview2Ip   = f"{getPodIp(destSvc)}"
+    destSvcReview2Port = "9080"
+    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add service --id {destSvc} --target {destSvcReview2Ip} --port {destSvcReview2Port} --description v2')
     
     connectToCluster(mbg3)
     mbgctl3Pod =getPodName("mbgctl")
     runcmd(f"kubectl create -f {folReview}/review-v3.yaml")
     runcmd(f"kubectl create -f {folReview}/rating.yaml")
     printHeader(f"Add {destSvc} (server) service to destination cluster")
-    waitPod(review3pod)
-    destSvcReview3Ip = f"{getPodIp(review3pod)}:9080"
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl add service --id {destSvc} --target {destSvcReview3Ip} --description v3')
+    waitPod(destSvc)
+    destSvcReview3Ip = f"{getPodIp(destSvc)}"
+    destSvcReview3Port = "9080"
+    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl add service --id {destSvc} --target {destSvcReview3Ip}  --port {destSvcReview3Port} --description v3')
 
      #Expose service
     connectToCluster(mbg2)

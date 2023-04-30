@@ -117,7 +117,7 @@ func RestoreMbg(id string, policyEngineTarget, logLevel string, logFile, startPo
 	state.SetLog(logLevel, logFile)
 	m := Mbg{state.GetMyId()}
 	if startPolicyEngine {
-		go m.AddPolicyEngine(state.GetMyIp()+":"+state.GetMyCport().Local, true)
+		go m.AddPolicyEngine("localhost"+state.GetMyCport().Local, true)
 	}
 
 	if state.GetDataplane() == "mtls" {
