@@ -27,6 +27,7 @@ def mbgBuild(mbgcPort="443" ,mbgcPortLocal="443",externalIp=""):
 
   print("\n\ncreate mbg deploymnet")
   runcmd(f"kubectl create -f {PROJECT_PATH}/manifests/mbg/mbg-cloud.yaml")
+  runcmd(f"kubectl create -f {PROJECT_PATH}/manifests/mbg/mbg-role.yaml")
   runcmd(f"kubectl create -f {PROJECT_PATH}/manifests/mbgctl/mbgctl-cloud.yaml")
     
 

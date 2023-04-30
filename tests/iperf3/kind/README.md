@@ -29,12 +29,13 @@ In this step, we build the kind cluster with an MBG image.
 Build the first kind cluster with MBG, mbgctl, and iperf3-client:
 1) Create a Kind cluster with MBG image:
 
-        kind create cluster  --name=mbg1
+        kind create cluster --name=mbg1
         kind load docker-image mbg --name=mbg1
 
 2) Create a MBG deployment: 
     
         kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg.yaml
+        kubectl apply -f $PROJECT_FOLDER/manifests/mbg/mbg-role.yaml
 
 3) Create a mbgctl deployment: 
    
@@ -46,11 +47,12 @@ Build the first kind cluster with MBG, mbgctl, and iperf3-client:
 Build the second kind cluster with MBG, mbgctl, and iperf3-server:
 1) Create a Kind cluster with MBG image:
 
-        kind create cluster  --name=mbg2
+        kind create cluster --name=mbg2
         kind load docker-image mbg --name=mbg2
 2) Create a MBG deployment:
    
         kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg.yaml
+        kubectl apply -f $PROJECT_FOLDER/manifests/mbg/mbg-role.yaml
 3) Create a mbgctl deployment: 
 
         kubectl create -f $PROJECT_FOLDER/manifests/mbgctl/mbgctl.yaml
@@ -87,11 +89,11 @@ First, Initialize the parameters of the test (pods' names and IPs):
 Start MBG1: (the MBG creates an HTTP server, so it is better to run this command in a different terminal (using tmux) or run it in the background)
 
     kubectl config use-context kind-mbg1
-    kubectl exec -i $MBG1 -- ./mbg start --id "MBG1" --ip $MBG1IP --cport 30443 --cportLocal 8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key
+    kubectl exec -i $MBG1 -- ./mbg start --id "MBG1" --ip $MBG1IP --cport 30443 --cportLocal 8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key &
 
 Initialize mbgctl (mbg control):
 
-    kubectl exec -i $MBGCTL1 -- ./mbgctl start --id "hostCluster" --ip $MBGCTL1IP --mbgIP $MBG1PODIP:8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key
+    kubectl exec -i $MBGCTL1 -- ./mbgctl create --id "mbgctl1" --mbgIP $MBG1PODIP:8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key
 
 Create K8s service nodeport to connect MBG cport to the MBG localcport.
 
@@ -100,11 +102,11 @@ Create K8s service nodeport to connect MBG cport to the MBG localcport.
 Start MBG2: (the MBG creates an HTTP server, so it is better to run this command in a different terminal (using tmux) or run it in the background)
 
     kubectl config use-context kind-mbg2
-    kubectl exec -i $MBG2 -- ./mbg start --id "MBG2" --ip $MBG2IP --cport 30443 --cportLocal 8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key 
+    kubectl exec -i $MBG2 -- ./mbg start --id "MBG2" --ip $MBG2IP --cport 30443 --cportLocal 8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key &
 
 Initialize mbgctl (mbg control):
 
-    kubectl exec -i $MBGCTL2 -- ./mbgctl start --id "destCluster"-ip $MBGCTL2IP --mbgIP $MBG2PODIP:8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key
+    kubectl exec -i $MBGCTL2 -- ./mbgctl create --id "mbgctl2" --mbgIP $MBG2PODIP:8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key
 
 Create K8s service nodeport to connect MBG cport to the MBG localcport.
 
@@ -117,30 +119,33 @@ In this step, we set the communication between the MBGs.
 First, send MBG2 details information to MBG1 using mbgctl:
 
     kubectl config use-context kind-mbg1
-    kubectl exec -i $MBGCTL1 -- ./mbgctl addPeer --id "MBG2" --ip $MBG2IP --cport 30443
+    kubectl exec -i $MBGCTL1 -- ./mbgctl add peer --id "MBG2" --target $MBG2IP --port 30443
 Send Hello message from MBG1 to MBG2:
 
     kubectl exec -i $MBGCTL1 -- ./mbgctl hello
 ### <ins> Step 5: Add services <ins>
 In this step, we add the iperf3 services for each MBG.  
-Add an iperf3-client service to MBG1:
-
-    kubectl exec -i $MBGCTL1 -- ./mbgctl addService --id iperf3-client --ip $IPERF3CLIENT_IP
 Add an iperf3-server service to MBG2:
 
     kubectl config use-context kind-mbg2
-    kubectl exec -i $MBGCTL2 -- ./mbgctl addService --id iperf3-server --ip $IPERF3SERVER_IP:5000
+    kubectl exec -i $MBGCTL2 -- ./mbgctl add service --id iperf3-server --target $IPERF3SERVER_IP --port 5000
+
+Add an iperf3-client service to MBG1 (Optional -by default allow to services access to remote services- in the client side use to add a policy on the local services):
+
+    kubectl config use-context kind-mbg1
+    kubectl exec -i $MBGCTL1 -- ./mbgctl add service --id iperf3-client --target $IPERF3CLIENT_IP
 
 ### <ins> Step 6: Expose service <ins>
 In this step, we expose the iperf3-server service from MBG2 to MBG1.
 
-    kubectl exec -i $MBGCTL2 -- ./mbgctl expose --serviceId iperf3-server
+    kubectl config use-context kind-mbg2
+    kubectl exec -i $MBGCTL2 -- ./mbgctl expose --service iperf3-server
 
 ### <ins> Step 7: iPerf3 test <ins>
 In this step, we can check the secure communication between the iPerf3 client and server by sending the traffic using the MBGs.
     
     kubectl config use-context kind-mbg1
-    export MBG1PORT_IPERF3SERVER=`python3 $PROJECT_FOLDER/tests/aux/getMbgLocalPort.py -m $MBG1 -s iperf3-server`
+    export MBG1PORT_IPERF3SERVER=`python3 $PROJECT_FOLDER/tests/utils/getMbgLocalPort.py -m $MBG1 -s iperf3-server`
     kubectl exec -i $IPERF3CLIENT -- iperf3 -c $MBG1PODIP -p $MBG1PORT_IPERF3SERVER
 
 
