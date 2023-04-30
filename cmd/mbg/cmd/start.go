@@ -40,7 +40,7 @@ var startCmd = &cobra.Command{
 		var m api.Mbg
 		var err error
 		if restore {
-			if startPolicyEngine && policyEngineTarget == "" {
+			if !startPolicyEngine && policyEngineTarget == "" {
 				fmt.Println("Error: Please specify policyEngineTarget")
 				os.Exit(1)
 			}
