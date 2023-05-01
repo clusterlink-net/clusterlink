@@ -4,7 +4,7 @@ This test set [Istio BookInfo application](https://istio.io/latest/docs/examples
 This test create three kind clusters:  
 * The Product and details microservices run on the first cluster.  
 * The Reviews(V2) and Rating microservices run on second cluster.   
-* The Reviews(V23) and Rating microservices run on third cluster.   
+* The Reviews(V3) and Rating microservices run on third cluster.   
    
 ## <ins> Pre-requires installations <ins>
 To run a Kind test, check all pre-requires are installed (Go, docker, Kubectl, Kind):
