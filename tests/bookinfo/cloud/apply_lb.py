@@ -38,7 +38,7 @@ def applyPolicy(mbg, mbgctlName, type):
         runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl get policy --myid {mbgctlName}')
     elif type == "clean":
         runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --myid {mbgctlName}--type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
+        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
         runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --type lb --serviceDst {destSvc}')
 
 
