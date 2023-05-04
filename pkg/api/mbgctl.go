@@ -263,7 +263,6 @@ func (m *Mbgctl) RemoveLocalServiceFromPeer(serviceId, peer string) {
 
 func (m *Mbgctl) RemoveRemoteService(serviceId, serviceMbg string) {
 	state.UpdateState(m.Id)
-	state.DelService(m.Id, serviceId)
 	mbgIP := state.GetMbgIP()
 	address := state.GetAddrStart() + mbgIP + "/remoteservice/" + serviceId
 	j, err := json.Marshal(protocol.ServiceRequest{Id: serviceId, MbgID: serviceMbg})
