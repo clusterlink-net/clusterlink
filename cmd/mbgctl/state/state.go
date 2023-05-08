@@ -11,10 +11,7 @@ import (
 	"os"
 	"os/user"
 	"path"
-	"syscall"
 	"time"
-
-	mbg "github.ibm.com/mbg-agent/cmd/mbg/state"
 
 	"github.com/sirupsen/logrus"
 )
@@ -33,22 +30,10 @@ type MbgctlState struct {
 	CertificateFile        string
 	KeyFile                string
 	Dataplane              string
-	Services               map[string]MbgctlService
-	OpenConnections        map[string]OpenConnection
 	PolicyDispatcherTarget string
 }
 
-type MbgctlService struct {
-	Service mbg.LocalService
-}
-
-type OpenConnection struct {
-	SvcId     string
-	SvcIdDest string
-	PId       int
-}
-
-var s = MbgctlState{MbgIP: "", Id: "", Services: make(map[string]MbgctlService), OpenConnections: make(map[string]OpenConnection)}
+var s = MbgctlState{MbgIP: "", Id: ""}
 
 func GetMbgIP() string {
 	return s.MbgIP
@@ -80,37 +65,8 @@ func UpdateState(id string) error {
 	return err
 }
 
-// Return Function fields
-func GetService(id string) MbgctlService {
-	val, ok := s.Services[id]
-	if !ok {
-		fmt.Printf("Service %v does not exist", id)
-	}
-	return val
-}
-
-func AddService(mId, id, ip, port, description string) {
-	if s.Services == nil {
-		s.Services = make(map[string]MbgctlService)
-	}
-
-	s.Services[id] = MbgctlService{Service: mbg.LocalService{Id: id, Ip: ip, Port: port, Description: description}}
-	SaveState(mId)
-}
-func DelService(mId, id string) {
-	if _, ok := s.Services[id]; ok {
-		delete(s.Services, id)
-		SaveState(mId)
-		fmt.Printf("Service %v deleted\n", id)
-		return
-	} else {
-		fmt.Printf("Service %v does not exist\n", id)
-	}
-}
-
 func (s *MbgctlState) Print() {
 	fmt.Printf("Id: %v,  mbgTarget: %v", s.Id, s.MbgIP)
-	fmt.Printf("Services %v", s.Services)
 }
 
 func AssignPolicyDispatcher(mId, targetUrl string) error {
@@ -120,22 +76,6 @@ func AssignPolicyDispatcher(mId, targetUrl string) error {
 
 func GetPolicyDispatcher() string {
 	return s.PolicyDispatcherTarget
-}
-
-func AddOpenConnection(mId, svcId, svcIdDest string, pId int) {
-	s.OpenConnections[svcId+":"+svcIdDest] = OpenConnection{SvcId: svcId, SvcIdDest: svcIdDest, PId: pId}
-	SaveState(mId)
-	log.Info(s.OpenConnections)
-}
-
-func CloseOpenConnection(mId, svcId, svcIdDest string) {
-	val, ok := s.OpenConnections[svcId+":"+svcIdDest]
-	if ok {
-		delete(s.OpenConnections, svcId+":"+svcIdDest)
-		syscall.Kill(val.PId, syscall.SIGINT)
-		log.Infof("[%v]: Delete connection: %v", s.Id, val)
-		SaveState(mId)
-	}
 }
 
 func GetAddrStart() string {
