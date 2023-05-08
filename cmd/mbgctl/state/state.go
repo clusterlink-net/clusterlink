@@ -57,8 +57,8 @@ func GetMbgIP() string {
 func GetId() string {
 	return s.Id
 }
-func GetState(id string) (MbgctlState, error) {
-	m, err := readState(id)
+func GetState() (MbgctlState, error) {
+	m, err := readState(s.Id)
 	return m, err
 }
 

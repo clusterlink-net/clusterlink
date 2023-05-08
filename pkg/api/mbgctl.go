@@ -369,9 +369,15 @@ func (m *Mbgctl) DeleteServiceEndpoint(serviceId string) error {
 	return err
 }
 
+func (m *Mbgctl) GetState() state.MbgctlState {
+	state.UpdateState(m.Id)
+	s, _ := state.GetState()
+	return s
+}
+
 /***** config *****/
 func (m *Mbgctl) ConfigCurrentContext() (state.MbgctlState, error) {
-	return state.GetState("")
+	return state.GetState()
 }
 
 func (m *Mbgctl) ConfigUseContext() error {
