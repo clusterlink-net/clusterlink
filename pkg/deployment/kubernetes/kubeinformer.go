@@ -117,7 +117,7 @@ func (k *KubeData) GetIpFromLabel(label string) ([]string, error) {
 		return nil, err
 	}
 	if len(podList.Items) == 0 {
-		log.Error("No pods found for label selector %v", label)
+		log.Errorf("No pods found for label selector %v", label)
 		return nil, fmt.Errorf("no pods found for label selector %q", label)
 	}
 

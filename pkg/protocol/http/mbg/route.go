@@ -3,15 +3,16 @@ package handler
 import (
 	"net/http"
 
+	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/go-chi/chi"
+	"github.ibm.com/mbg-agent/cmd/mbg/state"
 )
 
 type MbgHandler struct{}
 
 func (m MbgHandler) Routes() chi.Router {
-	r := chi.NewRouter()
+	r := state.GetChiRouter()
 
 	r.Get("/", m.mbgWelcome)
 
