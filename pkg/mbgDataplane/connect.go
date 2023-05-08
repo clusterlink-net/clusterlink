@@ -84,6 +84,7 @@ func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, w htt
 func StartMtlsProxyLocalService(localServicePort, targetMbgIPPort, remoteEndPoint string) error {
 	conn, err := net.Dial("tcp", localServicePort) //Todo - support destination with secure connection
 	if err != nil {
+		clog.Errorf("Dial to local service failed: %v", err)
 		return err
 	}
 	clog.Infof("Received new Connection at %s, %s", conn.LocalAddr().String(), remoteEndPoint)

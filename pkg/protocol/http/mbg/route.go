@@ -2,12 +2,11 @@ package handler
 
 import (
 	"net/http"
-	"net/http/httputil"
-
-	log "github.com/sirupsen/logrus"
-	"github.ibm.com/mbg-agent/cmd/mbg/state"
 
 	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
+
+	"github.ibm.com/mbg-agent/cmd/mbg/state"
 )
 
 type MbgHandler struct{}
