@@ -21,7 +21,7 @@ from tests.utils.kind.kindAux import useKindCluster, getKindIp,startKindClusterM
 ############################### MAIN ##########################
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
-    parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="tcp")
+    parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="mtls")
     parser.add_argument('-c','--cni', help='Which cni to use default(kindnet)/flannel/calico/diff (different cni for each cluster)', required=False, default="default")
 
     args = vars(parser.parse_args())
