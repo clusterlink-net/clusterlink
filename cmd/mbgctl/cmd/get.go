@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -12,6 +13,23 @@ var getCmd = &cobra.Command{
 	Short: "Get",
 	Long:  `Get`,
 	Run:   emptyRun,
+}
+
+// Get state
+var stateGetCmd = &cobra.Command{
+	Use:   "state",
+	Short: "Get mbgctl information",
+	Long:  `Get mbgctl information`,
+	Run: func(cmd *cobra.Command, args []string) {
+		mId, _ := cmd.Flags().GetString("myid")
+		m := api.Mbgctl{Id: mId}
+		s := m.GetState()
+		sJSON, err := json.MarshalIndent(s, "", "  ")
+		if err != nil {
+			fmt.Println("Error: ", err.Error())
+		}
+		fmt.Println(string(sJSON))
+	},
 }
 
 // updateCmd represents the update command
@@ -141,5 +159,7 @@ func init() {
 	// Get policy
 	getCmd.AddCommand(policyGetCmd)
 	policyGetCmd.Flags().String("myid", "", "MBGCtl Id")
-
+	// Get mbgctl state
+	getCmd.AddCommand(stateGetCmd)
+	stateGetCmd.Flags().String("myid", "", "MBGCtl Id")
 }

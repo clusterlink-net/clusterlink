@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
+	"os/exec"
 	"strings"
 
 	mbg "github.ibm.com/mbg-agent/cmd/mbg/state"
@@ -67,7 +69,6 @@ func (m *Mbgctl) AddPolicyEngine(target string) error {
 
 func (m *Mbgctl) AddService(id, target, port, description string) error {
 	state.UpdateState(m.Id)
-	state.AddService(m.Id, id, target, port, description)
 	mbgIP := state.GetMbgIP()
 
 	address := state.GetAddrStart() + mbgIP + "/service"
@@ -79,15 +80,13 @@ func (m *Mbgctl) AddService(id, target, port, description string) error {
 	return err
 }
 
-func (m *Mbgctl) ExposeService(id, peer string) error {
+func (m *Mbgctl) ExposeService(svcId, peer string) error {
 	state.UpdateState(m.Id)
 
 	mbgIP := state.GetMbgIP()
-	s := state.GetService(id)
-	svcExp := s.Service
 
 	address := state.GetAddrStart() + mbgIP + "/expose"
-	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, MbgID: peer})
+	j, err := json.Marshal(protocol.ExposeRequest{Id: svcId, Ip: "", MbgID: peer})
 	if err != nil {
 		return err
 	}
@@ -242,7 +241,6 @@ func (m *Mbgctl) RemovePeer(id string) error {
 
 func (m *Mbgctl) RemoveLocalService(serviceId string) {
 	state.UpdateState(m.Id)
-	state.DelService(m.Id, serviceId)
 	mbgIP := state.GetMbgIP()
 	address := state.GetAddrStart() + mbgIP + "/service/" + serviceId
 	resp, _ := httpAux.HttpDelete(address, nil, state.GetHttpClient())
@@ -369,9 +367,15 @@ func (m *Mbgctl) DeleteServiceEndpoint(serviceId string) error {
 	return err
 }
 
+func (m *Mbgctl) GetState() state.MbgctlState {
+	state.UpdateState(m.Id)
+	s, _ := state.GetState()
+	return s
+}
+
 /***** config *****/
 func (m *Mbgctl) ConfigCurrentContext() (state.MbgctlState, error) {
-	return state.GetState("")
+	return state.GetState()
 }
 
 func (m *Mbgctl) ConfigUseContext() error {
