@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
-	"os/exec"
 	"strings"
 
 	mbg "github.ibm.com/mbg-agent/cmd/mbg/state"
