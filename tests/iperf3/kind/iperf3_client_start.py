@@ -33,14 +33,12 @@ def iperf3Test(cmd ,blockFlag=False):
         print(f'iperf3 Connection Failed')
     print("***************************************")
 
-def testIperf3Client(mbgName,srcSvc, destSvc, blockFlag=False):
+def testIperf3Client(mbgName,srcSvc, destSvc,destPort,blockFlag=False):
     useKindCluster(mbgName)
     waitPod("iperf3-client")
     podIperf3= getPodNameApp(srcSvc)
-    mbgPod,mbgIp  = getPodNameIp("mbg")
-    mbgLocalPort, mbgExternalPort = getMbgPorts(mbgPod,destSvc)
     printHeader("Starting Client Service(iperf3 client1)->MBG1->MBG2->Dest Service(iperf3 server)")
-    cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {mbgIp } -p {mbgLocalPort}'
+    cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {destSvc} -p {destPort}'
     iperf3Test(cmd,blockFlag)
 
 def directTestIperf3(mbgName,srcSvc,destkindIp,iperf3DestPort):

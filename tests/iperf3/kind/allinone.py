@@ -11,7 +11,7 @@ sys.path.insert(0,f'{proj_dir}')
 from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getMbgPorts,buildMbg,buildMbgctl,getPodIp,getPodNameIp
 from tests.iperf3.kind.connect_mbgs import connectMbgs, sendHello
 from tests.iperf3.kind.iperf3_service_create import setIperf3client, setIperf3Server
-from tests.iperf3.kind.iperf3_service_expose import exposeService
+from tests.iperf3.kind.iperf3_service_expose import exposeService,bindService
 from tests.iperf3.kind.iperf3_service_get import getService
 from tests.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
 from tests.iperf3.kind.apply_policy import applyPolicy
@@ -40,7 +40,6 @@ if __name__ == "__main__":
     mbgctl1Name     = "mbgctl1"
     mbg1cni         = cni 
     srcSvc          = "iperf3-client"
-    srck8sSvcPort   = "5000"
     
     #MBG2 parameters 
     mbg2DataPort    = "30001"
@@ -51,7 +50,8 @@ if __name__ == "__main__":
     mbgctl2Name     = "mbgctl2"
     mbg2cni         = "flannel" if cni == "diff" else cni
     destSvc         = "iperf3-server"
-    iperf3DestPort  = "30001"
+    destPort        = "5000"
+    kindDestPort    = "30001"
     
 
     
@@ -64,7 +64,6 @@ if __name__ == "__main__":
     mbgctl3Name     = "mbgctl3"
     mbg3cni         = "calico" if cni == "diff" else cni
     srcSvc          = "iperf3-client"
-    srck8sSvcPort   = "5000"
     srcSvc2         = "iperf3-client2"
 
         
@@ -127,6 +126,9 @@ if __name__ == "__main__":
     #Expose destination service
     exposeService(mbg2Name, mbgctl2Name, destSvc)
 
+    #bind destination service
+    bindService(mbg1Name, destSvc, destPort)
+    bindService(mbg3Name, destSvc, destPort)
     #Get services
     getService(mbg1Name, mbgctl1Name)
     
@@ -136,28 +138,28 @@ if __name__ == "__main__":
     waitPod("iperf3-server")
     
     #Test MBG1
-    (mbg1Name, srcSvc,destkindIp,iperf3DestPort)
-    testIperf3Client(mbg1Name,srcSvc,destSvc)
+    directTestIperf3(mbg1Name, srcSvc,destkindIp,kindDestPort)
+    testIperf3Client(mbg1Name,srcSvc,destSvc,destPort)
 
     #Test MBG3
-    directTestIperf3(mbg3Name, srcSvc, destkindIp, iperf3DestPort)
-    testIperf3Client(mbg3Name,srcSvc,destSvc)
+    directTestIperf3(mbg3Name, srcSvc, destkindIp, kindDestPort)
+    testIperf3Client(mbg3Name, srcSvc, destSvc,    destPort)
 
 
     #Block Traffic in MBG3
     printHeader("Start Block Traffic in MBG3")
     applyPolicy(mbg3Name, mbgctl3Name, type="deny")
-    testIperf3Client(mbg3Name,srcSvc,destSvc, blockFlag=True)
+    testIperf3Client(mbg3Name,srcSvc,destSvc, destPort, blockFlag=True)
     print("Allow Traffic in MBG3")
     applyPolicy(mbg3Name, mbgctl3Name, type="allow")
-    testIperf3Client(mbg3Name,srcSvc,destSvc)
+    testIperf3Client(mbg3Name,srcSvc,destSvc, destPort)
     
     #Block Traffic in MBG2
     printHeader("Start Block Traffic in MBG2")
     print("Block Traffic in MBG2")
     applyPolicy(mbg2Name, mbgctl2Name, type="deny")
-    testIperf3Client(mbg3Name,srcSvc,destSvc, blockFlag=True)
+    testIperf3Client(mbg3Name,srcSvc,destSvc, destPort, blockFlag=True)
     print("Allow Traffic in MBG3")
     applyPolicy(mbg2Name, mbgctl2Name, type="allow")
-    testIperf3Client(mbg3Name,srcSvc,destSvc)
+    testIperf3Client(mbg3Name,srcSvc,destSvc, destPort)
     

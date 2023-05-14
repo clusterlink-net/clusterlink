@@ -17,6 +17,11 @@ def exposeService(mbgName, mbgctlName, destSvc):
     runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl expose --service {destSvc}')
 
 
+def bindService(mbgName, destSvc, port):
+    useKindCluster(mbgName)
+    mbgctlPod = getPodName("mbgctl")
+    printHeader(f"\n\nStart binding {destSvc} service to {mbgName}")
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add binding --service {destSvc} --port {port}')
 ############################### MAIN ##########################
 if __name__ == "__main__":
     #parameters 
