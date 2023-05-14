@@ -22,7 +22,7 @@ func (m MbgHandler) bindingCreate(w http.ResponseWriter, r *http.Request) {
 
 	}
 	log.Infof("Creating binding to service: %+v", b)
-	err = mbgControlplane.CreateLocalServiceEndpoint(b.Id, b.Port, b.Namespace, b.MbgApp)
+	err = mbgControlplane.CreateLocalServiceEndpoint(b.Id, b.Port, b.Name, b.Namespace, b.MbgApp)
 	if err != nil {
 		log.Errorf("Unable to create binding: %+v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)

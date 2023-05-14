@@ -92,9 +92,13 @@ var bindingCmd = &cobra.Command{
 		serviceId, _ := cmd.Flags().GetString("service")
 		servicePort, _ := cmd.Flags().GetInt("port")
 		namespace, _ := cmd.Flags().GetString("namespace")
+		name, _ := cmd.Flags().GetString("name")
 
 		m := api.Mbgctl{Id: mId}
-		err := m.CreateServiceEndpoint(serviceId, servicePort, namespace, mbgApp)
+		if name == "" {
+			name = serviceId
+		}
+		err := m.CreateServiceEndpoint(serviceId, servicePort, name, namespace, mbgApp)
 		if err != nil {
 			fmt.Printf("Failed to create binding :%v\n", err)
 			return
@@ -155,6 +159,8 @@ func init() {
 	bindingCmd.Flags().String("service", "", "Service id")
 	bindingCmd.Flags().Int("port", 0, "local port to be bound for remote service")
 	bindingCmd.Flags().String("namespace", "default", "Namespace where the service binding to be created")
+	bindingCmd.Flags().String("name", "", "Name of k8s service by default is the service id")
+
 	// add policy
 	addCmd.AddCommand(PolicyAddCmd)
 	PolicyAddCmd.Flags().String("myid", "", "MBGCtl Id")

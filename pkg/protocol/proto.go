@@ -56,6 +56,7 @@ type ExposeRequest struct {
 type BindingRequest struct {
 	Id        string
 	Port      int
+	Name      string
 	Namespace string
 	MbgApp    string
 }

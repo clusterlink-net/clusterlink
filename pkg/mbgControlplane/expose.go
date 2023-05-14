@@ -76,15 +76,15 @@ func ExposeReq(svcExp state.LocalService, mbgId, cType string) {
 	}
 }
 
-func CreateLocalServiceEndpoint(serviceId string, port int, namespace, mbgAppName string) error {
+func CreateLocalServiceEndpoint(serviceId string, port int, name, namespace, mbgAppName string) error {
 	sPort := state.GetConnectionArr()[serviceId].Local
 
 	targetPort, err := strconv.Atoi(sPort[1:])
 	if err != nil {
 		return err
 	}
-	mlog.Infof("Creating service end point at %s:%d:%d", serviceId, port, targetPort)
-	return kubernetes.Data.CreateServiceEndpoint(serviceId, port, targetPort, namespace, mbgAppName)
+	mlog.Infof("Creating service end point at %s:%d:%d for service %s", name, port, targetPort, serviceId)
+	return kubernetes.Data.CreateServiceEndpoint(name, port, targetPort, namespace, mbgAppName)
 }
 
 func DeleteLocalServiceEndpoint(serviceId string) error {
