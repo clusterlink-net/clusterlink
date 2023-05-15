@@ -8,7 +8,7 @@ package main
 
 import (
 	"os"
-	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/pkg/api"
@@ -28,7 +28,6 @@ const (
 	mbgctl1Name    = "mbgctl1"
 	mbg1cni        = "default"
 	srcSvc         = "iperf3-client"
-	srck8sSvcPort  = "5000"
 
 	//MBG2 parameters
 	mbg2DataPort   = "30001"
@@ -40,7 +39,8 @@ const (
 	mbgctl2Name    = "mbgctl2"
 	mbg2cni        = "default"
 	destSvc        = "iperf3-server"
-	iperf3DestPort = "30001"
+	destPort       = 5000
+	kindDestPort   = "30001"
 )
 
 var (
@@ -108,12 +108,16 @@ func main() {
 	svc, _ := mbgctl1.GetRemoteServices()
 	log.Println(svc[destSvc])
 
-	//createK8sSvc()
+	//bindK8sSvc()
+	mbgAux.PrintHeader("Bind a service")
 	kindAux.UseKindCluster(mbg1Name)
-	mbgLocalPort := strings.Split(svc[destSvc][0].Ip, ":")[1]
+	mbgctl1.CreateServiceEndpoint(destSvc, destPort, destSvc, "default", "mbg")
+	time.Sleep(5 * time.Second)
 	//iperf3test
-	_, mbglocalIp := mbgAux.GetPodNameIp("mbg")
-	mbgAux.RunCmdNoPipe("kubectl exec -i " + srcSvcPod + " -- iperf3 -c " + mbglocalIp + " -p " + mbgLocalPort)
+	// mbgLocalPort := strings.Split(svc[destSvc][0].Ip, ":")[1]
+	// _, mbglocalIp := mbgAux.GetPodNameIp("mbg")
+	// mbgAux.RunCmdNoPipe("kubectl exec -i " + srcSvcPod + " -- iperf3 -c " + mbglocalIp + " -p " + mbgLocalPort)
+	mbgAux.RunCmdNoPipe("kubectl exec -i " + srcSvcPod + " -- iperf3 -c " + destSvc + " -p " + "5000")
 
 }
 
