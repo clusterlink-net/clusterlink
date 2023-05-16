@@ -166,5 +166,11 @@ func convertRemoteService2RemoteReq(svcId string) []protocol.ServiceRequest {
 
 func DelRemoteService(svcId, mbgId string) {
 	state.UpdateState()
-	state.DelRemoteService(svcId, mbgId)
+	if svcId == "*" {
+		for sId, _ := range state.GetRemoteServicesArr() {
+			state.DelRemoteService(sId, mbgId)
+		}
+	} else {
+		state.DelRemoteService(svcId, mbgId)
+	}
 }
