@@ -2,7 +2,6 @@ package mbgControlplane
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
@@ -10,6 +9,7 @@ import (
 	md "github.ibm.com/mbg-agent/pkg/mbgDataplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
 
@@ -42,13 +42,21 @@ func GetAllLocalServices() map[string]protocol.ServiceRequest {
 
 func DelLocalService(svcId string) {
 	state.UpdateState()
-	svc := state.GetLocalService(svcId)
-	mbg := state.GetMyId()
-	for _, peer := range svc.PeersExposed {
-		peerIp := state.GetMbgTarget(peer)
-		delServiceInPeerReq(svcId, mbg, peerIp)
+	var svcArr []state.LocalService
+	if svcId == "*" { //remove all services
+		svcArr = append(svcArr, maps.Values(state.GetLocalServicesArr())...)
+	} else {
+		svcArr = append(svcArr, state.GetLocalService(svcId))
 	}
-	state.DelLocalService(svcId)
+
+	for _, svc := range svcArr {
+		mbg := state.GetMyId()
+		for _, peer := range svc.PeersExposed {
+			peerIp := state.GetMbgTarget(peer)
+			delServiceInPeerReq(svc.Id, mbg, peerIp)
+		}
+		state.DelLocalService(svc.Id)
+	}
 }
 
 func DelLocalServiceFromPeer(svcId, peer string) {
@@ -66,12 +74,12 @@ func delServiceInPeerReq(svcId, serviceMbg, peerIp string) {
 	address := state.GetAddrStart() + peerIp + "/remoteservice/" + svcId
 	j, err := json.Marshal(protocol.ServiceRequest{Id: svcId, MbgID: serviceMbg})
 	if err != nil {
-		fmt.Printf("Unable to marshal json: %v", err)
+		slog.Printf("Unable to marshal json: %v", err)
 	}
 
 	//send
 	resp, _ := httpAux.HttpDelete(address, j, state.GetHttpClient())
-	fmt.Printf("Response message for deleting service [%s]:%s \n", svcId, string(resp))
+	slog.Printf("Response message for deleting service [%s]:%s \n", svcId, string(resp))
 }
 
 /******************* Remote Service ****************************************/
@@ -158,5 +166,11 @@ func convertRemoteService2RemoteReq(svcId string) []protocol.ServiceRequest {
 
 func DelRemoteService(svcId, mbgId string) {
 	state.UpdateState()
-	state.DelRemoteService(svcId, mbgId)
+	if svcId == "*" {
+		for sId, _ := range state.GetRemoteServicesArr() {
+			state.DelRemoteService(sId, mbgId)
+		}
+	} else {
+		state.DelRemoteService(svcId, mbgId)
+	}
 }

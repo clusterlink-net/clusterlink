@@ -696,7 +696,7 @@ func (f *MyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 }
 
 func getLineNumber() (string, int) {
-	_, file, line, ok := runtime.Caller(2)
+	_, file, line, ok := runtime.Caller(1)
 	if !ok {
 		return "", 0
 	}

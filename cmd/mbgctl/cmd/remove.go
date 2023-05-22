@@ -44,7 +44,16 @@ var ServiceRemCmd = &cobra.Command{
 		serviceType, _ := cmd.Flags().GetString("type")
 		serviceMbg, _ := cmd.Flags().GetString("mbg")
 		peer, _ := cmd.Flags().GetString("peer")
+		allFlag, _ := cmd.Flags().GetBool("all")
+
 		m := api.Mbgctl{Id: mId}
+		if allFlag {
+			fmt.Println("Start to remove all services")
+			serviceId = "*"
+		} else {
+			fmt.Println("Start to remove service ", serviceId)
+		}
+
 		if serviceType == "local" {
 			if peer == "" {
 				m.RemoveLocalService(serviceId)
@@ -110,10 +119,12 @@ func init() {
 	// remove service
 	removeCmd.AddCommand(ServiceRemCmd)
 	ServiceRemCmd.Flags().String("myid", "", "MBGCtl Id")
-	ServiceRemCmd.Flags().String("id", "", "Service id")
+	ServiceRemCmd.Flags().String("id", "", "Service id to remove. Use '*' to remove all services.")
 	ServiceRemCmd.Flags().String("type", "local", "Service type : remote/local")
 	ServiceRemCmd.Flags().String("peer", "", "Optional, allow to remove local service from a remote peer."+
 		"If this option is specified it will not remove the local service from the local MBg")
+	ServiceRemCmd.PersistentFlags().Bool("all", false, "Remove all services")
+
 	// remove service binding
 	removeCmd.AddCommand(bindingRemCmd)
 	bindingRemCmd.Flags().String("myid", "", "MBGCtl Id")

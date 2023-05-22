@@ -25,3 +25,4 @@ COPY --from=0  /mbg/bin/mbgctl /mbgctl
 COPY ./tests/utils/mtls /mtls
 # Create the .mbg folder
 RUN mkdir -p /root/.mbg/
+RUN apk update && apk add --no-cache iputils curl tcpdump busybox-extras
