@@ -121,7 +121,6 @@ func CreateProxyRemoteService(serviceId, servicePort, rootCA, certificate, key s
 	acceptor, err := net.Listen("tcp", servicePort) //TODO- need to support secure endpoint
 	if err != nil {
 		clog.Infof("Error Listen: to port  %v", err)
-
 	}
 
 	go StartProxyRemoteService(serviceId, acceptor, servicePort, rootCA, certificate, key)
