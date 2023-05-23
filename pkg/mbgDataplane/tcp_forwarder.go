@@ -128,6 +128,7 @@ func (c *MbgTcpForwarder) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) e
 			break
 		}
 	}
+	c.CloseConnection()
 	if err == io.EOF {
 		return nil
 	} else {
@@ -159,7 +160,22 @@ func (c *MbgTcpForwarder) serverToClient(wg *sync.WaitGroup, cl, mbg net.Conn) e
 			break
 		}
 	}
-	return err
+	c.CloseConnection()
+	if err == io.EOF {
+		return nil
+	} else {
+		return err
+	}
+}
+
+func (c *MbgTcpForwarder) CloseConnection() {
+	if c.SeverConn != nil {
+		c.SeverConn.Close()
+	}
+	if c.ClientConn != nil {
+		c.ClientConn.Close()
+	}
+
 }
 
 func (c *MbgTcpForwarder) waitToCloseSignal(wg *sync.WaitGroup) {
@@ -169,6 +185,6 @@ func (c *MbgTcpForwarder) waitToCloseSignal(wg *sync.WaitGroup) {
 	clog.Infof("[%v] Receive signal to close connection\n", c.Name)
 }
 
-func (c *MbgTcpForwarder) CloseConnection() {
+func (c *MbgTcpForwarder) CloseConnectionSignal() {
 	c.CloseConn <- true
 }
