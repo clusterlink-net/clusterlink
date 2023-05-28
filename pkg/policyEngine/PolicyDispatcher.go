@@ -113,7 +113,7 @@ func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Requ
 		switch agent {
 		case "AccessControl":
 			if requestAttr.Direction == event.Incoming {
-				action, bitrate = pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, requestAttr.OtherMbg)
+				action, bitrate = pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, requestAttr.OtherMbg, event.Allow)
 			}
 		case "LoadBalancer":
 			plog.Infof("Looking up loadbalancer direction %v", requestAttr.Direction)
@@ -129,7 +129,7 @@ func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Requ
 				// Truncate mbgs from mbgList based on the policy
 				var mbgValidList []string
 				for _, mbg := range mbgList {
-					act, _ := pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, mbg)
+					act, _ := pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, mbg, pH.accessControl.DefaultRule) //For new outgoing connections, the default is set up in the init state
 					if act != event.Deny {
 						mbgValidList = append(mbgValidList, mbg)
 					}
@@ -225,7 +225,7 @@ func (pH PolicyHandler) newRemoteService(w http.ResponseWriter, r *http.Request)
 	for _, agent := range pH.SubscriptionMap[event.NewRemoteService] {
 		switch agent {
 		case "AccessControl":
-			action, _ = pH.accessControl.Lookup(event.Wildcard, requestAttr.Service, requestAttr.Mbg)
+			action, _ = pH.accessControl.Lookup(event.Wildcard, requestAttr.Service, requestAttr.Mbg, event.Allow)
 		default:
 			plog.Errorf("Unrecognized Policy Agent")
 		}
@@ -302,13 +302,13 @@ func (pH PolicyHandler) policyWelcome(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 }
-func (pH PolicyHandler) init(router *chi.Mux) {
+func (pH PolicyHandler) init(router *chi.Mux, defaultRule event.Action) {
 	pH.SubscriptionMap = make(map[string][]string)
 	pH.mbgState.mbgPeers = &([]string{})
 	policyList1 := []string{"AccessControl", "LoadBalancer"}
 	policyList2 := []string{"AccessControl"}
 
-	pH.accessControl = &AccessControl{}
+	pH.accessControl = &AccessControl{DefaultRule: defaultRule}
 	pH.loadBalancer = &LoadBalancer{}
 	pH.accessControl.Init()
 	pH.loadBalancer.Init()
@@ -326,8 +326,8 @@ func (pH PolicyHandler) init(router *chi.Mux) {
 
 }
 
-func StartPolicyDispatcher(router *chi.Mux) {
+func StartPolicyDispatcher(router *chi.Mux, defaultRule event.Action) {
 	plog.Infof("Policy Engine started")
-	MyPolicyHandler.init(router)
+	MyPolicyHandler.init(router, defaultRule)
 
 }

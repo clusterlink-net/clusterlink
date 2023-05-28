@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/mbg/state"
 	"github.ibm.com/mbg-agent/pkg/deployment/kubernetes"
+	event "github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 	handler "github.ibm.com/mbg-agent/pkg/protocol/http/mbg"
@@ -20,13 +21,16 @@ type Mbg struct {
 	Id string
 }
 
-func (m *Mbg) AddPolicyEngine(policyEngineTarget string, start bool) {
+func (m *Mbg) AddPolicyEngine(policyEngineTarget string, start bool, zeroTrust bool) {
 	state.GetEventManager().AssignPolicyDispatcher(state.GetAddrStart()+policyEngineTarget+"/policy", state.GetHttpClient())
 	// TODO : Handle different MBG IDs
 	state.SaveState()
-
+	defaultRule := event.AllowAll
+	if zeroTrust {
+		defaultRule = event.Deny
+	}
 	if start {
-		policyEngine.StartPolicyDispatcher(state.GetChiRouter())
+		policyEngine.StartPolicyDispatcher(state.GetChiRouter(), defaultRule)
 	}
 }
 
@@ -111,13 +115,13 @@ func CreateMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalData
 	return Mbg{id}, nil
 }
 
-func RestoreMbg(id string, policyEngineTarget, logLevel string, logFile, startPolicyEngine bool) (Mbg, error) {
+func RestoreMbg(id string, policyEngineTarget, logLevel string, logFile, startPolicyEngine bool, zeroTrust bool) (Mbg, error) {
 
 	state.UpdateState()
 	state.SetLog(logLevel, logFile)
 	m := Mbg{state.GetMyId()}
 	if startPolicyEngine {
-		go m.AddPolicyEngine("localhost"+state.GetMyCport().Local, true)
+		go m.AddPolicyEngine("localhost"+state.GetMyCport().Local, true, zeroTrust)
 	}
 
 	if state.GetDataplane() == "mtls" {
