@@ -62,6 +62,8 @@ func (m *MbgMtlsForwarder) StartMtlsForwarderClient(targetIPPort, name, rootCA, 
 	mtls_conn, err := tls.Dial("tcp", targetIPPort, TLSClientConfig)
 	if err != nil {
 		clog.Infof("Error in connecting.. %+v", err)
+		m.CloseConnection()
+		return
 	}
 
 	//clog.Debugln("mTLS Debug Check:", m.certDebg(targetIPPort, name, tlsConfig))
@@ -75,10 +77,14 @@ func (m *MbgMtlsForwarder) StartMtlsForwarderClient(targetIPPort, name, rootCA, 
 	req, err := http.NewRequest(http.MethodGet, connectMbg, nil)
 	if err != nil {
 		clog.Infof("Failed to create new request %v", err)
+		m.CloseConnection()
+		return
 	}
 	resp, err := TlsConnectClient.Do(req)
 	if err != nil {
 		clog.Infof("Error in Tls Connection %v", err)
+		m.CloseConnection()
+		return
 	}
 
 	m.mtlsConnection = mtls_conn
@@ -124,7 +130,7 @@ func (m *MbgMtlsForwarder) mbgConnectHandler(w http.ResponseWriter, r *http.Requ
 	conn, _, err := hj.Hijack()
 	if err != nil {
 		clog.Infof("Hijacking failed %v", err)
-
+		return
 	}
 	conn.Write([]byte{})
 	fmt.Fprintf(conn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n")
