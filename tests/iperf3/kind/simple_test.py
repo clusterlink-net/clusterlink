@@ -20,7 +20,7 @@ from tests.iperf3.kind.iperf3_service_create import setIperf3client, setIperf3Se
 from tests.iperf3.kind.iperf3_service_expose import exposeService,bindService
 from tests.iperf3.kind.iperf3_service_get import getService
 from tests.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
-from tests.iperf3.kind.apply_policy import applyPolicy
+from tests.iperf3.kind.apply_policy import addPolicy
 
 from tests.utils.kind.kindAux import useKindCluster, getKindIp,startKindClusterMbg
 
@@ -29,6 +29,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="mtls")
     parser.add_argument('-c','--cni', help='Which cni to use default(kindnet)/flannel/calico/diff (different cni for each cluster)', required=False, default="default")
+    parser.add_argument('-z','--zeroTrust', help='use zerotrust by default or not', required=False, default=False)
 
     args = vars(parser.parse_args())
 
@@ -37,6 +38,7 @@ if __name__ == "__main__":
 
     dataplane = args["dataplane"]
     cni = args["cni"]
+    zeroTrust= args["zeroTrust"]
     #MBG1 parameters 
     mbg1DataPort    = "30001"
     mbg1cPort       = "30443"
@@ -78,8 +80,8 @@ if __name__ == "__main__":
     
     
     ### Build MBG in Kind clusters environment 
-    startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags, cni=mbg1cni)        
-    startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags, cni=mbg2cni)        
+    startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags, cni=mbg1cni, zeroTrust=zeroTrust)        
+    startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags, cni=mbg2cni, zeroTrust=zeroTrust)        
       
     ###get mbg parameters
     useKindCluster(mbg1Name)
@@ -114,7 +116,8 @@ if __name__ == "__main__":
     bindService(mbg1Name,destSvc,destPort)
     #Get services
     getService(mbg1Name, mbgctl1Name)
-    
+    #Add policy
+    addPolicy(mbg1Name, mbgctl1Name, command="add", action="allow", srcSvc=srcSvc,destSvc=destSvc, priority=0)
     #Testing
     printHeader("\n\nStart Iperf3 testing")
     useKindCluster(mbg2Name)
