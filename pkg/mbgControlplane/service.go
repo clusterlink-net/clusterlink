@@ -96,7 +96,7 @@ func createRemoteServiceEndpoint(svcId string, force bool) error {
 	}
 	rootCA, certFile, keyFile := state.GetMyMbgCerts()
 	slog.Infof("Starting an service endpoint for Remote service %s at port %s with certs(%s,%s,%s)", svcId, connPort.Local, rootCA, certFile, keyFile)
-	go md.CreateProxyRemoteService(svcId, connPort.Local, rootCA, certFile, keyFile)
+	go md.CreateProxyToRemoteService(svcId, connPort.Local, rootCA, certFile, keyFile)
 	return nil
 }
 
