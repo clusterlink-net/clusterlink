@@ -1,4 +1,4 @@
-package state
+package database
 
 import (
 	"crypto/tls"
@@ -16,14 +16,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var log = logrus.WithField("component", "mbgctl")
+var log = logrus.WithField("component", "gwctl")
 
 const (
 	ProjectFolder = "/.gw/"
 	DBFile        = "gwctl"
 )
 
-type MbgctlState struct {
+type GwctlState struct {
 	MbgIP                  string `json:"MbgIP"`
 	Id                     string `json:"Id"`
 	CaFile                 string
@@ -33,7 +33,7 @@ type MbgctlState struct {
 	PolicyDispatcherTarget string
 }
 
-var s = MbgctlState{MbgIP: "", Id: ""}
+var s = GwctlState{MbgIP: "", Id: ""}
 
 func GetMbgIP() string {
 	return s.MbgIP
@@ -42,7 +42,7 @@ func GetMbgIP() string {
 func GetId() string {
 	return s.Id
 }
-func GetState() (MbgctlState, error) {
+func GetState() (GwctlState, error) {
 	m, err := readState(s.Id)
 	return m, err
 }
@@ -65,7 +65,7 @@ func UpdateState(id string) error {
 	return err
 }
 
-func (s *MbgctlState) Print() {
+func (s *GwctlState) Print() {
 	fmt.Printf("Id: %v,  mbgTarget: %v", s.Id, s.MbgIP)
 }
 
@@ -128,7 +128,7 @@ func CreateProjectfolder() string {
 	return fol
 }
 
-func mbgctlPath(id string) string {
+func GwctlPath(id string) string {
 	cfgFile := DBFile
 	if id != "" {
 		cfgFile += "_" + id
@@ -141,14 +141,14 @@ func mbgctlPath(id string) string {
 func CreateState(id string) error {
 	jsonC, err := json.MarshalIndent(s, "", "\t")
 	if err != nil {
-		log.Errorln("Mbgctl create config File", err)
+		log.Errorln("Gwctl create config File", err)
 		return err
 	}
-	f := mbgctlPath(id)
+	f := GwctlPath(id)
 	err = ioutil.WriteFile(f, jsonC, 0644) // os.ModeAppend)
-	log.Println("create MbgCTL config File:", f)
+	log.Println("create Gwctl config File:", f)
 	if err != nil {
-		log.Errorln("Mbgctl- create config File", err)
+		log.Errorln("Gwctl- create config File", err)
 		return err
 	}
 	SetDefaultLink(id)
@@ -158,44 +158,44 @@ func CreateState(id string) error {
 func SaveState(id string) error {
 	jsonC, err := json.MarshalIndent(s, "", "\t")
 	if err != nil {
-		log.Errorln("Mbgctl save config File", err)
+		log.Errorln("Gwctl save config File", err)
 		return err
 	}
-	f := mbgctlPath(id)
+	f := GwctlPath(id)
 	if id == "" { //get original file
-		f, _ = os.Readlink(mbgctlPath(id))
+		f, _ = os.Readlink(GwctlPath(id))
 	}
 
 	err = ioutil.WriteFile(f, jsonC, 0644) // os.ModeAppend)
 	if err != nil {
-		log.Errorln("Mbgctl save config File", err)
+		log.Errorln("Gwctl save config File", err)
 		return err
 	}
 	return nil
 }
 
-func readState(id string) (MbgctlState, error) {
-	file := mbgctlPath(id)
+func readState(id string) (GwctlState, error) {
+	file := GwctlPath(id)
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
-		log.Errorln("Mbgctl config File", err)
-		return MbgctlState{}, err
+		log.Errorln("Gwctl config File", err)
+		return GwctlState{}, err
 	}
-	var s MbgctlState
+	var s GwctlState
 	err = json.Unmarshal(data, &s)
 	if err != nil {
-		log.Errorln("Mbgctl config File", err)
-		return MbgctlState{}, err
+		log.Errorln("Gwctl config File", err)
+		return GwctlState{}, err
 	}
 	return s, nil
 }
 
 func SetDefaultLink(id string) error {
-	file := mbgctlPath(id)
-	link := mbgctlPath("")
+	file := GwctlPath(id)
+	link := GwctlPath("")
 	//Check if the file exist
 	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
-		log.Errorf("Mbgctl config File with id %v is not exist\n", id)
+		log.Errorf("Gwctl config File with id %v is not exist\n", id)
 		return err
 	}
 	//Remove if the link exist

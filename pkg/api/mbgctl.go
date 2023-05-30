@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	mbg "github.ibm.com/mbg-agent/cmd/controlplane/state"
-	"github.ibm.com/mbg-agent/cmd/gwctl/state"
+	db "github.ibm.com/mbg-agent/cmd/gwctl/database"
 
 	event "github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
@@ -35,7 +35,7 @@ const (
 )
 
 func CreateMbgctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane string) (Mbgctl, error) {
-	err := state.SetState(id, mbgIP, caFile, certificateFile, keyFile, dataplane)
+	err := db.SetState(id, mbgIP, caFile, certificateFile, keyFile, dataplane)
 	if err != nil {
 		return Mbgctl{}, err
 	}
@@ -43,77 +43,77 @@ func CreateMbgctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane string)
 }
 
 func (m *Mbgctl) AddPeer(id, target, peerCport string) error {
-	err := state.UpdateState(m.Id)
+	err := db.UpdateState(m.Id)
 	if err != nil {
 		return err
 	}
-	mbgIP := state.GetMbgIP()
-	address := state.GetAddrStart() + mbgIP + "/peer/" + id
+	mbgIP := db.GetMbgIP()
+	address := db.GetAddrStart() + mbgIP + "/peer/" + id
 	j, err := json.Marshal(protocol.PeerRequest{Id: id, Ip: target, Cport: ":" + peerCport})
 	if err != nil {
 		return err
 	}
-	_, err = httpAux.HttpPost(address, j, state.GetHttpClient())
+	_, err = httpAux.HttpPost(address, j, db.GetHttpClient())
 	return err
 }
 
 func (m *Mbgctl) AddPolicyEngine(target string) error {
-	err := state.UpdateState(m.Id)
+	err := db.UpdateState(m.Id)
 	if err != nil {
 		return err
 	}
-	return state.AssignPolicyDispatcher(m.Id, state.GetAddrStart()+target+"/policy")
+	return db.AssignPolicyDispatcher(m.Id, db.GetAddrStart()+target+"/policy")
 }
 
 func (m *Mbgctl) AddService(id, target, port, description string) error {
-	state.UpdateState(m.Id)
-	mbgIP := state.GetMbgIP()
+	db.UpdateState(m.Id)
+	mbgIP := db.GetMbgIP()
 
-	address := state.GetAddrStart() + mbgIP + "/service"
+	address := db.GetAddrStart() + mbgIP + "/service"
 	j, err := json.Marshal(protocol.ServiceRequest{Id: id, Ip: target, Port: port, Description: description})
 	if err != nil {
 		return err
 	}
-	_, err = httpAux.HttpPost(address, j, state.GetHttpClient())
+	_, err = httpAux.HttpPost(address, j, db.GetHttpClient())
 	return err
 }
 
 func (m *Mbgctl) ExposeService(svcId, peer string) error {
-	state.UpdateState(m.Id)
+	db.UpdateState(m.Id)
 
-	mbgIP := state.GetMbgIP()
+	mbgIP := db.GetMbgIP()
 
-	address := state.GetAddrStart() + mbgIP + "/expose"
+	address := db.GetAddrStart() + mbgIP + "/expose"
 	j, err := json.Marshal(protocol.ExposeRequest{Id: svcId, Ip: "", MbgID: peer})
 	if err != nil {
 		return err
 	}
 	//send expose
-	_, err = httpAux.HttpPost(address, j, state.GetHttpClient())
+	_, err = httpAux.HttpPost(address, j, db.GetHttpClient())
 	return err
 }
 
 func (m *Mbgctl) SendHello(peer ...string) error {
-	state.UpdateState(m.Id)
-	mbgIP := state.GetMbgIP()
+	db.UpdateState(m.Id)
+	mbgIP := db.GetMbgIP()
 	j := []byte{}
 	if len(peer) != 0 {
-		address := state.GetAddrStart() + mbgIP + "/hello/" + peer[0]
-		_, err := httpAux.HttpPost(address, j, state.GetHttpClient())
+		address := db.GetAddrStart() + mbgIP + "/hello/" + peer[0]
+		_, err := httpAux.HttpPost(address, j, db.GetHttpClient())
 		return err
 	}
-	address := state.GetAddrStart() + mbgIP + "/hello/"
+	address := db.GetAddrStart() + mbgIP + "/hello/"
 
-	_, err := httpAux.HttpPost(address, j, state.GetHttpClient())
+	_, err := httpAux.HttpPost(address, j, db.GetHttpClient())
 	return err
 }
 
 func (m *Mbgctl) GetPeer(peer string) (string, error) {
-	state.UpdateState(m.Id)
-	mbgIP := state.GetMbgIP()
-	address := state.GetAddrStart() + mbgIP + "/peer/" + peer
+	db.UpdateState(m.Id)
+	mbgIP := db.GetMbgIP()
+	address := db.GetAddrStart() + mbgIP + "/peer/" + peer
 
-	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
+	resp, err := httpAux.HttpGet(address, db.GetHttpClient())
 	if err != nil {
 		return "", err
 	}
@@ -125,12 +125,12 @@ func (m *Mbgctl) GetPeer(peer string) (string, error) {
 }
 
 func (m *Mbgctl) GetPeers() ([]string, error) {
-	state.UpdateState(m.Id)
-	mbgIP := state.GetMbgIP()
+	db.UpdateState(m.Id)
+	mbgIP := db.GetMbgIP()
 
-	address := state.GetAddrStart() + mbgIP + "/peer/"
+	address := db.GetAddrStart() + mbgIP + "/peer/"
 
-	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
+	resp, err := httpAux.HttpGet(address, db.GetHttpClient())
 	if err != nil {
 		return []string{}, err
 	}
@@ -146,10 +146,10 @@ func (m *Mbgctl) GetPeers() ([]string, error) {
 }
 
 func (m *Mbgctl) GetLocalServices() ([]mbg.LocalService, error) {
-	state.UpdateState(m.Id)
-	mbgIP := state.GetMbgIP()
-	address := state.GetAddrStart() + mbgIP + "/service/"
-	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
+	db.UpdateState(m.Id)
+	mbgIP := db.GetMbgIP()
+	address := db.GetAddrStart() + mbgIP + "/service/"
+	resp, err := httpAux.HttpGet(address, db.GetHttpClient())
 	if err != nil {
 		return []mbg.LocalService{}, err
 	}
@@ -165,10 +165,10 @@ func (m *Mbgctl) GetLocalServices() ([]mbg.LocalService, error) {
 }
 
 func (m *Mbgctl) GetLocalService(id string) (mbg.LocalService, error) {
-	state.UpdateState(m.Id)
-	mbgIP := state.GetMbgIP()
-	address := state.GetAddrStart() + mbgIP + "/service/" + id
-	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
+	db.UpdateState(m.Id)
+	mbgIP := db.GetMbgIP()
+	address := db.GetAddrStart() + mbgIP + "/service/" + id
+	resp, err := httpAux.HttpGet(address, db.GetHttpClient())
 	if err != nil {
 		return mbg.LocalService{}, err
 	}
@@ -180,11 +180,11 @@ func (m *Mbgctl) GetLocalService(id string) (mbg.LocalService, error) {
 }
 
 func (m *Mbgctl) GetRemoteService(id string) ([]protocol.ServiceRequest, error) {
-	state.UpdateState(m.Id)
-	mbgIP := state.GetMbgIP()
+	db.UpdateState(m.Id)
+	mbgIP := db.GetMbgIP()
 
-	address := state.GetAddrStart() + mbgIP + "/remoteservice/" + id
-	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
+	address := db.GetAddrStart() + mbgIP + "/remoteservice/" + id
+	resp, err := httpAux.HttpGet(address, db.GetHttpClient())
 	if err != nil {
 		return []protocol.ServiceRequest{}, err
 	}
@@ -200,11 +200,11 @@ func (m *Mbgctl) GetRemoteService(id string) ([]protocol.ServiceRequest, error) 
 }
 
 func (m *Mbgctl) GetRemoteServices() (map[string][]protocol.ServiceRequest, error) {
-	state.UpdateState(m.Id)
-	mbgIP := state.GetMbgIP()
+	db.UpdateState(m.Id)
+	mbgIP := db.GetMbgIP()
 
-	address := state.GetAddrStart() + mbgIP + "/remoteservice/"
-	resp, err := httpAux.HttpGet(address, state.GetHttpClient())
+	address := db.GetAddrStart() + mbgIP + "/remoteservice/"
+	resp, err := httpAux.HttpGet(address, db.GetHttpClient())
 	if err != nil {
 		return nil, err
 	}
@@ -222,57 +222,57 @@ func (m *Mbgctl) GetRemoteServices() (map[string][]protocol.ServiceRequest, erro
 }
 
 func (m *Mbgctl) RemovePeer(id string) error {
-	err := state.UpdateState(m.Id)
+	err := db.UpdateState(m.Id)
 	if err != nil {
 		return err
 	}
 	// Remove peer in local MBG
-	mbgIP := state.GetMbgIP()
-	address := state.GetAddrStart() + mbgIP + "/peer/" + id
+	mbgIP := db.GetMbgIP()
+	address := db.GetAddrStart() + mbgIP + "/peer/" + id
 	j, err := json.Marshal(protocol.PeerRemoveRequest{Id: id, Propagate: true})
 	if err != nil {
 		return err
 	}
-	_, err = httpAux.HttpDelete(address, j, state.GetHttpClient())
+	_, err = httpAux.HttpDelete(address, j, db.GetHttpClient())
 	return err
 }
 
 func (m *Mbgctl) RemoveLocalService(serviceId string) {
-	state.UpdateState(m.Id)
-	mbgIP := state.GetMbgIP()
-	address := state.GetAddrStart() + mbgIP + "/service/" + serviceId
-	resp, _ := httpAux.HttpDelete(address, nil, state.GetHttpClient())
+	db.UpdateState(m.Id)
+	mbgIP := db.GetMbgIP()
+	address := db.GetAddrStart() + mbgIP + "/service/" + serviceId
+	resp, _ := httpAux.HttpDelete(address, nil, db.GetHttpClient())
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
 
 func (m *Mbgctl) RemoveLocalServiceFromPeer(serviceId, peer string) {
-	state.UpdateState(m.Id)
-	mbgIP := state.GetMbgIP()
-	address := state.GetAddrStart() + mbgIP + "/service/" + serviceId + "/peer"
+	db.UpdateState(m.Id)
+	mbgIP := db.GetMbgIP()
+	address := db.GetAddrStart() + mbgIP + "/service/" + serviceId + "/peer"
 	j, err := json.Marshal(protocol.ServiceDeleteRequest{Id: serviceId, Peer: peer})
 	if err != nil {
 		fmt.Printf("Unable to marshal json: %v", err)
 	}
-	resp, _ := httpAux.HttpDelete(address, j, state.GetHttpClient())
+	resp, _ := httpAux.HttpDelete(address, j, db.GetHttpClient())
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
 
 func (m *Mbgctl) RemoveRemoteService(serviceId, serviceMbg string) {
-	state.UpdateState(m.Id)
-	mbgIP := state.GetMbgIP()
-	address := state.GetAddrStart() + mbgIP + "/remoteservice/" + serviceId
+	db.UpdateState(m.Id)
+	mbgIP := db.GetMbgIP()
+	address := db.GetAddrStart() + mbgIP + "/remoteservice/" + serviceId
 	j, err := json.Marshal(protocol.ServiceRequest{Id: serviceId, MbgID: serviceMbg})
 	if err != nil {
 		fmt.Printf("Unable to marshal json: %v", err)
 	}
 
-	resp, _ := httpAux.HttpDelete(address, j, state.GetHttpClient())
+	resp, _ := httpAux.HttpDelete(address, j, db.GetHttpClient())
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
 
 func (m *Mbgctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action, command int) error {
-	state.UpdateState(m.Id)
-	url := state.GetPolicyDispatcher() + "/" + acl
+	db.UpdateState(m.Id)
+	url := db.GetPolicyDispatcher() + "/" + acl
 	switch command {
 	case Add:
 		url += "/add"
@@ -285,13 +285,13 @@ func (m *Mbgctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest str
 	if err != nil {
 		return err
 	}
-	_, err = httpAux.HttpPost(url, jsonReq, state.GetHttpClient())
+	_, err = httpAux.HttpPost(url, jsonReq, db.GetHttpClient())
 	return err
 }
 
 func (m *Mbgctl) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.PolicyLoadBalancer, mbgDest string, command int) error {
-	state.UpdateState(m.Id)
-	url := state.GetPolicyDispatcher() + "/" + lb
+	db.UpdateState(m.Id)
+	url := db.GetPolicyDispatcher() + "/" + lb
 	switch command {
 	case Add:
 		url += "/add"
@@ -304,15 +304,15 @@ func (m *Mbgctl) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine
 	if err != nil {
 		return err
 	}
-	_, err = httpAux.HttpPost(url, jsonReq, state.GetHttpClient())
+	_, err = httpAux.HttpPost(url, jsonReq, db.GetHttpClient())
 	return err
 }
 
 func (m *Mbgctl) GetACLPolicies() (policyEngine.ACL, error) {
-	state.UpdateState(m.Id)
+	db.UpdateState(m.Id)
 	var rules policyEngine.ACL
-	url := state.GetPolicyDispatcher() + "/" + acl
-	resp, err := httpAux.HttpGet(url, state.GetHttpClient())
+	url := db.GetPolicyDispatcher() + "/" + acl
+	resp, err := httpAux.HttpGet(url, db.GetHttpClient())
 	if err != nil {
 		return make(policyEngine.ACL), err
 	}
@@ -325,10 +325,10 @@ func (m *Mbgctl) GetACLPolicies() (policyEngine.ACL, error) {
 }
 
 func (m *Mbgctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBalancer, error) {
-	state.UpdateState(m.Id)
+	db.UpdateState(m.Id)
 	var policies map[string]map[string]policyEngine.PolicyLoadBalancer
-	url := state.GetPolicyDispatcher() + "/" + lb
-	resp, err := httpAux.HttpGet(url, state.GetHttpClient())
+	url := db.GetPolicyDispatcher() + "/" + lb
+	resp, err := httpAux.HttpGet(url, db.GetHttpClient())
 	if err != nil {
 		return make(map[string]map[string]policyEngine.PolicyLoadBalancer), err
 	}
@@ -340,42 +340,42 @@ func (m *Mbgctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadB
 }
 
 func (m *Mbgctl) CreateServiceEndpoint(serviceId string, port int, name, namespace, mbgAppName string) error {
-	state.UpdateState(m.Id)
+	db.UpdateState(m.Id)
 
-	mbgIP := state.GetMbgIP()
-	address := state.GetAddrStart() + mbgIP + "/binding"
+	mbgIP := db.GetMbgIP()
+	address := db.GetAddrStart() + mbgIP + "/binding"
 	j, err := json.Marshal(protocol.BindingRequest{Id: serviceId, Port: port, Name: name, Namespace: namespace, MbgApp: mbgAppName})
 	if err != nil {
 		return err
 	}
 	//send Binding request
-	_, err = httpAux.HttpPost(address, j, state.GetHttpClient())
+	_, err = httpAux.HttpPost(address, j, db.GetHttpClient())
 	return err
 }
 
 func (m *Mbgctl) DeleteServiceEndpoint(serviceId string) error {
-	err := state.UpdateState(m.Id)
+	err := db.UpdateState(m.Id)
 	if err != nil {
 		return err
 	}
-	mbgIP := state.GetMbgIP()
-	address := state.GetAddrStart() + mbgIP + "/binding/" + serviceId
+	mbgIP := db.GetMbgIP()
+	address := db.GetAddrStart() + mbgIP + "/binding/" + serviceId
 
-	_, err = httpAux.HttpDelete(address, []byte{}, state.GetHttpClient())
+	_, err = httpAux.HttpDelete(address, []byte{}, db.GetHttpClient())
 	return err
 }
 
-func (m *Mbgctl) GetState() state.MbgctlState {
-	state.UpdateState(m.Id)
-	s, _ := state.GetState()
+func (m *Mbgctl) GetState() db.MbgctlState {
+	db.UpdateState(m.Id)
+	s, _ := db.GetState()
 	return s
 }
 
 /***** config *****/
-func (m *Mbgctl) ConfigCurrentContext() (state.MbgctlState, error) {
-	return state.GetState()
+func (m *Mbgctl) ConfigCurrentContext() (db.MbgctlState, error) {
+	return db.GetState()
 }
 
 func (m *Mbgctl) ConfigUseContext() error {
-	return state.SetDefaultLink(m.Id)
+	return db.SetDefaultLink(m.Id)
 }
