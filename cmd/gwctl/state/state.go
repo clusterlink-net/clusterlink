@@ -19,8 +19,8 @@ import (
 var log = logrus.WithField("component", "mbgctl")
 
 const (
-	ProjectFolder = "/.mbg/"
-	DBFile        = "mbgctl"
+	ProjectFolder = "/.gw/"
+	DBFile        = "gwctl"
 )
 
 type MbgctlState struct {

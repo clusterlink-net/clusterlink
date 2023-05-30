@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	mbg "github.ibm.com/mbg-agent/cmd/mbg/state"
-	"github.ibm.com/mbg-agent/cmd/mbgctl/state"
+	mbg "github.ibm.com/mbg-agent/cmd/controlplane/state"
+	"github.ibm.com/mbg-agent/cmd/gwctl/state"
 
 	event "github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"

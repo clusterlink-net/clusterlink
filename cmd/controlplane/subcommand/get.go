@@ -23,7 +23,7 @@ var logGetCmd = &cobra.Command{
 	Short: "Get mbg log file",
 	Long:  `Get mbg log file`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunCmd("cat /root/.mbg/mbg.log")
+		RunCmd("cat /root/.gw/gw.log")
 	},
 }
 

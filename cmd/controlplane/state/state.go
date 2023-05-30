@@ -97,9 +97,9 @@ var stopCh = make(map[string]chan bool)
 
 const (
 	ConnExist     = "connection already setup"
-	ProjectFolder = "/.mbg/"
-	LogFile       = "mbg.log"
-	DBFile        = "mbgApp"
+	ProjectFolder = "/.gw/"
+	LogFile       = "gw.log"
+	DBFile        = "gwApp"
 )
 
 func GetMyIp() string {

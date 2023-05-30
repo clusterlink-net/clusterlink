@@ -1,7 +1,7 @@
 package mbgControlplane
 
 import (
-	"github.ibm.com/mbg-agent/cmd/mbg/state"
+	"github.ibm.com/mbg-agent/cmd/controlplane/state"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 

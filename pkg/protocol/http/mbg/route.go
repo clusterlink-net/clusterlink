@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/cmd/mbg/state"
+	"github.ibm.com/mbg-agent/cmd/controlplane/state"
 )
 
 type MbgHandler struct{}
