@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	api "github.ibm.com/mbg-agent/pkg/api"
+	api "github.ibm.com/mbg-agent/cmd/gwctl/api"
 )
 
 // exposeCmd represents the expose command
@@ -17,7 +17,7 @@ var exposeCmd = &cobra.Command{
 		serviceId, _ := cmd.Flags().GetString("service")
 		peer, _ := cmd.Flags().GetString("peer")
 
-		m := api.Mbgctl{Id: mId}
+		m := api.Gwctl{Id: mId}
 		err := m.ExposeService(serviceId, peer)
 		if err != nil {
 			fmt.Printf("Failed to expose service :%v\n", err)
@@ -28,7 +28,7 @@ var exposeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(exposeCmd)
-	exposeCmd.Flags().String("myid", "", "MBGCtl Id")
+	exposeCmd.Flags().String("myid", "", "Gwctl Id")
 	exposeCmd.Flags().String("service", "", "Service Id for exposing")
 	exposeCmd.Flags().String("peer", "", "Peer to expose ,if empty expose to all peers")
 

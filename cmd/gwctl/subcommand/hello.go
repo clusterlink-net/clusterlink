@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	api "github.ibm.com/mbg-agent/pkg/api"
+	api "github.ibm.com/mbg-agent/cmd/gwctl/api"
 )
 
 // helloCmd represents the hello command
@@ -13,7 +13,7 @@ var helloCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
 		peerId, _ := cmd.Flags().GetString("peer")
-		m := api.Mbgctl{Id: mId}
+		m := api.Gwctl{Id: mId}
 
 		if peerId == "" {
 			m.SendHello()
@@ -25,6 +25,6 @@ var helloCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(helloCmd)
-	helloCmd.Flags().String("myid", "", "MBGCtl Id")
+	helloCmd.Flags().String("myid", "", "Gwctl Id")
 	helloCmd.Flags().String("peerId", "", "Send hello to specific peer")
 }

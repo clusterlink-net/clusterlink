@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	api "github.ibm.com/mbg-agent/pkg/api"
+	api "github.ibm.com/mbg-agent/cmd/gwctl/api"
 	event "github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 )
@@ -34,7 +34,7 @@ var peerCmd = &cobra.Command{
 		target, _ := cmd.Flags().GetString("target")
 		id, _ := cmd.Flags().GetString("id")
 		cport, _ := cmd.Flags().GetString("port")
-		m := api.Mbgctl{Id: mId}
+		m := api.Gwctl{Id: mId}
 		err := m.AddPeer(id, target, cport)
 		if err != nil {
 			fmt.Printf("Failed to add peer :%v\n", err)
@@ -51,7 +51,7 @@ var policyengineCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
 		target, _ := cmd.Flags().GetString("target")
-		m := api.Mbgctl{Id: mId}
+		m := api.Gwctl{Id: mId}
 		err := m.AddPolicyEngine(target)
 		if err != nil {
 			fmt.Printf("Failed to add policy engine :%v\n", err)
@@ -64,7 +64,7 @@ var policyengineCmd = &cobra.Command{
 var serviceCmd = &cobra.Command{
 	Use:   "service",
 	Short: "Add local service to the MBG",
-	Long:  `Add local service to the MBG and save it also in the state of the mbgctl`,
+	Long:  `Add local service to the MBG and save it also in the state of the gwctl`,
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
 		serviceId, _ := cmd.Flags().GetString("id")
@@ -73,7 +73,7 @@ var serviceCmd = &cobra.Command{
 
 		description, _ := cmd.Flags().GetString("description")
 
-		m := api.Mbgctl{Id: mId}
+		m := api.Gwctl{Id: mId}
 		err := m.AddService(serviceId, serviceIp, servicePort, description)
 		if err != nil {
 			fmt.Printf("Failed to add service :%v\n", err)
@@ -94,7 +94,7 @@ var bindingCmd = &cobra.Command{
 		namespace, _ := cmd.Flags().GetString("namespace")
 		name, _ := cmd.Flags().GetString("name")
 
-		m := api.Mbgctl{Id: mId}
+		m := api.Gwctl{Id: mId}
 		if name == "" {
 			name = serviceId
 		}
@@ -121,7 +121,7 @@ var PolicyAddCmd = &cobra.Command{
 		priority, _ := cmd.Flags().GetInt("priority")
 		action, _ := cmd.Flags().GetInt("action")
 		policy, _ := cmd.Flags().GetString("policy")
-		m := api.Mbgctl{Id: mId}
+		m := api.Gwctl{Id: mId}
 		switch pType {
 		case acl:
 			m.SendACLPolicy(serviceSrc, serviceDst, mbgDest, priority, event.Action(action), api.Add)
@@ -138,24 +138,24 @@ func init() {
 	rootCmd.AddCommand(addCmd)
 	// add peer
 	addCmd.AddCommand(peerCmd)
-	peerCmd.Flags().String("myid", "", "MBGCtl Id")
+	peerCmd.Flags().String("myid", "", "Gwctl Id")
 	peerCmd.Flags().String("id", "", "MBG peer id")
 	peerCmd.Flags().String("target", "", "MBG peer target(IP/Hostname)")
 	peerCmd.Flags().String("port", "443", "MBG peer control port")
 	// add policyengine
 	addCmd.AddCommand(policyengineCmd)
-	policyengineCmd.Flags().String("myid", "", "MBGCtl Id")
+	policyengineCmd.Flags().String("myid", "", "Gwctl Id")
 	policyengineCmd.Flags().String("target", "", "Target endpoint(e.g.ip:port) to reach the policy agent")
 	// add service
 	addCmd.AddCommand(serviceCmd)
-	serviceCmd.Flags().String("myid", "", "MBGCtl Id")
+	serviceCmd.Flags().String("myid", "", "Gwctl Id")
 	serviceCmd.Flags().String("id", "", "Service id field ")
 	serviceCmd.Flags().String("target", "", "Service IP/Hostname if not specified use service id as the target id")
 	serviceCmd.Flags().String("port", "", "Service port")
 	serviceCmd.Flags().String("description", "", "Service description (Optional)")
 	// add service binding
 	addCmd.AddCommand(bindingCmd)
-	bindingCmd.Flags().String("myid", "", "MBGCtl Id")
+	bindingCmd.Flags().String("myid", "", "Gwctl Id")
 	bindingCmd.Flags().String("service", "", "Service id")
 	bindingCmd.Flags().Int("port", 0, "local port to be bound for remote service")
 	bindingCmd.Flags().String("namespace", "default", "Namespace where the service binding to be created")
@@ -163,7 +163,7 @@ func init() {
 
 	// add policy
 	addCmd.AddCommand(PolicyAddCmd)
-	PolicyAddCmd.Flags().String("myid", "", "MBGCtl Id")
+	PolicyAddCmd.Flags().String("myid", "", "Gwctl Id")
 	PolicyAddCmd.Flags().String("type", "", "Policy agent command (For now, acl,lb)")
 	PolicyAddCmd.Flags().String("serviceSrc", "*", "Name of Source Service (* for wildcard)")
 	PolicyAddCmd.Flags().String("serviceDst", "*", "Name of Dest Service (* for wildcard)")

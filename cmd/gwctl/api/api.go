@@ -15,7 +15,7 @@ import (
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 )
 
-type Mbgctl struct {
+type Gwctl struct {
 	Id string
 }
 
@@ -34,15 +34,15 @@ const (
 	show    = "show"
 )
 
-func CreateMbgctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane string) (Mbgctl, error) {
+func CreateGwctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane string) (Gwctl, error) {
 	err := db.SetState(id, mbgIP, caFile, certificateFile, keyFile, dataplane)
 	if err != nil {
-		return Mbgctl{}, err
+		return Gwctl{}, err
 	}
-	return Mbgctl{id}, nil
+	return Gwctl{id}, nil
 }
 
-func (m *Mbgctl) AddPeer(id, target, peerCport string) error {
+func (m *Gwctl) AddPeer(id, target, peerCport string) error {
 	err := db.UpdateState(m.Id)
 	if err != nil {
 		return err
@@ -57,7 +57,7 @@ func (m *Mbgctl) AddPeer(id, target, peerCport string) error {
 	return err
 }
 
-func (m *Mbgctl) AddPolicyEngine(target string) error {
+func (m *Gwctl) AddPolicyEngine(target string) error {
 	err := db.UpdateState(m.Id)
 	if err != nil {
 		return err
@@ -65,7 +65,7 @@ func (m *Mbgctl) AddPolicyEngine(target string) error {
 	return db.AssignPolicyDispatcher(m.Id, db.GetAddrStart()+target+"/policy")
 }
 
-func (m *Mbgctl) AddService(id, target, port, description string) error {
+func (m *Gwctl) AddService(id, target, port, description string) error {
 	db.UpdateState(m.Id)
 	mbgIP := db.GetMbgIP()
 
@@ -78,7 +78,7 @@ func (m *Mbgctl) AddService(id, target, port, description string) error {
 	return err
 }
 
-func (m *Mbgctl) ExposeService(svcId, peer string) error {
+func (m *Gwctl) ExposeService(svcId, peer string) error {
 	db.UpdateState(m.Id)
 
 	mbgIP := db.GetMbgIP()
@@ -93,7 +93,7 @@ func (m *Mbgctl) ExposeService(svcId, peer string) error {
 	return err
 }
 
-func (m *Mbgctl) SendHello(peer ...string) error {
+func (m *Gwctl) SendHello(peer ...string) error {
 	db.UpdateState(m.Id)
 	mbgIP := db.GetMbgIP()
 	j := []byte{}
@@ -108,7 +108,7 @@ func (m *Mbgctl) SendHello(peer ...string) error {
 	return err
 }
 
-func (m *Mbgctl) GetPeer(peer string) (string, error) {
+func (m *Gwctl) GetPeer(peer string) (string, error) {
 	db.UpdateState(m.Id)
 	mbgIP := db.GetMbgIP()
 	address := db.GetAddrStart() + mbgIP + "/peer/" + peer
@@ -124,7 +124,7 @@ func (m *Mbgctl) GetPeer(peer string) (string, error) {
 	return p.Ip + ":" + p.Cport, nil
 }
 
-func (m *Mbgctl) GetPeers() ([]string, error) {
+func (m *Gwctl) GetPeers() ([]string, error) {
 	db.UpdateState(m.Id)
 	mbgIP := db.GetMbgIP()
 
@@ -145,7 +145,7 @@ func (m *Mbgctl) GetPeers() ([]string, error) {
 	return peers, nil
 }
 
-func (m *Mbgctl) GetLocalServices() ([]mbg.LocalService, error) {
+func (m *Gwctl) GetLocalServices() ([]mbg.LocalService, error) {
 	db.UpdateState(m.Id)
 	mbgIP := db.GetMbgIP()
 	address := db.GetAddrStart() + mbgIP + "/service/"
@@ -164,7 +164,7 @@ func (m *Mbgctl) GetLocalServices() ([]mbg.LocalService, error) {
 	return serviceArr, nil
 }
 
-func (m *Mbgctl) GetLocalService(id string) (mbg.LocalService, error) {
+func (m *Gwctl) GetLocalService(id string) (mbg.LocalService, error) {
 	db.UpdateState(m.Id)
 	mbgIP := db.GetMbgIP()
 	address := db.GetAddrStart() + mbgIP + "/service/" + id
@@ -179,7 +179,7 @@ func (m *Mbgctl) GetLocalService(id string) (mbg.LocalService, error) {
 	return mbg.LocalService{Id: s.Id, Ip: s.Ip, Port: s.Port, Description: s.Description}, nil
 }
 
-func (m *Mbgctl) GetRemoteService(id string) ([]protocol.ServiceRequest, error) {
+func (m *Gwctl) GetRemoteService(id string) ([]protocol.ServiceRequest, error) {
 	db.UpdateState(m.Id)
 	mbgIP := db.GetMbgIP()
 
@@ -199,7 +199,7 @@ func (m *Mbgctl) GetRemoteService(id string) ([]protocol.ServiceRequest, error) 
 	return sArr, nil
 }
 
-func (m *Mbgctl) GetRemoteServices() (map[string][]protocol.ServiceRequest, error) {
+func (m *Gwctl) GetRemoteServices() (map[string][]protocol.ServiceRequest, error) {
 	db.UpdateState(m.Id)
 	mbgIP := db.GetMbgIP()
 
@@ -221,7 +221,7 @@ func (m *Mbgctl) GetRemoteServices() (map[string][]protocol.ServiceRequest, erro
 	return sArr, nil
 }
 
-func (m *Mbgctl) RemovePeer(id string) error {
+func (m *Gwctl) RemovePeer(id string) error {
 	err := db.UpdateState(m.Id)
 	if err != nil {
 		return err
@@ -237,7 +237,7 @@ func (m *Mbgctl) RemovePeer(id string) error {
 	return err
 }
 
-func (m *Mbgctl) RemoveLocalService(serviceId string) {
+func (m *Gwctl) RemoveLocalService(serviceId string) {
 	db.UpdateState(m.Id)
 	mbgIP := db.GetMbgIP()
 	address := db.GetAddrStart() + mbgIP + "/service/" + serviceId
@@ -245,7 +245,7 @@ func (m *Mbgctl) RemoveLocalService(serviceId string) {
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
 
-func (m *Mbgctl) RemoveLocalServiceFromPeer(serviceId, peer string) {
+func (m *Gwctl) RemoveLocalServiceFromPeer(serviceId, peer string) {
 	db.UpdateState(m.Id)
 	mbgIP := db.GetMbgIP()
 	address := db.GetAddrStart() + mbgIP + "/service/" + serviceId + "/peer"
@@ -257,7 +257,7 @@ func (m *Mbgctl) RemoveLocalServiceFromPeer(serviceId, peer string) {
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
 
-func (m *Mbgctl) RemoveRemoteService(serviceId, serviceMbg string) {
+func (m *Gwctl) RemoveRemoteService(serviceId, serviceMbg string) {
 	db.UpdateState(m.Id)
 	mbgIP := db.GetMbgIP()
 	address := db.GetAddrStart() + mbgIP + "/remoteservice/" + serviceId
@@ -270,7 +270,7 @@ func (m *Mbgctl) RemoveRemoteService(serviceId, serviceMbg string) {
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
 
-func (m *Mbgctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action, command int) error {
+func (m *Gwctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action, command int) error {
 	db.UpdateState(m.Id)
 	url := db.GetPolicyDispatcher() + "/" + acl
 	switch command {
@@ -289,7 +289,7 @@ func (m *Mbgctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest str
 	return err
 }
 
-func (m *Mbgctl) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.PolicyLoadBalancer, mbgDest string, command int) error {
+func (m *Gwctl) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.PolicyLoadBalancer, mbgDest string, command int) error {
 	db.UpdateState(m.Id)
 	url := db.GetPolicyDispatcher() + "/" + lb
 	switch command {
@@ -308,7 +308,7 @@ func (m *Mbgctl) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine
 	return err
 }
 
-func (m *Mbgctl) GetACLPolicies() (policyEngine.ACL, error) {
+func (m *Gwctl) GetACLPolicies() (policyEngine.ACL, error) {
 	db.UpdateState(m.Id)
 	var rules policyEngine.ACL
 	url := db.GetPolicyDispatcher() + "/" + acl
@@ -324,7 +324,7 @@ func (m *Mbgctl) GetACLPolicies() (policyEngine.ACL, error) {
 	return rules, nil
 }
 
-func (m *Mbgctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBalancer, error) {
+func (m *Gwctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBalancer, error) {
 	db.UpdateState(m.Id)
 	var policies map[string]map[string]policyEngine.PolicyLoadBalancer
 	url := db.GetPolicyDispatcher() + "/" + lb
@@ -339,7 +339,7 @@ func (m *Mbgctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadB
 	return policies, nil
 }
 
-func (m *Mbgctl) CreateServiceEndpoint(serviceId string, port int, name, namespace, mbgAppName string) error {
+func (m *Gwctl) CreateServiceEndpoint(serviceId string, port int, name, namespace, mbgAppName string) error {
 	db.UpdateState(m.Id)
 
 	mbgIP := db.GetMbgIP()
@@ -353,7 +353,7 @@ func (m *Mbgctl) CreateServiceEndpoint(serviceId string, port int, name, namespa
 	return err
 }
 
-func (m *Mbgctl) DeleteServiceEndpoint(serviceId string) error {
+func (m *Gwctl) DeleteServiceEndpoint(serviceId string) error {
 	err := db.UpdateState(m.Id)
 	if err != nil {
 		return err
@@ -365,17 +365,17 @@ func (m *Mbgctl) DeleteServiceEndpoint(serviceId string) error {
 	return err
 }
 
-func (m *Mbgctl) GetState() db.MbgctlState {
+func (m *Gwctl) GetState() db.GwctlState {
 	db.UpdateState(m.Id)
 	s, _ := db.GetState()
 	return s
 }
 
 /***** config *****/
-func (m *Mbgctl) ConfigCurrentContext() (db.MbgctlState, error) {
+func (m *Gwctl) ConfigCurrentContext() (db.GwctlState, error) {
 	return db.GetState()
 }
 
-func (m *Mbgctl) ConfigUseContext() error {
+func (m *Gwctl) ConfigUseContext() error {
 	return db.SetDefaultLink(m.Id)
 }

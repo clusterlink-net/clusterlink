@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	api "github.ibm.com/mbg-agent/pkg/api"
+	api "github.ibm.com/mbg-agent/cmd/gwctl/api"
 )
 
 var getCmd = &cobra.Command{
@@ -18,11 +18,11 @@ var getCmd = &cobra.Command{
 // Get state
 var stateGetCmd = &cobra.Command{
 	Use:   "state",
-	Short: "Get mbgctl information",
-	Long:  `Get mbgctl information`,
+	Short: "Get gwctl information",
+	Long:  `Get gwctl information`,
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
-		m := api.Mbgctl{Id: mId}
+		m := api.Gwctl{Id: mId}
 		s := m.GetState()
 		sJSON, err := json.MarshalIndent(s, "", "  ")
 		if err != nil {
@@ -40,7 +40,7 @@ var peerGetCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
 		peerId, _ := cmd.Flags().GetString("id")
-		m := api.Mbgctl{Id: mId}
+		m := api.Gwctl{Id: mId}
 		if peerId == "" {
 			pArr, err := m.GetPeers()
 			if err != nil {
@@ -63,7 +63,7 @@ var serviceGetCmd = &cobra.Command{
 		mId, _ := cmd.Flags().GetString("myid")
 		serviceId, _ := cmd.Flags().GetString("id")
 		serviceType, _ := cmd.Flags().GetString("type")
-		m := api.Mbgctl{Id: mId}
+		m := api.Gwctl{Id: mId}
 		i := 1
 		if serviceId == "" {
 			if serviceType == "local" {
@@ -119,7 +119,7 @@ var policyGetCmd = &cobra.Command{
 	Long:  `Get policy list from the MBG (ACL and LB)`,
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
-		m := api.Mbgctl{Id: mId}
+		m := api.Gwctl{Id: mId}
 
 		rules, err := m.GetACLPolicies()
 		if err != nil {
@@ -149,17 +149,17 @@ func init() {
 	rootCmd.AddCommand(getCmd)
 	// Get Peer
 	getCmd.AddCommand(peerGetCmd)
-	peerGetCmd.Flags().String("myid", "", "MBGCtl Id")
+	peerGetCmd.Flags().String("myid", "", "Gwctl Id")
 	peerGetCmd.Flags().String("id", "", "Peer id field")
 	// Get Service
 	getCmd.AddCommand(serviceGetCmd)
-	serviceGetCmd.Flags().String("myid", "", "MBGCtl Id")
+	serviceGetCmd.Flags().String("myid", "", "Gwctl Id")
 	serviceGetCmd.Flags().String("id", "", "service id field")
 	serviceGetCmd.Flags().String("type", "remote", "service type : remote/local")
 	// Get policy
 	getCmd.AddCommand(policyGetCmd)
-	policyGetCmd.Flags().String("myid", "", "MBGCtl Id")
-	// Get mbgctl state
+	policyGetCmd.Flags().String("myid", "", "Gwctl Id")
+	// Get Gwctl state
 	getCmd.AddCommand(stateGetCmd)
-	stateGetCmd.Flags().String("myid", "", "MBGCtl Id")
+	stateGetCmd.Flags().String("myid", "", "Gwctl Id")
 }

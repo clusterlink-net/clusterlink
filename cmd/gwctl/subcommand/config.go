@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.ibm.com/mbg-agent/pkg/api"
+	api "github.ibm.com/mbg-agent/cmd/gwctl/api"
 )
 
 // startCmd represents the start command
@@ -18,31 +18,31 @@ var configCmd = &cobra.Command{
 
 var getContextCmd = &cobra.Command{
 	Use:   "current-context",
-	Short: "Get mbgctl current context.",
-	Long:  `Get mbgctl current context.`,
+	Short: "Get gwctl current context.",
+	Long:  `Get gwctl current context.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		m := api.Mbgctl{}
+		m := api.Gwctl{}
 		s, err := m.ConfigCurrentContext()
 		if err != nil {
 			fmt.Printf("Failed to get current state :%v\n", err)
 			return
 		}
 		sJSON, _ := json.MarshalIndent(s, "", " ")
-		fmt.Println("mbgctl current state\n", string(sJSON))
+		fmt.Println("gwctl current state\n", string(sJSON))
 	},
 }
 var useContextCmd = &cobra.Command{
 	Use:   "use-context",
-	Short: "use mbgctl context.",
-	Long:  `use mbgctl context.`,
+	Short: "use gwctl context.",
+	Long:  `use gwctl context.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
-		m := api.Mbgctl{Id: mId}
+		m := api.Gwctl{Id: mId}
 		err := m.ConfigUseContext()
 		if err != nil {
 			fmt.Printf("Failed to use context %v: %v\n", mId, err)
 		}
-		fmt.Println("mbgctl use context ", mId)
+		fmt.Println("Gwctl use context ", mId)
 	},
 }
 
@@ -52,6 +52,6 @@ func init() {
 	configCmd.AddCommand(getContextCmd)
 	//use-context
 	configCmd.AddCommand(useContextCmd)
-	useContextCmd.Flags().String("myid", "", "MBGCtl Id")
+	useContextCmd.Flags().String("myid", "", "Gwctl Id")
 
 }
