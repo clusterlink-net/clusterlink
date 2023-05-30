@@ -26,7 +26,8 @@ var createCmd = &cobra.Command{
 			fmt.Println("The id flag must be set")
 			return
 		}
-		api.CreateGwctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane)
+		m := api.Gwctl{Id: id}
+		m.CreateGwctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane)
 	},
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	api "github.ibm.com/mbg-agent/cmd/gwctl/api"
+	db "github.ibm.com/mbg-agent/cmd/gwctl/database"
 )
 
 var getCmd = &cobra.Command{
@@ -22,9 +23,9 @@ var stateGetCmd = &cobra.Command{
 	Long:  `Get gwctl information`,
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
-		m := api.Gwctl{Id: mId}
-		s := m.GetState()
-		sJSON, err := json.MarshalIndent(s, "", "  ")
+
+		d, _ := db.GetDb(mId)
+		sJSON, err := json.MarshalIndent(d, "", "  ")
 		if err != nil {
 			fmt.Println("Error: ", err.Error())
 		}

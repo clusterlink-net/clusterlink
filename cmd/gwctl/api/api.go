@@ -2,9 +2,15 @@ package api
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"strings"
+	"time"
 
 	mbg "github.ibm.com/mbg-agent/cmd/controlplane/state"
 	db "github.ibm.com/mbg-agent/cmd/gwctl/database"
@@ -34,86 +40,88 @@ const (
 	show    = "show"
 )
 
-func CreateGwctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane string) (Gwctl, error) {
-	err := db.SetState(id, mbgIP, caFile, certificateFile, keyFile, dataplane)
-	if err != nil {
-		return Gwctl{}, err
-	}
-	return Gwctl{id}, nil
-}
-
-func (m *Gwctl) AddPeer(id, target, peerCport string) error {
-	err := db.UpdateState(m.Id)
+func (g *Gwctl) CreateGwctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane string) error {
+	d := db.GwctlDb{}
+	err := d.Set(id, mbgIP, caFile, certificateFile, keyFile, dataplane)
 	if err != nil {
 		return err
 	}
-	mbgIP := db.GetMbgIP()
-	address := db.GetAddrStart() + mbgIP + "/peer/" + id
+	d.SetPolicyDispatcher(id, g.GetAddrStart(dataplane)+mbgIP+"/policy")
+	return nil
+}
+
+func (g *Gwctl) AddPeer(id, target, peerCport string) error {
+	d, err := db.GetDb(g.Id)
+	if err != nil {
+		return err
+	}
+	mbgIP := d.GetMbgIP()
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/peer/" + id
 	j, err := json.Marshal(protocol.PeerRequest{Id: id, Ip: target, Cport: ":" + peerCport})
 	if err != nil {
 		return err
 	}
-	_, err = httpAux.HttpPost(address, j, db.GetHttpClient())
+	_, err = httpAux.HttpPost(address, j, g.GetHttpClient())
 	return err
 }
 
-func (m *Gwctl) AddPolicyEngine(target string) error {
-	err := db.UpdateState(m.Id)
+func (g *Gwctl) AddPolicyEngine(target string) error {
+	d, err := db.GetDb(g.Id)
 	if err != nil {
 		return err
 	}
-	return db.AssignPolicyDispatcher(m.Id, db.GetAddrStart()+target+"/policy")
+	return d.SetPolicyDispatcher(g.Id, g.GetAddrStart(d.GetDataplane())+target+"/policy")
 }
 
-func (m *Gwctl) AddService(id, target, port, description string) error {
-	db.UpdateState(m.Id)
-	mbgIP := db.GetMbgIP()
+func (g *Gwctl) AddService(id, target, port, description string) error {
+	d, err := db.GetDb(g.Id)
+	mbgIP := d.GetMbgIP()
 
-	address := db.GetAddrStart() + mbgIP + "/service"
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service"
 	j, err := json.Marshal(protocol.ServiceRequest{Id: id, Ip: target, Port: port, Description: description})
 	if err != nil {
 		return err
 	}
-	_, err = httpAux.HttpPost(address, j, db.GetHttpClient())
+	_, err = httpAux.HttpPost(address, j, g.GetHttpClient())
 	return err
 }
 
-func (m *Gwctl) ExposeService(svcId, peer string) error {
-	db.UpdateState(m.Id)
+func (g *Gwctl) ExposeService(svcId, peer string) error {
+	d, _ := db.GetDb(g.Id)
 
-	mbgIP := db.GetMbgIP()
+	mbgIP := d.GetMbgIP()
 
-	address := db.GetAddrStart() + mbgIP + "/expose"
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/expose"
 	j, err := json.Marshal(protocol.ExposeRequest{Id: svcId, Ip: "", MbgID: peer})
 	if err != nil {
 		return err
 	}
 	//send expose
-	_, err = httpAux.HttpPost(address, j, db.GetHttpClient())
+	_, err = httpAux.HttpPost(address, j, g.GetHttpClient())
 	return err
 }
 
-func (m *Gwctl) SendHello(peer ...string) error {
-	db.UpdateState(m.Id)
-	mbgIP := db.GetMbgIP()
+func (g *Gwctl) SendHello(peer ...string) error {
+	d, _ := db.GetDb(g.Id)
+	mbgIP := d.GetMbgIP()
 	j := []byte{}
 	if len(peer) != 0 {
-		address := db.GetAddrStart() + mbgIP + "/hello/" + peer[0]
-		_, err := httpAux.HttpPost(address, j, db.GetHttpClient())
+		address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/hello/" + peer[0]
+		_, err := httpAux.HttpPost(address, j, g.GetHttpClient())
 		return err
 	}
-	address := db.GetAddrStart() + mbgIP + "/hello/"
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/hello/"
 
-	_, err := httpAux.HttpPost(address, j, db.GetHttpClient())
+	_, err := httpAux.HttpPost(address, j, g.GetHttpClient())
 	return err
 }
 
-func (m *Gwctl) GetPeer(peer string) (string, error) {
-	db.UpdateState(m.Id)
-	mbgIP := db.GetMbgIP()
-	address := db.GetAddrStart() + mbgIP + "/peer/" + peer
+func (g *Gwctl) GetPeer(peer string) (string, error) {
+	d, _ := db.GetDb(g.Id)
+	mbgIP := d.GetMbgIP()
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/peer/" + peer
 
-	resp, err := httpAux.HttpGet(address, db.GetHttpClient())
+	resp, err := httpAux.HttpGet(address, g.GetHttpClient())
 	if err != nil {
 		return "", err
 	}
@@ -124,13 +132,13 @@ func (m *Gwctl) GetPeer(peer string) (string, error) {
 	return p.Ip + ":" + p.Cport, nil
 }
 
-func (m *Gwctl) GetPeers() ([]string, error) {
-	db.UpdateState(m.Id)
-	mbgIP := db.GetMbgIP()
+func (g *Gwctl) GetPeers() ([]string, error) {
+	d, _ := db.GetDb(g.Id)
+	mbgIP := d.GetMbgIP()
 
-	address := db.GetAddrStart() + mbgIP + "/peer/"
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/peer/"
 
-	resp, err := httpAux.HttpGet(address, db.GetHttpClient())
+	resp, err := httpAux.HttpGet(address, g.GetHttpClient())
 	if err != nil {
 		return []string{}, err
 	}
@@ -145,11 +153,11 @@ func (m *Gwctl) GetPeers() ([]string, error) {
 	return peers, nil
 }
 
-func (m *Gwctl) GetLocalServices() ([]mbg.LocalService, error) {
-	db.UpdateState(m.Id)
-	mbgIP := db.GetMbgIP()
-	address := db.GetAddrStart() + mbgIP + "/service/"
-	resp, err := httpAux.HttpGet(address, db.GetHttpClient())
+func (g *Gwctl) GetLocalServices() ([]mbg.LocalService, error) {
+	d, _ := db.GetDb(g.Id)
+	mbgIP := d.GetMbgIP()
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service/"
+	resp, err := httpAux.HttpGet(address, g.GetHttpClient())
 	if err != nil {
 		return []mbg.LocalService{}, err
 	}
@@ -164,11 +172,11 @@ func (m *Gwctl) GetLocalServices() ([]mbg.LocalService, error) {
 	return serviceArr, nil
 }
 
-func (m *Gwctl) GetLocalService(id string) (mbg.LocalService, error) {
-	db.UpdateState(m.Id)
-	mbgIP := db.GetMbgIP()
-	address := db.GetAddrStart() + mbgIP + "/service/" + id
-	resp, err := httpAux.HttpGet(address, db.GetHttpClient())
+func (g *Gwctl) GetLocalService(id string) (mbg.LocalService, error) {
+	d, _ := db.GetDb(g.Id)
+	mbgIP := d.GetMbgIP()
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service/" + id
+	resp, err := httpAux.HttpGet(address, g.GetHttpClient())
 	if err != nil {
 		return mbg.LocalService{}, err
 	}
@@ -179,12 +187,12 @@ func (m *Gwctl) GetLocalService(id string) (mbg.LocalService, error) {
 	return mbg.LocalService{Id: s.Id, Ip: s.Ip, Port: s.Port, Description: s.Description}, nil
 }
 
-func (m *Gwctl) GetRemoteService(id string) ([]protocol.ServiceRequest, error) {
-	db.UpdateState(m.Id)
-	mbgIP := db.GetMbgIP()
+func (g *Gwctl) GetRemoteService(id string) ([]protocol.ServiceRequest, error) {
+	d, _ := db.GetDb(g.Id)
+	mbgIP := d.GetMbgIP()
 
-	address := db.GetAddrStart() + mbgIP + "/remoteservice/" + id
-	resp, err := httpAux.HttpGet(address, db.GetHttpClient())
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/remoteservice/" + id
+	resp, err := httpAux.HttpGet(address, g.GetHttpClient())
 	if err != nil {
 		return []protocol.ServiceRequest{}, err
 	}
@@ -199,12 +207,12 @@ func (m *Gwctl) GetRemoteService(id string) ([]protocol.ServiceRequest, error) {
 	return sArr, nil
 }
 
-func (m *Gwctl) GetRemoteServices() (map[string][]protocol.ServiceRequest, error) {
-	db.UpdateState(m.Id)
-	mbgIP := db.GetMbgIP()
+func (g *Gwctl) GetRemoteServices() (map[string][]protocol.ServiceRequest, error) {
+	d, _ := db.GetDb(g.Id)
+	mbgIP := d.GetMbgIP()
 
-	address := db.GetAddrStart() + mbgIP + "/remoteservice/"
-	resp, err := httpAux.HttpGet(address, db.GetHttpClient())
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/remoteservice/"
+	resp, err := httpAux.HttpGet(address, g.GetHttpClient())
 	if err != nil {
 		return nil, err
 	}
@@ -221,58 +229,58 @@ func (m *Gwctl) GetRemoteServices() (map[string][]protocol.ServiceRequest, error
 	return sArr, nil
 }
 
-func (m *Gwctl) RemovePeer(id string) error {
-	err := db.UpdateState(m.Id)
+func (g *Gwctl) RemovePeer(id string) error {
+	d, err := db.GetDb(g.Id)
 	if err != nil {
 		return err
 	}
 	// Remove peer in local MBG
-	mbgIP := db.GetMbgIP()
-	address := db.GetAddrStart() + mbgIP + "/peer/" + id
+	mbgIP := d.GetMbgIP()
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/peer/" + id
 	j, err := json.Marshal(protocol.PeerRemoveRequest{Id: id, Propagate: true})
 	if err != nil {
 		return err
 	}
-	_, err = httpAux.HttpDelete(address, j, db.GetHttpClient())
+	_, err = httpAux.HttpDelete(address, j, g.GetHttpClient())
 	return err
 }
 
-func (m *Gwctl) RemoveLocalService(serviceId string) {
-	db.UpdateState(m.Id)
-	mbgIP := db.GetMbgIP()
-	address := db.GetAddrStart() + mbgIP + "/service/" + serviceId
-	resp, _ := httpAux.HttpDelete(address, nil, db.GetHttpClient())
+func (g *Gwctl) RemoveLocalService(serviceId string) {
+	d, _ := db.GetDb(g.Id)
+	mbgIP := d.GetMbgIP()
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service/" + serviceId
+	resp, _ := httpAux.HttpDelete(address, nil, g.GetHttpClient())
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
 
-func (m *Gwctl) RemoveLocalServiceFromPeer(serviceId, peer string) {
-	db.UpdateState(m.Id)
-	mbgIP := db.GetMbgIP()
-	address := db.GetAddrStart() + mbgIP + "/service/" + serviceId + "/peer"
+func (g *Gwctl) RemoveLocalServiceFromPeer(serviceId, peer string) {
+	d, _ := db.GetDb(g.Id)
+	mbgIP := d.GetMbgIP()
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service/" + serviceId + "/peer"
 	j, err := json.Marshal(protocol.ServiceDeleteRequest{Id: serviceId, Peer: peer})
 	if err != nil {
 		fmt.Printf("Unable to marshal json: %v", err)
 	}
-	resp, _ := httpAux.HttpDelete(address, j, db.GetHttpClient())
+	resp, _ := httpAux.HttpDelete(address, j, g.GetHttpClient())
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
 
-func (m *Gwctl) RemoveRemoteService(serviceId, serviceMbg string) {
-	db.UpdateState(m.Id)
-	mbgIP := db.GetMbgIP()
-	address := db.GetAddrStart() + mbgIP + "/remoteservice/" + serviceId
+func (g *Gwctl) RemoveRemoteService(serviceId, serviceMbg string) {
+	d, _ := db.GetDb(g.Id)
+	mbgIP := d.GetMbgIP()
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/remoteservice/" + serviceId
 	j, err := json.Marshal(protocol.ServiceRequest{Id: serviceId, MbgID: serviceMbg})
 	if err != nil {
 		fmt.Printf("Unable to marshal json: %v", err)
 	}
 
-	resp, _ := httpAux.HttpDelete(address, j, db.GetHttpClient())
+	resp, _ := httpAux.HttpDelete(address, j, g.GetHttpClient())
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
 
-func (m *Gwctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action, command int) error {
-	db.UpdateState(m.Id)
-	url := db.GetPolicyDispatcher() + "/" + acl
+func (g *Gwctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action, command int) error {
+	d, _ := db.GetDb(g.Id)
+	url := d.GetPolicyDispatcher() + "/" + acl
 	switch command {
 	case Add:
 		url += "/add"
@@ -285,13 +293,13 @@ func (m *Gwctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest stri
 	if err != nil {
 		return err
 	}
-	_, err = httpAux.HttpPost(url, jsonReq, db.GetHttpClient())
+	_, err = httpAux.HttpPost(url, jsonReq, g.GetHttpClient())
 	return err
 }
 
-func (m *Gwctl) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.PolicyLoadBalancer, mbgDest string, command int) error {
-	db.UpdateState(m.Id)
-	url := db.GetPolicyDispatcher() + "/" + lb
+func (g *Gwctl) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.PolicyLoadBalancer, mbgDest string, command int) error {
+	d, _ := db.GetDb(g.Id)
+	url := d.GetPolicyDispatcher() + "/" + lb
 	switch command {
 	case Add:
 		url += "/add"
@@ -304,15 +312,15 @@ func (m *Gwctl) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.
 	if err != nil {
 		return err
 	}
-	_, err = httpAux.HttpPost(url, jsonReq, db.GetHttpClient())
+	_, err = httpAux.HttpPost(url, jsonReq, g.GetHttpClient())
 	return err
 }
 
-func (m *Gwctl) GetACLPolicies() (policyEngine.ACL, error) {
-	db.UpdateState(m.Id)
+func (g *Gwctl) GetACLPolicies() (policyEngine.ACL, error) {
+	d, _ := db.GetDb(g.Id)
 	var rules policyEngine.ACL
-	url := db.GetPolicyDispatcher() + "/" + acl
-	resp, err := httpAux.HttpGet(url, db.GetHttpClient())
+	url := d.GetPolicyDispatcher() + "/" + acl
+	resp, err := httpAux.HttpGet(url, g.GetHttpClient())
 	if err != nil {
 		return make(policyEngine.ACL), err
 	}
@@ -324,11 +332,11 @@ func (m *Gwctl) GetACLPolicies() (policyEngine.ACL, error) {
 	return rules, nil
 }
 
-func (m *Gwctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBalancer, error) {
-	db.UpdateState(m.Id)
+func (g *Gwctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBalancer, error) {
+	d, _ := db.GetDb(g.Id)
 	var policies map[string]map[string]policyEngine.PolicyLoadBalancer
-	url := db.GetPolicyDispatcher() + "/" + lb
-	resp, err := httpAux.HttpGet(url, db.GetHttpClient())
+	url := d.GetPolicyDispatcher() + "/" + lb
+	resp, err := httpAux.HttpGet(url, g.GetHttpClient())
 	if err != nil {
 		return make(map[string]map[string]policyEngine.PolicyLoadBalancer), err
 	}
@@ -339,43 +347,77 @@ func (m *Gwctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBa
 	return policies, nil
 }
 
-func (m *Gwctl) CreateServiceEndpoint(serviceId string, port int, name, namespace, mbgAppName string) error {
-	db.UpdateState(m.Id)
+func (g *Gwctl) CreateServiceEndpoint(serviceId string, port int, name, namespace, mbgAppName string) error {
+	d, _ := db.GetDb(g.Id)
 
-	mbgIP := db.GetMbgIP()
-	address := db.GetAddrStart() + mbgIP + "/binding"
+	mbgIP := d.GetMbgIP()
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/binding"
 	j, err := json.Marshal(protocol.BindingRequest{Id: serviceId, Port: port, Name: name, Namespace: namespace, MbgApp: mbgAppName})
 	if err != nil {
 		return err
 	}
 	//send Binding request
-	_, err = httpAux.HttpPost(address, j, db.GetHttpClient())
+	_, err = httpAux.HttpPost(address, j, g.GetHttpClient())
 	return err
 }
 
-func (m *Gwctl) DeleteServiceEndpoint(serviceId string) error {
-	err := db.UpdateState(m.Id)
+func (g *Gwctl) DeleteServiceEndpoint(serviceId string) error {
+	d, err := db.GetDb(g.Id)
 	if err != nil {
 		return err
 	}
-	mbgIP := db.GetMbgIP()
-	address := db.GetAddrStart() + mbgIP + "/binding/" + serviceId
+	mbgIP := d.GetMbgIP()
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/binding/" + serviceId
 
-	_, err = httpAux.HttpDelete(address, []byte{}, db.GetHttpClient())
+	_, err = httpAux.HttpDelete(address, []byte{}, g.GetHttpClient())
 	return err
 }
 
-func (m *Gwctl) GetState() db.GwctlState {
-	db.UpdateState(m.Id)
-	s, _ := db.GetState()
-	return s
+/**** Http functions ***/
+func (g *Gwctl) GetAddrStart(dataplane string) string {
+	if dataplane == "mtls" {
+		return "https://"
+	} else {
+		return "http://"
+	}
+}
+
+func (g *Gwctl) GetHttpClient() http.Client {
+	d, _ := db.GetDb(g.Id)
+	if d.GetDataplane() == "mtls" {
+		cert, err := ioutil.ReadFile(d.GetCaFile())
+		if err != nil {
+			log.Fatalf("could not open certificate file: %v", err)
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(cert)
+
+		certificate, err := tls.LoadX509KeyPair(d.GetCertificate(), d.GetKeyFile())
+		if err != nil {
+			log.Fatalf("could not load certificate: %v", err)
+		}
+
+		client := http.Client{
+			Timeout: time.Minute * 3,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs:      caCertPool,
+					Certificates: []tls.Certificate{certificate},
+					ServerName:   d.GetId(),
+				},
+			},
+		}
+		return client
+	} else {
+		return http.Client{}
+	}
 }
 
 /***** config *****/
-func (m *Gwctl) ConfigCurrentContext() (db.GwctlState, error) {
-	return db.GetState()
+func (g *Gwctl) ConfigCurrentContext() (db.GwctlDb, error) {
+	return db.GetDb(g.Id)
 }
 
-func (m *Gwctl) ConfigUseContext() error {
-	return db.SetDefaultLink(m.Id)
+func (g *Gwctl) ConfigUseContext() error {
+	return db.SetDefaultLink(g.Id)
 }

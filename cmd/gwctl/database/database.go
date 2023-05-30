@@ -1,17 +1,13 @@
 package database
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/user"
 	"path"
-	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -23,7 +19,18 @@ const (
 	DBFile        = "gwctl"
 )
 
-type GwctlState struct {
+type GwctlDbInterface interface {
+	GetMbgIP() string
+	GetId() string
+	GetDataplane() string
+	GetCertificate() string
+	GetCaFile() string
+	GetKeyFile() string
+	GetPolicyDispatcher() string
+	Set(id, mbgIp, caFile, certificateFile, keyFile, dataplane string)
+	SetPolicyDispatcher(mId, targetUrl string)
+}
+type GwctlDb struct {
 	MbgIP                  string `json:"MbgIP"`
 	Id                     string `json:"Id"`
 	CaFile                 string
@@ -31,92 +38,62 @@ type GwctlState struct {
 	KeyFile                string
 	Dataplane              string
 	PolicyDispatcherTarget string
+	GwctlDbInterface
 }
 
-var s = GwctlState{MbgIP: "", Id: ""}
-
-func GetMbgIP() string {
-	return s.MbgIP
+func GetDb(id string) (GwctlDb, error) {
+	d, err := readState(id)
+	return d, err
 }
 
-func GetId() string {
-	return s.Id
-}
-func GetState() (GwctlState, error) {
-	m, err := readState(s.Id)
-	return m, err
+func (d *GwctlDb) GetMbgIP() string {
+	return d.MbgIP
 }
 
-func SetState(id, mbgIp, caFile, certificateFile, keyFile, dataplane string) error {
-	s.Id = id
-	s.MbgIP = mbgIp
-	s.Dataplane = dataplane
-	s.CertificateFile = certificateFile
-	s.KeyFile = keyFile
-	s.CaFile = caFile
-	s.PolicyDispatcherTarget = GetAddrStart() + mbgIp + "/policy"
+func (d *GwctlDb) GetId() string {
+	return d.Id
+}
+func (d *GwctlDb) GetDataplane() string {
+	return d.Dataplane
+}
+func (d *GwctlDb) GetCertificate() string {
+	return d.CertificateFile
+}
+func (d *GwctlDb) GetCaFile() string {
+	return d.CaFile
+}
+
+func (d *GwctlDb) GetKeyFile() string {
+	return d.KeyFile
+}
+
+func (d *GwctlDb) GetPolicyDispatcher() string {
+	return d.PolicyDispatcherTarget
+}
+
+func (d *GwctlDb) Set(id, mbgIp, caFile, certificateFile, keyFile, dataplane string) error {
+	d.Id = id
+	d.MbgIP = mbgIp
+	d.Dataplane = dataplane
+	d.CertificateFile = certificateFile
+	d.KeyFile = keyFile
+	d.CaFile = caFile
 	CreateProjectfolder()
-	return CreateState(s.Id)
+	return d.CreateState()
 }
 
-func UpdateState(id string) error {
-	var err error
-	s, err = readState(id)
-	return err
+func (d *GwctlDb) SetPolicyDispatcher(mId, targetUrl string) error {
+	d.PolicyDispatcherTarget = targetUrl
+	return d.SaveState()
 }
 
-func (s *GwctlState) Print() {
-	fmt.Printf("Id: %v,  mbgTarget: %v", s.Id, s.MbgIP)
+func (d *GwctlDb) Print() {
+	fmt.Printf("Id: %v,  mbgTarget: %v", d.Id, d.MbgIP)
 }
 
-func AssignPolicyDispatcher(mId, targetUrl string) error {
-	s.PolicyDispatcherTarget = targetUrl
-	return SaveState(mId)
-}
-
-func GetPolicyDispatcher() string {
-	return s.PolicyDispatcherTarget
-}
-
-func GetAddrStart() string {
-	if s.Dataplane == "mtls" {
-		return "https://"
-	} else {
-		return "http://"
-	}
-}
-
-func GetHttpClient() http.Client {
-	if s.Dataplane == "mtls" {
-		cert, err := ioutil.ReadFile(s.CaFile)
-		if err != nil {
-			log.Fatalf("could not open certificate file: %v", err)
-		}
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(cert)
-
-		certificate, err := tls.LoadX509KeyPair(s.CertificateFile, s.KeyFile)
-		if err != nil {
-			log.Fatalf("could not load certificate: %v", err)
-		}
-
-		client := http.Client{
-			Timeout: time.Minute * 3,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs:      caCertPool,
-					Certificates: []tls.Certificate{certificate},
-					ServerName:   s.Id,
-				},
-			},
-		}
-		return client
-	} else {
-		return http.Client{}
-	}
-}
-
-/** DB file **/
+/********************************/
+/******** DB functions **********/
+/********************************/
 func CreateProjectfolder() string {
 	usr, _ := user.Current()
 	fol := path.Join(usr.HomeDir, ProjectFolder)
@@ -138,32 +115,32 @@ func GwctlPath(id string) string {
 	return path.Join(usr.HomeDir, ProjectFolder, cfgFile)
 }
 
-func CreateState(id string) error {
-	jsonC, err := json.MarshalIndent(s, "", "\t")
+func (d *GwctlDb) CreateState() error {
+	jsonC, err := json.MarshalIndent(d, "", "\t")
 	if err != nil {
 		log.Errorln("Gwctl create config File", err)
 		return err
 	}
-	f := GwctlPath(id)
+	f := GwctlPath(d.Id)
 	err = ioutil.WriteFile(f, jsonC, 0644) // os.ModeAppend)
 	log.Println("create Gwctl config File:", f)
 	if err != nil {
 		log.Errorln("Gwctl- create config File", err)
 		return err
 	}
-	SetDefaultLink(id)
+	SetDefaultLink(d.Id)
 	return nil
 }
 
-func SaveState(id string) error {
-	jsonC, err := json.MarshalIndent(s, "", "\t")
+func (d *GwctlDb) SaveState() error {
+	jsonC, err := json.MarshalIndent(d, "", "\t")
 	if err != nil {
 		log.Errorln("Gwctl save config File", err)
 		return err
 	}
-	f := GwctlPath(id)
-	if id == "" { //get original file
-		f, _ = os.Readlink(GwctlPath(id))
+	f := GwctlPath(d.Id)
+	if d.Id == "" { //get original file
+		f, _ = os.Readlink(GwctlPath(d.Id))
 	}
 
 	err = ioutil.WriteFile(f, jsonC, 0644) // os.ModeAppend)
@@ -174,18 +151,18 @@ func SaveState(id string) error {
 	return nil
 }
 
-func readState(id string) (GwctlState, error) {
+func readState(id string) (GwctlDb, error) {
 	file := GwctlPath(id)
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Errorln("Gwctl config File", err)
-		return GwctlState{}, err
+		return GwctlDb{}, err
 	}
-	var s GwctlState
+	var s GwctlDb
 	err = json.Unmarshal(data, &s)
 	if err != nil {
 		log.Errorln("Gwctl config File", err)
-		return GwctlState{}, err
+		return GwctlDb{}, err
 	}
 	return s, nil
 }
