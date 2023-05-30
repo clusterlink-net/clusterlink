@@ -1,25 +1,25 @@
 ################################################################
-#Name: mbgctl-deployment 
-#Desc: YAML file for creating mbgctl for CLI to MBG 
+#Name: gwctl-deployment 
+#Desc: YAML file for creating gwctl for CLI to MBG 
 ################################################################
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mbgctl-deployment
+  name: gwctl-deployment
   labels:
-    app: mbgctl
+    app: gwctl
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mbgctl
+      app: gwctl
   template:
     metadata:
       labels:
-        app: mbgctl
+        app: gwctl
     spec:
       containers:
-      - name: mbgctl
+      - name: gwctl
         image: quay.io/mcnet/mbg
         imagePullPolicy: IfNotPresent
         command: [ "sleep" ]
