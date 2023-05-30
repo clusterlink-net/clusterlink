@@ -31,11 +31,11 @@ def getKindIp(name):
     ip = clJson["items"][0]["status"]["addresses"][0]["address"]
     return ip
 
-def startMbgctl(mbgctlName, mbgIP, mbgcPort, dataplane, mbgctlcrt):
-    runcmd(f'mbgctl create --id {mbgctlName} --mbgIP {mbgIP}:{mbgcPort}  --dataplane {dataplane} {mbgctlcrt} ')
-    runcmd(f'mbgctl add policyengine --myid {mbgctlName} --target {mbgIP}:{mbgcPort}')
+def startMbgctl(gwctlName, mbgIP, mbgcPort, dataplane, gwctlcrt):
+    runcmd(f'gwctl create --id {gwctlName} --mbgIP {mbgIP}:{mbgcPort}  --dataplane {dataplane} {gwctlcrt} ')
+    runcmd(f'gwctl add policyengine --myid {gwctlName} --target {mbgIP}:{mbgcPort}')
 
-def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane, mbgcrtFlags, mbgctlLocal=True, runInfg=False, cni="default", logFile=True,zeroTrust=False):
+def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane, mbgcrtFlags, gwctlLocal=True, runInfg=False, cni="default", logFile=True,zeroTrust=False):
     os.system(f"kind delete cluster --name={mbgName}")
     ###first Mbg
     printHeader(f"\n\nStart building {mbgName}")
@@ -54,7 +54,7 @@ def startKindClusterMbg(mbgName, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPor
     else:
         runcmdb("kubectl exec -i " + startcmd)
 
-    if mbgctlLocal:
-        mbgctlPod, mbgctlIp = buildMbgctl(mbgctlName)
-        runcmdb(f'kubectl exec -i {mbgctlPod} -- ./mbgctl create --id {mbgctlName} --mbgIP {destMbgIp}  --dataplane {dataplane} {mbgcrtFlags} ')
+    if gwctlLocal:
+        gwctlPod, gwctlIp = buildMbgctl(gwctlName)
+        runcmdb(f'kubectl exec -i {gwctlPod} -- ./gwctl create --id {gwctlName} --mbgIP {destMbgIp}  --dataplane {dataplane} {mbgcrtFlags} ')
 

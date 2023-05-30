@@ -25,7 +25,7 @@ const (
 	mbg1crt        = "./mtls/mbg1.crt"
 	mbg1key        = "./mtls/mbg1.key"
 	mbg1Name       = "mbg1"
-	mbgctl1Name    = "mbgctl1"
+	gwctl1Name    = "gwctl1"
 	mbg1cni        = "default"
 	srcSvc         = "iperf3-client"
 
@@ -36,7 +36,7 @@ const (
 	mbg2crt        = "./mtls/mbg2.crt"
 	mbg2key        = "./mtls/mbg2.key"
 	mbg2Name       = "mbg2"
-	mbgctl2Name    = "mbgctl2"
+	gwctl2Name    = "gwctl2"
 	mbg2cni        = "default"
 	destSvc        = "iperf3-server"
 	destPort       = 5000
@@ -70,48 +70,48 @@ func main() {
 	mbg1Ip, _ := kindAux.GetKindIp(mbg1Name)
 	mbg2Ip, _ := kindAux.GetKindIp(mbg2Name)
 
-	//set mbgctl
-	mbgctl1, err := api.CreateMbgctl(mbgctl1Name, mbg1Ip+":"+mbg1cPort, mtlsFolder+mbgCaCrt, mtlsFolder+mbg1crt, mtlsFolder+mbg1key, dataplane)
+	//set gwctl
+	gwctl1, err := api.CreateMbgctl(gwctl1Name, mbg1Ip+":"+mbg1cPort, mtlsFolder+mbgCaCrt, mtlsFolder+mbg1crt, mtlsFolder+mbg1key, dataplane)
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
 
-	mbgctl2, err := api.CreateMbgctl(mbgctl2Name, mbg2Ip+":"+mbg2cPort, mtlsFolder+mbgCaCrt, mtlsFolder+mbg2crt, mtlsFolder+mbg2key, dataplane)
+	gwctl2, err := api.CreateMbgctl(gwctl2Name, mbg2Ip+":"+mbg2cPort, mtlsFolder+mbgCaCrt, mtlsFolder+mbg2crt, mtlsFolder+mbg2key, dataplane)
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
 	//Add Peer
 	mbgAux.PrintHeader("Add peers and send hello")
-	mbgctl1.AddPeer(mbg2Name, mbg2Ip, mbg2cPort)
-	mbgctl1.SendHello()
+	gwctl1.AddPeer(mbg2Name, mbg2Ip, mbg2cPort)
+	gwctl1.SendHello()
 
 	//Set iperf3 client
 	mbgAux.PrintHeader("Add iperf3 client")
 	kindAux.CreateServiceInKind(mbg1Name, srcSvc, "mlabbe/iperf3", folCl+"/"+srcSvc+".yaml")
 	srcSvcPod, _ := mbgAux.GetPodNameIp(srcSvc)
-	//mbgctl1.AddService(srcSvc, "", "", "iperf3 client") //Allow to use all by default
+	//gwctl1.AddService(srcSvc, "", "", "iperf3 client") //Allow to use all by default
 
 	//Set iperf3 server
 	mbgAux.PrintHeader("Add iperf3 server")
 	kindAux.CreateServiceInKind(mbg2Name, destSvc, "mlabbe/iperf3", folSv+"/iperf3.yaml")
 	destSvcPod, destSvcIp := mbgAux.GetPodNameIp(destSvc)
 	destSvcPort := "5000"
-	mbgctl2.AddService(destSvc, destSvcIp, destSvcPort, "iperf3 server")
+	gwctl2.AddService(destSvc, destSvcIp, destSvcPort, "iperf3 server")
 	log.Println(srcSvcPod, destSvcPod)
 
 	//Expose service
 	mbgAux.PrintHeader("Start expose")
 	kindAux.UseKindCluster(mbg2Name)
-	mbgctl2.ExposeService(destSvc, "")
-	svc, _ := mbgctl1.GetRemoteServices()
+	gwctl2.ExposeService(destSvc, "")
+	svc, _ := gwctl1.GetRemoteServices()
 	log.Println(svc[destSvc])
 
 	//bindK8sSvc()
 	mbgAux.PrintHeader("Bind a service")
 	kindAux.UseKindCluster(mbg1Name)
-	mbgctl1.CreateServiceEndpoint(destSvc, destPort, destSvc, "default", "mbg")
+	gwctl1.CreateServiceEndpoint(destSvc, destPort, destSvc, "default", "mbg")
 	time.Sleep(5 * time.Second)
 	//iperf3test
 	// mbgLocalPort := strings.Split(svc[destSvc][0].Ip, ":")[1]

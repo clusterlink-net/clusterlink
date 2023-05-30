@@ -1,6 +1,6 @@
 ############################################################
 # Name: Bookinfo 2 clusters test
-# Info: support bookinfo application with mbgctl inside or outside the application 
+# Info: support bookinfo application with gwctl inside or outside the application 
 #       In this test microservices: product and details locates in MBG1 
 #       and review and rating in MBG2
 #########################################################
@@ -24,8 +24,8 @@ def connectSvc(srcSvc,destSvc,srcK8sName,policy):
     if mbgMode !="inside": #Set forwarder
         printHeader(f"\n\nStart Data plan connection {srcSvc} to {destSvc}")
         useKindCluster(productClusterName)
-        podhost= getPodName("mbgctl")
-        runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl connect --serviceId {srcSvc}  --serviceIp {srcK8sSvcIp} --serviceIdDest {destSvc}')
+        podhost= getPodName("gwctl")
+        runcmdb(f'kubectl exec -i {podhost} -- ./gwctl connect --serviceId {srcSvc}  --serviceIp {srcK8sSvcIp} --serviceIdDest {destSvc}')
 
         useKindCluster(mbg1ClusterName)    
         svcName=f"svc{destSvc}"
@@ -91,9 +91,9 @@ if __name__ == "__main__":
     os.chdir(proj_dir)
     if args["command"] == "disconnect":
         useKindCluster(productClusterName)
-        podhost= getPodName("mbgctl")
+        podhost= getPodName("gwctl")
         printHeader("\n\nClose Iperf3 connection")
-        runcmd(f'kubectl exec -i {podhost} -- ./mbgctl disconnect --serviceId {args["src"]} --serviceIdDest {args["dest"]}')
+        runcmd(f'kubectl exec -i {podhost} -- ./gwctl disconnect --serviceId {args["src"]} --serviceIdDest {args["dest"]}')
     elif args["command"] == "connect":
         connectSvc(args["src"],args["dest"],srcK8sName,svcpolicy)
     else:
@@ -140,19 +140,19 @@ if __name__ == "__main__":
         runcmd(f"kubectl create -f {folpdct}/details.yaml")
         podhost, hostIp= buildMbgctl("product Cluster", mbgMode)
         productMbgIp = f"{getPodIp(podMbg1)}:{mbg1cPortLocal}" if mbgMode =="inside" else f"{mbg1Ip}:{mbg1cPort}"
-        runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl start --id "productCluster"  --ip {hostIp} --mbgIP  {productMbgIp} --dataplane {args["dataplane"]} {productCrtFlags}')
+        runcmdb(f'kubectl exec -i {podhost} -- ./gwctl start --id "productCluster"  --ip {hostIp} --mbgIP  {productMbgIp} --dataplane {args["dataplane"]} {productCrtFlags}')
         printHeader(f"Add {srcSvc} (client) service to host cluster")
         srcSvcIp =getPodIp(srcSvc)  if mbgMode =="inside" else srcDefaultGW
-        runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addService --id {srcSvc} --ip {srcSvcIp}')
+        runcmd(f'kubectl exec -i {podhost} -- ./gwctl addService --id {srcSvc} --ip {srcSvcIp}')
         if mbgMode !="inside":
             runcmd(f"kubectl create -f {folpdct}/review-svc.yaml")
         # Add MBG Peer
         printHeader("Add MBG2 peer to MBG1")
-        runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addPeer --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort}')
+        runcmd(f'kubectl exec -i {podhost} -- ./gwctl addPeer --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort}')
     
         # Send Hello
         printHeader("Send Hello commands")
-        runcmd(f'kubectl exec -i {podhost} -- ./mbgctl hello')
+        runcmd(f'kubectl exec -i {podhost} -- ./gwctl hello')
         
         ###Set dest
         useKindCluster(reviewClusterName)
@@ -166,14 +166,14 @@ if __name__ == "__main__":
         runcmd(f"kubectl create -f {folReview}/rating.yaml")
         podest, destIp= buildMbgctl("dest Cluster", mbgMode)   
         destMbgIp = f"{getPodIp(podMbg2)}:{mbg2cPortLocal}" if mbgMode =="inside" else f"{mbg2Ip}:{mbg2cPort}"
-        runcmdb(f'kubectl exec -i {podest} -- ./mbgctl start --id "reviewCluster"  --ip {destIp} --mbgIP {destMbgIp} --dataplane {args["dataplane"]} {reviewCrtFlags}')
+        runcmdb(f'kubectl exec -i {podest} -- ./gwctl start --id "reviewCluster"  --ip {destIp} --mbgIP {destMbgIp} --dataplane {args["dataplane"]} {reviewCrtFlags}')
         printHeader(f"Add {review2svc} (server) service to destination cluster")
         waitPod(review2svc)
         waitPod(review3svc)
         destSvcReview2Ip = f"{getPodIp(review2svc)}:{srcK8sSvcPort}" if mbgMode =="inside" else f"{destIp}:{review2DestPort}"
         destSvcReview3Ip = f"{getPodIp(review3svc)}:{srcK8sSvcPort}" if mbgMode =="inside" else f"{destIp}:{review3DestPort}"
-        runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --id {review2svc} --ip {destSvcReview2Ip}')
-        runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --id {review3svc} --ip {destSvcReview3Ip}')
+        runcmd(f'kubectl exec -i {podest} -- ./gwctl addService --id {review2svc} --ip {destSvcReview2Ip}')
+        runcmd(f'kubectl exec -i {podest} -- ./gwctl addService --id {review3svc} --ip {destSvcReview3Ip}')
 
         #Add host cluster to MBG1
         useKindCluster(mbg1ClusterName)
@@ -188,13 +188,13 @@ if __name__ == "__main__":
         #Expose service
         useKindCluster(reviewClusterName)
         printHeader("\n\nStart exposing connection")
-        runcmd(f'kubectl exec -i {podest} -- ./mbgctl expose --serviceId {review2svc}')
-        runcmd(f'kubectl exec -i {podest} -- ./mbgctl expose --serviceId {review3svc}')
+        runcmd(f'kubectl exec -i {podest} -- ./gwctl expose --serviceId {review2svc}')
+        runcmd(f'kubectl exec -i {podest} -- ./gwctl expose --serviceId {review3svc}')
 
         #Get services
         useKindCluster(productClusterName)
         printHeader("\n\nStart get service")
-        runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl getService')
+        runcmdb(f'kubectl exec -i {podhost} -- ./gwctl getService')
     
         #connect
         connectSvc(srcSvc, review2svc, srcK8sName, svcpolicy)

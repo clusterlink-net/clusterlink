@@ -10,38 +10,38 @@ sys.path.insert(0,f'{proj_dir}')
 srcSvc   = "iperf3-client"
 destSvc  = "iperf3-server"
     
-def addPolicy(mbg, mbgctlName, command, action, srcSvc=srcSvc,destSvc=destSvc, priority=0):
+def addPolicy(mbg, gwctlName, command, action, srcSvc=srcSvc,destSvc=destSvc, priority=0):
     useKindCluster(mbg)
-    mbgctlPod=getPodName("mbgctl")
+    gwctlPod=getPodName("gwctl")
     printHeader(f"Block Traffic in {mbg}")          
     action = 1 if action == "deny" else 0
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl {command} policy --myid {mbgctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority {priority} --action {action}')
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl {command} policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority {priority} --action {action}')
                     
-def applyPolicy(mbg, mbgctlName, type, srcSvc=srcSvc,destSvc=destSvc ):
+def applyPolicy(mbg, gwctlName, type, srcSvc=srcSvc,destSvc=destSvc ):
     if mbg in ["mbg1","mbg3"]:
         useKindCluster(mbg)
-        mbgctlPod=getPodName("mbgctl")
+        gwctlPod=getPodName("gwctl")
         if type == "deny":
             printHeader(f"Block Traffic in {mbg}")          
-            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --myid {mbgctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority 0 --action 1')
+            runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority 0 --action 1')
         elif type == "allow":
             printHeader(f"Allow Traffic in {mbg}")
-            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --myid {mbgctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2')
+            runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl remove policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2')
         elif type == "show":
             printHeader(f"Show Policies in {mbg}")
-            runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl get policy --myid {mbgctlName}')
+            runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl get policy --myid {gwctlName}')
 
         else:
             print("Unknown command")
     if mbg == "mbg2":
         useKindCluster(mbg)
-        mbgctl2Pod=getPodName("mbgctl")
+        gwctl2Pod=getPodName("gwctl")
         if type == "deny":
             printHeader("Block Traffic in MBG2")
-            runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add policy --myid {mbgctlName} --type acl --mbgDest mbg3 --priority 0 --action 1')
+            runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add policy --myid {gwctlName} --type acl --mbgDest mbg3 --priority 0 --action 1')
         elif type == "allow":
             printHeader("Allow Traffic in MBG2")
-            runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl remove policy --myid {mbgctlName} --type acl --mbgDest mbg3 ')
+            runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl remove policy --myid {gwctlName} --type acl --mbgDest mbg3 ')
         else:
             print("Unknown command")
 
@@ -59,11 +59,11 @@ if __name__ == "__main__":
 
     mbg = args["mbg"]
     type = args["type"]
-    mbgctlName     = mbg[:-1]+"ctl"+ mbg[-1]
+    gwctlName     = mbg[:-1]+"ctl"+ mbg[-1]
 
     
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
 
-    applyPolicy(mbg, mbgctlName, type)
+    applyPolicy(mbg, gwctlName, type)
     

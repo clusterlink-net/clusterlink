@@ -41,9 +41,9 @@ destSvc      = "reviews"
     
 
 def exposeService(mbgName,destSvc):
-    mbgctlPod = getPodName("mbgctl")
+    gwctlPod = getPodName("gwctl")
     printHeader(f"\n\nStart exposing {destSvc} service to {mbgName}")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl expose --service {destSvc}')
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl expose --service {destSvc}')
 
 
 def applyFail(mbg,type):

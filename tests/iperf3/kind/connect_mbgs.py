@@ -11,15 +11,15 @@ from tests.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName
 from tests.utils.kind.kindAux import useKindCluster, getKindIp
 
 # Add MBG Peer
-def connectMbgs(mbgName, mbgctlName, mbgctlPod, peerName, peerIp, peercPort):
+def connectMbgs(mbgName, gwctlName, gwctlPod, peerName, peerIp, peercPort):
     useKindCluster(mbgName)
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add peer  --id {peerName} --target {peerIp} --port {peercPort}')
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add peer  --id {peerName} --target {peerIp} --port {peercPort}')
     
 
-def sendHello(mbgctlPod, mbgctlName):
+def sendHello(gwctlPod, gwctlName):
     # Send Hello
     printHeader("Send Hello commands")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl hello')       
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl hello')       
 
 
 ############################### MAIN ##########################
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     #MBG2 parameters 
     mbg2cPort = "30443"
     mbg2Name  = "mbg2"
-    mbgctl2Name = "mbgctl2"
+    gwctl2Name = "gwctl2"
         
     #MBG3 parameters 
     mbg3cPort = "30443"
@@ -44,10 +44,10 @@ if __name__ == "__main__":
     mbg3Ip=getKindIp(mbg3Name)
     
     useKindCluster(mbg2Name)
-    mbgctl2Pod =getPodName("mbgctl")
+    gwctl2Pod =getPodName("gwctl")
     printHeader("Add MBG2, MBG3 peer to MBG1")
-    connectMbgs(mbg2Name, mbgctl2Name, mbgctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
-    connectMbgs(mbg2Name, mbgctl2Name, mbgctl2Pod, mbg3Name, mbg3Ip, mbg3cPort)
+    connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
+    connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg3Name, mbg3Ip, mbg3cPort)
 
-    sendHello(mbgctl2Pod, mbgctl2Name)
+    sendHello(gwctl2Pod, gwctl2Name)
     

@@ -1,9 +1,9 @@
 # <ins>OpenSpeedTest application<ins>
 In this test we use OpenSpeedTest application for checking connectivity between different kind clusters using the MBG components.  
 This setup use three Kind clusters- 
-1. MBG1 cluster - contain MBG, mbgctl (MBG control component), and firefox client.
-2. MBG2 cluster - contain MBG, mbgctl (MBG control component), and OpenSpeedTest server.
-3. MBG3 cluster - contain MBG, mbgctl (MBG control component), and two firefox clients.
+1. MBG1 cluster - contain MBG, gwctl (MBG control component), and firefox client.
+2. MBG2 cluster - contain MBG, gwctl (MBG control component), and OpenSpeedTest server.
+3. MBG3 cluster - contain MBG, gwctl (MBG control component), and two firefox clients.
      
 System illustration:
 

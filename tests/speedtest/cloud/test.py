@@ -70,38 +70,38 @@ if __name__ == "__main__":
     #Build MBG1
     checkClusterIsReady(mbg1)
     mbg1Ip=mbgBuild(mbgcPort=mbgcPort)
-    mbgSetup(mbg1,dataplane,mbg1crtFlags,mbgctlName="mbgctl1",mbgIp=mbg1Ip, mbgcPort=mbgcPort)
+    mbgSetup(mbg1,dataplane,mbg1crtFlags,gwctlName="gwctl1",mbgIp=mbg1Ip, mbgcPort=mbgcPort)
 
     #Build MBG2
     checkClusterIsReady(mbg2)
     mbg2Ip=mbgBuild(mbgcPort=mbgcPort)
-    mbgSetup(mbg2,dataplane,mbg2crtFlags,mbgctlName="mbgctl2",mbgIp=mbg2Ip,mbgcPort=mbgcPort)
+    mbgSetup(mbg2,dataplane,mbg2crtFlags,gwctlName="gwctl2",mbgIp=mbg2Ip,mbgcPort=mbgcPort)
     
     #Build MBG3
     checkClusterIsReady(mbg3)
     mbg3Ip=mbgBuild(mbgcPort=mbgcPort)
-    mbgSetup(mbg3,dataplane,mbg3crtFlags,mbgctlName="mbgctl3",mbgIp=mbg3Ip,mbgcPort=mbgcPort)
+    mbgSetup(mbg3,dataplane,mbg3crtFlags,gwctlName="gwctl3",mbgIp=mbg3Ip,mbgcPort=mbgcPort)
 
 
     #Add MBG Peer
     connectToCluster(mbg2)
-    mbgctl2Pod =getPodName("mbgctl")
+    gwctl2Pod =getPodName("gwctl")
     printHeader("Add MBG1, MBG3 to MBG2")
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add peer --id "MBG1" --target {mbg1Ip} --port {mbgcPort}')
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add peer --id "MBG3" --target {mbg3Ip} --port {mbgcPort}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add peer --id "MBG1" --target {mbg1Ip} --port {mbgcPort}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add peer --id "MBG3" --target {mbg3Ip} --port {mbgcPort}')
             
     # Send Hello
     printHeader("Send Hello commands")
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl hello')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl hello')
         
     #Add services 
     connectToCluster(mbg1)
-    mbgctl1Pod =getPodName("mbgctl")
+    gwctl1Pod =getPodName("gwctl")
     runcmd(f"kubectl create -f {folman}/firefox.yaml")    
     printHeader(f"Add {srcSvc1} services to host cluster")
     waitPod(srcSvc1)
     _ , srcSvcIp1 =getPodNameIp(srcSvc1)
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add service --id {srcSvc1} --target {srcSvcIp1} --description {srcSvc1}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add service --id {srcSvc1} --target {srcSvcIp1} --description {srcSvc1}')
     runcmd(f"kubectl create service nodeport {srcSvc1} --tcp=5800:5800 --node-port=30000")
     mbg1.setClusterIP()
 
@@ -110,10 +110,10 @@ if __name__ == "__main__":
     printHeader(f"Add {destSvc} (server) service to destination cluster")
     waitPod(destSvc)
     destSvcIp = f"{getPodIp(destSvc)}:3000"
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add service --id {destSvc} --target {destSvcIp} --description v2')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add service --id {destSvc} --target {destSvcIp} --description v2')
     
     connectToCluster(mbg3)
-    mbgctl3Pod =getPodName("mbgctl")
+    gwctl3Pod =getPodName("gwctl")
     runcmd(f"kubectl create -f {folman}/firefox.yaml")
     runcmd(f"kubectl create -f {folman}/firefox2.yaml")    
     printHeader(f"Add {srcSvc1} {srcSvc2} services to host cluster")
@@ -121,8 +121,8 @@ if __name__ == "__main__":
     waitPod(srcSvc2)
     _ , srcSvcIp1 =getPodNameIp(srcSvc1)
     _ , srcSvcIp2 =getPodNameIp(srcSvc2)
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl add service --id {srcSvc1} --target {srcSvcIp1} --description {srcSvc1}')
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl add service --id {srcSvc2} --target {srcSvcIp2} --description {srcSvc2}')
+    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl add service --id {srcSvc1} --target {srcSvcIp1} --description {srcSvc1}')
+    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl add service --id {srcSvc2} --target {srcSvcIp2} --description {srcSvc2}')
     runcmd(f"kubectl create service nodeport {srcSvc1} --tcp=5800:5800 --node-port=30000")
     runcmd(f"kubectl create service nodeport {srcSvc2} --tcp=5800:5800 --node-port=30001")
     mbg3.setClusterIP()
@@ -130,13 +130,13 @@ if __name__ == "__main__":
     #Expose destination service
     connectToCluster(mbg2)
     printHeader("\n\nStart exposing connection")
-    runcmdb(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl expose --service {destSvc}')
+    runcmdb(f'kubectl exec -i {gwctl2Pod} -- ./gwctl expose --service {destSvc}')
 
   #Set K8s network services
     connectToCluster(mbg1)
     mbg1Pod, _ = getPodNameIp("mbg")
     printHeader("\n\nStart get service")
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl get service')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl get service')
     mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbg1Pod, destSvc)
     runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg1LocalPort}")
     runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     connectToCluster(mbg3)
     printHeader("\n\nStart get service")
     mbg3Pod, _ = getPodNameIp("mbg")
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl get service')
+    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl get service')
     mbg3LocalPort, mbg3ExternalPort = getMbgPorts(mbg3Pod, destSvc)
     runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg3LocalPort}")
     runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name

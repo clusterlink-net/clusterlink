@@ -35,7 +35,7 @@ if __name__ == "__main__":
     mbgcPort       = "30443"
     mbgcPortLocal  = "8443"
     mbgcrtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/{mbg}.crt --key ./mtls/{mbg}.key"  if dataplane =="mtls" else ""
-    mbgctlName     = mbg[:-1]+"ctl"+ mbg[-1]
+    gwctlName     = mbg[:-1]+"ctl"+ mbg[-1]
     
     print("Starting mbg ("+mbg+") with dataplane "+ dataplane)
         
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     
     ### build Kind clusters environment 
     if mbg in ["mbg1", "mbg2","mbg3"]:
-        startKindClusterMbg(mbg, mbgctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg,cni=cni,logFile=logFile)        
+        startKindClusterMbg(mbg, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg,cni=cni,logFile=logFile)        
     else:
         print("mbg value should be mbg1, mbg2 or mbg3")
 

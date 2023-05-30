@@ -1,10 +1,10 @@
 ##############################################################################################
 # Name: Bookinfo
-# Info: support bookinfo application with mbgctl inside the clusters 
+# Info: support bookinfo application with gwctl inside the clusters 
 #       In this we create three kind clusters
-#       1) MBG1- contain mbg, mbgctl,product and details microservices (bookinfo services)
-#       2) MBG2- contain mbg, mbgctl, review-v2 and rating microservices (bookinfo services)
-#       3) MBG3- contain mbg, mbgctl, review-v3 and rating microservices (bookinfo services)
+#       1) MBG1- contain mbg, gwctl,product and details microservices (bookinfo services)
+#       2) MBG2- contain mbg, gwctl, review-v2 and rating microservices (bookinfo services)
+#       3) MBG3- contain mbg, gwctl, review-v3 and rating microservices (bookinfo services)
 ##############################################################################################
 
 import os,time
@@ -30,9 +30,9 @@ if __name__ == "__main__":
     mbg1Name        = "mbg1"
     mbg2Name        = "mbg2"
     mbg3Name        = "mbg3"
-    mbgctl1Name     = "mbgctl1"
-    mbgctl2Name     = "mbgctl2"
-    mbgctl3Name     = "mbgctl3"
+    gwctl1Name     = "gwctl1"
+    gwctl2Name     = "gwctl2"
+    gwctl3Name     = "gwctl3"
 
 
     print(f'Working directory {proj_dir}')
@@ -42,28 +42,28 @@ if __name__ == "__main__":
     useKindCluster(mbg1Name)
     mbg1Pod, _           = getPodNameIp("mbg")
     mbg1Ip               = getKindIp("mbg1")
-    mbgctl1Pod, mbgctl1Ip= getPodNameIp("mbgctl")
+    gwctl1Pod, gwctl1Ip= getPodNameIp("gwctl")
     useKindCluster(mbg2Name)
     mbg2Pod, _            = getPodNameIp("mbg")
-    mbgctl2Pod, mbgctl2Ip = getPodNameIp("mbgctl")
+    gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
     mbg2Ip                =getKindIp(mbg2Name)
     useKindCluster(mbg3Name)
     mbg3Pod, _            = getPodNameIp("mbg")
     mbg3Ip                = getKindIp("mbg3")
-    mbgctl3Pod, mbgctl3Ip = getPodNameIp("mbgctl")
+    gwctl3Pod, gwctl3Ip = getPodNameIp("gwctl")
 
     # Add MBG Peer
     useKindCluster(mbg2Name)
 
     #Expose service
     printHeader(f"\n\nStart exposing svc {destSvc}")
-    runcmd(f'mbgctl expose  --myid {mbgctl2Name} --service {destSvc}')
+    runcmd(f'gwctl expose  --myid {gwctl2Name} --service {destSvc}')
     
     #Set K8s network services
     printHeader("\n\nStart get service")
     useKindCluster(mbg1Name)
-    runcmd(f'mbgctl get service --myid {mbgctl1Name} ')
-    runcmd(f'mbgctl add binding  --myid {mbgctl1Name} --service {destSvc} --port 3000')
+    runcmd(f'gwctl get service --myid {gwctl1Name} ')
+    runcmd(f'gwctl add binding  --myid {gwctl1Name} --service {destSvc} --port 3000')
 
     mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbg1Pod, destSvc)
     #runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg1LocalPort}")
@@ -71,9 +71,9 @@ if __name__ == "__main__":
 
     printHeader("\n\nStart get service")
     useKindCluster(mbg3Name)
-    runcmd(f'mbgctl get service  --myid {mbgctl3Name} ')
+    runcmd(f'gwctl get service  --myid {gwctl3Name} ')
     #mbg3LocalPort, mbg3ExternalPort = getMbgPorts(mbg3Pod, destSvc)
-    runcmd(f'mbgctl add binding  --myid {mbgctl3Name} --service {destSvc} --port 3000')
+    runcmd(f'gwctl add binding  --myid {gwctl3Name} --service {destSvc} --port 3000')
 
     #runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg3LocalPort}")
     #runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name

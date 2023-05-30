@@ -37,7 +37,7 @@ if __name__ == "__main__":
     mbg1cPortLocal  = "8443"
     mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     mbg1Name        = "mbg1"
-    mbgctl1Name     = "mbgctl1"
+    gwctl1Name     = "gwctl1"
     mbg1cni         = cni 
     srcSvc          = "iperf3-client"
     
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     mbg2cPortLocal  = "8443"
     mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     mbg2Name        = "mbg2"
-    mbgctl2Name     = "mbgctl2"
+    gwctl2Name     = "gwctl2"
     mbg2cni         = "flannel" if cni == "diff" else cni
     destSvc         = "iperf3-server"
     destPort        = "5000"
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     mbg3cPortLocal  = "8443"
     mbg3crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg3.crt --key ./mtls/mbg3.key"  if dataplane =="mtls" else ""
     mbg3Name        = "mbg3"
-    mbgctl3Name     = "mbgctl3"
+    gwctl3Name     = "gwctl3"
     mbg3cni         = "calico" if cni == "diff" else cni
     srcSvc          = "iperf3-client"
     srcSvc2         = "iperf3-client2"
@@ -84,53 +84,53 @@ if __name__ == "__main__":
     
     
     ### Build MBG in Kind clusters environment 
-    startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags, cni=mbg1cni)        
-    startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags, cni=mbg2cni)        
-    startKindClusterMbg(mbg3Name, mbgctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort, dataplane ,mbg3crtFlags, cni=mbg3cni)        
+    startKindClusterMbg(mbg1Name, gwctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags, cni=mbg1cni)        
+    startKindClusterMbg(mbg2Name, gwctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags, cni=mbg2cni)        
+    startKindClusterMbg(mbg3Name, gwctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort, dataplane ,mbg3crtFlags, cni=mbg3cni)        
       
     ###get mbg parameters
     useKindCluster(mbg1Name)
     mbg1Pod, _           = getPodNameIp("mbg")
     mbg1Ip               = getKindIp("mbg1")
-    mbgctl1Pod, mbgctl1Ip= getPodNameIp("mbgctl")
+    gwctl1Pod, gwctl1Ip= getPodNameIp("gwctl")
     useKindCluster(mbg2Name)
     mbg2Pod, mbg2Ip       = getPodNameIp("mbg")
-    mbgctl2Pod, mbgctl2Ip = getPodNameIp("mbgctl")
+    gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
     destkindIp=getKindIp(mbg2Name)
     useKindCluster(mbg3Name)
     mbg3Pod, _            = getPodNameIp("mbg")
     mbg3Ip                = getKindIp("mbg3")
-    mbgctl3Pod, mbgctl3Ip = getPodNameIp("mbgctl")
+    gwctl3Pod, gwctl3Ip = getPodNameIp("gwctl")
 
     
     # Add MBG Peer
     useKindCluster(mbg2Name)
     printHeader("Add MBG2, MBG3 peer to MBG1")
-    connectMbgs(mbg2Name, mbgctl2Name, mbgctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
-    connectMbgs(mbg2Name, mbgctl2Name, mbgctl2Pod, mbg3Name, mbg3Ip, mbg3cPort)
+    connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
+    connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg3Name, mbg3Ip, mbg3cPort)
 
     # Send Hello
-    sendHello(mbgctl2Pod, mbgctl2Name)        
+    sendHello(gwctl2Pod, gwctl2Name)        
 
     
     # Set service iperf3-client in MBG1
-    setIperf3client(mbg1Name, mbgctl1Name, srcSvc)
+    setIperf3client(mbg1Name, gwctl1Name, srcSvc)
     
     # Set service iperf3-server in MBG2
-    setIperf3Server(mbg2Name, mbgctl2Name, destSvc)
+    setIperf3Server(mbg2Name, gwctl2Name, destSvc)
 
     # Set service iperf3-client in MBG3
-    setIperf3client(mbg3Name, mbgctl3Name, srcSvc)
-    setIperf3client(mbg3Name, mbgctl3Name, srcSvc2)
+    setIperf3client(mbg3Name, gwctl3Name, srcSvc)
+    setIperf3client(mbg3Name, gwctl3Name, srcSvc2)
     
     #Expose destination service
-    exposeService(mbg2Name, mbgctl2Name, destSvc)
+    exposeService(mbg2Name, gwctl2Name, destSvc)
 
     #bind destination service
     bindService(mbg1Name, destSvc, destPort)
     bindService(mbg3Name, destSvc, destPort)
     #Get services
-    getService(mbg1Name, mbgctl1Name)
+    getService(mbg1Name, gwctl1Name)
     
     #Testing
     printHeader("\n\nStart Iperf3 testing")
@@ -148,18 +148,18 @@ if __name__ == "__main__":
 
     #Block Traffic in MBG3
     printHeader("Start Block Traffic in MBG3")
-    applyPolicy(mbg3Name, mbgctl3Name, type="deny")
+    applyPolicy(mbg3Name, gwctl3Name, type="deny")
     testIperf3Client(mbg3Name,srcSvc,destSvc, destPort, blockFlag=True)
     print("Allow Traffic in MBG3")
-    applyPolicy(mbg3Name, mbgctl3Name, type="allow")
+    applyPolicy(mbg3Name, gwctl3Name, type="allow")
     testIperf3Client(mbg3Name,srcSvc,destSvc, destPort)
     
     #Block Traffic in MBG2
     printHeader("Start Block Traffic in MBG2")
     print("Block Traffic in MBG2")
-    applyPolicy(mbg2Name, mbgctl2Name, type="deny")
+    applyPolicy(mbg2Name, gwctl2Name, type="deny")
     testIperf3Client(mbg3Name,srcSvc,destSvc, destPort, blockFlag=True)
     print("Allow Traffic in MBG3")
-    applyPolicy(mbg2Name, mbgctl2Name, type="allow")
+    applyPolicy(mbg2Name, gwctl2Name, type="allow")
     testIperf3Client(mbg3Name,srcSvc,destSvc, destPort)
     
