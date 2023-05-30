@@ -89,7 +89,7 @@ First, Initialize the parameters of the test (pods' names and IPs):
 Start MBG1: (the MBG creates an HTTP server, so it is better to run this command in a different terminal (using tmux) or run it in the background)
 
     kubectl config use-context kind-mbg1
-    kubectl exec -i $MBG1 -- ./mbg start --id "MBG1" --ip $MBG1IP --cport 30443 --cportLocal 8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key &
+    kubectl exec -i $MBG1 -- ./controlplane start --id "MBG1" --ip $MBG1IP --cport 30443 --cportLocal 8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key &
 
 Initialize gwctl (mbg control):
 
@@ -102,7 +102,7 @@ Create K8s service nodeport to connect MBG cport to the MBG localcport.
 Start MBG2: (the MBG creates an HTTP server, so it is better to run this command in a different terminal (using tmux) or run it in the background)
 
     kubectl config use-context kind-mbg2
-    kubectl exec -i $MBG2 -- ./mbg start --id "MBG2" --ip $MBG2IP --cport 30443 --cportLocal 8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key &
+    kubectl exec -i $MBG2 -- ./controlplane start --id "MBG2" --ip $MBG2IP --cport 30443 --cportLocal 8443 --dataplane mtls --rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key &
 
 Initialize gwctl (mbg control):
 

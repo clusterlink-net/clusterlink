@@ -44,7 +44,7 @@ def applyFail(mbg, gwctlName, type):
         runcmd(f'kubectl exec -i {mPod} -- killall mbg')
     elif type == "start":
         printHeader(f"Starting up and Restoring MBG")
-        runcmdb(f'kubectl exec -i {mPod} -- ./mbg start --id "{mbg3Name}" --ip {mbgKindIp} --cport {mbg3cPort} --cportLocal {mbg3cPortLocal}  --externalDataPortRange {mbg3DataPort}\
+        runcmdb(f'kubectl exec -i {mPod} -- ./controlplane start --id "{mbg3Name}" --ip {mbgKindIp} --cport {mbg3cPort} --cportLocal {mbg3cPortLocal}  --externalDataPortRange {mbg3DataPort}\
     --dataplane mtls {mbg3crtFlags} --startPolicyEngine {True} --restore {True}')
         time.sleep(2)
         exposeService(mbg, gwctlName, destSvc)

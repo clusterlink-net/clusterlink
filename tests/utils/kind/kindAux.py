@@ -46,7 +46,7 @@ def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort
     runcmd(f"kubectl create service nodeport mbg --tcp={mbgcPortLocal}:{mbgcPortLocal} --node-port={mbgcPort}")
     
     printHeader(f"\n\nStart {mbgName} (along with PolicyEngine)")
-    startcmd= f'{podMbg} -- ./mbg start --id "{mbgName}" --ip {mbgKindIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --externalDataPortRange {mbgDataPort}\
+    startcmd= f'{podMbg} -- ./controlplane start --id "{mbgName}" --ip {mbgKindIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --externalDataPortRange {mbgDataPort}\
     --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine={True} --logFile={logFile} --zeroTrust={zeroTrust}'
 
     if runInfg:

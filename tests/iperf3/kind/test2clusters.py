@@ -95,13 +95,13 @@ if __name__ == "__main__":
     
     #Set First MBG
     useKindCluster(mbg1ClusterName)
-    runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg start --id "MBG1" --ip {mbg1Ip} --cport {mbg1cPort} --cportLocal {mbg1cPortLocal}  --externalDataPortRange {mbg1DataPort}\
+    runcmdb(f'kubectl exec -i {podMbg1} -- ./controlplane start --id "MBG1" --ip {mbg1Ip} --cport {mbg1cPort} --cportLocal {mbg1cPortLocal}  --externalDataPortRange {mbg1DataPort}\
     --dataplane {args["dataplane"]} {mbg1crtFlags}')
     runcmd(f"kubectl create service nodeport mbg --tcp={mbg1cPortLocal}:{mbg1cPortLocal} --node-port={mbg1cPort}")
 
     #Set Second MBG
     useKindCluster(mbg2ClusterName)
-    runcmdb(f'kubectl exec -i {podMbg2} -- ./mbg start --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort} --cportLocal {mbg2cPortLocal} --externalDataPortRange {mbg2DataPort} \
+    runcmdb(f'kubectl exec -i {podMbg2} -- ./controlplane start --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort} --cportLocal {mbg2cPortLocal} --externalDataPortRange {mbg2DataPort} \
     --dataplane {args["dataplane"]} {mbg2crtFlags}')
     runcmd(f"kubectl create service nodeport mbg --tcp={mbg2cPortLocal}:{mbg2cPortLocal} --node-port={mbg2cPort}")
     
@@ -140,12 +140,12 @@ if __name__ == "__main__":
     #Add host cluster to MBG1
     useKindCluster(hostClusterName)
     printHeader("Add host cluster to MBG1")
-    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addMbgctl --id "hostCluster" --ip {hostIp}')
+    runcmd(f'kubectl exec -i {podMbg1} -- ./controlplane addMbgctl --id "hostCluster" --ip {hostIp}')
 
     #Add dest cluster to MBG2
     useKindCluster(mbg2ClusterName)
     printHeader("Add dest cluster to MBG2")
-    runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addMbgctl --id "destCluster" --ip {destIp}')
+    runcmd(f'kubectl exec -i {podMbg2} -- ./controlplane addMbgctl --id "destCluster" --ip {destIp}')
 
     #Expose destination service
     useKindCluster(destClusterName)
