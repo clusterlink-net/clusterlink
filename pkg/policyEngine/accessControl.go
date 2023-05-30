@@ -33,7 +33,8 @@ type rule struct {
 }
 
 type AccessControl struct {
-	ACLRules ACL
+	ACLRules    ACL
+	DefaultRule event.Action
 }
 
 func (A *AccessControl) Init() {
@@ -125,8 +126,8 @@ func (A *AccessControl) RulesLookup(serviceSrc string, serviceDst string, mbgDst
 }
 
 // TODO : Parallelize lookups
-func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst string) (event.Action, int) {
-	resultAction := event.Allow
+func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst string, defaultAction event.Action) (event.Action, int) {
+	resultAction := defaultAction
 	priority := math.MaxInt
 	bitrate := 0
 	plog.Infof("ACL Lookup (%s, %s, %s)", serviceSrc, serviceDst, mbgDst)
@@ -212,7 +213,7 @@ func (A *AccessControl) LookupTarget(service string, peerMbgs *[]string) (event.
 	mbgList := []string{}
 	for _, mbg := range *peerMbgs {
 		plog.Infof("Checking %s to expose", mbg)
-		action, _ := A.Lookup(event.Wildcard, service, mbg)
+		action, _ := A.Lookup(event.Wildcard, service, mbg, event.Allow)
 		if action == event.Allow {
 			mbgList = append(mbgList, mbg)
 		} else {

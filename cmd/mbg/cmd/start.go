@@ -30,6 +30,7 @@ var startCmd = &cobra.Command{
 		dataplane, _ := cmd.Flags().GetString("dataplane")
 		startPolicyEngine, _ := cmd.Flags().GetBool("startPolicyEngine")
 		policyEngineTarget, _ := cmd.Flags().GetString("policyEngineIp")
+		zeroTrust, _ := cmd.Flags().GetBool("zeroTrust")
 		restore, _ := cmd.Flags().GetBool("restore")
 		logFile, _ := cmd.Flags().GetBool("logFile")
 		logLevel, _ := cmd.Flags().GetString("logLevel")
@@ -44,7 +45,7 @@ var startCmd = &cobra.Command{
 				fmt.Println("Error: Please specify policyEngineTarget")
 				os.Exit(1)
 			}
-			m, _ = api.RestoreMbg(id, policyEngineTarget, logLevel, logFile, startPolicyEngine)
+			m, _ = api.RestoreMbg(id, policyEngineTarget, logLevel, logFile, startPolicyEngine, zeroTrust)
 			log.Infof("Restoring MBG")
 			state.PrintState()
 			m.StartMbg()
@@ -58,7 +59,7 @@ var startCmd = &cobra.Command{
 		}
 
 		if startPolicyEngine {
-			m.AddPolicyEngine("localhost:"+cportLocal, true)
+			m.AddPolicyEngine("localhost:"+cportLocal, true, zeroTrust)
 		}
 
 		state.PrintState()
@@ -81,6 +82,7 @@ func init() {
 	startCmd.Flags().String("dataplane", "mtls", "tcp/mtls based data-plane proxies")
 	startCmd.Flags().Bool("startPolicyEngine", true, "Start policy engine in port")
 	startCmd.Flags().String("policyEngineIp", "", "Set the policy engine ip")
+	startCmd.Flags().Bool("zeroTrust", false, "deny (true)/allow(false) by default all incoming traffic")
 	startCmd.Flags().Bool("restore", false, "Restore existing stored MBG states")
 	startCmd.Flags().Bool("logFile", true, "Save the outputs to file")
 	startCmd.Flags().String("logLevel", "info", "Log level: debug, info, warning, error")

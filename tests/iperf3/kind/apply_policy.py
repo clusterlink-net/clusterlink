@@ -10,7 +10,13 @@ sys.path.insert(0,f'{proj_dir}')
 srcSvc   = "iperf3-client"
 destSvc  = "iperf3-server"
     
-    
+def addPolicy(mbg, mbgctlName, command, action, srcSvc=srcSvc,destSvc=destSvc, priority=0):
+    useKindCluster(mbg)
+    mbgctlPod=getPodName("mbgctl")
+    printHeader(f"Block Traffic in {mbg}")          
+    action = 1 if action == "deny" else 0
+    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl {command} policy --myid {mbgctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority {priority} --action {action}')
+                    
 def applyPolicy(mbg, mbgctlName, type, srcSvc=srcSvc,destSvc=destSvc ):
     if mbg in ["mbg1","mbg3"]:
         useKindCluster(mbg)

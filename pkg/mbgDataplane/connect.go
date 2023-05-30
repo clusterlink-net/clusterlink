@@ -30,7 +30,7 @@ func Connect(c protocol.ConnectRequest, targetMbgIP string, w http.ResponseWrite
 		"component": state.GetMyId() + "-Dataplane",
 	})
 	if state.IsServiceLocal(c.IdDest) {
-		return StartProxyLocalService(c, targetMbgIP, w)
+		return StartProxyToLocalService(c, targetMbgIP, w)
 	} else { //For Remote service
 		clog.Errorf("Service %s does not exist", c.IdDest)
 		return false, "", ""
@@ -40,7 +40,7 @@ func Connect(c protocol.ConnectRequest, targetMbgIP string, w http.ResponseWrite
 // ConnectLocalService waiting for connection from host and do two things:
 // 1. Create tcp connection to destination (Not Secure)- TODO support also secure connection
 // 2. Register new handle function and hijack the connection
-func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (bool, string, string) {
+func StartProxyToLocalService(c protocol.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (bool, string, string) {
 	clog.Infof("Received Incoming Connect request from service: %v to service: %v", c.Id, c.IdDest)
 	connectionID := createConnId(c.Id, c.IdDest)
 	dataplane := state.GetDataplane()
@@ -73,7 +73,7 @@ func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, w htt
 		clog.Infof("Starting a Receiver service for %s Using RemoteEndpoint : %s/%s",
 			localSvc.Ip, mbgTarget, remoteEndPoint)
 
-		go StartMtlsProxyLocalService(localSvc.GetIpAndPort(), mbgTarget, remoteEndPoint)
+		go StartMtlsProxyToLocalService(localSvc.GetIpAndPort(), mbgTarget, remoteEndPoint)
 		return true, dataplane, remoteEndPoint
 	default:
 		return false, "", ""
@@ -81,7 +81,7 @@ func StartProxyLocalService(c protocol.ConnectRequest, targetMbgIP string, w htt
 }
 
 // Receiver service is run at the mbg which receives connection from a remote service
-func StartMtlsProxyLocalService(localServicePort, targetMbgIPPort, remoteEndPoint string) error {
+func StartMtlsProxyToLocalService(localServicePort, targetMbgIPPort, remoteEndPoint string) error {
 	conn, err := net.Dial("tcp", localServicePort) //Todo - support destination with secure connection
 	if err != nil {
 		clog.Errorf("Dial to local service failed: %v", err)
@@ -117,18 +117,18 @@ func StartTcpProxyService(svcListenPort, svcIp, policy, connName string, serverC
 // Start a Local Service which is a proxy for remote service
 // It receives connections from local service and performs Connect API
 // and sets up an mTLS forwarding to the remote service upon accepted (policy checks, etc)
-func CreateProxyRemoteService(serviceId, servicePort, rootCA, certificate, key string) {
+func CreateProxyToRemoteService(serviceId, servicePort, rootCA, certificate, key string) {
 	acceptor, err := net.Listen("tcp", servicePort) //TODO- need to support secure endpoint
 	if err != nil {
 		clog.Infof("Error Listen: to port  %v", err)
 	}
 
-	go StartProxyRemoteService(serviceId, acceptor, servicePort, rootCA, certificate, key)
+	go StartProxyToRemoteService(serviceId, acceptor, servicePort, rootCA, certificate, key)
 	state.WaitServiceStopCh(serviceId, servicePort)
 	acceptor.Close()
 }
 
-func StartProxyRemoteService(serviceId string, acceptor net.Listener, servicePort, rootCA, certificate, key string) error {
+func StartProxyToRemoteService(serviceId string, acceptor net.Listener, servicePort, rootCA, certificate, key string) error {
 	dataplane := state.GetDataplane()
 	// loop until signalled to stop
 	for {
