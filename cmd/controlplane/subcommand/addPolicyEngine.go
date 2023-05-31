@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	api "github.ibm.com/mbg-agent/pkg/api"
 )
 
 // addPolicyCmd represents the addPolicy command
@@ -15,7 +14,7 @@ var addPolicyEngineCmd = &cobra.Command{
 		target, _ := cmd.Flags().GetString("target")
 		start, _ := cmd.Flags().GetBool("start")
 		zeroTrust, _ := cmd.Flags().GetBool("zeroTrust")
-		m := api.Mbg{Id: mId}
+		m := Mbg{Id: mId}
 		m.AddPolicyEngine(target, start, zeroTrust)
 	},
 }

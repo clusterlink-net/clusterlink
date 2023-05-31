@@ -7,7 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/controlplane/state"
-	api "github.ibm.com/mbg-agent/pkg/api"
 )
 
 // / startCmd represents the start command
@@ -38,20 +37,20 @@ var startCmd = &cobra.Command{
 			fmt.Println("Error: please insert all flag arguments for Mbg start command")
 			os.Exit(1)
 		}
-		var m api.Mbg
+		var m Mbg
 		var err error
 		if restore {
 			if !startPolicyEngine && policyEngineTarget == "" {
 				fmt.Println("Error: Please specify policyEngineTarget")
 				os.Exit(1)
 			}
-			m, _ = api.RestoreMbg(id, policyEngineTarget, logLevel, logFile, startPolicyEngine, zeroTrust)
+			m, _ = RestoreMbg(id, policyEngineTarget, logLevel, logFile, startPolicyEngine, zeroTrust)
 			log.Infof("Restoring MBG")
 			state.PrintState()
 			m.StartMbg()
 		}
 
-		m, err = api.CreateMbg(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, dataplane,
+		m, err = CreateMbg(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, dataplane,
 			caFile, certificateFile, keyFile, logLevel, logFile, restore)
 		if err != nil {
 			fmt.Println("Error: Unable to create MBG: ", err)
