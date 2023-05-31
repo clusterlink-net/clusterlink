@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	api "github.ibm.com/mbg-agent/cmd/gwctl/api"
+	api "github.ibm.com/mbg-agent/pkg/api"
 )
 
 // startCmd represents the start command
@@ -26,8 +26,7 @@ var createCmd = &cobra.Command{
 			fmt.Println("The id flag must be set")
 			return
 		}
-		m := api.Gwctl{Id: id}
-		m.CreateGwctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane)
+		api.CreateGwctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane)
 	},
 }
 

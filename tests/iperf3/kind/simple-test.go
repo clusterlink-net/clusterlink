@@ -25,7 +25,7 @@ const (
 	mbg1crt        = "./mtls/mbg1.crt"
 	mbg1key        = "./mtls/mbg1.key"
 	mbg1Name       = "mbg1"
-	gwctl1Name    = "gwctl1"
+	gwctl1Name     = "gwctl1"
 	mbg1cni        = "default"
 	srcSvc         = "iperf3-client"
 
@@ -36,7 +36,7 @@ const (
 	mbg2crt        = "./mtls/mbg2.crt"
 	mbg2key        = "./mtls/mbg2.key"
 	mbg2Name       = "mbg2"
-	gwctl2Name    = "gwctl2"
+	gwctl2Name     = "gwctl2"
 	mbg2cni        = "default"
 	destSvc        = "iperf3-server"
 	destPort       = 5000
@@ -71,13 +71,13 @@ func main() {
 	mbg2Ip, _ := kindAux.GetKindIp(mbg2Name)
 
 	//set gwctl
-	gwctl1, err := api.CreateMbgctl(gwctl1Name, mbg1Ip+":"+mbg1cPort, mtlsFolder+mbgCaCrt, mtlsFolder+mbg1crt, mtlsFolder+mbg1key, dataplane)
+	gwctl1, err := api.CreateGwctl(gwctl1Name, mbg1Ip+":"+mbg1cPort, mtlsFolder+mbgCaCrt, mtlsFolder+mbg1crt, mtlsFolder+mbg1key, dataplane)
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
 
-	gwctl2, err := api.CreateMbgctl(gwctl2Name, mbg2Ip+":"+mbg2cPort, mtlsFolder+mbgCaCrt, mtlsFolder+mbg2crt, mtlsFolder+mbg2key, dataplane)
+	gwctl2, err := api.CreateGwctl(gwctl2Name, mbg2Ip+":"+mbg2cPort, mtlsFolder+mbgCaCrt, mtlsFolder+mbg2crt, mtlsFolder+mbg2key, dataplane)
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)

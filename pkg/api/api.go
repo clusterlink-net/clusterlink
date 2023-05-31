@@ -13,7 +13,6 @@ import (
 	"time"
 
 	mbg "github.ibm.com/mbg-agent/cmd/controlplane/state"
-	db "github.ibm.com/mbg-agent/cmd/gwctl/database"
 
 	event "github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
@@ -40,18 +39,19 @@ const (
 	show    = "show"
 )
 
-func (g *Gwctl) CreateGwctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane string) error {
-	d := db.GwctlDb{}
-	err := d.Set(id, mbgIP, caFile, certificateFile, keyFile, dataplane)
+func CreateGwctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane string) (Gwctl, error) {
+	gwctl := Gwctl{Id: id}
+	c := GwctlConfig{}
+	err := c.Set(id, mbgIP, caFile, certificateFile, keyFile, dataplane)
 	if err != nil {
-		return err
+		return Gwctl{}, err
 	}
-	d.SetPolicyDispatcher(id, g.GetAddrStart(dataplane)+mbgIP+"/policy")
-	return nil
+	c.SetPolicyDispatcher(id, gwctl.GetAddrStart(dataplane)+mbgIP+"/policy")
+	return gwctl, nil
 }
 
 func (g *Gwctl) AddPeer(id, target, peerCport string) error {
-	d, err := db.GetDb(g.Id)
+	d, err := GetConfig(g.Id)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (g *Gwctl) AddPeer(id, target, peerCport string) error {
 }
 
 func (g *Gwctl) AddPolicyEngine(target string) error {
-	d, err := db.GetDb(g.Id)
+	d, err := GetConfig(g.Id)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (g *Gwctl) AddPolicyEngine(target string) error {
 }
 
 func (g *Gwctl) AddService(id, target, port, description string) error {
-	d, err := db.GetDb(g.Id)
+	d, err := GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service"
@@ -87,7 +87,7 @@ func (g *Gwctl) AddService(id, target, port, description string) error {
 }
 
 func (g *Gwctl) ExposeService(svcId, peer string) error {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 
 	mbgIP := d.GetMbgIP()
 
@@ -102,7 +102,7 @@ func (g *Gwctl) ExposeService(svcId, peer string) error {
 }
 
 func (g *Gwctl) SendHello(peer ...string) error {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 	j := []byte{}
 	if len(peer) != 0 {
@@ -117,7 +117,7 @@ func (g *Gwctl) SendHello(peer ...string) error {
 }
 
 func (g *Gwctl) GetPeer(peer string) (string, error) {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/peer/" + peer
 
@@ -133,7 +133,7 @@ func (g *Gwctl) GetPeer(peer string) (string, error) {
 }
 
 func (g *Gwctl) GetPeers() ([]string, error) {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/peer/"
@@ -154,7 +154,7 @@ func (g *Gwctl) GetPeers() ([]string, error) {
 }
 
 func (g *Gwctl) GetLocalServices() ([]mbg.LocalService, error) {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service/"
 	resp, err := httpAux.HttpGet(address, g.GetHttpClient())
@@ -173,7 +173,7 @@ func (g *Gwctl) GetLocalServices() ([]mbg.LocalService, error) {
 }
 
 func (g *Gwctl) GetLocalService(id string) (mbg.LocalService, error) {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service/" + id
 	resp, err := httpAux.HttpGet(address, g.GetHttpClient())
@@ -188,7 +188,7 @@ func (g *Gwctl) GetLocalService(id string) (mbg.LocalService, error) {
 }
 
 func (g *Gwctl) GetRemoteService(id string) ([]protocol.ServiceRequest, error) {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/remoteservice/" + id
@@ -208,7 +208,7 @@ func (g *Gwctl) GetRemoteService(id string) ([]protocol.ServiceRequest, error) {
 }
 
 func (g *Gwctl) GetRemoteServices() (map[string][]protocol.ServiceRequest, error) {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/remoteservice/"
@@ -230,7 +230,7 @@ func (g *Gwctl) GetRemoteServices() (map[string][]protocol.ServiceRequest, error
 }
 
 func (g *Gwctl) RemovePeer(id string) error {
-	d, err := db.GetDb(g.Id)
+	d, err := GetConfig(g.Id)
 	if err != nil {
 		return err
 	}
@@ -246,7 +246,7 @@ func (g *Gwctl) RemovePeer(id string) error {
 }
 
 func (g *Gwctl) RemoveLocalService(serviceId string) {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service/" + serviceId
 	resp, _ := httpAux.HttpDelete(address, nil, g.GetHttpClient())
@@ -254,7 +254,7 @@ func (g *Gwctl) RemoveLocalService(serviceId string) {
 }
 
 func (g *Gwctl) RemoveLocalServiceFromPeer(serviceId, peer string) {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service/" + serviceId + "/peer"
 	j, err := json.Marshal(protocol.ServiceDeleteRequest{Id: serviceId, Peer: peer})
@@ -266,7 +266,7 @@ func (g *Gwctl) RemoveLocalServiceFromPeer(serviceId, peer string) {
 }
 
 func (g *Gwctl) RemoveRemoteService(serviceId, serviceMbg string) {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/remoteservice/" + serviceId
 	j, err := json.Marshal(protocol.ServiceRequest{Id: serviceId, MbgID: serviceMbg})
@@ -279,7 +279,7 @@ func (g *Gwctl) RemoveRemoteService(serviceId, serviceMbg string) {
 }
 
 func (g *Gwctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action, command int) error {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	url := d.GetPolicyDispatcher() + "/" + acl
 	switch command {
 	case Add:
@@ -298,7 +298,7 @@ func (g *Gwctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest stri
 }
 
 func (g *Gwctl) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.PolicyLoadBalancer, mbgDest string, command int) error {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	url := d.GetPolicyDispatcher() + "/" + lb
 	switch command {
 	case Add:
@@ -317,7 +317,7 @@ func (g *Gwctl) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.
 }
 
 func (g *Gwctl) GetACLPolicies() (policyEngine.ACL, error) {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	var rules policyEngine.ACL
 	url := d.GetPolicyDispatcher() + "/" + acl
 	resp, err := httpAux.HttpGet(url, g.GetHttpClient())
@@ -333,7 +333,7 @@ func (g *Gwctl) GetACLPolicies() (policyEngine.ACL, error) {
 }
 
 func (g *Gwctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBalancer, error) {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	var policies map[string]map[string]policyEngine.PolicyLoadBalancer
 	url := d.GetPolicyDispatcher() + "/" + lb
 	resp, err := httpAux.HttpGet(url, g.GetHttpClient())
@@ -348,7 +348,7 @@ func (g *Gwctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBa
 }
 
 func (g *Gwctl) CreateServiceEndpoint(serviceId string, port int, name, namespace, mbgAppName string) error {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/binding"
@@ -362,7 +362,7 @@ func (g *Gwctl) CreateServiceEndpoint(serviceId string, port int, name, namespac
 }
 
 func (g *Gwctl) DeleteServiceEndpoint(serviceId string) error {
-	d, err := db.GetDb(g.Id)
+	d, err := GetConfig(g.Id)
 	if err != nil {
 		return err
 	}
@@ -383,7 +383,7 @@ func (g *Gwctl) GetAddrStart(dataplane string) string {
 }
 
 func (g *Gwctl) GetHttpClient() http.Client {
-	d, _ := db.GetDb(g.Id)
+	d, _ := GetConfig(g.Id)
 	if d.GetDataplane() == "mtls" {
 		cert, err := ioutil.ReadFile(d.GetCaFile())
 		if err != nil {
@@ -414,10 +414,10 @@ func (g *Gwctl) GetHttpClient() http.Client {
 }
 
 /***** config *****/
-func (g *Gwctl) ConfigCurrentContext() (db.GwctlDb, error) {
-	return db.GetDb(g.Id)
+func (g *Gwctl) ConfigCurrentContext() (GwctlConfig, error) {
+	return GetConfig(g.Id)
 }
 
 func (g *Gwctl) ConfigUseContext() error {
-	return db.SetDefaultLink(g.Id)
+	return SetDefaultLink(g.Id)
 }
