@@ -4,7 +4,7 @@ from colorama import Fore
 from colorama import Style
 
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-folMfst=f"{proj_dir}/manifests"
+folMfst=f"{proj_dir}/config/manifests"
 
 def waitPod(name, namespace="default"):
     time.sleep(2) #Initial start

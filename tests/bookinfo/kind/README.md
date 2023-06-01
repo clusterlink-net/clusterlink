@@ -40,11 +40,11 @@ Build the first kind cluster with MBG, gwctl, Product and details micro-services
 
 2) Create a MBG deployment: 
     
-        kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg.yaml
+        kubectl create -f $PROJECT_FOLDER/config/manifests/mbg/mbg.yaml
 
 3) Create a gwctl deployment: 
    
-        kubectl create -f $PROJECT_FOLDER/manifests/gwctl/gwctl.yaml
+        kubectl create -f $PROJECT_FOLDER/config/manifests/gwctl/gwctl.yaml
 4) Create product and details microservices: 
    
         docker pull maistra/examples-bookinfo-productpage-v1
@@ -61,10 +61,10 @@ Build the second kind cluster with MBG, gwctl, reviews(v2) and rating microservi
         kind load docker-image mbg --name=mbg-agent2
 2) Create a MBG deployment:
    
-        kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg.yaml
+        kubectl create -f $PROJECT_FOLDER/config/manifests/mbg/mbg.yaml
 3) Create a gwctl deployment: 
 
-        kubectl create -f $PROJECT_FOLDER/manifests/gwctl/gwctl.yaml
+        kubectl create -f $PROJECT_FOLDER/config/manifests/gwctl/gwctl.yaml
 4) Create reviews and ratings microservices:
    
         docker pull maistra/examples-bookinfo-reviews-v2
@@ -81,10 +81,10 @@ Build the third kind cluster with MBG, gwctl, reviews(v3) and rating microservic
         kind load docker-image mbg --name=mbg-agent3
 2) Create a MBG deployment:
    
-        kubectl create -f $PROJECT_FOLDER/manifests/mbg/mbg.yaml
+        kubectl create -f $PROJECT_FOLDER/config/manifests/mbg/mbg.yaml
 3) Create a gwctl deployment: 
 
-        kubectl create -f $PROJECT_FOLDER/manifests/gwctl/gwctl.yaml
+        kubectl create -f $PROJECT_FOLDER/config/manifests/gwctl/gwctl.yaml
 4) Create review and ratings microservices:
    
         docker pull maistra/examples-bookinfo-reviews-v3
