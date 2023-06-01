@@ -11,11 +11,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/controlplane/state"
 	cp "github.ibm.com/mbg-agent/pkg/controlplane"
+	handler "github.ibm.com/mbg-agent/pkg/controlplane/api"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/healthMonitor"
 	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
-	handler "github.ibm.com/mbg-agent/pkg/protocol/http/mbg"
 )
 
 type Mbg struct {
