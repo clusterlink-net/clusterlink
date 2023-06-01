@@ -21,7 +21,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/eventManager"
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 )
 
 var log = logrus.WithField("component", s.MyInfo.Id)

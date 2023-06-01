@@ -14,7 +14,7 @@ import (
 
 	mbg "github.ibm.com/mbg-agent/cmd/controlplane/state"
 
-	event "github.ibm.com/mbg-agent/pkg/eventManager"
+	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"

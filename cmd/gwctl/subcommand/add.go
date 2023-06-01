@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	api "github.ibm.com/mbg-agent/pkg/api"
-	event "github.ibm.com/mbg-agent/pkg/eventManager"
+	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 )
 
