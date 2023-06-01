@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	api "github.ibm.com/mbg-agent/pkg/api"
+	api "github.ibm.com/mbg-agent/pkg/controlplane/api"
 )
 
 // helloCmd represents the hello command

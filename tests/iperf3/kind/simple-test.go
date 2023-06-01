@@ -11,7 +11,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/mbg-agent/pkg/api"
+	"github.ibm.com/mbg-agent/pkg/controlplane/api"
 	mbgAux "github.ibm.com/mbg-agent/tests/utils"
 	kindAux "github.ibm.com/mbg-agent/tests/utils/kind"
 )

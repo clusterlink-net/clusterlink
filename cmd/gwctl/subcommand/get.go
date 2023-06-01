@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.ibm.com/mbg-agent/cmd/gwctl/config"
-	api "github.ibm.com/mbg-agent/pkg/api"
+	api "github.ibm.com/mbg-agent/pkg/controlplane/api"
 )
 
 var getCmd = &cobra.Command{
