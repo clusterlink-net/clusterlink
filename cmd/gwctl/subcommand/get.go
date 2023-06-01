@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.ibm.com/mbg-agent/cmd/gwctl/config"
 	api "github.ibm.com/mbg-agent/pkg/api"
 )
 
@@ -23,7 +24,7 @@ var stateGetCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		mId, _ := cmd.Flags().GetString("myid")
 
-		d, _ := api.GetConfig(mId)
+		d, _ := config.GetConfig(mId)
 		sJSON, err := json.MarshalIndent(d, "", "  ")
 		if err != nil {
 			fmt.Println("Error: ", err.Error())
