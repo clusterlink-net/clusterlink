@@ -10,7 +10,7 @@ import (
 	"github.ibm.com/mbg-agent/cmd/controlplane/state"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/protocol"
-	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
+	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
 )
 
 var klog = logrus.WithField("component", "mbgControlPlane/HealthMonitor")
@@ -70,7 +70,7 @@ func SendHeartBeats() error {
 		mList := state.GetMbgList()
 		for _, m := range mList {
 			url := state.GetAddrStart() + state.GetMbgTarget(m) + "/hb"
-			_, err := httpAux.HttpPost(url, j, state.GetHttpClient())
+			_, err := httpUtils.HttpPost(url, j, state.GetHttpClient())
 
 			if err != nil {
 				klog.Errorf("Unable to send heartbeat to %s, Error: %v", url, err.Error())

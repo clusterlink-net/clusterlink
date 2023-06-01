@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/controlplane/state"
 	"github.ibm.com/mbg-agent/pkg/protocol"
-	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
+	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
 )
 
 var hlog = logrus.WithField("component", "mbgControlPlane/Hello")
@@ -21,7 +21,7 @@ func SendHello(mbgId string) string {
 		return resp
 	} else {
 		hlog.Errorf("Unable to find MBG %v in the peers list", mbgId)
-		return httpAux.RESPFAIL
+		return httpUtils.RESPFAIL
 	}
 }
 
@@ -30,11 +30,11 @@ func SendHello2All() string {
 	MyInfo := state.GetMyInfo()
 	for _, mbgId := range state.GetMbgList() {
 		resp := HelloReq(mbgId, MyInfo)
-		if resp != httpAux.RESPOK {
+		if resp != httpUtils.RESPOK {
 			return resp
 		}
 	}
-	return httpAux.RESPOK
+	return httpUtils.RESPOK
 }
 
 // send hello request(http) to other mbg
@@ -48,12 +48,12 @@ func HelloReq(m string, myInfo state.MbgInfo) string {
 		return err.Error()
 	}
 	//Send hello
-	resp, _ := httpAux.HttpPost(address, j, state.GetHttpClient())
+	resp, _ := httpUtils.HttpPost(address, j, state.GetHttpClient())
 
-	if string(resp) == httpAux.RESPFAIL {
+	if string(resp) == httpUtils.RESPFAIL {
 		return string(resp)
 	} else {
-		return httpAux.RESPOK
+		return httpUtils.RESPOK
 	}
 
 }

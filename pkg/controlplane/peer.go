@@ -7,7 +7,7 @@ import (
 	"github.ibm.com/mbg-agent/cmd/controlplane/state"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/protocol"
-	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
+	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
 )
 
 var plog = logrus.WithField("component", "mbgControlPlane/Peer")
@@ -72,7 +72,7 @@ func RemovePeer(p protocol.PeerRemoveRequest) {
 		if err != nil {
 			return
 		}
-		httpAux.HttpDelete(address, j, state.GetHttpClient())
+		httpUtils.HttpDelete(address, j, state.GetHttpClient())
 	}
 
 	// Remove remote MBG from current MBG's peer

@@ -5,10 +5,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/controlplane/state"
-	md "github.ibm.com/mbg-agent/pkg/dataplane/go"
+	dp "github.ibm.com/mbg-agent/pkg/dataplane/go"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/protocol"
-	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
+	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
@@ -78,7 +78,7 @@ func delServiceInPeerReq(svcId, serviceMbg, peerIp string) {
 	}
 
 	//send
-	resp, _ := httpAux.HttpDelete(address, j, state.GetHttpClient())
+	resp, _ := httpUtils.HttpDelete(address, j, state.GetHttpClient())
 	slog.Printf("Response message for deleting service [%s]:%s \n", svcId, string(resp))
 }
 
@@ -96,7 +96,7 @@ func createRemoteServiceEndpoint(svcId string, force bool) error {
 	}
 	rootCA, certFile, keyFile := state.GetMyMbgCerts()
 	slog.Infof("Starting an service endpoint for Remote service %s at port %s with certs(%s,%s,%s)", svcId, connPort.Local, rootCA, certFile, keyFile)
-	go md.CreateProxyToRemoteService(svcId, connPort.Local, rootCA, certFile, keyFile)
+	go dp.CreateProxyToRemoteService(svcId, connPort.Local, rootCA, certFile, keyFile)
 	return nil
 }
 
