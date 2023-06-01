@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
-	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
 )
 
@@ -61,7 +61,7 @@ func validateMBGs(mbgId string) {
 func SendHeartBeats() error {
 	mbgLastSeen = make(map[string]time.Time)
 	store.UpdateState()
-	j, err := json.Marshal(protocol.HeartBeat{Id: store.GetMyId()})
+	j, err := json.Marshal(apiObject.HeartBeat{Id: store.GetMyId()})
 	if err != nil {
 		klog.Error(err)
 		return fmt.Errorf("unable to marshal json for heartbeat")

@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 
 	"github.com/sirupsen/logrus"
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	dp "github.ibm.com/mbg-agent/pkg/dataplane/go"
-	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -16,25 +16,25 @@ import (
 var slog = logrus.WithField("component", "mbgControlPlane/AddService")
 
 /******************* Local Service ****************************************/
-func AddLocalService(s protocol.ServiceRequest) {
+func AddLocalService(s apiObject.ServiceRequest) {
 	store.UpdateState()
 	store.AddLocalService(s.Id, s.Ip, s.Port, s.Description)
 }
 
-func GetLocalService(svcId string) protocol.ServiceRequest {
+func GetLocalService(svcId string) apiObject.ServiceRequest {
 	store.UpdateState()
 	s := store.GetLocalService(svcId)
-	return protocol.ServiceRequest{Id: s.Id, Ip: s.Ip, Port: s.Port, Description: s.Description}
+	return apiObject.ServiceRequest{Id: s.Id, Ip: s.Ip, Port: s.Port, Description: s.Description}
 }
 
-func GetAllLocalServices() map[string]protocol.ServiceRequest {
+func GetAllLocalServices() map[string]apiObject.ServiceRequest {
 	store.UpdateState()
-	sArr := make(map[string]protocol.ServiceRequest)
+	sArr := make(map[string]apiObject.ServiceRequest)
 
 	for _, s := range store.GetLocalServicesArr() {
 		sPort := store.GetConnectionArr()[s.Id].External
 		sIp := store.GetMyIp()
-		sArr[s.Id] = protocol.ServiceRequest{Id: s.Id, Ip: sIp, Port: sPort, Description: s.Description}
+		sArr[s.Id] = apiObject.ServiceRequest{Id: s.Id, Ip: sIp, Port: sPort, Description: s.Description}
 	}
 
 	return sArr
@@ -72,7 +72,7 @@ func DelLocalServiceFromPeer(svcId, peer string) {
 
 func delServiceInPeerReq(svcId, serviceMbg, peerIp string) {
 	address := store.GetAddrStart() + peerIp + "/remoteservice/" + svcId
-	j, err := json.Marshal(protocol.ServiceRequest{Id: svcId, MbgID: serviceMbg})
+	j, err := json.Marshal(apiObject.ServiceRequest{Id: svcId, MbgID: serviceMbg})
 	if err != nil {
 		slog.Printf("Unable to marshal json: %v", err)
 	}
@@ -121,7 +121,7 @@ func RestoreRemoteServices() {
 	}
 }
 
-func AddRemoteService(e protocol.ExposeRequest) {
+func AddRemoteService(e apiObject.ExposeRequest) {
 	policyResp, err := store.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: e.Id, Mbg: e.MbgID})
 	if err != nil {
 		slog.Error("unable to raise connection request event ", store.GetMyId())
@@ -138,14 +138,14 @@ func AddRemoteService(e protocol.ExposeRequest) {
 	store.AddRemoteService(e.Id, e.Ip, e.Description, e.MbgID)
 }
 
-func GetRemoteService(svcId string) []protocol.ServiceRequest {
+func GetRemoteService(svcId string) []apiObject.ServiceRequest {
 	store.UpdateState()
 	return convertRemoteService2RemoteReq(svcId)
 }
 
-func GetAllRemoteServices() map[string][]protocol.ServiceRequest {
+func GetAllRemoteServices() map[string][]apiObject.ServiceRequest {
 	store.UpdateState()
-	sArr := make(map[string][]protocol.ServiceRequest)
+	sArr := make(map[string][]apiObject.ServiceRequest)
 
 	for svcId, _ := range store.GetRemoteServicesArr() {
 		sArr[svcId] = convertRemoteService2RemoteReq(svcId)
@@ -154,12 +154,12 @@ func GetAllRemoteServices() map[string][]protocol.ServiceRequest {
 
 	return sArr
 }
-func convertRemoteService2RemoteReq(svcId string) []protocol.ServiceRequest {
-	sArr := []protocol.ServiceRequest{}
+func convertRemoteService2RemoteReq(svcId string) []apiObject.ServiceRequest {
+	sArr := []apiObject.ServiceRequest{}
 	for _, s := range store.GetRemoteService(svcId) {
 		sPort := store.GetConnectionArr()[s.Id].Local
 		sIp := sPort
-		sArr = append(sArr, protocol.ServiceRequest{Id: s.Id, Ip: sIp, Port: sPort, MbgID: s.MbgId, Description: s.Description})
+		sArr = append(sArr, apiObject.ServiceRequest{Id: s.Id, Ip: sIp, Port: sPort, MbgID: s.MbgId, Description: s.Description})
 	}
 	return sArr
 }

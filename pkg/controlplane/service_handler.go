@@ -7,14 +7,14 @@ import (
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/protocol"
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 )
 
 /******************* Local Service ****************************************/
 func AddLocalServicePostHandler(w http.ResponseWriter, r *http.Request) {
 
 	//phrase add service struct from request
-	var s protocol.ServiceRequest
+	var s apiObject.ServiceRequest
 	err := json.NewDecoder(r.Body).Decode(&s)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -94,7 +94,7 @@ func DelLocalServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 func DelLocalServiceFromPeerHandler(w http.ResponseWriter, r *http.Request) {
 	//phrase del service struct from request
-	var s protocol.ServiceDeleteRequest
+	var s apiObject.ServiceDeleteRequest
 	err := json.NewDecoder(r.Body).Decode(&s)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -117,7 +117,7 @@ func DelLocalServiceFromPeerHandler(w http.ResponseWriter, r *http.Request) {
 func AddRemoteServicePostHandler(w http.ResponseWriter, r *http.Request) {
 
 	//phrase add service struct from request
-	var e protocol.ExposeRequest
+	var e apiObject.ExposeRequest
 	err := json.NewDecoder(r.Body).Decode(&e)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -183,7 +183,7 @@ func DelRemoteServiceHandler(w http.ResponseWriter, r *http.Request) {
 	//phrase del service struct from request
 	svcId := chi.URLParam(r, "svcId")
 	//phrase add service struct from request
-	var s protocol.ServiceRequest
+	var s apiObject.ServiceRequest
 	err := json.NewDecoder(r.Body).Decode(&s)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

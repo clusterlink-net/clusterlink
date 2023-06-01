@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 
 	"github.com/sirupsen/logrus"
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
-	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
 )
 
@@ -42,7 +42,7 @@ func HelloReq(m string, myInfo store.MbgInfo) string {
 	address := store.GetAddrStart() + store.GetMbgTarget(m) + "/peer/" + myInfo.Id
 	hlog.Infof("Sending Hello message to MBG at %v", address)
 
-	j, err := json.Marshal(protocol.PeerRequest{Id: myInfo.Id, Ip: myInfo.Ip, Cport: myInfo.Cport.External})
+	j, err := json.Marshal(apiObject.PeerRequest{Id: myInfo.Id, Ip: myInfo.Ip, Cport: myInfo.Cport.External})
 	if err != nil {
 		hlog.Error(err)
 		return err.Error()

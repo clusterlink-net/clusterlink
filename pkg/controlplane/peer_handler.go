@@ -7,13 +7,13 @@ import (
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/protocol"
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 )
 
 func PeerPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	//phrase add peer struct from request
-	var p protocol.PeerRequest
+	var p apiObject.PeerRequest
 	err := json.NewDecoder(r.Body).Decode(&p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -72,7 +72,7 @@ func PeerGetHandler(w http.ResponseWriter, r *http.Request) {
 func PeerRemoveHandler(w http.ResponseWriter, r *http.Request) {
 
 	//phrase add peer struct from request
-	var p protocol.PeerRemoveRequest
+	var p apiObject.PeerRemoveRequest
 	err := json.NewDecoder(r.Body).Decode(&p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

@@ -8,16 +8,16 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	kubernetes "github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
-	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
 )
 
 var mlog = logrus.WithField("component", "mbgControlPlane/Expose")
 
-func Expose(e protocol.ExposeRequest) error {
+func Expose(e apiObject.ExposeRequest) error {
 	//Update MBG state
 	store.UpdateState()
 	return ExposeToMbg(e.Id, e.MbgID)
@@ -63,7 +63,7 @@ func ExposeReq(svcExp store.LocalService, mbgId, cType string) {
 	mlog.Printf("Starting to expose service %v (%v)", svcExp.Id, destIp)
 	address := store.GetAddrStart() + destIp + "/remoteservice"
 
-	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Description: svcExp.Description, MbgID: store.GetMyId()})
+	j, err := json.Marshal(apiObject.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Description: svcExp.Description, MbgID: store.GetMyId()})
 	if err != nil {
 		mlog.Error(err)
 		return

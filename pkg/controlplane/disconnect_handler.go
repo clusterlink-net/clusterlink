@@ -6,12 +6,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/protocol"
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 )
 
 func ConnectDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	//phrase Disconnect struct from request
-	var d protocol.DisconnectRequest
+	var d apiObject.DisconnectRequest
 	err := json.NewDecoder(r.Body).Decode(&d)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

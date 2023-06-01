@@ -7,13 +7,13 @@ import (
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/protocol"
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 )
 
 func BindingCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	//phrase expose struct from request
-	var b protocol.BindingRequest
+	var b apiObject.BindingRequest
 	err := json.NewDecoder(r.Body).Decode(&b)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

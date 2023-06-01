@@ -1,12 +1,12 @@
 package controlplane
 
 import (
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
-	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
 // Todo to replace with dexpose
-func Disconnect(d protocol.DisconnectRequest) {
+func Disconnect(d apiObject.DisconnectRequest) {
 	//Update MBG state
 	store.UpdateState()
 	connectionID := d.Id

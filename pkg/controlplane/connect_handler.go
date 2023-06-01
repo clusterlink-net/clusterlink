@@ -7,14 +7,14 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	dp "github.ibm.com/mbg-agent/pkg/dataplane/go"
-	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
 func ConnectPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	//Phrase struct from request
-	var c protocol.ConnectRequest
+	var c apiObject.ConnectRequest
 	err := json.NewDecoder(r.Body).Decode(&c)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -28,7 +28,7 @@ func ConnectPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Infof("Got {%+v, %+v, %+v} from connect \n", connect, connectType, connectDest)
 	//Set Connect response
-	respJson, err := json.Marshal(protocol.ConnectReply{Connect: connect, ConnectType: connectType, ConnectDest: connectDest})
+	respJson, err := json.Marshal(apiObject.ConnectReply{Connect: connect, ConnectType: connectType, ConnectDest: connectDest})
 	if err != nil {
 		log.Errorf("Unable to marshal json:%+v", err)
 	}
@@ -44,7 +44,7 @@ func ConnectPostHandler(w http.ResponseWriter, r *http.Request) {
 
 func HandleConnectHandler(w http.ResponseWriter, r *http.Request) {
 	//Phrase struct from request
-	var c protocol.ConnectRequest
+	var c apiObject.ConnectRequest
 	err := json.NewDecoder(r.Body).Decode(&c)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

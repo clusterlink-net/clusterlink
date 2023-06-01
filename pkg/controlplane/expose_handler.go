@@ -6,13 +6,13 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/protocol"
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 )
 
 func ExposePostHandler(w http.ResponseWriter, r *http.Request) {
 
 	//phrase expose struct from request
-	var e protocol.ExposeRequest
+	var e apiObject.ExposeRequest
 	err := json.NewDecoder(r.Body).Decode(&e)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

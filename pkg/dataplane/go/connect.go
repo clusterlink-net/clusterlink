@@ -9,10 +9,10 @@ import (
 
 	"github.com/segmentio/ksuid"
 	"github.com/sirupsen/logrus"
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
-	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
 )
 
@@ -23,7 +23,7 @@ const MTLS_TYPE = "mtls"
 
 /***************** Local Service function **********************************/
 
-func Connect(c protocol.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (bool, string, string) {
+func Connect(c apiObject.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (bool, string, string) {
 	//Update MBG state
 	store.UpdateState()
 	clog = logrus.WithFields(logrus.Fields{
@@ -40,7 +40,7 @@ func Connect(c protocol.ConnectRequest, targetMbgIP string, w http.ResponseWrite
 // ConnectLocalService waiting for connection from host and do two things:
 // 1. Create tcp connection to destination (Not Secure)- TODO support also secure connection
 // 2. Register new handle function and hijack the connection
-func StartProxyToLocalService(c protocol.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (bool, string, string) {
+func StartProxyToLocalService(c apiObject.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (bool, string, string) {
 	clog.Infof("Received Incoming Connect request from service: %v to service: %v", c.Id, c.IdDest)
 	connectionID := createConnId(c.Id, c.IdDest)
 	dataplane := store.GetDataplane()
@@ -222,7 +222,7 @@ func mtlsConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, 
 	clog.Infof("Starting mTLS Connect Request to MBG at %v for Service %v", mbgIp, svcIdDest)
 	address := store.GetAddrStart() + mbgIp + "/connect"
 
-	j, err := json.Marshal(protocol.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy, MbgID: store.GetMyId()})
+	j, err := json.Marshal(apiObject.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy, MbgID: store.GetMyId()})
 	if err != nil {
 		clog.Error(err)
 		return "", "", err
@@ -233,7 +233,7 @@ func mtlsConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, 
 		clog.Error(err)
 		return "", "", err
 	}
-	var r protocol.ConnectReply
+	var r apiObject.ConnectReply
 	err = json.Unmarshal(resp, &r)
 	if err != nil {
 		clog.Error(err)
@@ -252,7 +252,7 @@ func tcpConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (net.Conn, error) 
 	clog.Printf("Starting TCP Connect Request to MBG at %v for service %v", mbgIp, svcIdDest)
 	url := store.GetAddrStart() + mbgIp + "/connect"
 
-	jsonData, err := json.Marshal(protocol.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy, MbgID: store.GetMyId()})
+	jsonData, err := json.Marshal(apiObject.ConnectRequest{Id: svcId, IdDest: svcIdDest, Policy: svcPolicy, MbgID: store.GetMyId()})
 	if err != nil {
 		clog.Error(err)
 		return nil, err
