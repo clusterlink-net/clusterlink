@@ -10,8 +10,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/controlplane/state"
-	"github.ibm.com/mbg-agent/pkg/deployment/kubernetes"
 	event "github.ibm.com/mbg-agent/pkg/eventManager"
+	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 	handler "github.ibm.com/mbg-agent/pkg/protocol/http/mbg"

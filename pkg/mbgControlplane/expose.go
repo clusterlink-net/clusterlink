@@ -9,8 +9,8 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.ibm.com/mbg-agent/cmd/controlplane/state"
-	"github.ibm.com/mbg-agent/pkg/deployment/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
+	kubernetes "github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 )
