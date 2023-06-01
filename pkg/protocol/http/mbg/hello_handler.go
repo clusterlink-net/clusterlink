@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
+	cp "github.ibm.com/mbg-agent/pkg/controlplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
@@ -19,7 +19,7 @@ func (m MbgHandler) sendHello(w http.ResponseWriter, r *http.Request) {
 
 	//Hello control plane logic
 	log.Infof("Send Hello to MBG id: %v", mbgID)
-	resp := mbgControlplane.SendHello(mbgID)
+	resp := cp.SendHello(mbgID)
 
 	j, err := json.Marshal(protocol.HelloResponse{Status: resp})
 	if err != nil {
@@ -39,7 +39,7 @@ func (m MbgHandler) sendHello2All(w http.ResponseWriter, r *http.Request) {
 
 	//Hello control plane logic
 	log.Infof("Send Hello to MBG peers")
-	resp := mbgControlplane.SendHello2All()
+	resp := cp.SendHello2All()
 
 	j, err := json.Marshal(protocol.HelloResponse{Status: resp})
 	if err != nil {
@@ -63,7 +63,7 @@ func (m MbgHandler) handleHB(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mbgControlplane.RecvHeartbeat(h.Id)
+	cp.RecvHeartbeat(h.Id)
 
 	//Response
 	w.WriteHeader(http.StatusOK)

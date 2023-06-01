@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
+	cp "github.ibm.com/mbg-agent/pkg/controlplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
@@ -22,7 +22,7 @@ func (m MbgHandler) bindingCreate(w http.ResponseWriter, r *http.Request) {
 
 	}
 	log.Infof("Creating binding to service: %+v", b)
-	err = mbgControlplane.CreateLocalServiceEndpoint(b.Id, b.Port, b.Name, b.Namespace, b.MbgApp)
+	err = cp.CreateLocalServiceEndpoint(b.Id, b.Port, b.Name, b.Namespace, b.MbgApp)
 	if err != nil {
 		log.Errorf("Unable to create binding: %+v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -36,7 +36,7 @@ func (m MbgHandler) bindingDelete(w http.ResponseWriter, r *http.Request) {
 	svcId := chi.URLParam(r, "svcId")
 
 	log.Infof("Removing binding to service: %s", svcId)
-	err := mbgControlplane.DeleteLocalServiceEndpoint(svcId)
+	err := cp.DeleteLocalServiceEndpoint(svcId)
 	if err != nil {
 		log.Errorf("Unable to delete binding: %+v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)

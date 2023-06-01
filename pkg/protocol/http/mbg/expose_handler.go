@@ -6,7 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
+	cp "github.ibm.com/mbg-agent/pkg/controlplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
@@ -22,7 +22,7 @@ func (m MbgHandler) exposePost(w http.ResponseWriter, r *http.Request) {
 	}
 	//Expose control plane logic
 	log.Infof("Received expose to service: %v", e.Id)
-	err = mbgControlplane.Expose(e)
+	err = cp.Expose(e)
 
 	//Response
 	if err != nil {

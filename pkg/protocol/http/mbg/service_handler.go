@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
+	cp "github.ibm.com/mbg-agent/pkg/controlplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
@@ -24,7 +24,7 @@ func (m MbgHandler) addLocalServicePost(w http.ResponseWriter, r *http.Request) 
 
 	//AddService control plane logic
 	log.Debugf("Received Add local service command to service: %v", s.Id)
-	mbgControlplane.AddLocalService(s)
+	cp.AddLocalService(s)
 
 	//Response
 	w.WriteHeader(http.StatusOK)
@@ -38,7 +38,7 @@ func (m MbgHandler) allLocalServicesGet(w http.ResponseWriter, r *http.Request) 
 
 	//GetService control plane logic
 	log.Debug("Received get local services command")
-	sArr := mbgControlplane.GetAllLocalServices()
+	sArr := cp.GetAllLocalServices()
 
 	//Response
 	w.Header().Set("Content-Type", "application/json")
@@ -61,7 +61,7 @@ func (m MbgHandler) localServiceGet(w http.ResponseWriter, r *http.Request) {
 
 	//GetService control plane logic
 	log.Debugf("Received get local service command to service: %v", svcId)
-	s := mbgControlplane.GetLocalService(svcId)
+	s := cp.GetLocalService(svcId)
 
 	//Response
 	w.Header().Set("Content-Type", "application/json")
@@ -83,7 +83,7 @@ func (m MbgHandler) delLocalService(w http.ResponseWriter, r *http.Request) {
 
 	//AddService control plane logic
 	log.Debugf("Received delete local service command to service: %v", svcId)
-	mbgControlplane.DelLocalService(svcId)
+	cp.DelLocalService(svcId)
 
 	//Response
 	w.WriteHeader(http.StatusOK)
@@ -104,7 +104,7 @@ func (m MbgHandler) delLocalServiceFromPeer(w http.ResponseWriter, r *http.Reque
 	}
 	//AddService control plane logic
 	log.Infof("Received delete local service : %v from peer: %v", s.Id, s.Peer)
-	mbgControlplane.DelLocalServiceFromPeer(s.Id, s.Peer)
+	cp.DelLocalServiceFromPeer(s.Id, s.Peer)
 
 	//Response
 	w.WriteHeader(http.StatusOK)
@@ -127,7 +127,7 @@ func (m MbgHandler) addRemoteServicePost(w http.ResponseWriter, r *http.Request)
 	}
 	//AddService control plane logic
 	log.Debugf("Received Add remote service command to service: %v", e.Id)
-	mbgControlplane.AddRemoteService(e)
+	cp.AddRemoteService(e)
 
 	//Response
 	w.WriteHeader(http.StatusOK)
@@ -141,7 +141,7 @@ func (m MbgHandler) allRemoteServicesGet(w http.ResponseWriter, r *http.Request)
 
 	//GetService control plane logic
 	log.Debug("Received get Remote services command")
-	sArr := mbgControlplane.GetAllRemoteServices()
+	sArr := cp.GetAllRemoteServices()
 
 	//Response
 	w.Header().Set("Content-Type", "application/json")
@@ -164,7 +164,7 @@ func (m MbgHandler) remoteServiceGet(w http.ResponseWriter, r *http.Request) {
 
 	//GetService control plane logic
 	log.Infof("Received get local service command to service: %v", svcId)
-	s := mbgControlplane.GetRemoteService(svcId)
+	s := cp.GetRemoteService(svcId)
 
 	//Response
 	w.Header().Set("Content-Type", "application/json")
@@ -193,7 +193,7 @@ func (m MbgHandler) delRemoteService(w http.ResponseWriter, r *http.Request) {
 
 	//AddService control plane logic
 	log.Debugf("Received delete remote service command to service: %v", svcId)
-	mbgControlplane.DelRemoteService(svcId, s.MbgID)
+	cp.DelRemoteService(svcId, s.MbgID)
 
 	//Response
 	w.WriteHeader(http.StatusOK)

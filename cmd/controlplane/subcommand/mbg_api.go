@@ -10,9 +10,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/controlplane/state"
+	cp "github.ibm.com/mbg-agent/pkg/controlplane"
 	event "github.ibm.com/mbg-agent/pkg/eventManager"
 	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
-	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 	handler "github.ibm.com/mbg-agent/pkg/protocol/http/mbg"
 )
@@ -35,12 +35,12 @@ func (m *Mbg) AddPolicyEngine(policyEngineTarget string, start bool, zeroTrust b
 }
 
 func (m *Mbg) StartMbg() {
-	go mbgControlplane.SendHeartBeats()
+	go cp.SendHeartBeats()
 	err := kubernetes.InitializeKubeDeployment("")
 	if err != nil {
 		log.Errorf("Failed to initialize kube deployment: %+v", err)
 	}
-	mbgControlplane.MonitorHeartBeats()
+	cp.MonitorHeartBeats()
 }
 
 func startHttpServer(ip string) {
@@ -130,9 +130,9 @@ func RestoreMbg(id string, policyEngineTarget, logLevel string, logFile, startPo
 		go startHttpServer(state.GetMyCport().Local)
 	}
 
-	time.Sleep(mbgControlplane.Interval)
+	time.Sleep(cp.Interval)
 	state.RestoreMbg()
-	mbgControlplane.RestoreRemoteServices()
+	cp.RestoreRemoteServices()
 
 	return Mbg{state.GetMyId()}, nil
 }

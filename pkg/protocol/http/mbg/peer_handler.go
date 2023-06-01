@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
+	cp "github.ibm.com/mbg-agent/pkg/controlplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
@@ -21,7 +21,7 @@ func (m MbgHandler) peerPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//AddPeer control plane logic
-	mbgControlplane.AddPeer(p)
+	cp.AddPeer(p)
 
 	//Response
 	w.WriteHeader(http.StatusOK)
@@ -34,7 +34,7 @@ func (m MbgHandler) peerPost(w http.ResponseWriter, r *http.Request) {
 func (m MbgHandler) peerGetAll(w http.ResponseWriter, r *http.Request) {
 
 	//AddPeer control plane logic
-	p := mbgControlplane.GetAllPeers()
+	p := cp.GetAllPeers()
 
 	//Response
 	w.WriteHeader(http.StatusOK)
@@ -55,7 +55,7 @@ func (m MbgHandler) peerGet(w http.ResponseWriter, r *http.Request) {
 	mbgID := chi.URLParam(r, "mbgID")
 
 	//AddPeer control plane logic
-	p := mbgControlplane.GetPeer(mbgID)
+	p := cp.GetPeer(mbgID)
 
 	//Response
 	w.WriteHeader(http.StatusOK)
@@ -80,7 +80,7 @@ func (m MbgHandler) peerRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//RemovePeer control plane logic
-	mbgControlplane.RemovePeer(p)
+	cp.RemovePeer(p)
 
 	//Response
 	w.WriteHeader(http.StatusOK)

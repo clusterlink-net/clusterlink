@@ -6,7 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/mbgControlplane"
+	cp "github.ibm.com/mbg-agent/pkg/controlplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
@@ -22,7 +22,7 @@ func (m MbgHandler) connectDelete(w http.ResponseWriter, r *http.Request) {
 
 	//Expose control plane logic
 	log.Infof("Received disconnect to service: %v", d.Id)
-	mbgControlplane.Disconnect(d)
+	cp.Disconnect(d)
 	//Response
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write([]byte("Disconnect succeed"))
