@@ -7,7 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/mbgDataplane"
+	dp "github.ibm.com/mbg-agent/pkg/dataplane/go"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
@@ -24,7 +24,7 @@ func (m MbgHandler) connectPost(w http.ResponseWriter, r *http.Request) {
 	//Connect data plane logic
 	mbgIP := strings.Split(r.RemoteAddr, ":")[0]
 	log.Infof("Received connect to service %s from MBG: %s", c.Id, mbgIP)
-	connect, connectType, connectDest := mbgDataplane.Connect(c, mbgIP, nil)
+	connect, connectType, connectDest := dp.Connect(c, mbgIP, nil)
 
 	log.Infof("Got {%+v, %+v, %+v} from connect \n", connect, connectType, connectDest)
 	//Set Connect response
@@ -57,7 +57,7 @@ func (m MbgHandler) handleConnect(w http.ResponseWriter, r *http.Request) {
 	//connection logic
 	mbgIP := strings.Split(r.RemoteAddr, ":")[0]
 	log.Infof("Received connect to service %s from MBG: %s", c.Id, mbgIP)
-	allow, _, _ := mbgDataplane.Connect(c, mbgIP, w)
+	allow, _, _ := dp.Connect(c, mbgIP, w)
 
 	//Write response for error
 	if allow != true {

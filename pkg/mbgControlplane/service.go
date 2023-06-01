@@ -5,8 +5,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/controlplane/state"
+	md "github.ibm.com/mbg-agent/pkg/dataplane/go"
 	"github.ibm.com/mbg-agent/pkg/eventManager"
-	md "github.ibm.com/mbg-agent/pkg/mbgDataplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpAux "github.ibm.com/mbg-agent/pkg/protocol/http/aux_func"
 	"golang.org/x/exp/maps"
