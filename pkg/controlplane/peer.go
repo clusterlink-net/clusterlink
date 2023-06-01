@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/controlplane/state"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/controlplane/healthMonitor"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
 )
@@ -77,5 +78,5 @@ func RemovePeer(p protocol.PeerRemoveRequest) {
 
 	// Remove remote MBG from current MBG's peer
 	state.RemoveMbg(p.Id)
-	RemoveLastSeen(p.Id)
+	healthMonitor.RemoveLastSeen(p.Id)
 }

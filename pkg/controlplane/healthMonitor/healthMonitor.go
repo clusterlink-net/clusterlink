@@ -1,4 +1,4 @@
-package mbgControlplane
+package healthMonitor
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
 )
 
-var klog = logrus.WithField("component", "mbgControlPlane/HealthMonitor")
+var klog = logrus.WithField("component", "controlPlane/HealthMonitor")
 
 const (
 	timeout  = 5 //seconds
@@ -103,7 +103,7 @@ func MonitorHeartBeats() {
 				klog.Errorf("Heartbeat Timeout reached, Inactivating MBG %s(LastSeen:%v)", m, lastSeen)
 				err := state.GetEventManager().RaiseRemovePeerEvent(eventManager.RemovePeerAttr{PeerMbg: m})
 				if err != nil {
-					plog.Errorf("Unable to raise remove peer event")
+					klog.Errorf("Unable to raise remove peer event")
 					return
 				}
 				state.InactivateMbg(m)

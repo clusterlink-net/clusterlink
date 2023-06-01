@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	cp "github.ibm.com/mbg-agent/pkg/controlplane"
+	"github.ibm.com/mbg-agent/pkg/controlplane/healthMonitor"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
@@ -63,7 +64,7 @@ func (m MbgHandler) handleHB(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cp.RecvHeartbeat(h.Id)
+	healthMonitor.RecvHeartbeat(h.Id)
 
 	//Response
 	w.WriteHeader(http.StatusOK)
