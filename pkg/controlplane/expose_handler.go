@@ -1,4 +1,4 @@
-package handler
+package controlplane
 
 import (
 	"encoding/json"
@@ -6,11 +6,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	cp "github.ibm.com/mbg-agent/pkg/controlplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
-func (m MbgHandler) exposePost(w http.ResponseWriter, r *http.Request) {
+func ExposePostHandler(w http.ResponseWriter, r *http.Request) {
 
 	//phrase expose struct from request
 	var e protocol.ExposeRequest
@@ -22,7 +21,7 @@ func (m MbgHandler) exposePost(w http.ResponseWriter, r *http.Request) {
 	}
 	//Expose control plane logic
 	log.Infof("Received expose to service: %v", e.Id)
-	err = cp.Expose(e)
+	err = Expose(e)
 
 	//Response
 	if err != nil {

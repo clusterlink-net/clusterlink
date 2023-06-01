@@ -1,4 +1,4 @@
-package mbgControlplane
+package controlplane
 
 import (
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"

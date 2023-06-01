@@ -1,4 +1,4 @@
-package handler
+package controlplane
 
 import (
 	"encoding/json"
@@ -7,11 +7,10 @@ import (
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
-	cp "github.ibm.com/mbg-agent/pkg/controlplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
-func (m MbgHandler) peerPost(w http.ResponseWriter, r *http.Request) {
+func PeerPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	//phrase add peer struct from request
 	var p protocol.PeerRequest
@@ -21,7 +20,7 @@ func (m MbgHandler) peerPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//AddPeer control plane logic
-	cp.AddPeer(p)
+	AddPeer(p)
 
 	//Response
 	w.WriteHeader(http.StatusOK)
@@ -31,10 +30,10 @@ func (m MbgHandler) peerPost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (m MbgHandler) peerGetAll(w http.ResponseWriter, r *http.Request) {
+func PeerGetAllHandler(w http.ResponseWriter, r *http.Request) {
 
 	//AddPeer control plane logic
-	p := cp.GetAllPeers()
+	p := GetAllPeers()
 
 	//Response
 	w.WriteHeader(http.StatusOK)
@@ -50,12 +49,12 @@ func (m MbgHandler) peerGetAll(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (m MbgHandler) peerGet(w http.ResponseWriter, r *http.Request) {
+func PeerGetHandler(w http.ResponseWriter, r *http.Request) {
 
 	mbgID := chi.URLParam(r, "mbgID")
 
 	//AddPeer control plane logic
-	p := cp.GetPeer(mbgID)
+	p := GetPeer(mbgID)
 
 	//Response
 	w.WriteHeader(http.StatusOK)
@@ -70,7 +69,7 @@ func (m MbgHandler) peerGet(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 }
-func (m MbgHandler) peerRemove(w http.ResponseWriter, r *http.Request) {
+func PeerRemoveHandler(w http.ResponseWriter, r *http.Request) {
 
 	//phrase add peer struct from request
 	var p protocol.PeerRemoveRequest
@@ -80,7 +79,7 @@ func (m MbgHandler) peerRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//RemovePeer control plane logic
-	cp.RemovePeer(p)
+	RemovePeer(p)
 
 	//Response
 	w.WriteHeader(http.StatusOK)

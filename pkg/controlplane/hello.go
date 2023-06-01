@@ -1,4 +1,4 @@
-package mbgControlplane
+package controlplane
 
 import (
 	"encoding/json"

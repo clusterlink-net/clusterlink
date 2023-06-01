@@ -1,4 +1,4 @@
-package handler
+package controlplane
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
-func (m MbgHandler) connectPost(w http.ResponseWriter, r *http.Request) {
+func ConnectPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	//Phrase struct from request
 	var c protocol.ConnectRequest
@@ -42,7 +42,7 @@ func (m MbgHandler) connectPost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (m MbgHandler) handleConnect(w http.ResponseWriter, r *http.Request) {
+func HandleConnectHandler(w http.ResponseWriter, r *http.Request) {
 	//Phrase struct from request
 	var c protocol.ConnectRequest
 	err := json.NewDecoder(r.Body).Decode(&c)

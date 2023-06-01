@@ -1,4 +1,4 @@
-package handler
+package controlplane
 
 import (
 	"encoding/json"
@@ -6,11 +6,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	cp "github.ibm.com/mbg-agent/pkg/controlplane"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 )
 
-func (m MbgHandler) connectDelete(w http.ResponseWriter, r *http.Request) {
+func ConnectDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	//phrase Disconnect struct from request
 	var d protocol.DisconnectRequest
 	err := json.NewDecoder(r.Body).Decode(&d)
@@ -22,7 +21,7 @@ func (m MbgHandler) connectDelete(w http.ResponseWriter, r *http.Request) {
 
 	//Expose control plane logic
 	log.Infof("Received disconnect to service: %v", d.Id)
-	cp.Disconnect(d)
+	Disconnect(d)
 	//Response
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write([]byte("Disconnect succeed"))
