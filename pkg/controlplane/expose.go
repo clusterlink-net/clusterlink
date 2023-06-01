@@ -8,8 +8,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 
-	"github.ibm.com/mbg-agent/cmd/controlplane/state"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	kubernetes "github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/protocol"
 	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
@@ -19,12 +19,12 @@ var mlog = logrus.WithField("component", "mbgControlPlane/Expose")
 
 func Expose(e protocol.ExposeRequest) error {
 	//Update MBG state
-	state.UpdateState()
+	store.UpdateState()
 	return ExposeToMbg(e.Id, e.MbgID)
 }
 
 func ExposeToMbg(serviceId, peerId string) error {
-	exposeResp, err := state.GetEventManager().RaiseExposeRequestEvent(eventManager.ExposeRequestAttr{Service: serviceId})
+	exposeResp, err := store.GetEventManager().RaiseExposeRequestEvent(eventManager.ExposeRequestAttr{Service: serviceId})
 	if err != nil {
 		return fmt.Errorf("Unable to raise expose request event")
 	}
@@ -34,15 +34,15 @@ func ExposeToMbg(serviceId, peerId string) error {
 		return fmt.Errorf("Denying Expose of service %s", serviceId)
 	}
 
-	myIp := state.GetMyIp()
-	svcExp := state.GetLocalService(serviceId)
+	myIp := store.GetMyIp()
+	svcExp := store.GetLocalService(serviceId)
 	if svcExp.Ip == "" {
 		return fmt.Errorf("Denying Expose of service %s - target is not set", serviceId)
 	}
 	svcExp.Ip = myIp
 	if peerId == "" { //Expose to all
 		if exposeResp.Action == eventManager.AllowAll {
-			for _, mbgId := range state.GetMbgList() {
+			for _, mbgId := range store.GetMbgList() {
 				ExposeReq(svcExp, mbgId, "MBG")
 			}
 			return nil
@@ -58,26 +58,26 @@ func ExposeToMbg(serviceId, peerId string) error {
 	return nil
 }
 
-func ExposeReq(svcExp state.LocalService, mbgId, cType string) {
-	destIp := state.GetMbgTarget(mbgId)
+func ExposeReq(svcExp store.LocalService, mbgId, cType string) {
+	destIp := store.GetMbgTarget(mbgId)
 	mlog.Printf("Starting to expose service %v (%v)", svcExp.Id, destIp)
-	address := state.GetAddrStart() + destIp + "/remoteservice"
+	address := store.GetAddrStart() + destIp + "/remoteservice"
 
-	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Description: svcExp.Description, MbgID: state.GetMyId()})
+	j, err := json.Marshal(protocol.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Description: svcExp.Description, MbgID: store.GetMyId()})
 	if err != nil {
 		mlog.Error(err)
 		return
 	}
 	//Send expose
-	resp, err := httpUtils.HttpPost(address, j, state.GetHttpClient())
+	resp, err := httpUtils.HttpPost(address, j, store.GetHttpClient())
 	mlog.Infof("Service(%s) Expose Response message:  %s", svcExp.Id, string(resp))
 	if string(resp) != httpUtils.RESPFAIL {
-		state.AddPeerLocalService(svcExp.Id, mbgId)
+		store.AddPeerLocalService(svcExp.Id, mbgId)
 	}
 }
 
 func CreateLocalServiceEndpoint(serviceId string, port int, name, namespace, mbgAppName string) error {
-	sPort := state.GetConnectionArr()[serviceId].Local
+	sPort := store.GetConnectionArr()[serviceId].Local
 
 	targetPort, err := strconv.Atoi(sPort[1:])
 	if err != nil {

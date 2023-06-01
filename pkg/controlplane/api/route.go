@@ -6,13 +6,13 @@ import (
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/cmd/controlplane/state"
+	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 )
 
 type MbgHandler struct{}
 
 func (m MbgHandler) Routes() chi.Router {
-	r := state.GetChiRouter()
+	r := store.GetChiRouter()
 
 	r.Get("/", m.mbgWelcome)
 

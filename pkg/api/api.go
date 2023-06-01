@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	mbg "github.ibm.com/mbg-agent/cmd/controlplane/state"
+	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
@@ -153,38 +153,38 @@ func (g *Gwctl) GetPeers() ([]string, error) {
 	return peers, nil
 }
 
-func (g *Gwctl) GetLocalServices() ([]mbg.LocalService, error) {
+func (g *Gwctl) GetLocalServices() ([]store.LocalService, error) {
 	d, _ := GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service/"
 	resp, err := httpUtils.HttpGet(address, g.GetHttpClient())
 	if err != nil {
-		return []mbg.LocalService{}, err
+		return []store.LocalService{}, err
 	}
 	sArr := make(map[string]protocol.ServiceRequest)
 	if err := json.Unmarshal(resp, &sArr); err != nil {
-		return []mbg.LocalService{}, err
+		return []store.LocalService{}, err
 	}
-	var serviceArr []mbg.LocalService
+	var serviceArr []store.LocalService
 	for _, s := range sArr {
-		serviceArr = append(serviceArr, mbg.LocalService{Id: s.Id, Ip: s.Ip, Port: s.Port, Description: s.Description})
+		serviceArr = append(serviceArr, store.LocalService{Id: s.Id, Ip: s.Ip, Port: s.Port, Description: s.Description})
 	}
 	return serviceArr, nil
 }
 
-func (g *Gwctl) GetLocalService(id string) (mbg.LocalService, error) {
+func (g *Gwctl) GetLocalService(id string) (store.LocalService, error) {
 	d, _ := GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service/" + id
 	resp, err := httpUtils.HttpGet(address, g.GetHttpClient())
 	if err != nil {
-		return mbg.LocalService{}, err
+		return store.LocalService{}, err
 	}
 	var s protocol.ServiceRequest
 	if err := json.Unmarshal(resp, &s); err != nil {
-		return mbg.LocalService{}, err
+		return store.LocalService{}, err
 	}
-	return mbg.LocalService{Id: s.Id, Ip: s.Ip, Port: s.Port, Description: s.Description}, nil
+	return store.LocalService{Id: s.Id, Ip: s.Ip, Port: s.Port, Description: s.Description}, nil
 }
 
 func (g *Gwctl) GetRemoteService(id string) ([]protocol.ServiceRequest, error) {

@@ -9,11 +9,11 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/mbg-agent/cmd/controlplane/state"
 	cp "github.ibm.com/mbg-agent/pkg/controlplane"
 	handler "github.ibm.com/mbg-agent/pkg/controlplane/api"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/healthMonitor"
+	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 )
@@ -23,15 +23,15 @@ type Mbg struct {
 }
 
 func (m *Mbg) AddPolicyEngine(policyEngineTarget string, start bool, zeroTrust bool) {
-	state.GetEventManager().AssignPolicyDispatcher(state.GetAddrStart()+policyEngineTarget+"/policy", state.GetHttpClient())
+	store.GetEventManager().AssignPolicyDispatcher(store.GetAddrStart()+policyEngineTarget+"/policy", store.GetHttpClient())
 	// TODO : Handle different MBG IDs
-	state.SaveState()
+	store.SaveState()
 	defaultRule := event.AllowAll
 	if zeroTrust {
 		defaultRule = event.Deny
 	}
 	if start {
-		policyEngine.StartPolicyDispatcher(state.GetChiRouter(), defaultRule)
+		policyEngine.StartPolicyDispatcher(store.GetChiRouter(), defaultRule)
 	}
 }
 
@@ -46,7 +46,7 @@ func (m *Mbg) StartMbg() {
 
 func startHttpServer(ip string) {
 	//Set chi router
-	r := state.GetChiRouter()
+	r := store.GetChiRouter()
 	r.Mount("/", handler.MbgHandler{}.Routes())
 
 	//Use router to start the server
@@ -67,7 +67,7 @@ func startMtlsServer(ip, rootCA, certificate, key string) {
 		ClientAuth: tls.RequireAndVerifyClientCert,
 	}
 	//Set chi router
-	r := state.GetChiRouter()
+	r := store.GetChiRouter()
 	r.Mount("/", handler.MbgHandler{}.Routes())
 
 	// Create a Server instance to listen on port 8443 with the TLS config
@@ -104,8 +104,8 @@ func initLogger(logLevel string, op *os.File) {
 func CreateMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, dataplane,
 	caFile, certificateFile, keyFile, logLevel string, logFile, restore bool) (Mbg, error) {
 
-	state.SetLog(logLevel, logFile)
-	state.SetState(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
+	store.SetLog(logLevel, logFile)
+	store.SetState(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
 
 	if dataplane == "mtls" {
 		go startMtlsServer(":"+cportLocal, caFile, certificateFile, keyFile)
@@ -118,22 +118,22 @@ func CreateMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalData
 
 func RestoreMbg(id string, policyEngineTarget, logLevel string, logFile, startPolicyEngine bool, zeroTrust bool) (Mbg, error) {
 
-	state.UpdateState()
-	state.SetLog(logLevel, logFile)
-	m := Mbg{state.GetMyId()}
+	store.UpdateState()
+	store.SetLog(logLevel, logFile)
+	m := Mbg{store.GetMyId()}
 	if startPolicyEngine {
-		go m.AddPolicyEngine("localhost"+state.GetMyCport().Local, true, zeroTrust)
+		go m.AddPolicyEngine("localhost"+store.GetMyCport().Local, true, zeroTrust)
 	}
 
-	if state.GetDataplane() == "mtls" {
-		go startMtlsServer(state.GetMyCport().Local, state.GetMyInfo().CaFile, state.GetMyInfo().CertificateFile, state.GetMyInfo().KeyFile)
+	if store.GetDataplane() == "mtls" {
+		go startMtlsServer(store.GetMyCport().Local, store.GetMyInfo().CaFile, store.GetMyInfo().CertificateFile, store.GetMyInfo().KeyFile)
 	} else {
-		go startHttpServer(state.GetMyCport().Local)
+		go startHttpServer(store.GetMyCport().Local)
 	}
 
 	time.Sleep(healthMonitor.Interval)
-	state.RestoreMbg()
+	store.RestoreMbg()
 	cp.RestoreRemoteServices()
 
-	return Mbg{state.GetMyId()}, nil
+	return Mbg{store.GetMyId()}, nil
 }
