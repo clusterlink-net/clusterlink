@@ -7,7 +7,7 @@ import (
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
-	dp "github.ibm.com/mbg-agent/pkg/dataplane/go"
+	dp "github.ibm.com/mbg-agent/pkg/dataplane"
 	"github.ibm.com/mbg-agent/pkg/utils/httputils"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"

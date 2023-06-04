@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
-	dp "github.ibm.com/mbg-agent/pkg/dataplane/go"
+	dp "github.ibm.com/mbg-agent/pkg/dataplane"
 )
 
 func ConnectPostHandler(w http.ResponseWriter, r *http.Request) {
