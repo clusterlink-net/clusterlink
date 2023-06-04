@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
-	"github.ibm.com/mbg-agent/pkg/controlplane/healthMonitor"
+	"github.ibm.com/mbg-agent/pkg/controlplane/health"
 )
 
 // Send hello to specific mbg
@@ -63,7 +63,7 @@ func HandleHB(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	healthMonitor.RecvHeartbeat(h.Id)
+	health.RecvHeartbeat(h.Id)
 
 	//Response
 	w.WriteHeader(http.StatusOK)

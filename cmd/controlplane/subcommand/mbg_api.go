@@ -12,7 +12,7 @@ import (
 	cp "github.ibm.com/mbg-agent/pkg/controlplane"
 	handler "github.ibm.com/mbg-agent/pkg/controlplane/api"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
-	"github.ibm.com/mbg-agent/pkg/controlplane/healthMonitor"
+	"github.ibm.com/mbg-agent/pkg/controlplane/health"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
@@ -36,12 +36,12 @@ func (m *Mbg) AddPolicyEngine(policyEngineTarget string, start bool, zeroTrust b
 }
 
 func (m *Mbg) StartMbg() {
-	go healthMonitor.SendHeartBeats()
+	go health.SendHeartBeats()
 	err := kubernetes.InitializeKubeDeployment("")
 	if err != nil {
 		log.Errorf("Failed to initialize kube deployment: %+v", err)
 	}
-	healthMonitor.MonitorHeartBeats()
+	health.MonitorHeartBeats()
 }
 
 func startHttpServer(ip string) {
@@ -131,7 +131,7 @@ func RestoreMbg(id string, policyEngineTarget, logLevel string, logFile, startPo
 		go startHttpServer(store.GetMyCport().Local)
 	}
 
-	time.Sleep(healthMonitor.Interval)
+	time.Sleep(health.Interval)
 	store.RestoreMbg()
 	cp.RestoreRemoteServices()
 

@@ -1,4 +1,4 @@
-package healthMonitor
+package health
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
 )
 
-var klog = logrus.WithField("component", "controlPlane/HealthMonitor")
+var klog = logrus.WithField("component", "controlPlane/health")
 
 const (
 	timeout  = 5 //seconds
