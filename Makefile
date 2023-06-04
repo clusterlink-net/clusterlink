@@ -1,6 +1,5 @@
 SW_VERSION ?= latest
 IMAGE_ORG ?= mcnet
-PROJECT_NAME ?= mbg
 
 IMAGE_TAG_BASE ?= quay.io/$(IMAGE_ORG)/mbg
 IMG ?= $(IMAGE_TAG_BASE):$(SW_VERSION)
