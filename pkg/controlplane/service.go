@@ -8,7 +8,7 @@ import (
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	dp "github.ibm.com/mbg-agent/pkg/dataplane/go"
-	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
+	"github.ibm.com/mbg-agent/pkg/utils/httputils"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
@@ -78,7 +78,7 @@ func delServiceInPeerReq(svcId, serviceMbg, peerIp string) {
 	}
 
 	//send
-	resp, _ := httpUtils.HttpDelete(address, j, store.GetHttpClient())
+	resp, _ := httputils.HttpDelete(address, j, store.GetHttpClient())
 	slog.Printf("Response message for deleting service [%s]:%s \n", svcId, string(resp))
 }
 

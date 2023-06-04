@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
-	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
+	"github.ibm.com/mbg-agent/pkg/utils/httputils"
 )
 
 var hlog = logrus.WithField("component", "mbgControlPlane/Hello")
@@ -21,7 +21,7 @@ func SendHello(mbgId string) string {
 		return resp
 	} else {
 		hlog.Errorf("Unable to find MBG %v in the peers list", mbgId)
-		return httpUtils.RESPFAIL
+		return httputils.RESPFAIL
 	}
 }
 
@@ -30,11 +30,11 @@ func SendHello2All() string {
 	MyInfo := store.GetMyInfo()
 	for _, mbgId := range store.GetMbgList() {
 		resp := HelloReq(mbgId, MyInfo)
-		if resp != httpUtils.RESPOK {
+		if resp != httputils.RESPOK {
 			return resp
 		}
 	}
-	return httpUtils.RESPOK
+	return httputils.RESPOK
 }
 
 // send hello request(http) to other mbg
@@ -48,12 +48,12 @@ func HelloReq(m string, myInfo store.MbgInfo) string {
 		return err.Error()
 	}
 	//Send hello
-	resp, _ := httpUtils.HttpPost(address, j, store.GetHttpClient())
+	resp, _ := httputils.HttpPost(address, j, store.GetHttpClient())
 
-	if string(resp) == httpUtils.RESPFAIL {
+	if string(resp) == httputils.RESPFAIL {
 		return string(resp)
 	} else {
-		return httpUtils.RESPOK
+		return httputils.RESPOK
 	}
 
 }

@@ -18,7 +18,7 @@ import (
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
-	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
+	"github.ibm.com/mbg-agent/pkg/utils/httputils"
 )
 
 type Gwctl struct {
@@ -62,7 +62,7 @@ func (g *Gwctl) AddPeer(id, target, peerCport string) error {
 	if err != nil {
 		return err
 	}
-	_, err = httpUtils.HttpPost(address, j, g.GetHttpClient())
+	_, err = httputils.HttpPost(address, j, g.GetHttpClient())
 	return err
 }
 
@@ -83,7 +83,7 @@ func (g *Gwctl) AddService(id, target, port, description string) error {
 	if err != nil {
 		return err
 	}
-	_, err = httpUtils.HttpPost(address, j, g.GetHttpClient())
+	_, err = httputils.HttpPost(address, j, g.GetHttpClient())
 	return err
 }
 
@@ -98,7 +98,7 @@ func (g *Gwctl) ExposeService(svcId, peer string) error {
 		return err
 	}
 	//send expose
-	_, err = httpUtils.HttpPost(address, j, g.GetHttpClient())
+	_, err = httputils.HttpPost(address, j, g.GetHttpClient())
 	return err
 }
 
@@ -108,12 +108,12 @@ func (g *Gwctl) SendHello(peer ...string) error {
 	j := []byte{}
 	if len(peer) != 0 {
 		address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/hello/" + peer[0]
-		_, err := httpUtils.HttpPost(address, j, g.GetHttpClient())
+		_, err := httputils.HttpPost(address, j, g.GetHttpClient())
 		return err
 	}
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/hello/"
 
-	_, err := httpUtils.HttpPost(address, j, g.GetHttpClient())
+	_, err := httputils.HttpPost(address, j, g.GetHttpClient())
 	return err
 }
 
@@ -122,7 +122,7 @@ func (g *Gwctl) GetPeer(peer string) (string, error) {
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/peer/" + peer
 
-	resp, err := httpUtils.HttpGet(address, g.GetHttpClient())
+	resp, err := httputils.HttpGet(address, g.GetHttpClient())
 	if err != nil {
 		return "", err
 	}
@@ -139,7 +139,7 @@ func (g *Gwctl) GetPeers() ([]string, error) {
 
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/peer/"
 
-	resp, err := httpUtils.HttpGet(address, g.GetHttpClient())
+	resp, err := httputils.HttpGet(address, g.GetHttpClient())
 	if err != nil {
 		return []string{}, err
 	}
@@ -158,7 +158,7 @@ func (g *Gwctl) GetLocalServices() ([]store.LocalService, error) {
 	d, _ := config.GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service/"
-	resp, err := httpUtils.HttpGet(address, g.GetHttpClient())
+	resp, err := httputils.HttpGet(address, g.GetHttpClient())
 	if err != nil {
 		return []store.LocalService{}, err
 	}
@@ -177,7 +177,7 @@ func (g *Gwctl) GetLocalService(id string) (store.LocalService, error) {
 	d, _ := config.GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service/" + id
-	resp, err := httpUtils.HttpGet(address, g.GetHttpClient())
+	resp, err := httputils.HttpGet(address, g.GetHttpClient())
 	if err != nil {
 		return store.LocalService{}, err
 	}
@@ -193,7 +193,7 @@ func (g *Gwctl) GetRemoteService(id string) ([]apiObject.ServiceRequest, error) 
 	mbgIP := d.GetMbgIP()
 
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/remoteservice/" + id
-	resp, err := httpUtils.HttpGet(address, g.GetHttpClient())
+	resp, err := httputils.HttpGet(address, g.GetHttpClient())
 	if err != nil {
 		return []apiObject.ServiceRequest{}, err
 	}
@@ -213,7 +213,7 @@ func (g *Gwctl) GetRemoteServices() (map[string][]apiObject.ServiceRequest, erro
 	mbgIP := d.GetMbgIP()
 
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/remoteservice/"
-	resp, err := httpUtils.HttpGet(address, g.GetHttpClient())
+	resp, err := httputils.HttpGet(address, g.GetHttpClient())
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +242,7 @@ func (g *Gwctl) RemovePeer(id string) error {
 	if err != nil {
 		return err
 	}
-	_, err = httpUtils.HttpDelete(address, j, g.GetHttpClient())
+	_, err = httputils.HttpDelete(address, j, g.GetHttpClient())
 	return err
 }
 
@@ -250,7 +250,7 @@ func (g *Gwctl) RemoveLocalService(serviceId string) {
 	d, _ := config.GetConfig(g.Id)
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/service/" + serviceId
-	resp, _ := httpUtils.HttpDelete(address, nil, g.GetHttpClient())
+	resp, _ := httputils.HttpDelete(address, nil, g.GetHttpClient())
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
 
@@ -262,7 +262,7 @@ func (g *Gwctl) RemoveLocalServiceFromPeer(serviceId, peer string) {
 	if err != nil {
 		fmt.Printf("Unable to marshal json: %v", err)
 	}
-	resp, _ := httpUtils.HttpDelete(address, j, g.GetHttpClient())
+	resp, _ := httputils.HttpDelete(address, j, g.GetHttpClient())
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
 
@@ -275,7 +275,7 @@ func (g *Gwctl) RemoveRemoteService(serviceId, serviceMbg string) {
 		fmt.Printf("Unable to marshal json: %v", err)
 	}
 
-	resp, _ := httpUtils.HttpDelete(address, j, g.GetHttpClient())
+	resp, _ := httputils.HttpDelete(address, j, g.GetHttpClient())
 	fmt.Printf("Response message for deleting service [%s]:%s \n", serviceId, string(resp))
 }
 
@@ -294,7 +294,7 @@ func (g *Gwctl) SendACLPolicy(serviceSrc string, serviceDst string, mbgDest stri
 	if err != nil {
 		return err
 	}
-	_, err = httpUtils.HttpPost(url, jsonReq, g.GetHttpClient())
+	_, err = httputils.HttpPost(url, jsonReq, g.GetHttpClient())
 	return err
 }
 
@@ -313,7 +313,7 @@ func (g *Gwctl) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.
 	if err != nil {
 		return err
 	}
-	_, err = httpUtils.HttpPost(url, jsonReq, g.GetHttpClient())
+	_, err = httputils.HttpPost(url, jsonReq, g.GetHttpClient())
 	return err
 }
 
@@ -321,7 +321,7 @@ func (g *Gwctl) GetACLPolicies() (policyEngine.ACL, error) {
 	d, _ := config.GetConfig(g.Id)
 	var rules policyEngine.ACL
 	url := d.GetPolicyDispatcher() + "/" + acl
-	resp, err := httpUtils.HttpGet(url, g.GetHttpClient())
+	resp, err := httputils.HttpGet(url, g.GetHttpClient())
 	if err != nil {
 		return make(policyEngine.ACL), err
 	}
@@ -337,7 +337,7 @@ func (g *Gwctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBa
 	d, _ := config.GetConfig(g.Id)
 	var policies map[string]map[string]policyEngine.PolicyLoadBalancer
 	url := d.GetPolicyDispatcher() + "/" + lb
-	resp, err := httpUtils.HttpGet(url, g.GetHttpClient())
+	resp, err := httputils.HttpGet(url, g.GetHttpClient())
 	if err != nil {
 		return make(map[string]map[string]policyEngine.PolicyLoadBalancer), err
 	}
@@ -358,7 +358,7 @@ func (g *Gwctl) CreateServiceEndpoint(serviceId string, port int, name, namespac
 		return err
 	}
 	//send Binding request
-	_, err = httpUtils.HttpPost(address, j, g.GetHttpClient())
+	_, err = httputils.HttpPost(address, j, g.GetHttpClient())
 	return err
 }
 
@@ -370,7 +370,7 @@ func (g *Gwctl) DeleteServiceEndpoint(serviceId string) error {
 	mbgIP := d.GetMbgIP()
 	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/binding/" + serviceId
 
-	_, err = httpUtils.HttpDelete(address, []byte{}, g.GetHttpClient())
+	_, err = httputils.HttpDelete(address, []byte{}, g.GetHttpClient())
 	return err
 }
 

@@ -13,7 +13,7 @@ import (
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
-	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
+	"github.ibm.com/mbg-agent/pkg/utils/httputils"
 )
 
 var clog *logrus.Entry
@@ -228,7 +228,7 @@ func mtlsConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, 
 		return "", "", err
 	}
 	//Send connect
-	resp, err := httpUtils.HttpPost(address, j, store.GetHttpClient())
+	resp, err := httputils.HttpPost(address, j, store.GetHttpClient())
 	if err != nil {
 		clog.Error(err)
 		return "", "", err
@@ -257,7 +257,7 @@ func tcpConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (net.Conn, error) 
 		clog.Error(err)
 		return nil, err
 	}
-	c, resp := httpUtils.HttpConnect(mbgIp, url, string(jsonData))
+	c, resp := httputils.HttpConnect(mbgIp, url, string(jsonData))
 	if resp == nil {
 		clog.Printf("Successfully Connected")
 		return c, nil

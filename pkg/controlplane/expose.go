@@ -12,7 +12,7 @@ import (
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	kubernetes "github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
-	httpUtils "github.ibm.com/mbg-agent/pkg/utils/http"
+	"github.ibm.com/mbg-agent/pkg/utils/httputils"
 )
 
 var mlog = logrus.WithField("component", "mbgControlPlane/Expose")
@@ -69,9 +69,9 @@ func ExposeReq(svcExp store.LocalService, mbgId, cType string) {
 		return
 	}
 	//Send expose
-	resp, err := httpUtils.HttpPost(address, j, store.GetHttpClient())
+	resp, err := httputils.HttpPost(address, j, store.GetHttpClient())
 	mlog.Infof("Service(%s) Expose Response message:  %s", svcExp.Id, string(resp))
-	if string(resp) != httpUtils.RESPFAIL {
+	if string(resp) != httputils.RESPFAIL {
 		store.AddPeerLocalService(svcExp.Id, mbgId)
 	}
 }

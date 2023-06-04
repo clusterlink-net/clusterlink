@@ -1,4 +1,4 @@
-package httpUtils
+package httputils
 
 import (
 	"bytes"
