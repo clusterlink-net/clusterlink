@@ -22,24 +22,24 @@ mbglist = { "mbg1gcp" : cluster(name="mbg1", zone = "us-west1-b"    , platform =
             "mbg3gcp" : cluster(name="mbg3", zone = "us-east4-b"    , platform = "gcp", type = "target"), #Virginia
             "mbg3ibm" : cluster(name="mbg3", zone = "wdc04"         , platform = "ibm", type = "target")} #Washington DC
     
-def applyPolicy(mbg, mbgctlName, type):
+def applyPolicy(mbg, gwctlName, type):
     connectToCluster(mbg)
-    mbgctlPod=getPodName("mbgctl")
+    gwctlPod=getPodName("gwctl")
     if type == "ecmp":
         printHeader(f"Set Ecmp poilicy")          
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --type lb --serviceDst {destSvc}  --policy ecmp')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy --type lb --serviceDst {destSvc}  --policy ecmp')
     elif type == "same":
         printHeader(f"Set same policy to all services")          
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --type lb --serviceDst {destSvc} --mbgDest mbg2 --policy static')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy --type lb --serviceDst {destSvc} --mbgDest mbg2 --policy static')
     elif type == "diff":
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} --mbgDest mbg2 --policy static')
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} --mbgDest mbg3 --policy static')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} --mbgDest mbg2 --policy static')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} --mbgDest mbg3 --policy static')
     elif type == "show":
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl get policy --myid {mbgctlName}')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl get policy --myid {gwctlName}')
     elif type == "clean":
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --type lb --serviceDst {destSvc}')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl remove policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} ')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl remove policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl remove policy --type lb --serviceDst {destSvc}')
 
 
 
@@ -56,10 +56,10 @@ if __name__ == "__main__":
 
     mbg = mbglist[args["mbg"] + args["cloud"]]
     type = args["type"]
-    mbgctlName     = mbg.name[:-1]+"ctl"+ mbg.name[-1]
+    gwctlName     = mbg.name[:-1]+"ctl"+ mbg.name[-1]
 
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
 
-    applyPolicy(mbg, mbgctlName,type)
+    applyPolicy(mbg, gwctlName,type)
     

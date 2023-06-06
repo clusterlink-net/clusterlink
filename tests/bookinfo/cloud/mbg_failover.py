@@ -41,9 +41,9 @@ destSvc      = "reviews"
     
 
 def exposeService(mbgName,destSvc):
-    mbgctlPod = getPodName("mbgctl")
+    gwctlPod = getPodName("gwctl")
     printHeader(f"\n\nStart exposing {destSvc} service to {mbgName}")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl expose --service {destSvc}')
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl expose --service {destSvc}')
 
 
 def applyFail(mbg,type):
@@ -58,7 +58,7 @@ def applyFail(mbg,type):
         runcmd(f'kubectl exec -i {mPod} -- killall mbg')
     elif type == "start":
         printHeader(f"Starting up and Restoring MBG")
-        runcmdb(f'kubectl exec -i {mPod} -- ./mbg start --id "{mbg.name}" --ip {mbgIp} --cport {mbg3cPort} --cportLocal {mbg3cPortLocal}\
+        runcmdb(f'kubectl exec -i {mPod} -- ./controlplane start --id "{mbg.name}" --ip {mbgIp} --cport {mbg3cPort} --cportLocal {mbg3cPortLocal}\
         --dataplane mtls {mbg3crtFlags} --startPolicyEngine {True} --restore {True}')
         time.sleep(2)
         exposeService(mbg,destSvc)

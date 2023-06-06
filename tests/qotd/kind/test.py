@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 ##############################################################################################
 # Name: quote of today
-# Info: support qotd application with mbgctl inside the clusters 
+# Info: support qotd application with gwctl inside the clusters 
 #       In this we create three kind clusters
-#       1) MBG1- contain mbg, mbgctl,webApp and engravingApp microservices (qotd services)
-#       2) MBG2- contain mbg, mbgctl, quoteApp, authorApp, imageApp, dbApp microservices (qotd services)
-#       3) MBG3- contain mbg, mbgctl, pdfApp and ratingApp microservices (qotd services)
+#       1) MBG1- contain mbg, gwctl,webApp and engravingApp microservices (qotd services)
+#       2) MBG2- contain mbg, gwctl, quoteApp, authorApp, imageApp, dbApp microservices (qotd services)
+#       3) MBG3- contain mbg, gwctl, pdfApp and ratingApp microservices (qotd services)
 ##############################################################################################
 
 import os,time
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     mbg1cPortLocal  = "8443"
     mbg1Name        = "mbg1"
     mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
-    mbgctl1Name     = "mbgctl1"   
+    gwctl1Name     = "gwctl1"   
     webApp       = app(name="qotd-web"      , namespace = "qotd-app-eks", target=""                                          , port=30010)
     engravingApp = app(name="qotd-engraving", namespace = "qotd"        , target=""                                          , port=3006)
     
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     mbg2cPortLocal  = "8443"
     mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     mbg2Name        = "mbg2"
-    mbgctl2Name     = "mbgctl2"
+    gwctl2Name     = "gwctl2"
     quoteApp     = app(name="qotd-quote"    , namespace = "qotd-svc-iks", target="qotd-quote.qotd-svc-iks.svc.cluster.local" , port=3001)
     authorApp    = app(name="qotd-author"   , namespace = "qotd-svc-iks", target="qotd-author.qotd-svc-iks.svc.cluster.local", port=3002)
     imageApp     = app(name="qotd-image"    , namespace = "qotd"        , target="qotd-image.qotd.svc.cluster.local"         , port=3003)
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     mbg3cPortLocal  = "8443"
     mbg3crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg3.crt --key ./mtls/mbg3.key"  if dataplane =="mtls" else ""
     mbg3Name        = "mbg3"
-    mbgctl3Name     = "mbgctl3"
+    gwctl3Name     = "gwctl3"
     pdfApp       = app(name="qotd-pdf"      , namespace = "qotd-svc-ocp", target="qotd-pdf.qotd-svc-ocp.svc.cluster.local"   , port=3005)
     ratingApp    = app(name="qotd-rating"   , namespace = "qotd-svc-ocp", target="qotd-rating.qotd-svc-ocp.svc.cluster.local", port=3004)
 
@@ -82,37 +82,37 @@ if __name__ == "__main__":
     os.system("make docker-build")
     
     ## build Kind clusters environment 
-    startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags)        
-    startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort,dataplane ,mbg2crtFlags)        
-    startKindClusterMbg(mbg3Name, mbgctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort,dataplane ,mbg3crtFlags)        
+    startKindClusterMbg(mbg1Name, gwctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags)        
+    startKindClusterMbg(mbg2Name, gwctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort,dataplane ,mbg2crtFlags)        
+    startKindClusterMbg(mbg3Name, gwctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort,dataplane ,mbg3crtFlags)        
     
     ###get mbg parameters
     useKindCluster(mbg1Name)
     mbg1Pod, _           = getPodNameIp("mbg")
     mbg1Ip               = getKindIp("mbg1")
-    mbgctl1Pod, mbgctl1Ip= getPodNameIp("mbgctl")
+    gwctl1Pod, gwctl1Ip= getPodNameIp("gwctl")
     useKindCluster(mbg2Name)
     mbg2Pod, _            = getPodNameIp("mbg")
-    mbgctl2Pod, mbgctl2Ip = getPodNameIp("mbgctl")
+    gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
     mbg2Ip                =getKindIp(mbg2Name)
     useKindCluster(mbg3Name)
     mbg3Pod, _            = getPodNameIp("mbg")
     mbg3Ip                = getKindIp("mbg3")
-    mbgctl3Pod, mbgctl3Ip = getPodNameIp("mbgctl")
+    gwctl3Pod, gwctl3Ip = getPodNameIp("gwctl")
 
     # Add MBG Peer
     printHeader("Add MBG2, MBG3 peer to MBG1")
     useKindCluster(mbg1Name)
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add peer --id {mbg2Name} --target {mbg2Ip} --port {mbg2cPort}')
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add peer --id {mbg3Name} --target {mbg3Ip} --port {mbg3cPort}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add peer --id {mbg2Name} --target {mbg2Ip} --port {mbg2cPort}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add peer --id {mbg3Name} --target {mbg3Ip} --port {mbg3cPort}')
     useKindCluster(mbg2Name)
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add peer --id {mbg3Name} --target {mbg3Ip} --port {mbg3cPort}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add peer --id {mbg3Name} --target {mbg3Ip} --port {mbg3cPort}')
     # Send Hello
     printHeader("Send Hello commands")
     useKindCluster(mbg1Name)
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl hello')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl hello')
     useKindCluster(mbg2Name)
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl hello')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl hello')
     
     ###Set mbg1 services
     useKindCluster(mbg1Name)
@@ -139,13 +139,13 @@ if __name__ == "__main__":
     waitPod(quoteApp.name , quoteApp.namespace)
     waitPod(authorApp.name, authorApp.namespace)
     waitPod(dbApp.name    , dbApp.namespace)
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add service --id {quoteApp.name}  --target {quoteApp.target}  --port {quoteApp.port}')
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add service --id {authorApp.name} --target {authorApp.target} --port {authorApp.port}')
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add service --id {dbApp.name}     --target {dbApp.target}     --port {dbApp.port}')
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add service --id {imageApp.name}  --target {imageApp.target}  --port {imageApp.port}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add service --id {quoteApp.name}  --target {quoteApp.target}  --port {quoteApp.port}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add service --id {authorApp.name} --target {authorApp.target} --port {authorApp.port}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add service --id {dbApp.name}     --target {dbApp.target}     --port {dbApp.port}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add service --id {imageApp.name}  --target {imageApp.target}  --port {imageApp.port}')
     
 
-    ###Set mbgctl3
+    ###Set gwctl3
     useKindCluster(mbg3Name)
     runcmd(f"kind load docker-image registry.gitlab.com/quote-of-the-day/qotd-ratings-service/v4.0.0:latest --name={mbg3Name}")
     runcmd(f"kind load docker-image registry.gitlab.com/quote-of-the-day/qotd-pdf-service/v4.0.0:latest --name={mbg3Name}")
@@ -154,43 +154,43 @@ if __name__ == "__main__":
     printHeader(f"Add {ratingApp.name}, {pdfApp.name}, service to destination cluster")
     waitPod(pdfApp.name   , pdfApp.namespace)
     waitPod(ratingApp.name, ratingApp.namespace)
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl add service --id {pdfApp.name}    --target {pdfApp.target}    --port {pdfApp.port}')
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl add service --id {ratingApp.name} --target {ratingApp.target} --port {ratingApp.port}')
+    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl add service --id {pdfApp.name}    --target {pdfApp.target}    --port {pdfApp.port}')
+    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl add service --id {ratingApp.name} --target {ratingApp.target} --port {ratingApp.port}')
 
     # Expose service
     useKindCluster(mbg2Name)
     printHeader(f"\n\nStart exposing svc {quoteApp.name}")
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl expose --service {quoteApp.name}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl expose --service {quoteApp.name}')
     printHeader(f"\n\nStart exposing svc {authorApp.name}")
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl expose --service {authorApp.name} --peer {mbg1Name}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl expose --service {authorApp.name} --peer {mbg1Name}')
     printHeader(f"\n\nStart exposing svc {dbApp.name}")
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl expose --service {dbApp.name} --peer {mbg1Name}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl expose --service {dbApp.name} --peer {mbg1Name}')
     printHeader(f"\n\nStart exposing svc {imageApp.name}")
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl expose --service {imageApp.name} --peer {mbg1Name}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl expose --service {imageApp.name} --peer {mbg1Name}')
 
     useKindCluster(mbg3Name)
     printHeader(f"\n\nStart exposing svc {pdfApp.name}")
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl expose --service {pdfApp.name} --peer {mbg1Name}')
+    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl expose --service {pdfApp.name} --peer {mbg1Name}')
     printHeader(f"\n\nStart exposing svc {ratingApp.name}")
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl expose --service {ratingApp.name} --peer {mbg1Name}')
+    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl expose --service {ratingApp.name} --peer {mbg1Name}')
    
     #Get services
     useKindCluster(mbg1Name)
     printHeader("\n\nStart get service")
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl get service --myid {mbgctl1Name}')
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl get policy --myid {mbgctl1Name}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl get service --myid {gwctl1Name}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl get policy --myid {gwctl1Name}')
 
     #Create k8s service
     useKindCluster(mbg1Name)
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add binding --service {quoteApp.name}  --port {quoteApp.port}')
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add binding --service {authorApp.name} --port {authorApp.port}')
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add binding --service {dbApp.name}     --port {dbApp.port}')
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add binding --service {imageApp.name}  --port {imageApp.port}')
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add binding --service {pdfApp.name}    --port {pdfApp.port}')
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add binding --service {ratingApp.name} --port {ratingApp.port}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add binding --service {quoteApp.name}  --port {quoteApp.port}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add binding --service {authorApp.name} --port {authorApp.port}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add binding --service {dbApp.name}     --port {dbApp.port}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add binding --service {imageApp.name}  --port {imageApp.port}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add binding --service {pdfApp.name}    --port {pdfApp.port}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add binding --service {ratingApp.name} --port {ratingApp.port}')
     
     useKindCluster(mbg3Name)    
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl add binding --service {quoteApp.name}  --port {quoteApp.port}')
+    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl add binding --service {quoteApp.name}  --port {quoteApp.port}')
 
     webApp.target=mbg1Ip
     print(f"Application url: http://{webApp.target}:{webApp.port}")

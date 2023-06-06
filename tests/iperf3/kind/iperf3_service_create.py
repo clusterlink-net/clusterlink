@@ -15,16 +15,16 @@ iperf3DestPort  = "30001"
 folCl=f"{proj_dir}/tests/iperf3/manifests/iperf3-client"
 folSv=f"{proj_dir}/tests/iperf3/manifests/iperf3-server"
     
-def setIperf3client(mbgName, mbgctlName,srcSvc):
+def setIperf3client(mbgName, gwctlName,srcSvc):
     printHeader(f"Create {srcSvc} (client) service in {mbgName}")
     useKindCluster(mbgName)
     runcmd(f"kind load docker-image mlabbe/iperf3 --name={mbgName}")
     runcmd(f"kubectl create -f {folCl}/{srcSvc}.yaml")
     waitPod(srcSvc)
-    mbgctlPod =getPodName("mbgctl")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add service --id {srcSvc}')
+    gwctlPod =getPodName("gwctl")
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add service --id {srcSvc}')
 
-def setIperf3Server(mbgName, mbgctlName, destSvc):
+def setIperf3Server(mbgName, gwctlName, destSvc):
     printHeader(f"Add {destSvc} (server) service in {mbgName}")
     useKindCluster(mbgName)
     runcmd(f"kind load docker-image mlabbe/iperf3 --name={mbgName}")
@@ -32,9 +32,9 @@ def setIperf3Server(mbgName, mbgctlName, destSvc):
     waitPod(destSvc)
     runcmd(f"kubectl create service nodeport iperf3-server --tcp=5000:5000 --node-port={iperf3DestPort}")
     destSvcPort = f"5000"
-    mbgctlPod =getPodName("mbgctl")
+    gwctlPod =getPodName("gwctl")
     destSvcIp  = "iperf3-server"
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add service --id {destSvc} --target {destSvcIp} --port {destSvcPort} --description iperf3-server')
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add service --id {destSvc} --target {destSvcIp} --port {destSvcPort} --description iperf3-server')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     srcSvc      = "iperf3-client"
     srcSvc2     = "iperf3-client2"
     mbg2Name    = "mbg2"
-    mbgctl2Name = "mbgctl2"
+    gwctl2Name = "gwctl2"
     destSvc     = "iperf3-server"
     mbg3Name    = "mbg3"
         

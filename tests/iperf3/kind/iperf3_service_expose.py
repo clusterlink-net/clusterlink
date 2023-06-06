@@ -10,23 +10,23 @@ sys.path.insert(0,f'{proj_dir}')
 from tests.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName
 from tests.utils.kind.kindAux import useKindCluster
 
-def exposeService(mbgName, mbgctlName, destSvc):
+def exposeService(mbgName, gwctlName, destSvc):
     useKindCluster(mbgName)
-    mbgctlPod = getPodName("mbgctl")
+    gwctlPod = getPodName("gwctl")
     printHeader(f"\n\nStart exposing {destSvc} service to {mbgName}")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl expose --service {destSvc}')
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl expose --service {destSvc}')
 
 
 def bindService(mbgName, destSvc, port):
     useKindCluster(mbgName)
-    mbgctlPod = getPodName("mbgctl")
+    gwctlPod = getPodName("gwctl")
     printHeader(f"\n\nStart binding {destSvc} service to {mbgName}")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add binding --service {destSvc} --port {port}')
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add binding --service {destSvc} --port {port}')
 ############################### MAIN ##########################
 if __name__ == "__main__":
     #parameters 
     mbg2Name     = "mbg2"
-    mbgctl2Name  = "mbgctl2"
+    gwctl2Name  = "gwctl2"
     destSvc      = "iperf3-server"
     
         
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
 
-    exposeService(mbg2Name, mbgctl2Name, destSvc)
+    exposeService(mbg2Name, gwctl2Name, destSvc)
     
 
     

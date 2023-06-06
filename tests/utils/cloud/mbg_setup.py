@@ -26,13 +26,13 @@ import time
 def mbgBuild(mbgcPort="443" ,mbgcPortLocal="443",externalIp=""):
 
   print("\n\ncreate mbg deploymnet")
-  runcmd(f"kubectl create -f {PROJECT_PATH}/manifests/mbg/mbg-cloud.yaml")
-  runcmd(f"kubectl create -f {PROJECT_PATH}/manifests/mbg/mbg-role.yaml")
-  runcmd(f"kubectl create -f {PROJECT_PATH}/manifests/mbgctl/mbgctl-cloud.yaml")
+  runcmd(f"kubectl create -f {PROJECT_PATH}/config/manifests/mbg/mbg-cloud.yaml")
+  runcmd(f"kubectl create -f {PROJECT_PATH}/config/manifests/mbg/mbg-role.yaml")
+  runcmd(f"kubectl create -f {PROJECT_PATH}/config/manifests/gwctl/gwctl-cloud.yaml")
     
 
   waitPod("mbg")
-  waitPod("mbgctl")
+  waitPod("gwctl")
   #Creating loadbalancer  and wait to loadbalncer external ip
   runcmd(f"kubectl expose deployment mbg-deployment --name=mbg-load-balancer --port={mbgcPort} --target-port={mbgcPortLocal} --type=LoadBalancer")
   mbgIp=""
@@ -46,15 +46,15 @@ def mbgBuild(mbgcPort="443" ,mbgcPortLocal="443",externalIp=""):
 
   return mbgIp
 
-def mbgSetup(mbg, dataplane, mbgcrtFlags,mbgctlName, mbgIp ,mbgcPort="443" ,mbgcPortLocal="443"):  
+def mbgSetup(mbg, dataplane, mbgcrtFlags,gwctlName, mbgIp ,mbgcPort="443" ,mbgcPortLocal="443"):  
   print(f"MBG load balancer ip {mbgIp}")
   
   mbgPod,mbgPodIp= getPodNameIp("mbg")
-  mbgctlPod,mbgctlPodIp= getPodNameIp("mbgctl")
+  gwctlPod,gwctlPodIp= getPodNameIp("gwctl")
   print("\n\nStart MBG (along with PolicyEngine)")
-  runcmdb(f'kubectl exec -i {mbgPod} -- ./mbg start --id {mbg.name} --ip {mbgIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine {True}')
+  runcmdb(f'kubectl exec -i {mbgPod} -- ./controlplane start --id {mbg.name} --ip {mbgIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine {True}')
   destMbgIp = f"{mbgPodIp}:{mbgcPortLocal}" 
-  runcmd(f'kubectl exec -it {mbgctlPod} -- ./mbgctl create --id {mbgctlName}  --mbgIP {destMbgIp} --dataplane {dataplane} {mbgcrtFlags}')
+  runcmd(f'kubectl exec -it {gwctlPod} -- ./gwctl create --id {gwctlName}  --mbgIP {destMbgIp} --dataplane {dataplane} {mbgcrtFlags}')
 
 
 

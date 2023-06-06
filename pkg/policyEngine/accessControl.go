@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	event "github.ibm.com/mbg-agent/pkg/eventManager"
+	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 )
 
 const defaultAction = event.Allow

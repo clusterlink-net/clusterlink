@@ -4,7 +4,7 @@ from colorama import Fore
 from colorama import Style
 
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-folMfst=f"{proj_dir}/manifests"
+folMfst=f"{proj_dir}/config/manifests"
 
 def waitPod(name, namespace="default"):
     time.sleep(2) #Initial start
@@ -71,9 +71,9 @@ def buildMbg(name):
     return podMbg, mbgIp
 
 def buildMbgctl(name):
-    runcmd(f"kubectl create -f {folMfst}/mbgctl/mbgctl.yaml")
-    waitPod("mbgctl")
-    name,ip= getPodNameIp("mbgctl")
+    runcmd(f"kubectl create -f {folMfst}/gwctl/gwctl.yaml")
+    waitPod("gwctl")
+    name,ip= getPodNameIp("gwctl")
     return name, ip 
 
 #Creating k8s service for svc name

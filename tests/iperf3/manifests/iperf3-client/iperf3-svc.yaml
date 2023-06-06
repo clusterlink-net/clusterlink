@@ -6,11 +6,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: mbgctl-iperf3-service
+  name: gwctl-iperf3-service
 spec:
   type: ClusterIP
   selector:
-    app: mbgctl
+    app: gwctl
   ports:
     - protocol: TCP
       port: 5000

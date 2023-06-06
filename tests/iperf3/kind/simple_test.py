@@ -45,7 +45,7 @@ if __name__ == "__main__":
     mbg1cPortLocal  = "8443"
     mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     mbg1Name        = "mbg1"
-    mbgctl1Name     = "mbgctl1"
+    gwctl1Name     = "gwctl1"
     mbg1cni         = cni 
     srcSvc          = "iperf3-client"
 
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     mbg2cPortLocal  = "8443"
     mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     mbg2Name        = "mbg2"
-    mbgctl2Name     = "mbgctl2"
+    gwctl2Name     = "gwctl2"
     mbg2cni         = "flannel" if cni == "diff" else cni
     destSvc         = "iperf3-server"
     destPort        = "5000"
@@ -80,44 +80,44 @@ if __name__ == "__main__":
     
     
     ### Build MBG in Kind clusters environment 
-    startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags, cni=mbg1cni, zeroTrust=zeroTrust)        
-    startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags, cni=mbg2cni, zeroTrust=zeroTrust)        
+    startKindClusterMbg(mbg1Name, gwctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags, cni=mbg1cni, zeroTrust=zeroTrust)        
+    startKindClusterMbg(mbg2Name, gwctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags, cni=mbg2cni, zeroTrust=zeroTrust)        
       
     ###get mbg parameters
     useKindCluster(mbg1Name)
     mbg1Pod, _           = getPodNameIp("mbg")
     mbg1Ip               = getKindIp("mbg1")
-    mbgctl1Pod, mbgctl1Ip= getPodNameIp("mbgctl")
+    gwctl1Pod, gwctl1Ip= getPodNameIp("gwctl")
     useKindCluster(mbg2Name)
     mbg2Pod, mbg2Ip       = getPodNameIp("mbg")
-    mbgctl2Pod, mbgctl2Ip = getPodNameIp("mbgctl")
+    gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
     destkindIp=getKindIp(mbg2Name)
 
     
     # Add MBG Peer
     useKindCluster(mbg2Name)
     printHeader("Add MBG2 peer to MBG1")
-    connectMbgs(mbg2Name, mbgctl2Name, mbgctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
+    connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
 
     # Send Hello
-    sendHello(mbgctl2Pod, mbgctl2Name)        
+    sendHello(gwctl2Pod, gwctl2Name)        
 
     
     # Set service iperf3-client in MBG1
-    setIperf3client(mbg1Name, mbgctl1Name, srcSvc)
+    setIperf3client(mbg1Name, gwctl1Name, srcSvc)
     
     # Set service iperf3-server in MBG2
-    setIperf3Server(mbg2Name, mbgctl2Name,destSvc)
+    setIperf3Server(mbg2Name, gwctl2Name,destSvc)
 
     #Expose destination service
-    exposeService(mbg2Name, mbgctl2Name, destSvc)
+    exposeService(mbg2Name, gwctl2Name, destSvc)
 
     #bind destination service
     bindService(mbg1Name,destSvc,destPort)
     #Get services
-    getService(mbg1Name, mbgctl1Name)
+    getService(mbg1Name, gwctl1Name)
     #Add policy
-    addPolicy(mbg1Name, mbgctl1Name, command="add", action="allow", srcSvc=srcSvc,destSvc=destSvc, priority=0)
+    addPolicy(mbg1Name, gwctl1Name, command="add", action="allow", srcSvc=srcSvc,destSvc=destSvc, priority=0)
     #Testing
     printHeader("\n\nStart Iperf3 testing")
     useKindCluster(mbg2Name)

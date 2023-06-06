@@ -95,13 +95,13 @@ if __name__ == "__main__":
     
     #Set First MBG
     useKindCluster(mbg1ClusterName)
-    runcmdb(f'kubectl exec -i {podMbg1} -- ./mbg start --id "MBG1" --ip {mbg1Ip} --cport {mbg1cPort} --cportLocal {mbg1cPortLocal}  --externalDataPortRange {mbg1DataPort}\
+    runcmdb(f'kubectl exec -i {podMbg1} -- ./controlplane start --id "MBG1" --ip {mbg1Ip} --cport {mbg1cPort} --cportLocal {mbg1cPortLocal}  --externalDataPortRange {mbg1DataPort}\
     --dataplane {args["dataplane"]} {mbg1crtFlags}')
     runcmd(f"kubectl create service nodeport mbg --tcp={mbg1cPortLocal}:{mbg1cPortLocal} --node-port={mbg1cPort}")
 
     #Set Second MBG
     useKindCluster(mbg2ClusterName)
-    runcmdb(f'kubectl exec -i {podMbg2} -- ./mbg start --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort} --cportLocal {mbg2cPortLocal} --externalDataPortRange {mbg2DataPort} \
+    runcmdb(f'kubectl exec -i {podMbg2} -- ./controlplane start --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort} --cportLocal {mbg2cPortLocal} --externalDataPortRange {mbg2DataPort} \
     --dataplane {args["dataplane"]} {mbg2crtFlags}')
     runcmd(f"kubectl create service nodeport mbg --tcp={mbg2cPortLocal}:{mbg2cPortLocal} --node-port={mbg2cPort}")
     
@@ -110,19 +110,19 @@ if __name__ == "__main__":
     runcmd(f"kubectl create -f {folCl}/iperf3-client.yaml")
     podhost, hostIp= buildMbgctl("host Cluster",mbgMode)
     hostMbgIp = f"{getPodIp(podMbg1)}:{mbg1cPortLocal}" if mbgMode =="inside" else f"{mbg1Ip}:{mbg1cPort}"
-    runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl start --id "hostCluster"  --ip {hostIp} --mbgIP {hostMbgIp}  --dataplane {args["dataplane"]} {hostcrtFlags} ')
+    runcmdb(f'kubectl exec -i {podhost} -- ./gwctl start --id "hostCluster"  --ip {hostIp} --mbgIP {hostMbgIp}  --dataplane {args["dataplane"]} {hostcrtFlags} ')
     printHeader(f"Add {srcSvc} (client) service to host cluster")
     waitPod(srcSvc)
     srcSvcIp =getPodIp(srcSvc)  if mbgMode =="inside" else srcDefaultGW
-    runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addService --id {srcSvc} --id {srcSvcIp}')
+    runcmd(f'kubectl exec -i {podhost} -- ./gwctl addService --id {srcSvc} --id {srcSvcIp}')
 
     # Add MBG Peer
     printHeader("Add MBG2 peer to MBG1")
-    runcmd(f'kubectl exec -i {podhost} -- ./mbgctl addPeer --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort}')
+    runcmd(f'kubectl exec -i {podhost} -- ./gwctl addPeer --id "MBG2" --ip {mbg2Ip} --cport {mbg2cPort}')
     
     # Send Hello
     printHeader("Send Hello commands")
-    runcmd(f'kubectl exec -i {podhost} -- ./mbgctl hello')
+    runcmd(f'kubectl exec -i {podhost} -- ./gwctl hello')
     
     ##Set dest
     useKindCluster(destClusterName)
@@ -130,32 +130,32 @@ if __name__ == "__main__":
     podest, destIp= buildMbgctl("dest Cluster",mbgMode)   
     runcmd(f"kubectl create service nodeport iperf3-server --tcp=5000:5000 --node-port={iperf3DestPort}")
     destMbgIp = f"{getPodIp(podMbg2)}:{mbg2cPortLocal}" if mbgMode =="inside" else f"{mbg2Ip}:{mbg2cPort}"
-    runcmdb(f'kubectl exec -i {podest} -- ./mbgctl start --id "destCluster"  --ip {destIp}  --mbgIP {destMbgIp} --dataplane {args["dataplane"]} {destcrtFlags}')
+    runcmdb(f'kubectl exec -i {podest} -- ./gwctl start --id "destCluster"  --ip {destIp}  --mbgIP {destMbgIp} --dataplane {args["dataplane"]} {destcrtFlags}')
     printHeader(f"Add {destSvc} (server) service to destination cluster")
     waitPod(destSvc)
     destSvcIp = f"{getPodIp(destSvc)}:5000" if mbgMode =="inside" else f"{destIp}:{iperf3DestPort}"
     destkindIp=getKindIp(destClusterName)
-    runcmd(f'kubectl exec -i {podest} -- ./mbgctl addService --id {destSvc} --ip {destSvcIp}')
+    runcmd(f'kubectl exec -i {podest} -- ./gwctl addService --id {destSvc} --ip {destSvcIp}')
 
     #Add host cluster to MBG1
     useKindCluster(hostClusterName)
     printHeader("Add host cluster to MBG1")
-    runcmd(f'kubectl exec -i {podMbg1} -- ./mbg addMbgctl --id "hostCluster" --ip {hostIp}')
+    runcmd(f'kubectl exec -i {podMbg1} -- ./controlplane addMbgctl --id "hostCluster" --ip {hostIp}')
 
     #Add dest cluster to MBG2
     useKindCluster(mbg2ClusterName)
     printHeader("Add dest cluster to MBG2")
-    runcmd(f'kubectl exec -i {podMbg2} -- ./mbg addMbgctl --id "destCluster" --ip {destIp}')
+    runcmd(f'kubectl exec -i {podMbg2} -- ./controlplane addMbgctl --id "destCluster" --ip {destIp}')
 
     #Expose destination service
     useKindCluster(destClusterName)
     printHeader("\n\nStart exposing connection")
-    runcmdb(f'kubectl exec -i {podest} -- ./mbgctl expose --serviceId {destSvc}')
+    runcmdb(f'kubectl exec -i {podest} -- ./gwctl expose --serviceId {destSvc}')
 
     #Get services
     useKindCluster(hostClusterName)
     printHeader("\n\nStart get service")
-    runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl getService')
+    runcmdb(f'kubectl exec -i {podhost} -- ./gwctl getService')
     # Create Nodeport inside mbg1
     useKindCluster(mbg1ClusterName)
     mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1,destSvc)
@@ -168,7 +168,7 @@ if __name__ == "__main__":
         printHeader(f"\n\nStart Data plan connection {srcSvc} to {destSvc}")
         useKindCluster(hostClusterName)
         runcmd(f"kubectl create -f {folCl}/iperf3-svc.yaml")
-        runcmdb(f'kubectl exec -i {podhost} -- ./mbgctl connect --serviceId {srcSvc} --serviceIp :{srck8sSvcPort} --serviceIdDest {destSvc}')
+        runcmdb(f'kubectl exec -i {podhost} -- ./gwctl connect --serviceId {srcSvc} --serviceIp :{srck8sSvcPort} --serviceIdDest {destSvc}')
 
 
     #Testing
@@ -190,10 +190,10 @@ if __name__ == "__main__":
     
     printHeader("Full Iperf3 test clinet-> MBG1-> MBG2-> dest")
     testport =  mbg1LocalPort if mbgMode =="inside" else srck8sSvcPort
-    testip   =  getPodIp(podMbg1) if mbgMode =="inside" else "mbgctl-iperf3-service"
+    testip   =  getPodIp(podMbg1) if mbgMode =="inside" else "gwctl-iperf3-service"
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {testip} -p {testport}'
     iperf3Test(cmd)
 
     #Close connection
     printHeader("\n\nClose Iperf3 connection")
-    runcmd(f'kubectl exec -i {podhost} -- ./mbgctl disconnect --serviceId {srcSvc} --serviceIdDest {destSvc}')
+    runcmd(f'kubectl exec -i {podhost} -- ./gwctl disconnect --serviceId {srcSvc} --serviceIdDest {destSvc}')

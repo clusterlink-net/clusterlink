@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 ##############################################################################################
 # Name: Bookinfo
-# Info: support bookinfo application with mbgctl inside the clusters 
+# Info: support bookinfo application with gwctl inside the clusters 
 #       In this we create three kind clusters
-#       1) MBG1- contain mbg, mbgctl,product and details microservices (bookinfo services)
-#       2) MBG2- contain mbg, mbgctl, review-v2 and rating microservices (bookinfo services)
-#       3) MBG3- contain mbg, mbgctl, review-v3 and rating microservices (bookinfo services)
+#       1) MBG1- contain mbg, gwctl,product and details microservices (bookinfo services)
+#       2) MBG2- contain mbg, gwctl, review-v2 and rating microservices (bookinfo services)
+#       3) MBG3- contain mbg, gwctl, review-v3 and rating microservices (bookinfo services)
 ##############################################################################################
 
 import os,time
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     mbg1cPortLocal  = "8443"
     mbg1Name        = "mbg1"
     mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
-    mbgctl1Name     = "mbgctl1"
+    gwctl1Name     = "gwctl1"
     srcSvc1         = "productpage"
     srcSvc2         = "productpage2"
     srcK8sSvcPort   = "9080"
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     mbg2cPortLocal  = "8443"
     mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     mbg2Name        = "mbg2"
-    mbgctl2Name     = "mbgctl2"
+    gwctl2Name     = "gwctl2"
     review2DestPort = "30001"
     review2pod      = "reviews-v2"
     
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     mbg3cPortLocal  = "8443"
     mbg3crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg3.crt --key ./mtls/mbg3.key"  if dataplane =="mtls" else ""
     mbg3Name        = "mbg3"
-    mbgctl3Name     = "mbgctl3"
+    gwctl3Name     = "gwctl3"
     review3DestPort = "30001"
     review3pod      = "reviews-v3"
 
@@ -83,23 +83,23 @@ if __name__ == "__main__":
     os.system("make docker-build")
     
     ## build Kind clusters environment 
-    startKindClusterMbg(mbg1Name, mbgctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags)        
-    startKindClusterMbg(mbg2Name, mbgctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort,dataplane ,mbg2crtFlags)        
-    startKindClusterMbg(mbg3Name, mbgctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort,dataplane ,mbg3crtFlags)        
+    startKindClusterMbg(mbg1Name, gwctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags)        
+    startKindClusterMbg(mbg2Name, gwctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort,dataplane ,mbg2crtFlags)        
+    startKindClusterMbg(mbg3Name, gwctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort,dataplane ,mbg3crtFlags)        
     
     ###get mbg parameters
     useKindCluster(mbg1Name)
     mbg1Pod, _           = getPodNameIp("mbg")
     mbg1Ip               = getKindIp("mbg1")
-    mbgctl1Pod, mbgctl1Ip= getPodNameIp("mbgctl")
+    gwctl1Pod, gwctl1Ip= getPodNameIp("gwctl")
     useKindCluster(mbg2Name)
     mbg2Pod, _            = getPodNameIp("mbg")
-    mbgctl2Pod, mbgctl2Ip = getPodNameIp("mbgctl")
+    gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
     mbg2Ip                =getKindIp(mbg2Name)
     useKindCluster(mbg3Name)
     mbg3Pod, _            = getPodNameIp("mbg")
     mbg3Ip                = getKindIp("mbg3")
-    mbgctl3Pod, mbgctl3Ip = getPodNameIp("mbgctl")
+    gwctl3Pod, gwctl3Ip = getPodNameIp("gwctl")
 
     ###Set mbg1 services
     useKindCluster(mbg1Name)
@@ -113,18 +113,18 @@ if __name__ == "__main__":
     waitPod(srcSvc2)
     _ , srcSvcIp1 =getPodNameIp(srcSvc1)
     _ , srcSvcIp2 =getPodNameIp(srcSvc2)
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add service --id {srcSvc1}  --description {srcSvc1}')
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add service --id {srcSvc2} --description {srcSvc2}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add service --id {srcSvc1}  --description {srcSvc1}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add service --id {srcSvc2} --description {srcSvc2}')
 
     
 
     # Add MBG Peer
     printHeader("Add MBG2, MBG3 peer to MBG1")
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add peer --id {mbg2Name} --target {mbg2Ip} --port {mbg2cPort}')
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl add peer --id {mbg3Name} --target {mbg3Ip} --port {mbg3cPort}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add peer --id {mbg2Name} --target {mbg2Ip} --port {mbg2cPort}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add peer --id {mbg3Name} --target {mbg3Ip} --port {mbg3cPort}')
     # Send Hello
     printHeader("Send Hello commands")
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl hello')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl hello')
     
     ###Set mbg2 service
     useKindCluster(mbg2Name)
@@ -136,10 +136,10 @@ if __name__ == "__main__":
     waitPod(destSvc)
     destSvcReview2Ip = f"{getPodIp(destSvc)}"
     destSvcReview2Port = f"{srcK8sSvcPort}"
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl add service --id {destSvc} --target {destSvcReview2Ip} --port {destSvcReview2Port} --description v2')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add service --id {destSvc} --target {destSvcReview2Ip} --port {destSvcReview2Port} --description v2')
     
 
-    ###Set mbgctl3
+    ###Set gwctl3
     useKindCluster(mbg3Name)
     runcmd(f"kind load docker-image maistra/examples-bookinfo-reviews-v3 --name={mbg3Name}")
     runcmd(f"kind load docker-image maistra/examples-bookinfo-ratings-v1:0.12.0 --name={mbg3Name}")
@@ -149,21 +149,21 @@ if __name__ == "__main__":
     waitPod(destSvc)
     destSvcReview3Ip = f"{getPodIp(destSvc)}"
     destSvcReview3Port = f"{srcK8sSvcPort}"
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl add service --id {destSvc} --target {destSvcReview3Ip} --port {destSvcReview3Port} --description v3')
+    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl add service --id {destSvc} --target {destSvcReview3Ip} --port {destSvcReview3Port} --description v3')
 
     #Expose service
     useKindCluster(mbg2Name)
     printHeader(f"\n\nStart exposing svc {destSvc}")
-    runcmd(f'kubectl exec -i {mbgctl2Pod} -- ./mbgctl expose --service {destSvc}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl expose --service {destSvc}')
     useKindCluster(mbg3Name)
     printHeader(f"\n\nStart exposing svc {destSvc}")
-    runcmd(f'kubectl exec -i {mbgctl3Pod} -- ./mbgctl expose --service {destSvc}')
+    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl expose --service {destSvc}')
 
     #Get services
     useKindCluster(mbg1Name)
     printHeader("\n\nStart get service")
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl get service')
-    runcmd(f'kubectl exec -i {mbgctl1Pod} -- ./mbgctl get policy')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl get service')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl get policy')
 
     #Create k8s service for destSvc
     useKindCluster(mbg1Name)    

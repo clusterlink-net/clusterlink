@@ -1,0 +1,93 @@
+package controlplane
+
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+
+	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
+
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/controlplane/store"
+	kubernetes "github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
+	"github.ibm.com/mbg-agent/pkg/utils/httputils"
+)
+
+var mlog = logrus.WithField("component", "mbgControlPlane/Expose")
+
+func Expose(e apiObject.ExposeRequest) error {
+	//Update MBG state
+	store.UpdateState()
+	return ExposeToMbg(e.Id, e.MbgID)
+}
+
+func ExposeToMbg(serviceId, peerId string) error {
+	exposeResp, err := store.GetEventManager().RaiseExposeRequestEvent(eventManager.ExposeRequestAttr{Service: serviceId})
+	if err != nil {
+		return fmt.Errorf("Unable to raise expose request event")
+	}
+	mlog.Infof("Response = %+v", exposeResp)
+	if exposeResp.Action == eventManager.Deny {
+		mlog.Errorf("Denying Expose of service %s", serviceId)
+		return fmt.Errorf("Denying Expose of service %s", serviceId)
+	}
+
+	myIp := store.GetMyIp()
+	svcExp := store.GetLocalService(serviceId)
+	if svcExp.Ip == "" {
+		return fmt.Errorf("Denying Expose of service %s - target is not set", serviceId)
+	}
+	svcExp.Ip = myIp
+	if peerId == "" { //Expose to all
+		if exposeResp.Action == eventManager.AllowAll {
+			for _, mbgId := range store.GetMbgList() {
+				ExposeReq(svcExp, mbgId, "MBG")
+			}
+			return nil
+		}
+		for _, mbgId := range exposeResp.TargetMbgs {
+			ExposeReq(svcExp, mbgId, "MBG")
+		}
+	} else { //Expose to specific peer
+		if slices.Contains(exposeResp.TargetMbgs, peerId) {
+			ExposeReq(svcExp, peerId, "MBG")
+		}
+	}
+	return nil
+}
+
+func ExposeReq(svcExp store.LocalService, mbgId, cType string) {
+	destIp := store.GetMbgTarget(mbgId)
+	mlog.Printf("Starting to expose service %v (%v)", svcExp.Id, destIp)
+	address := store.GetAddrStart() + destIp + "/remoteservice"
+
+	j, err := json.Marshal(apiObject.ExposeRequest{Id: svcExp.Id, Ip: svcExp.Ip, Description: svcExp.Description, MbgID: store.GetMyId()})
+	if err != nil {
+		mlog.Error(err)
+		return
+	}
+	//Send expose
+	resp, err := httputils.HttpPost(address, j, store.GetHttpClient())
+	mlog.Infof("Service(%s) Expose Response message:  %s", svcExp.Id, string(resp))
+	if string(resp) != httputils.RESPFAIL {
+		store.AddPeerLocalService(svcExp.Id, mbgId)
+	}
+}
+
+func CreateLocalServiceEndpoint(serviceId string, port int, name, namespace, mbgAppName string) error {
+	sPort := store.GetConnectionArr()[serviceId].Local
+
+	targetPort, err := strconv.Atoi(sPort[1:])
+	if err != nil {
+		return err
+	}
+	mlog.Infof("Creating service end point at %s:%d:%d for service %s", name, port, targetPort, serviceId)
+	return kubernetes.Data.CreateServiceEndpoint(name, port, targetPort, namespace, mbgAppName)
+}
+
+func DeleteLocalServiceEndpoint(serviceId string) error {
+	mlog.Infof("Deleting service end point at %s", serviceId)
+	return kubernetes.Data.DeleteServiceEndpoint(serviceId)
+}

@@ -10,17 +10,17 @@ sys.path.insert(0,f'{proj_dir}')
 from tests.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName
 from tests.utils.kind.kindAux import useKindCluster
 
-def removeService(mbgName, mbgctlName, destSvc):
+def removeService(mbgName, gwctlName, destSvc):
     useKindCluster(mbgName)
-    mbgctlPod = getPodName("mbgctl")
+    gwctlPod = getPodName("gwctl")
     printHeader(f"\n\nDelete {destSvc} service to {mbgName}")
-    runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove service --id {destSvc} --type local')
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl remove service --id {destSvc} --type local')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
     #parameters 
     mbgName     = "mbg3"
-    mbgCtlName  = "mbgctl3"
+    mbgCtlName  = "gwctl3"
     destSvc     = "reviews"
     
     print(f'Working directory {proj_dir}')

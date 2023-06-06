@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
-	event "github.ibm.com/mbg-agent/pkg/eventManager"
+	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 )
 
 var plog = logrus.WithField("component", "PolicyEngine")

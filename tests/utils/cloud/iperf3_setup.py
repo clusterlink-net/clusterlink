@@ -21,8 +21,8 @@ from meta_data_func import update_metadata
 #Setting iPerf3 target
 def setupIperf3Target(platform):
     print("\n\ncreate iperf3 deploymnet and client")
-    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/iperf3/iperf3.yaml")
-    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/iperf3-client.yaml")
+    os.system(f"kubectl create -f {PROJECT_PATH}/config/manifests/iperf3/iperf3.yaml")
+    os.system(f"kubectl create -f {PROJECT_PATH}/config/manifests/host/iperf3-client.yaml")
 
 
     iperf3_start_cond=False
@@ -34,7 +34,7 @@ def setupIperf3Target(platform):
 
     print("iperf3 Server is running")
     #Creating iperf3-svc will be reeady
-    os.system(f"kubectl  create -f {PROJECT_PATH}/manifests/iperf3/iperf3-svc.yaml")
+    os.system(f"kubectl  create -f {PROJECT_PATH}/config/manifests/iperf3/iperf3-svc.yaml")
     #
 
 
@@ -56,7 +56,7 @@ def setupIperf3Target(platform):
 
 #Setting Host mode
 def setupIperf3Host(platform):
-    os.system(f"kubectl create -f {PROJECT_PATH}/manifests/host/iperf3-client.yaml")
+    os.system(f"kubectl create -f {PROJECT_PATH}/config/manifests/host/iperf3-client.yaml")
     container_reg = get_plarform_container_reg(platform)
     os.system(f"docker tag mbg:latest {container_reg}/mbg:latest")
     os.system(f"docker push {container_reg}/mbg:latest")

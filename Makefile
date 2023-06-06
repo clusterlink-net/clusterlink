@@ -41,38 +41,30 @@ vet-go: ; $(info $(M) vetting code...)
 #------------------------------------------------------
 # Build targets
 #------------------------------------------------------
-
-
 build:
 	@echo "Start go build phase"
-	go build -o ./bin/mbgctl ./cmd/mbgctl/main.go
-	go build -o ./bin/mbg ./cmd/mbg/main.go
+	go build -o ./bin/gwctl ./cmd/gwctl/main.go
+	go build -o ./bin/controlplane ./cmd/controlplane/main.go
 
-docker-build-mbg:
+docker-build: 
 	docker build --progress=plain --rm --tag mbg .
-
-docker-build: docker-build-mbg 
 
 build-image:
 	docker build --build-arg SW_VERSION="$(SW_VERSION)" -t ${IMG} .
-
 push-image:
 	docker push ${IMG}
 
-proto-build:
-	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative pkg/protocol/protocol.proto
-
 install:
-	cp ./bin/mbgctl /usr/local/bin/
-	cp ./bin/mbg /usr/local/bin/
+	cp ./bin/gwctl /usr/local/bin/
+	cp ./bin/controlplane /usr/local/bin/
 #------------------------------------------------------
 # Run Targets
 #------------------------------------------------------
-run-mbgctl:
-	@./bin/mbgctl
+run-gwctl:
+	@./bin/gwctl
 
-run-mbg:
-	@./bin/mbg
+run-controlplane:
+	@./bin/controlplane
 
 run-kind-iperf3:
 	python3 tests/iperf3/kind/allinone.py -d mtls

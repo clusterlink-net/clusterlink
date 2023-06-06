@@ -12,24 +12,24 @@ srcSvc2  = "productpage2"
 destSvc  = "reviews"
     
     
-def applyPolicy(mbg, mbgctlName, type):
+def applyPolicy(mbg, gwctlName, type):
     useKindCluster(mbg)
-    mbgctlPod=getPodName("mbgctl")
+    gwctlPod=getPodName("gwctl")
     if type == "ecmp":
         printHeader(f"Set Ecmp poilicy")          
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --type lb --serviceDst {destSvc} --mbgDest mbg2 --policy ecmp')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy --type lb --serviceDst {destSvc} --mbgDest mbg2 --policy ecmp')
     elif type == "same":
         printHeader(f"Set same policy to all services")          
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy  --type lb --serviceDst {destSvc} --mbgDest mbg2 --policy static')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy  --type lb --serviceDst {destSvc} --mbgDest mbg2 --policy static')
     elif type == "diff":
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} --mbgDest mbg2 --policy static')
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl add policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} --mbgDest mbg3 --policy static')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} --mbgDest mbg2 --policy static')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} --mbgDest mbg3 --policy static')
     elif type == "show":
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl get policy --myid {mbgctlName}')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl get policy --myid {gwctlName}')
     elif type == "clean":
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {mbgctlPod} -- ./mbgctl remove policy --type lb --serviceDst {destSvc}')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl remove policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} ')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl remove policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl remove policy --type lb --serviceDst {destSvc}')
 
 
 
@@ -46,9 +46,9 @@ if __name__ == "__main__":
 
     mbg = args["mbg"]
     type = args["type"]
-    mbgctlName     = mbg[:-1]+"ctl"+ mbg[-1]
+    gwctlName     = mbg[:-1]+"ctl"+ mbg[-1]
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
 
-    applyPolicy(mbg, mbgctlName, type)
+    applyPolicy(mbg, gwctlName, type)
     
