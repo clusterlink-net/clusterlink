@@ -58,6 +58,7 @@ build:
 	$(GO) build -o ./bin/dataplane ./cmd/dataplane/main.go
 	$(GO) build -o ./bin/cl-controlplane ./cmd/cl-controlplane
 	$(GO) build -o ./bin/cl-dataplane ./cmd/cl-dataplane
+	$(GO) build -o ./bin/cl-adm ./cmd/cl-adm
 
 
 docker-build: build
