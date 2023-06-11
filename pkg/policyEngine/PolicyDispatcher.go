@@ -144,18 +144,14 @@ func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Requ
 			plog.Errorf("Unrecognized Policy Agent")
 		}
 	}
-	respJson, err := json.Marshal(event.ConnectionRequestResp{Action: action, TargetMbg: targetMbg, BitRate: bitrate})
-	if err != nil {
-		panic(err)
-	}
+
 	plog.Infof("Response : %+v", event.ConnectionRequestResp{Action: action, TargetMbg: targetMbg, BitRate: bitrate})
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	_, err = w.Write(respJson)
-	if err != nil {
-		plog.Errorf("Unable to write response %v", err)
+	if err := json.NewEncoder(w).Encode(event.ConnectionRequestResp{Action: action, TargetMbg: targetMbg, BitRate: bitrate}); err != nil {
+		plog.Errorf("Error happened in JSON encode. Err: %s", err)
+		return
 	}
 }
 
@@ -178,18 +174,14 @@ func (pH PolicyHandler) addPeerRequest(w http.ResponseWriter, r *http.Request) {
 			plog.Errorf("Unrecognized Policy Agent")
 		}
 	}
-	respJson, err := json.Marshal(event.AddPeerResp{Action: action})
-	if err != nil {
-		panic(err)
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	_, err = w.Write(respJson)
-	if err != nil {
-		plog.Errorf("Unable to write response %v", err)
+	if err := json.NewEncoder(w).Encode(event.AddPeerResp{Action: action}); err != nil {
+		plog.Errorf("Error happened in JSON encode. Err: %s", err)
+		return
 	}
+
 	// Update States
 	if action != event.Deny {
 		pH.addPeer(requestAttr.PeerMbg)
@@ -230,18 +222,12 @@ func (pH PolicyHandler) newRemoteService(w http.ResponseWriter, r *http.Request)
 			plog.Errorf("Unrecognized Policy Agent")
 		}
 	}
-	respJson, err := json.Marshal(event.NewRemoteServiceResp{Action: action})
-	if err != nil {
-		panic(err)
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	_, err = w.Write(respJson)
-	if err != nil {
-		plog.Errorf("Unable to write response %v", err)
+	if err := json.NewEncoder(w).Encode(event.NewRemoteServiceResp{Action: action}); err != nil {
+		plog.Errorf("Error happened in JSON encode. Err: %s", err)
 	}
+
 	// Update States
 	if action != event.Deny {
 		pH.loadBalancer.AddToServiceMap(requestAttr.Service, requestAttr.Mbg)
@@ -282,18 +268,14 @@ func (pH PolicyHandler) exposeRequest(w http.ResponseWriter, r *http.Request) {
 			plog.Errorf("Unrecognized Policy Agent")
 		}
 	}
-	respJson, err := json.Marshal(event.ExposeRequestResp{Action: action, TargetMbgs: mbgPeers})
-	if err != nil {
-		panic(err)
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	_, err = w.Write(respJson)
-	if err != nil {
-		plog.Errorf("Unable to write response %v", err)
+	if err := json.NewEncoder(w).Encode(event.ExposeRequestResp{Action: action, TargetMbgs: mbgPeers}); err != nil {
+		plog.Errorf("Error happened in JSON encode. Err: %s", err)
+		return
 	}
+
 }
 
 func (pH PolicyHandler) policyWelcome(w http.ResponseWriter, r *http.Request) {

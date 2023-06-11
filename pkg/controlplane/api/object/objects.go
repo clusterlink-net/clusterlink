@@ -68,10 +68,3 @@ type ConnectReply struct {
 	ConnectType string
 	ConnectDest string
 }
-
-// Disconnect
-type DisconnectRequest struct {
-	Id     string
-	IdDest string
-	Policy string
-}

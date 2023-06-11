@@ -2,32 +2,90 @@ package controlplane
 
 import (
 	"encoding/json"
+	"net/http"
 
+	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
+
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	dp "github.ibm.com/mbg-agent/pkg/dataplane"
 	"github.ibm.com/mbg-agent/pkg/utils/httputils"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 var slog = logrus.WithField("component", "mbgControlPlane/AddService")
 
 /******************* Local Service ****************************************/
-func AddLocalService(s apiObject.ServiceRequest) {
+// Add local service - HTTP handler
+func AddLocalServiceHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Parse add service struct from request
+	var s apiObject.ServiceRequest
+	err := json.NewDecoder(r.Body).Decode(&s)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// AddService control plane logic
+	addLocalService(s)
+
+	// Response
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write([]byte("Add Service to MBG succeed"))
+	if err != nil {
+		slog.Println(err)
+	}
+}
+
+// Add local service - control plane logic
+func addLocalService(s apiObject.ServiceRequest) {
 	store.UpdateState()
 	store.AddLocalService(s.Id, s.Ip, s.Port, s.Description)
 }
 
-func GetLocalService(svcId string) apiObject.ServiceRequest {
+// Get local service - HTTP handler
+func GetLocalServiceHandler(w http.ResponseWriter, r *http.Request) {
+	svcId := chi.URLParam(r, "id")
+
+	// GetService control plane logic
+	s := getLocalService(svcId)
+	// Set response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(s); err != nil {
+		slog.Errorf("Error happened in JSON encode. Err: %s", err)
+		return
+	}
+}
+
+// Get local service - control plane logic
+func getLocalService(svcId string) apiObject.ServiceRequest {
 	store.UpdateState()
 	s := store.GetLocalService(svcId)
 	return apiObject.ServiceRequest{Id: s.Id, Ip: s.Ip, Port: s.Port, Description: s.Description}
 }
 
-func GetAllLocalServices() map[string]apiObject.ServiceRequest {
+// Get all local service - HTTP handler
+func GetAllLocalServicesHandler(w http.ResponseWriter, r *http.Request) {
+
+	// GetService control plane logic
+	sArr := getAllLocalServices()
+
+	// Set response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(sArr); err != nil {
+		slog.Errorf("Error happened in JSON encode. Err: %s", err)
+		return
+	}
+}
+
+// Get all local services - control plane logic
+func getAllLocalServices() map[string]apiObject.ServiceRequest {
 	store.UpdateState()
 	sArr := make(map[string]apiObject.ServiceRequest)
 
@@ -40,7 +98,25 @@ func GetAllLocalServices() map[string]apiObject.ServiceRequest {
 	return sArr
 }
 
-func DelLocalService(svcId string) {
+// Delete local service - HTTP handler
+func DelLocalServiceHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Parse del service struct from request
+	svcId := chi.URLParam(r, "id")
+
+	// AddService control plane logic
+	delLocalService(svcId)
+
+	// Response
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte("Service deleted successfully"))
+	if err != nil {
+		slog.Println(err)
+	}
+}
+
+// Delete local service - control plane logic
+func delLocalService(svcId string) {
 	store.UpdateState()
 	var svcArr []store.LocalService
 	if svcId == "*" { //remove all services
@@ -59,7 +135,30 @@ func DelLocalService(svcId string) {
 	}
 }
 
-func DelLocalServiceFromPeer(svcId, peer string) {
+// Delete local service from specific peer- HTTP handler
+func DelLocalServiceFromPeerHandler(w http.ResponseWriter, r *http.Request) {
+	//Parse del service struct from request
+	var s apiObject.ServiceDeleteRequest
+	err := json.NewDecoder(r.Body).Decode(&s)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+
+	}
+	//AddService control plane logic
+	slog.Infof("Received delete local service : %v from peer: %v", s.Id, s.Peer)
+	delLocalServiceFromPeer(s.Id, s.Peer)
+
+	//Response
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write([]byte("Service " + s.Id + " deleted successfully from peer " + s.Peer))
+	if err != nil {
+		slog.Println(err)
+	}
+}
+
+// Delete local service from specific peer- control plane logic
+func delLocalServiceFromPeer(svcId, peer string) {
 	store.UpdateState()
 	svc := store.GetLocalService(svcId)
 	mbg := store.GetMyId()
@@ -70,6 +169,7 @@ func DelLocalServiceFromPeer(svcId, peer string) {
 	store.DelPeerLocalService(svcId, peer)
 }
 
+// Delete local service from specific peer- http request
 func delServiceInPeerReq(svcId, serviceMbg, peerIp string) {
 	address := store.GetAddrStart() + peerIp + "/remoteservice/" + svcId
 	j, err := json.Marshal(apiObject.ServiceRequest{Id: svcId, MbgID: serviceMbg})
@@ -82,8 +182,47 @@ func delServiceInPeerReq(svcId, serviceMbg, peerIp string) {
 	slog.Printf("Response message for deleting service [%s]:%s \n", svcId, string(resp))
 }
 
-/******************* Remote Service ****************************************/
+// Add remote service - HTTP handler
+func AddRemoteServiceHandler(w http.ResponseWriter, r *http.Request) {
 
+	// Parse add service struct from request
+	var e apiObject.ExposeRequest
+	err := json.NewDecoder(r.Body).Decode(&e)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+
+	}
+	// AddService control plane logic
+	addRemoteService(e)
+
+	// Response
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write([]byte("Add Remote Service to MBG succeed"))
+	if err != nil {
+		slog.Println(err)
+	}
+}
+
+// Add remote service - control logic
+func addRemoteService(e apiObject.ExposeRequest) {
+	policyResp, err := store.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: e.Id, Mbg: e.MbgID})
+	if err != nil {
+		slog.Error("unable to raise connection request event ", store.GetMyId())
+		return
+	}
+	if policyResp.Action == eventManager.Deny {
+		slog.Errorf("unable to create service endpoint due to policy")
+		return
+	}
+	err = createRemoteServiceEndpoint(e.Id, false)
+	if err != nil {
+		return
+	}
+	store.AddRemoteService(e.Id, e.Ip, e.Description, e.MbgID)
+}
+
+// Create remote service proxy
 func createRemoteServiceEndpoint(svcId string, force bool) error {
 	connPort, err := store.GetFreePorts(svcId)
 	if err != nil {
@@ -100,6 +239,104 @@ func createRemoteServiceEndpoint(svcId string, force bool) error {
 	return nil
 }
 
+// Get remote service - HTTP handler
+func GetRemoteServiceHandler(w http.ResponseWriter, r *http.Request) {
+
+	svcId := chi.URLParam(r, "svcId")
+
+	//GetService control plane logic
+	slog.Infof("Received get local service command to service: %v", svcId)
+	s := getRemoteService(svcId)
+
+	// Set response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(s); err != nil {
+		slog.Errorf("Error happened in JSON encode. Err: %s", err)
+		return
+	}
+}
+
+// Get remote service - control logic
+func getRemoteService(svcId string) []apiObject.ServiceRequest {
+	store.UpdateState()
+	return convertRemoteServiceToRemoteReq(svcId)
+}
+
+// Get All remote service - HTTP handler
+func GetAllRemoteServicesHandler(w http.ResponseWriter, r *http.Request) {
+	// GetService control plane logic
+	sArr := getAllRemoteServices()
+
+	// Set response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(sArr); err != nil {
+		slog.Errorf("Error happened in JSON encode. Err: %s", err)
+		return
+	}
+}
+
+// Get All remote service - control logic
+func getAllRemoteServices() map[string][]apiObject.ServiceRequest {
+	store.UpdateState()
+	sArr := make(map[string][]apiObject.ServiceRequest)
+
+	for svcId, _ := range store.GetRemoteServicesArr() {
+		sArr[svcId] = convertRemoteServiceToRemoteReq(svcId)
+
+	}
+
+	return sArr
+}
+
+// Convert service object to service request object
+func convertRemoteServiceToRemoteReq(svcId string) []apiObject.ServiceRequest {
+	sArr := []apiObject.ServiceRequest{}
+	for _, s := range store.GetRemoteService(svcId) {
+		sPort := store.GetConnectionArr()[s.Id].Local
+		sIp := sPort
+		sArr = append(sArr, apiObject.ServiceRequest{Id: s.Id, Ip: sIp, Port: sPort, MbgID: s.MbgId, Description: s.Description})
+	}
+	return sArr
+}
+
+// Delete remote service - HTTP handler
+func DelRemoteServiceHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse del service struct from request
+	svcId := chi.URLParam(r, "svcId")
+	// Parse add service struct from request
+	var s apiObject.ServiceRequest
+	err := json.NewDecoder(r.Body).Decode(&s)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// AddService control plane logic
+	delRemoteService(svcId, s.MbgID)
+
+	// Response
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write([]byte("Service deleted successfully"))
+	if err != nil {
+		slog.Println(err)
+	}
+}
+
+// Delete remote service - control logic
+func delRemoteService(svcId, mbgId string) {
+	store.UpdateState()
+	if svcId == "*" {
+		for sId, _ := range store.GetRemoteServicesArr() {
+			store.DelRemoteService(sId, mbgId)
+		}
+	} else {
+		store.DelRemoteService(svcId, mbgId)
+	}
+}
+
+// Restore remote services
 func RestoreRemoteServices() {
 	for svcId, svcArr := range store.GetRemoteServicesArr() {
 		allow := false
@@ -118,59 +355,5 @@ func RestoreRemoteServices() {
 		if allow {
 			createRemoteServiceEndpoint(svcId, true)
 		}
-	}
-}
-
-func AddRemoteService(e apiObject.ExposeRequest) {
-	policyResp, err := store.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: e.Id, Mbg: e.MbgID})
-	if err != nil {
-		slog.Error("unable to raise connection request event ", store.GetMyId())
-		return
-	}
-	if policyResp.Action == eventManager.Deny {
-		slog.Errorf("unable to create service endpoint due to policy")
-		return
-	}
-	err = createRemoteServiceEndpoint(e.Id, false)
-	if err != nil {
-		return
-	}
-	store.AddRemoteService(e.Id, e.Ip, e.Description, e.MbgID)
-}
-
-func GetRemoteService(svcId string) []apiObject.ServiceRequest {
-	store.UpdateState()
-	return convertRemoteService2RemoteReq(svcId)
-}
-
-func GetAllRemoteServices() map[string][]apiObject.ServiceRequest {
-	store.UpdateState()
-	sArr := make(map[string][]apiObject.ServiceRequest)
-
-	for svcId, _ := range store.GetRemoteServicesArr() {
-		sArr[svcId] = convertRemoteService2RemoteReq(svcId)
-
-	}
-
-	return sArr
-}
-func convertRemoteService2RemoteReq(svcId string) []apiObject.ServiceRequest {
-	sArr := []apiObject.ServiceRequest{}
-	for _, s := range store.GetRemoteService(svcId) {
-		sPort := store.GetConnectionArr()[s.Id].Local
-		sIp := sPort
-		sArr = append(sArr, apiObject.ServiceRequest{Id: s.Id, Ip: sIp, Port: sPort, MbgID: s.MbgId, Description: s.Description})
-	}
-	return sArr
-}
-
-func DelRemoteService(svcId, mbgId string) {
-	store.UpdateState()
-	if svcId == "*" {
-		for sId, _ := range store.GetRemoteServicesArr() {
-			store.DelRemoteService(sId, mbgId)
-		}
-	} else {
-		store.DelRemoteService(svcId, mbgId)
 	}
 }

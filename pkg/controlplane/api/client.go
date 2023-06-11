@@ -57,7 +57,7 @@ func (g *Gwctl) AddPeer(id, target, peerCport string) error {
 		return err
 	}
 	mbgIP := d.GetMbgIP()
-	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/peer/" + id
+	address := g.GetAddrStart(d.GetDataplane()) + mbgIP + "/peer/"
 	j, err := json.Marshal(apiObject.PeerRequest{Id: id, Ip: target, Cport: ":" + peerCport})
 	if err != nil {
 		return err

@@ -5,8 +5,11 @@ import (
 
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
+
 	cp "github.ibm.com/mbg-agent/pkg/controlplane"
+	"github.ibm.com/mbg-agent/pkg/controlplane/health"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
+	dp "github.ibm.com/mbg-agent/pkg/dataplane"
 )
 
 type MbgHandler struct{}
@@ -17,52 +20,50 @@ func (m MbgHandler) Routes() chi.Router {
 	r.Get("/", m.mbgWelcome)
 
 	r.Route("/peer", func(r chi.Router) {
-		r.Get("/", cp.PeerGetAllHandler)           //GET /peer  - Get all MBG peers
-		r.Get("/{mbgID}", cp.PeerGetHandler)       //GET /peer/{mbgID}  - Get MBG peer Id
-		r.Post("/{mbgID}", cp.PeerPostHandler)     // Post /peer/{mbgID} - Add MBG peer Id to MBg peers list
-		r.Delete("/{mbgID}", cp.PeerRemoveHandler) // Delete  /service  - Get specific local service
+		r.Get("/", cp.GetAllPeersHandler)       // GET    /peer      - Get all peers
+		r.Post("/", cp.AddPeerHandler)          // Post   /peer      - Add peer Id to peers list
+		r.Get("/{id}", cp.GetPeerHandler)       // GET    /peer/{id} - Get peer Id
+		r.Delete("/{id}", cp.RemovePeerHandler) // Delete /peer/{id} - Delete peer
 	})
 
 	r.Route("/hello", func(r chi.Router) {
-		r.Post("/{mbgID}", cp.SendHelloHandler) // send Hello to MBG peer
-		r.Post("/", cp.SendHello2AllHandler)    // send Hello to MBG peer
+		r.Post("/", cp.SendHelloToAllHandler)    // Post /hello Hello to all peers
+		r.Post("/{peerID}", cp.SendHelloHandler) // Post /hello/{peerID} send Hello to a peer
 	})
 
 	r.Route("/hb", func(r chi.Router) {
-		r.Post("/", cp.HandleHB) // Heartbeat messages
+		r.Post("/", health.HandleHB) // Heartbeat messages
 	})
 
 	r.Route("/service", func(r chi.Router) {
-		r.Post("/", cp.AddLocalServicePostHandler)                   // Post /service  - Add local service to MBG
-		r.Get("/", cp.AllLocalServicesGetHandler)                    // Get  /service  - Get all local services in MBG
-		r.Get("/{svcId}", cp.LocalServiceGetHandler)                 // Get  /service  - Get specific local service
-		r.Delete("/{svcId}", cp.DelLocalServiceHandler)              // Delete  /service  - Delete local service
-		r.Delete("/{svcId}/peer", cp.DelLocalServiceFromPeerHandler) // Delete  /service - Delete local service from peer
+		r.Post("/", cp.AddLocalServiceHandler)                    // Post /service    - Add local service
+		r.Get("/", cp.GetAllLocalServicesHandler)                 // Get  /service    - Get all local services
+		r.Get("/{id}", cp.GetLocalServiceHandler)                 // Get  /service    - Get specific local service
+		r.Delete("/{id}", cp.DelLocalServiceHandler)              // Delete  /service - Delete local service
+		r.Delete("/{id}/peer", cp.DelLocalServiceFromPeerHandler) // Delete  /service - Delete local service from peer
 
 	})
 
 	r.Route("/remoteservice", func(r chi.Router) {
-		r.Post("/", cp.AddRemoteServicePostHandler)      // Post /remoteservice  - Add Remote service to the MBG
-		r.Get("/", cp.AllRemoteServicesGetHandler)       // Get  /remoteservice  - Get all remote services in MBG
-		r.Get("/{svcId}", cp.RemoteServiceGetHandler)    // Get  /remoteservice  - Get specific remote service
-		r.Delete("/{svcId}", cp.DelRemoteServiceHandler) // Delete  /remoteservice  - Get specific remote service
+		r.Post("/", cp.AddRemoteServiceHandler)          // Post /remoteservice            - Add Remote service
+		r.Get("/", cp.GetAllRemoteServicesHandler)       // Get  /remoteservice            - Get all remote services
+		r.Get("/{svcId}", cp.GetRemoteServiceHandler)    // Get  /remoteservice/{svcId}    - Get specific remote service
+		r.Delete("/{svcId}", cp.DelRemoteServiceHandler) // Delete  /remoteservice/{svcId} - Delete specific remote service
 
 	})
 
 	r.Route("/expose", func(r chi.Router) {
-		r.Post("/", cp.ExposePostHandler) // Post /expose  - Expose mbg service
+		r.Post("/", cp.ExposeHandler) // Post /expose  - Expose  service
 	})
 
 	r.Route("/binding", func(r chi.Router) {
-		r.Post("/", cp.BindingCreateHandler)          // Post /expose  - Bind remote service to local port
-		r.Delete("/{svcId}", cp.BindingDeleteHandler) // Disconnect /connect  - Disconnect mbg service
+		r.Post("/", cp.CreateBindingHandler)          // Post /binding   - Bind remote service to local port
+		r.Delete("/{svcId}", cp.DeleteBindingHandler) // Delete /binding - Remove Binding of remote service to local port
 	})
 
 	r.Route("/connect", func(r chi.Router) {
-		r.Post("/", cp.ConnectPostHandler)      // Post /connect  - Connect mbg service
-		r.Connect("/", cp.HandleConnectHandler) // Connect /connect  - Connect mbg service
-		r.Delete("/", cp.ConnectDeleteHandler)  // Disconnect /connect  - Disconnect mbg service
-
+		r.Post("/", dp.MTLSConnectHandler)   // Post /connect    - Create Connection to a service (mTLS)
+		r.Connect("/", dp.TCPConnectHandler) // Connect /connect - Create Connection to a service (TCP)
 	})
 
 	return r

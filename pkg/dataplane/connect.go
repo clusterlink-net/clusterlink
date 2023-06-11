@@ -9,6 +9,7 @@ import (
 
 	"github.com/segmentio/ksuid"
 	"github.com/sirupsen/logrus"
+
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
@@ -16,21 +17,65 @@ import (
 	"github.ibm.com/mbg-agent/pkg/utils/httputils"
 )
 
-var clog *logrus.Entry
-
 const TCP_TYPE = "tcp"
 const MTLS_TYPE = "mtls"
 
-/***************** Local Service function **********************************/
+var clog = logrus.WithField("component", "DataPlane")
 
-func Connect(c apiObject.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (bool, string, string) {
-	//Update MBG state
+// Connect HTTP handler for post request (use for MTLS data plane)
+func MTLSConnectHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Parse struct from request
+	var c apiObject.ConnectRequest
+	err := json.NewDecoder(r.Body).Decode(&c)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Connect data plane logic
+	mbgIP := strings.Split(r.RemoteAddr, ":")[0]
+	clog.Infof("Received connect to service %s from MBG: %s", c.Id, mbgIP)
+	connect, connectType, connectDest := connect(c, mbgIP, nil)
+
+	clog.Infof("Got {%+v, %+v, %+v} from connect \n", connect, connectType, connectDest)
+	// Set Connect response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(apiObject.ConnectReply{Connect: connect, ConnectType: connectType, ConnectDest: connectDest}); err != nil {
+		clog.Errorf("Error happened in JSON encode. Err: %s", err)
+		return
+	}
+
+}
+
+// Connect HTTP handler for connect request (use for TCP data plane)
+func TCPConnectHandler(w http.ResponseWriter, r *http.Request) {
+	//Parse struct from request
+	var c apiObject.ConnectRequest
+	err := json.NewDecoder(r.Body).Decode(&c)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	clog.Infof("Received connect to service: %v", c.Id)
+	mbgIP := strings.Split(r.RemoteAddr, ":")[0]
+	clog.Infof("Received connect to service %s from MBG: %s", c.Id, mbgIP)
+	allow, _, _ := connect(c, mbgIP, w)
+
+	// Write response for error
+	if allow != true {
+		w.WriteHeader(http.StatusForbidden)
+	}
+}
+
+// Connect control plane logic
+func connect(c apiObject.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (bool, string, string) {
+	// Update MBG state
 	store.UpdateState()
-	clog = logrus.WithFields(logrus.Fields{
-		"component": store.GetMyId() + "-Dataplane",
-	})
 	if store.IsServiceLocal(c.IdDest) {
-		return StartProxyToLocalService(c, targetMbgIP, w)
+		return startProxyToLocalService(c, targetMbgIP, w)
 	} else { //For Remote service
 		clog.Errorf("Service %s does not exist", c.IdDest)
 		return false, "", ""
@@ -40,7 +85,7 @@ func Connect(c apiObject.ConnectRequest, targetMbgIP string, w http.ResponseWrit
 // ConnectLocalService waiting for connection from host and do two things:
 // 1. Create tcp connection to destination (Not Secure)- TODO support also secure connection
 // 2. Register new handle function and hijack the connection
-func StartProxyToLocalService(c apiObject.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (bool, string, string) {
+func startProxyToLocalService(c apiObject.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (bool, string, string) {
 	clog.Infof("Received Incoming Connect request from service: %v to service: %v", c.Id, c.IdDest)
 	connectionID := createConnId(c.Id, c.IdDest)
 	dataplane := store.GetDataplane()
@@ -65,7 +110,7 @@ func StartProxyToLocalService(c apiObject.ConnectRequest, targetMbgIP string, w 
 			clog.Error("Hijack Failure")
 			return false, "", ""
 		}
-		go StartTcpProxyService("httpconnect", localSvc.GetIpAndPort(), c.Policy, connectionID, conn, nil)
+		go startTcpProxyService("httpconnect", localSvc.GetIpAndPort(), c.Policy, connectionID, conn, nil)
 		return true, dataplane, "httpconnect"
 	case MTLS_TYPE:
 		uid := ksuid.New()
@@ -95,7 +140,7 @@ func StartMtlsProxyToLocalService(localServicePort, targetMbgIPPort, remoteEndPo
 
 // Run server for Data connection - we have one server and client that we can add some network functions e.g: TCP-split
 // By default we just forward the data
-func StartTcpProxyService(svcListenPort, svcIp, policy, connName string, serverConn, clientConn net.Conn) {
+func startTcpProxyService(svcListenPort, svcIp, policy, connName string, serverConn, clientConn net.Conn) {
 
 	srcIp := svcListenPort
 	destIp := svcIp
@@ -111,8 +156,6 @@ func StartTcpProxyService(svcListenPort, svcIp, policy, connName string, serverC
 	}
 	forward.RunTcpForwarder()
 }
-
-/***************** Remote Service function **********************************/
 
 // Start a Local Service which is a proxy for remote service
 // It receives connections from local service and performs Connect API
@@ -184,7 +227,7 @@ func StartProxyToRemoteService(serviceId string, acceptor net.Listener, serviceP
 		}
 		switch dataplane {
 		case TCP_TYPE:
-			connDest, err := tcpConnectReq(localSvc.Id, serviceId, "forward", mbgIP)
+			connDest, err := TCPConnectReq(localSvc.Id, serviceId, "forward", mbgIP)
 
 			if err != nil {
 				clog.Infof("Unable to connect(tcp): %v ", err.Error())
@@ -194,13 +237,13 @@ func StartProxyToRemoteService(serviceId string, acceptor net.Listener, serviceP
 			connectDest := "Use open connect socket" //not needed ehr we use connect - destSvc.Service.Ip + ":" + connectDest
 			clog.Infof("Using %s for  %s/%s to connect to Service-%v", dataplane, mbgIP, connectDest, destSvc.Id)
 			connectionID := createConnId(localSvc.Id, destSvc.Id)
-			go StartTcpProxyService(servicePort, connectDest, "forward", connectionID, ac, connDest)
+			go startTcpProxyService(servicePort, connectDest, "forward", connectionID, ac, connDest)
 
 		case MTLS_TYPE:
 			mtlsForward := MbgMtlsForwarder{ChiRouter: store.GetChiRouter()}
 
 			//Send connection request to other MBG
-			connectType, connectDest, err := mtlsConnectReq(localSvc.Id, serviceId, "forward", mbgIP)
+			connectType, connectDest, err := mTLSConnectReq(localSvc.Id, serviceId, "forward", mbgIP)
 
 			if err != nil {
 				clog.Infof("Unable to connect(mtls): %v ", err.Error())
@@ -218,7 +261,7 @@ func StartProxyToRemoteService(serviceId string, acceptor net.Listener, serviceP
 }
 
 // Send control request to connect
-func mtlsConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, error) {
+func mTLSConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, error) {
 	clog.Infof("Starting mTLS Connect Request to MBG at %v for Service %v", mbgIp, svcIdDest)
 	address := store.GetAddrStart() + mbgIp + "/connect"
 
@@ -227,7 +270,7 @@ func mtlsConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, 
 		clog.Error(err)
 		return "", "", err
 	}
-	//Send connect
+	// Send connect
 	resp, err := httputils.HttpPost(address, j, store.GetHttpClient())
 	if err != nil {
 		clog.Error(err)
@@ -248,7 +291,8 @@ func mtlsConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (string, string, 
 	return "", "", fmt.Errorf("failed to connect")
 }
 
-func tcpConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (net.Conn, error) {
+// TCP connection request to other peer
+func TCPConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (net.Conn, error) {
 	clog.Printf("Starting TCP Connect Request to MBG at %v for service %v", mbgIp, svcIdDest)
 	url := store.GetAddrStart() + mbgIp + "/connect"
 
@@ -267,7 +311,7 @@ func tcpConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (net.Conn, error) 
 }
 
 func hijackConn(w http.ResponseWriter) net.Conn {
-	//Check if we can hijack connection
+	// Check if we can hijack connection
 	hj, ok := w.(http.Hijacker)
 	if !ok {
 		http.Error(w, "server doesn't support hijacking", http.StatusInternalServerError)

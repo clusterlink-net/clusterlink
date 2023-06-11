@@ -3,6 +3,7 @@ package health
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -82,6 +83,20 @@ func SendHeartBeats() error {
 	}
 }
 
+// Send HB to peer http handler
+func HandleHB(w http.ResponseWriter, r *http.Request) {
+	var h apiObject.HeartBeat
+	err := json.NewDecoder(r.Body).Decode(&h)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	RecvHeartbeat(h.Id)
+
+	//Response
+	w.WriteHeader(http.StatusOK)
+}
 func RecvHeartbeat(mbgID string) {
 	updateLastSeen(mbgID)
 	validateMBGs(mbgID)

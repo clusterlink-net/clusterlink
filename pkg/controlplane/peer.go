@@ -2,8 +2,11 @@ package controlplane
 
 import (
 	"encoding/json"
+	"net/http"
 
+	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
+
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/health"
@@ -13,8 +16,30 @@ import (
 
 var plog = logrus.WithField("component", "mbgControlPlane/Peer")
 
-func AddPeer(p apiObject.PeerRequest) {
-	//Update MBG state
+// AddPeer HTTP handler
+func AddPeerHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Parse add peer struct from request
+	var p apiObject.PeerRequest
+	err := json.NewDecoder(r.Body).Decode(&p)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// AddPeer control plane logic
+	addPeer(p)
+
+	// Response
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write([]byte("Add Peer succeeded"))
+	if err != nil {
+		plog.Println(err)
+	}
+}
+
+// AddPeer control plane logic
+func addPeer(p apiObject.PeerRequest) {
+	// Update MBG state
 	store.UpdateState()
 
 	peerResp, err := store.GetEventManager().RaiseAddPeerEvent(eventManager.AddPeerAttr{PeerMbg: p.Id})
@@ -29,7 +54,23 @@ func AddPeer(p apiObject.PeerRequest) {
 	store.AddMbgNbr(p.Id, p.Ip, p.Cport)
 }
 
-func GetAllPeers() map[string]apiObject.PeerRequest {
+// Get all peers HTTP handler
+func GetAllPeersHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Get Peer control plane logic
+	p := getAllPeers()
+
+	// Set response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(p); err != nil {
+		plog.Errorf("Error happened in JSON encode. Err: %s", err)
+		return
+	}
+}
+
+// Get all peers control plane logic
+func getAllPeers() map[string]apiObject.PeerRequest {
 	//Update MBG state
 	store.UpdateState()
 	pArr := make(map[string]apiObject.PeerRequest)
@@ -42,7 +83,25 @@ func GetAllPeers() map[string]apiObject.PeerRequest {
 
 }
 
-func GetPeer(peerID string) apiObject.PeerRequest {
+// Get peer HTTP handler
+func GetPeerHandler(w http.ResponseWriter, r *http.Request) {
+
+	peerID := chi.URLParam(r, "id")
+
+	//AddPeer control plane logic
+	p := getPeer(peerID)
+
+	//Response
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(p); err != nil {
+		plog.Errorf("Error happened in JSON encode. Err: %s", err)
+		return
+	}
+}
+
+// Get peer control plane logic
+func getPeer(peerID string) apiObject.PeerRequest {
 	//Update MBG state
 	store.UpdateState()
 	ok := store.IsMbgPeer(peerID)
@@ -56,7 +115,29 @@ func GetPeer(peerID string) apiObject.PeerRequest {
 
 }
 
-func RemovePeer(p apiObject.PeerRemoveRequest) {
+// Remove peer HTTP handler
+func RemovePeerHandler(w http.ResponseWriter, r *http.Request) {
+
+	//Parse add peer struct from request
+	var p apiObject.PeerRemoveRequest
+	err := json.NewDecoder(r.Body).Decode(&p)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// RemovePeer control plane logic
+	removePeer(p)
+
+	// Response
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write([]byte("Remove Peer succeed"))
+	if err != nil {
+		plog.Println(err)
+	}
+}
+
+// Remove peer control plane logic
+func removePeer(p apiObject.PeerRemoveRequest) {
 	//Update MBG state
 	store.UpdateState()
 

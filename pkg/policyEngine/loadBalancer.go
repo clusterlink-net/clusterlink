@@ -82,17 +82,11 @@ func (lB *LoadBalancer) DeletePolicyReq(w http.ResponseWriter, r *http.Request) 
 }
 
 func (lB *LoadBalancer) GetPolicyReq(w http.ResponseWriter, r *http.Request) {
-	respJson, err := json.Marshal(lB.Policy)
-	if err != nil {
-		plog.Errorf("Unable to Marshal LB Policy")
-		return
-	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	_, err = w.Write(respJson)
-	if err != nil {
-		plog.Errorf("Unable to write response %v", err)
+	if err := json.NewEncoder(w).Encode(lB.Policy); err != nil {
+		plog.Errorf("Error happened in JSON encode. Err: %s", err)
+		return
 	}
 }
 
