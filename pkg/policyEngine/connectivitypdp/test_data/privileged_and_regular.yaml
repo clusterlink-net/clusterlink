@@ -1,0 +1,28 @@
+apiVersion: clusterlink/v1alpha1
+kind: PrivilegedConnectivityPolicy
+metadata:
+  name: deny-connecting-to-metering-service-on-port-5051
+spec:
+  action: deny
+  from:
+  - workloadSelector: {}
+  to:
+  - workloadSelector:
+      matchLabels:
+        workloadName: global-metering-service
+  connectionAttrs:
+  - protocol: TCP
+    port: 5051
+---
+apiVersion: clusterlink/v1alpha1
+kind: ConnectivityPolicy
+metadata:
+  name: allow-connecting-to-metering-service
+spec:
+  action: allow
+  from:
+  - workloadSelector: {}
+  to:
+  - workloadSelector:
+      matchLabels:
+        workloadName: global-metering-service

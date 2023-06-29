@@ -1,0 +1,77 @@
+apiVersion: clusterlink/v1alpha1
+kind: PrivilegedConnectivityPolicy  # Looks like a privileged connectivity policy, but it is not
+metadata:
+  name: policy-with-bad-kay
+spec:
+  badKey: deny
+---
+apiVersion: clusterlink/v1alpha1
+kind: ConnectivityPolicy  # Looks like a connectivity policy, but it is not
+metadata:
+  name: policy-without-from
+spec:
+  action: deny
+---
+apiVersion: clusterlink/v1alpha1
+kind: PrivilegedConnectivityPolicy
+metadata:
+  name: policy-with-bad-action
+spec:
+  action: den
+  from:
+  - workloadSelector:
+      matchLabels: {}
+  to:
+  - workloadSelector:
+      matchLabels:
+        workloadName: global-metering-service
+---
+apiVersion: clusterlink/v1alpha1
+kind: PrivilegedConnectivityPolicy
+metadata:
+  name: deny-connecting-to-metering-service-on-port-5051
+spec:
+  action: deny
+  from:
+  - workloadSelector:
+      labelSelector: {}
+  to:
+  - workloadSelector:
+      matchLabels:
+        workloadName: global-metering-service
+  connectionAttrs:
+  - protocol: TCP
+    port: 5051
+---
+apiVersion: clusterlink/v1alpha1
+kind: NotAPolicy
+metadata:
+  name: allow-connecting-to-metering-service
+spec:
+  action: allow
+  from:
+  - workloadSelector:
+      labelSelector: {}
+  to:
+  - workloadSelector:
+      matchLabels:
+        workloadName: global-metering-service
+---
+badkey: 1  # Doesn't even have a kind
+anotherBadKey: "sdf"
+---
+# - blabla  # not even a map
+---
+apiVersion: clusterlink/v1alpha1
+kind: ConnectivityPolicy
+metadata:
+  name: allow-connecting-to-metering-service
+spec:
+  action: allow
+  from:
+  - workloadSelector:
+      labelSelector: {}
+  to:
+  - workloadSelector:
+      matchLabels:
+        workloadName: global-metering-service

@@ -1,0 +1,68 @@
+apiVersion: clusterlink/v1alpha1
+kind: PrivilegedConnectivityPolicy
+metadata:
+  name: deny-private-workloads-connecting-to-metering-service-on-port-5051-on-prod
+spec:
+  action: deny
+  from:
+  - workloadSelector:
+      matchLabels:
+        classification: private
+        environment: prod
+  to:
+  - workloadSelector:
+      matchLabels:
+        workloadName: global-metering-service
+        environment: prod
+  connectionAttrs:
+  - protocol: TCP
+    port: 5051
+---
+apiVersion: clusterlink/v1alpha1
+kind: PrivilegedConnectivityPolicy
+metadata:
+  name: allow-connecting-to-metering-service-on-port-5051
+spec:
+  action: allow
+  from:
+  - workloadSelector: {}
+  to:
+  - workloadSelector:
+      matchLabels:
+        workloadName: global-metering-service
+        environment: prod
+  connectionAttrs:
+  - protocol: TCP
+    port: 5051
+---
+apiVersion: clusterlink/v1alpha1
+kind: ConnectivityPolicy
+metadata:
+  name: deny-connecting-to-metering-service-on-some-ports
+spec:
+  action: deny
+  from:
+  - workloadSelector: {}
+  to:
+  - workloadSelector:
+      matchLabels:
+        workloadName: global-metering-service
+  connectionAttrs:
+  - protocol: TCP
+    port: 5051
+  - protocol: TCP
+    port: 5052
+---
+apiVersion: clusterlink/v1alpha1
+kind: ConnectivityPolicy
+metadata:
+  name: allow-connecting-to-named_workloads
+spec:
+  action: allow
+  from:
+  - workloadSelector: {}
+  to:
+  - workloadSelector:
+      matchExpressions:
+      - key: workloadName
+        operator: Exists 
