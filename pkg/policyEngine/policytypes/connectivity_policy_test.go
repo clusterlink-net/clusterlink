@@ -32,6 +32,25 @@ func TestMatching(t *testing.T) {
 	require.True(t, matches) // From and To and set - there is a match now
 }
 
+func TestDecide(t *testing.T) {
+	trivialConnPol := policytypes.ConnectivityPolicy{
+		Action: policytypes.PolicyActionDeny,
+		From:   []policytypes.WorkloadSetOrSelector{trivialWorkloadSet}}
+	decision, err := trivialConnPol.Decide(trivialLabel, trivialLabel)
+	require.Nil(t, err)
+	require.Equal(t, policytypes.PolicyDecisionUndecided, decision) // no match -> no decision
+
+	trivialConnPol.To = []policytypes.WorkloadSetOrSelector{trivialWorkloadSet}
+	decision, err = trivialConnPol.Decide(trivialLabel, trivialLabel)
+	require.Nil(t, err)
+	require.Equal(t, policytypes.PolicyDecisionDeny, decision) // match -> policy says deny
+
+	trivialConnPol.Action = policytypes.PolicyActionAllow
+	decision, err = trivialConnPol.Decide(trivialLabel, trivialLabel)
+	require.Nil(t, err)
+	require.Equal(t, policytypes.PolicyDecisionAllow, decision) // match -> policy says allow
+}
+
 func TestMarshall(t *testing.T) {
 	trivialConnPol := policytypes.ConnectivityPolicy{
 		Action: policytypes.PolicyActionAllow,
@@ -82,6 +101,8 @@ func TestBadSelector(t *testing.T) {
 	err = anotherBadPolicy.Validate()
 	require.NotNil(t, err)
 	_, err = anotherBadPolicy.Matches(trivialLabel, nil)
+	require.NotNil(t, err)
+	_, err = anotherBadPolicy.Decide(trivialLabel, nil)
 	require.NotNil(t, err)
 
 	emptySelector := policytypes.WorkloadSetOrSelector{}

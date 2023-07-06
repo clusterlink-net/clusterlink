@@ -19,12 +19,21 @@ type ConnectivityPolicy struct {
 	To         WorkloadSetOrSelectorList `json:"to"`
 }
 
-// PolicyAction represents a ConnectivityPolicy decision on a given connection
+// PolicyAction specifies whether a ConnectivityPolicy allows or denies the connection specified by its 'From' and 'To' fields
 type PolicyAction string
 
 const (
 	PolicyActionAllow PolicyAction = "allow"
 	PolicyActionDeny  PolicyAction = "deny"
+)
+
+// PolicyDecision represents a ConnectivityPolicy decision on a given connection
+type PolicyDecision int
+
+const (
+	PolicyDecisionUndecided PolicyDecision = iota
+	PolicyDecisionAllow
+	PolicyDecisionDeny
 )
 
 // WorkloadSetOrSelectorList is a collection of WorkloadSetOrSelector objects
@@ -81,6 +90,23 @@ func (wss *WorkloadSetOrSelector) validate() error {
 	}
 	_, err := metav1.LabelSelectorAsSelector(wss.WorkloadSelector)
 	return err
+}
+
+// Decide returns the receiver policy's decision on a given connection.
+// If the policy matches the connection, a decision based on its Action is returned.
+// Otherwise, it returns an "undecided" value.
+func (cps *ConnectivityPolicy) Decide(src, dest WorkloadAttrs) (PolicyDecision, error) {
+	matches, err := cps.Matches(src, dest)
+	if err != nil {
+		return PolicyDecisionDeny, err
+	}
+	if matches {
+		if cps.Action == PolicyActionAllow {
+			return PolicyDecisionAllow, nil
+		}
+		return PolicyDecisionDeny, nil
+	}
+	return PolicyDecisionUndecided, nil
 }
 
 // Matches checks if a connection from a source with given labels to a destination with given labels,
