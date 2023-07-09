@@ -6,9 +6,15 @@
 package netutils
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -32,4 +38,34 @@ func GetConnIp(c net.Conn) (string, string) {
 	ip := s[0]
 	port := s[1]
 	return ip, port
+}
+
+// Start HTTP server
+func StartHTTPServer(ip string, handler http.Handler) {
+
+	//Use router to start the server
+	log.Fatal(http.ListenAndServe(ip, handler))
+}
+
+func StartMTLSServer(ip, certca, certificate, key string, handler http.Handler) {
+	// Create the TLS Config with the CA pool and enable Client certificate validation
+	caCert, err := ioutil.ReadFile(certca)
+	if err != nil {
+		log.Fatal("certca reed:", err)
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	tlsConfig := &tls.Config{
+		ClientCAs:  caCertPool,
+		ClientAuth: tls.RequireAndVerifyClientCert,
+	}
+	// Create a Server instance to listen on port 443 with the TLS config
+	server := &http.Server{
+		Addr:      ip,
+		TLSConfig: tlsConfig,
+		Handler:   handler,
+	}
+	// Listen to HTTPS connections with the server certificate and wait
+	log.Fatal(server.ListenAndServeTLS(certificate, key))
 }

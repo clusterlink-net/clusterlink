@@ -1,15 +1,19 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
 
 	cp "github.ibm.com/mbg-agent/pkg/controlplane"
+	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/health"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
-	dp "github.ibm.com/mbg-agent/pkg/dataplane"
+	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
 )
 
 type MbgHandler struct{}
@@ -17,7 +21,7 @@ type MbgHandler struct{}
 func (m MbgHandler) Routes() chi.Router {
 	r := store.GetChiRouter()
 
-	r.Get("/", m.mbgWelcome)
+	r.Get("/", m.controlplaneWelcome)
 
 	r.Route("/peer", func(r chi.Router) {
 		r.Get("/", cp.GetAllPeersHandler)       // GET    /peer      - Get all peers
@@ -61,17 +65,111 @@ func (m MbgHandler) Routes() chi.Router {
 		r.Delete("/{svcId}", cp.DeleteBindingHandler) // Delete /binding - Remove Binding of remote service to local port
 	})
 
-	r.Route("/connect", func(r chi.Router) {
-		r.Post("/", dp.MTLSConnectHandler)   // Post /connect    - Create Connection to a service (mTLS)
-		r.Connect("/", dp.TCPConnectHandler) // Connect /connect - Create Connection to a service (TCP)
+	r.Route("/imports", func(r chi.Router) {
+		r.Post("/newConnection", setupNewImportConnHandler) // Post /newImportConnection - New connection parameters check
+	})
+	r.Route("/exports", func(r chi.Router) {
+		r.Post("/newConnection", setupNewExportConnHandler) // Post /newExportConnection  - New connection parameters check
 	})
 
 	return r
 }
 
-func (m MbgHandler) mbgWelcome(w http.ResponseWriter, r *http.Request) {
-	_, err := w.Write([]byte("Welcome to Multi-cloud Border Gateway"))
+func (m MbgHandler) controlplaneWelcome(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write([]byte("Welcome to control plane Gateway"))
 	if err != nil {
 		log.Println(err)
 	}
+}
+
+// New connection request to import service- HTTP handler
+func setupNewImportConnHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse expose struct from request
+	var c apiObject.NewImportConnParmaReq
+	err := json.NewDecoder(r.Body).Decode(&c)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+
+	}
+	log.Infof("Got new connection check for dataplane: %+v", c)
+	connReply := setupNewImportConn(c.SrcIp, c.DestIp, c.DestId)
+	// Response
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(connReply); err != nil {
+		log.Errorf("Error happened in JSON encode. Err: %s", err)
+		return
+	}
+
+}
+
+// New connection request to import service-control plane logic that check the policy and connection parameters
+func setupNewImportConn(srcIp, destIp, destSvcId string) apiObject.NewImportConnParmaReply {
+	// Need to look up the label to find local service
+	// If label isnt found, Check for IP.
+	// If we cant find the service, we get the "service id" as a wildcard
+	// which is sent to the policy engine to decide.
+
+	// Ideally do a control plane connect API, Policy checks, and then create a mTLS forwarder
+	// ImportEndPoint has to be in the connect Request/Response
+	appLabel, err := kubernetes.Data.GetLabel(strings.Split(srcIp, ":")[0], kubernetes.AppLabel)
+	if err != nil {
+		log.Errorf("Unable to get App Info :%+v", err)
+	}
+	log.Infof("Receiving Outgoing connection %s(%s)->%s ", srcIp, destIp, appLabel)
+	srcSvc, err := store.LookupLocalService(appLabel, srcIp)
+	if err != nil {
+		log.Infof("Unable to lookup local service :%v", err)
+	}
+
+	policyResp, err := store.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: srcSvc.Id, DstService: destSvcId, Direction: eventManager.Outgoing, OtherMbg: eventManager.Wildcard})
+	if err != nil {
+		log.Errorf("Unable to raise connection request event")
+		return apiObject.NewImportConnParmaReply{Action: eventManager.Deny.String()}
+	}
+
+	log.Infof("Accepting Outgoing Connect request from service: %v to service: %v", srcSvc.Id, destSvcId)
+
+	var target string
+	if policyResp.TargetMbg == "" {
+		// Policy Agent hasnt suggested anything any target MBG, hence we fall back to our defaults
+		target = store.GetMbgTarget(destSvcId)
+	} else {
+		target = store.GetMbgTarget(policyResp.TargetMbg)
+	}
+	return apiObject.NewImportConnParmaReply{Action: policyResp.Action.String(), Target: target, SrcId: srcSvc.Id}
+}
+
+// New connection request to export service- HTTP handler
+func setupNewExportConnHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse struct from request
+	var c apiObject.NewExportConnParmaReq
+	err := json.NewDecoder(r.Body).Decode(&c)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+
+	}
+	log.Infof("Got new connection check for dataplane: %+v", c)
+	connReply := setupNewExportConn(c.SrcId, c.SrcGwId, c.DestId)
+	// Response
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(connReply); err != nil {
+		log.Errorf("Error happened in JSON encode. Err: %s", err)
+		return
+	}
+
+}
+
+// New connection request  to export service-control plane logic that check the policy and connection parameters
+func setupNewExportConn(srcSvcId, srcGwId, destSvcId string) apiObject.NewExportConnParmaReply {
+	localSvc := store.GetLocalService(destSvcId)
+	policyResp, err := store.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: srcSvcId, DstService: destSvcId, Direction: eventManager.Incoming, OtherMbg: srcGwId})
+
+	if err != nil {
+		log.Error("Unable to raise connection request event ", store.GetMyId())
+		return apiObject.NewExportConnParmaReply{Action: eventManager.Deny.String()}
+	}
+	srcGw := store.GetMbgTarget(srcGwId)
+	return apiObject.NewExportConnParmaReply{Action: policyResp.Action.String(), SrcGwEndpoint: srcGw, DestSvcEndpoint: localSvc.GetIpAndPort()}
 }

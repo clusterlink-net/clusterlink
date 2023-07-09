@@ -42,8 +42,8 @@ if __name__ == "__main__":
     #MBG1 parameters 
     mbg1DataPort    = "30001"
     mbg1cPort       = "30443"
-    mbg1cPortLocal  = "8443"
-    mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    mbg1cPortLocal  = "443"
+    mbg1crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     mbg1Name        = "mbg1"
     gwctl1Name     = "gwctl1"
     mbg1cni         = cni 
@@ -53,8 +53,8 @@ if __name__ == "__main__":
     #MBG2 parameters 
     mbg2DataPort    = "30001"
     mbg2cPort       = "30443"
-    mbg2cPortLocal  = "8443"
-    mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    mbg2cPortLocal  = "443"
+    mbg2crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     mbg2Name        = "mbg2"
     gwctl2Name     = "gwctl2"
     mbg2cni         = "flannel" if cni == "diff" else cni

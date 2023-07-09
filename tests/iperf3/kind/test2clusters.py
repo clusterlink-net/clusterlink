@@ -38,27 +38,27 @@ if __name__ == "__main__":
     #MBG1 parameters 
     mbg1DataPort    = "30001"
     mbg1cPort       = "30443"
-    mbg1cPortLocal  = "8443"
-    mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    mbg1cPortLocal  = "443"
+    mbg1crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     mbg1ClusterName ="mbg-agent1"
     
     #MBG2 parameters 
     mbg2DataPort    = "30001"
     mbg2cPort       = "30443"
-    mbg2cPortLocal  = "8443"
-    mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    mbg2cPortLocal  = "443"
+    mbg2crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     mbg2ClusterName = "mbg-agent2"
     #Host parameters
     srcSvc          = "iperf3-client"
     srcDefaultGW    = "10.244.0.1"
     srck8sSvcPort   = "5000"
     
-    hostcrtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    hostcrtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     hostClusterName = "mbg-agent1" if mbgMode =="inside" else"host-cluster"
     #Destination parameters
     destSvc         = "iperf3-server"
     iperf3DestPort  = "30001"
-    destcrtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    destcrtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     destClusterName = "mbg-agent2" if mbgMode =="inside" else "dest-cluster" 
     
     #folders

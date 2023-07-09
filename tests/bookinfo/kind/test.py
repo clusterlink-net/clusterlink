@@ -40,9 +40,9 @@ if __name__ == "__main__":
     #MBG1 parameters 
     mbg1DataPort    = "30001"
     mbg1cPort       = "30443"
-    mbg1cPortLocal  = "8443"
+    mbg1cPortLocal  = "443"
     mbg1Name        = "mbg1"
-    mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    mbg1crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     gwctl1Name     = "gwctl1"
     srcSvc1         = "productpage"
     srcSvc2         = "productpage2"
@@ -54,8 +54,8 @@ if __name__ == "__main__":
     #MBG2 parameters 
     mbg2DataPort    = "30001"
     mbg2cPort       = "30443"
-    mbg2cPortLocal  = "8443"
-    mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    mbg2cPortLocal  = "443"
+    mbg2crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     mbg2Name        = "mbg2"
     gwctl2Name     = "gwctl2"
     review2DestPort = "30001"
@@ -64,8 +64,8 @@ if __name__ == "__main__":
     #MBG3 parameters 
     mbg3DataPort    = "30001"
     mbg3cPort       = "30443"
-    mbg3cPortLocal  = "8443"
-    mbg3crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg3.crt --key ./mtls/mbg3.key"  if dataplane =="mtls" else ""
+    mbg3cPortLocal  = "443"
+    mbg3crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg3.crt --key ./mtls/mbg3.key"  if dataplane =="mtls" else ""
     mbg3Name        = "mbg3"
     gwctl3Name     = "gwctl3"
     review3DestPort = "30001"

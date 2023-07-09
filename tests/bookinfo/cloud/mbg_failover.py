@@ -33,9 +33,9 @@ mbg3ibm = cluster(name="mbg3", zone = "wdc04"        , platform = "ibm", type = 
 
 mbg             = "mbg3"
 mbg3DataPort    = "30001"
-mbg3cPort       = "8443"
+mbg3cPort       = "443"
 mbg3cPortLocal  = "443"
-mbg3crtFlags    = "--rootCa ./mtls/ca.crt --certificate ./mtls/mbg3.crt --key ./mtls/mbg3.key"
+mbg3crtFlags    = "--certca ./mtls/ca.crt --cert ./mtls/mbg3.crt --key ./mtls/mbg3.key"
 mbg3Name        = "mbg3"
 destSvc      = "reviews"
     

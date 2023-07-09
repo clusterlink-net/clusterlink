@@ -17,8 +17,8 @@ var createCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		id, _ := cmd.Flags().GetString("id")
 		mbgIP, _ := cmd.Flags().GetString("mbgIP")
-		caFile, _ := cmd.Flags().GetString("rootCa")
-		certificateFile, _ := cmd.Flags().GetString("certificate")
+		caFile, _ := cmd.Flags().GetString("certca")
+		certificateFile, _ := cmd.Flags().GetString("cert")
 		dataplane, _ := cmd.Flags().GetString("dataplane")
 		keyFile, _ := cmd.Flags().GetString("key")
 		//Require gwctl
@@ -34,8 +34,8 @@ func init() {
 	rootCmd.AddCommand(createCmd)
 	createCmd.Flags().String("id", "", "gwctl Id")
 	createCmd.Flags().String("mbgIP", "", "IP address of the MBG (that the gwctl is connected)")
-	createCmd.Flags().String("rootCa", "", "Path to the Root Certificate Auth File (.pem)")
-	createCmd.Flags().String("certificate", "", "Path to the Certificate File (.pem)")
+	createCmd.Flags().String("certca", "", "Path to the Root Certificate Auth File (.pem)")
+	createCmd.Flags().String("cert", "", "Path to the Certificate File (.pem)")
 	createCmd.Flags().String("key", "", "Path to the Key File (.pem)")
 	createCmd.Flags().String("dataplane", "tcp", "tcp/mtls based data-plane proxies")
 

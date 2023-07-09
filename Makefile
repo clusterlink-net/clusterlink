@@ -45,6 +45,8 @@ build:
 	@echo "Start go build phase"
 	go build -o ./bin/gwctl ./cmd/gwctl/main.go
 	go build -o ./bin/controlplane ./cmd/controlplane/main.go
+	go build -o ./bin/dataplane ./cmd/dataplane/main.go
+
 
 docker-build: 
 	docker build --progress=plain --rm --tag mbg .
@@ -56,7 +58,7 @@ push-image:
 
 install:
 	cp ./bin/gwctl /usr/local/bin/
-	cp ./bin/controlplane /usr/local/bin/
+	cp ./bin/dataplane /usr/local/bin/
 #------------------------------------------------------
 # Run Targets
 #------------------------------------------------------
@@ -65,6 +67,9 @@ run-gwctl:
 
 run-controlplane:
 	@./bin/controlplane
+
+run-dataplane:
+	@./bin/dataplane
 
 run-kind-iperf3:
 	python3 tests/iperf3/kind/allinone.py -d mtls

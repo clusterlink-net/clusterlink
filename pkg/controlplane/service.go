@@ -12,7 +12,6 @@ import (
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
-	dp "github.ibm.com/mbg-agent/pkg/dataplane"
 	"github.ibm.com/mbg-agent/pkg/utils/httputils"
 )
 
@@ -215,7 +214,7 @@ func addRemoteService(e apiObject.ExposeRequest) {
 		slog.Errorf("unable to create service endpoint due to policy")
 		return
 	}
-	err = createRemoteServiceEndpoint(e.Id, false)
+	err = createRemoteServiceEndpoint(e)
 	if err != nil {
 		return
 	}
@@ -223,19 +222,28 @@ func addRemoteService(e apiObject.ExposeRequest) {
 }
 
 // Create remote service proxy
-func createRemoteServiceEndpoint(svcId string, force bool) error {
-	connPort, err := store.GetFreePorts(svcId)
+func createRemoteServiceEndpoint(e apiObject.ExposeRequest) error {
+	address := store.GetAddrStart() + store.GetDataplaneEndpoint() + "/imports/serviceEndpoint/"
+
+	j, err := json.Marshal(e)
 	if err != nil {
-		if err.Error() != store.ConnExist {
-			return err
-		}
-		if !force {
-			return nil
-		}
+		mlog.Error(err)
+		return err
 	}
-	rootCA, certFile, keyFile := store.GetMyMbgCerts()
-	slog.Infof("Starting an service endpoint for Remote service %s at port %s with certs(%s,%s,%s)", svcId, connPort.Local, rootCA, certFile, keyFile)
-	go dp.CreateProxyToRemoteService(svcId, connPort.Local, rootCA, certFile, keyFile)
+	// Send expose
+	resp, err := httputils.HttpPost(address, j, store.GetHttpClient())
+	mlog.Infof("Create connection request to address %s data-plane for service(%s)- %s ", address, e.Id, string(resp))
+	if err != nil {
+		mlog.Error(err)
+		return err
+	}
+	var r apiObject.ServiceReply
+	err = json.Unmarshal(resp, &r)
+	if err != nil {
+		mlog.Error(err)
+		return err
+	}
+	store.SetConnection(r.Id, r.Port)
 	return nil
 }
 
@@ -351,9 +359,9 @@ func RestoreRemoteServices() {
 			}
 			allow = true
 		}
-		// Create service endpoint only if the service from atleast one MBG is allowed as per policy
+		// Create service endpoint only if the service from at least one MBG is allowed as per policy
 		if allow {
-			createRemoteServiceEndpoint(svcId, true)
+			createRemoteServiceEndpoint(apiObject.ExposeRequest{Id: svcId})
 		}
 	}
 }

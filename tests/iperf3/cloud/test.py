@@ -45,8 +45,8 @@ if __name__ == "__main__":
     cloud = args["cloud"]
     dltCluster = args["deleteCluster"]
     machineType = args["machineType"]
-    mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
-    mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    mbg1crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    mbg2crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     mbg1 = mbg1gcp if cloud in ["gcp","diff"] else mbg1ibm
     mbg2 = mbg2gcp if cloud in ["gcp"]        else mbg2ibm
     gwctl1 ="gwctl1"

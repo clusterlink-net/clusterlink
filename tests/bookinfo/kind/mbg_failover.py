@@ -18,8 +18,8 @@ destSvc  = "reviews"
 #MBG3 parameters 
 mbg3DataPort    = "30001"
 mbg3cPort       = "30443"
-mbg3cPortLocal  = "8443"
-mbg3crtFlags    = "--rootCa ./mtls/ca.crt --certificate ./mtls/mbg3.crt --key ./mtls/mbg3.key"
+mbg3cPortLocal  = "443"
+mbg3crtFlags    = "--certca ./mtls/ca.crt --cert ./mtls/mbg3.crt --key ./mtls/mbg3.key"
 mbg3Name        = "mbg3"
 gwctl3Name     = "gwctl3"
 

@@ -1,11 +1,6 @@
 package subcommand
 
 import (
-	"crypto/tls"
-	"crypto/x509"
-	"io/ioutil"
-	"net/http"
-	"os"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -16,6 +11,13 @@ import (
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
+
+	"github.ibm.com/mbg-agent/pkg/utils/logutils"
+	"github.ibm.com/mbg-agent/pkg/utils/netutils"
+)
+
+const (
+	LogFileName = "gw.log"
 )
 
 type Mbg struct {
@@ -44,73 +46,20 @@ func (m *Mbg) StartMbg() {
 	health.MonitorHeartBeats()
 }
 
-func startHttpServer(ip string) {
-	//Set chi router
-	r := store.GetChiRouter()
-	r.Mount("/", handler.MbgHandler{}.Routes())
-
-	//Use router to start the server
-	log.Fatal(http.ListenAndServe(ip, r))
-}
-
-func startMtlsServer(ip, rootCA, certificate, key string) {
-	// Create the TLS Config with the CA pool and enable Client certificate validation
-	caCert, err := ioutil.ReadFile(rootCA)
-	if err != nil {
-		log.Fatal(err)
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	tlsConfig := &tls.Config{
-		ClientCAs:  caCertPool,
-		ClientAuth: tls.RequireAndVerifyClientCert,
-	}
-	//Set chi router
-	r := store.GetChiRouter()
-	r.Mount("/", handler.MbgHandler{}.Routes())
-
-	// Create a Server instance to listen on port 8443 with the TLS config
-	server := &http.Server{
-		Addr:      ip,
-		TLSConfig: tlsConfig,
-		Handler:   r,
-	}
-	// Listen to HTTPS connections with the server certificate and wait
-	log.Fatal(server.ListenAndServeTLS(certificate, key))
-}
-
-func Close() {
-
-}
-
-func initLogger(logLevel string, op *os.File) {
-	ll, err := log.ParseLevel(logLevel)
-	if err != nil {
-		ll = log.ErrorLevel
-	}
-	log.SetLevel(ll)
-	log.SetOutput(op)
-	log.SetFormatter(
-		&log.TextFormatter{
-			DisableColors:   false,
-			FullTimestamp:   true,
-			TimestampFormat: "2006-01-02 15:04:05",
-			PadLevelText:    true,
-			DisableQuote:    true,
-		})
-}
-
 func CreateMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, dataplane,
 	caFile, certificateFile, keyFile, logLevel string, logFile, restore bool) (Mbg, error) {
 
-	store.SetLog(logLevel, logFile)
+	logutils.SetLog(logLevel, logFile, LogFileName)
 	store.SetState(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
 
+	//Set chi router
+	r := store.GetChiRouter()
+	r.Mount("/", handler.MbgHandler{}.Routes())
+
 	if dataplane == "mtls" {
-		go startMtlsServer(":"+cportLocal, caFile, certificateFile, keyFile)
+		go netutils.StartMTLSServer(":"+cportLocal, caFile, certificateFile, keyFile, r)
 	} else {
-		go startHttpServer(":" + cportLocal)
+		go netutils.StartHTTPServer(":"+cportLocal, r)
 	}
 
 	return Mbg{id}, nil
@@ -119,16 +68,19 @@ func CreateMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalData
 func RestoreMbg(id string, policyEngineTarget, logLevel string, logFile, startPolicyEngine bool, zeroTrust bool) (Mbg, error) {
 
 	store.UpdateState()
-	store.SetLog(logLevel, logFile)
+	logutils.SetLog(logLevel, logFile, LogFileName)
 	m := Mbg{store.GetMyId()}
 	if startPolicyEngine {
 		go m.AddPolicyEngine("localhost"+store.GetMyCport().Local, true, zeroTrust)
 	}
 
+	//Set chi router
+	r := store.GetChiRouter()
+	r.Mount("/", handler.MbgHandler{}.Routes())
 	if store.GetDataplane() == "mtls" {
-		go startMtlsServer(store.GetMyCport().Local, store.GetMyInfo().CaFile, store.GetMyInfo().CertificateFile, store.GetMyInfo().KeyFile)
+		go netutils.StartMTLSServer(store.GetMyCport().Local, store.GetMyInfo().CaFile, store.GetMyInfo().CertificateFile, store.GetMyInfo().KeyFile, r)
 	} else {
-		go startHttpServer(store.GetMyCport().Local)
+		go netutils.StartHTTPServer(store.GetMyCport().Local, r)
 	}
 
 	time.Sleep(health.Interval)

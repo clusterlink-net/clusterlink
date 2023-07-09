@@ -66,6 +66,7 @@ def getMbgPorts(podMbg, destSvc):
 def buildMbg(name):
     runcmd(f"kubectl apply -f {folMfst}/mbg/mbg-role.yaml")
     runcmd(f"kubectl create -f {folMfst}/mbg/mbg.yaml")
+    runcmd(f"kubectl create -f {folMfst}/mbg/dataplane.yaml")
     waitPod("mbg")
     podMbg, mbgIp= getPodNameIp("mbg")
     return podMbg, mbgIp

@@ -50,7 +50,6 @@ func sendHello(mbgId string) string {
 func SendHelloToAllHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Hello control plane logic
-	hlog.Infof("Send hello to peers")
 	resp := sendHelloToAll()
 
 	// Set response
@@ -64,14 +63,16 @@ func SendHelloToAllHandler(w http.ResponseWriter, r *http.Request) {
 
 // Send hello to all peers -control plane logic
 func sendHelloToAll() string {
+	resp := httputils.RESPOK
 	MyInfo := store.GetMyInfo()
+	hlog.Infof("Send hello to peers %s", store.GetMbgList())
 	for _, mbgId := range store.GetMbgList() {
-		resp := helloReq(mbgId, MyInfo)
-		if resp != httputils.RESPOK {
-			return resp
+		r := helloReq(mbgId, MyInfo)
+		if r != httputils.RESPOK {
+			resp = r
 		}
 	}
-	return httputils.RESPOK
+	return resp
 }
 
 // Send hello request(HTTP) to other peers

@@ -1,18 +1,18 @@
 # Steps to Setup a test platform using 2 bare-metal servers primarily to test connectivity using mtls
 
 ##tcnode6
-./bin/mbg start --ip 10.20.20.1 --id mbg1 --cport 8443 --cportLocal 8443 --localDataPortRange 10000 --externalDataPortRange 10000 --rootCa /home/pravein/certs/ca.crt --certificate /home/pravein/certs/tcnode6-cert.pem --key /home/pravein/certs/tcnode6-key.pem --dataplane mtls
-./bin/gwctl start --id "tcnode6cluster" --ip 127.0.0.1 --mbgIP 10.20.20.1:8443 --rootCa /home/pravein/certs/ca.crt --certificate /home/pravein/certs/tcnode6-cert.pem --key /home/pravein/certs/tcnode6-key.pem --dataplane mtls
+./bin/mbg start --ip 10.20.20.1 --id mbg1 --cport 443 --cportLocal 443 --localDataPortRange 10000 --externalDataPortRange 10000 --certca /home/pravein/certs/ca.crt --cert /home/pravein/certs/tcnode6-cert.pem --key /home/pravein/certs/tcnode6-key.pem --dataplane mtls
+./bin/gwctl start --id "tcnode6cluster" --ip 127.0.0.1 --mbgIP 10.20.20.1:443 --certca /home/pravein/certs/ca.crt --cert /home/pravein/certs/tcnode6-cert.pem --key /home/pravein/certs/tcnode6-key.pem --dataplane mtls
 ./bin/mbg addPolicyEngine --target localhost:9990 --start
 ./bin/gwctl addPolicyEngine --target localhost:9990
 
 ##tcnode7 
-./bin/mbg start --id mbg2 --ip 10.20.20.2 --cport 8443 --cportLocal 8443 --localDataPortRange 10000 --externalDataPortRange 10000 --rootCa /home/pravein/certs/ca.crt --certificate /home/pravein/certs/tcnode7-cert.pem --key /home/pravein/certs/tcnode7-key.pem --dataplane mtls
-./bin/gwctl start --id "tcnode7cluster" --ip 127.0.0.1  --mbgIP 10.20.20.2:8443 --rootCa /home/pravein/certs/ca.crt --certificate /home/pravein/certs/tcnode7-cert.pem --key /home/pravein/certs/tcnode7-key.pem --dataplane mtls
+./bin/mbg start --id mbg2 --ip 10.20.20.2 --cport 443 --cportLocal 443 --localDataPortRange 10000 --externalDataPortRange 10000 --certca /home/pravein/certs/ca.crt --cert /home/pravein/certs/tcnode7-cert.pem --key /home/pravein/certs/tcnode7-key.pem --dataplane mtls
+./bin/gwctl start --id "tcnode7cluster" --ip 127.0.0.1  --mbgIP 10.20.20.2:443 --certca /home/pravein/certs/ca.crt --cert /home/pravein/certs/tcnode7-cert.pem --key /home/pravein/certs/tcnode7-key.pem --dataplane mtls
 ./bin/mbg addPolicyEngine --target localhost:9990 --start
 ./bin/gwctl addPolicyEngine --target localhost:9990
 
-./bin/gwctl addPeer --id mbg1 --ip 10.20.20.1 --cport 8443
+./bin/gwctl addPeer --id mbg1 --ip 10.20.20.1 --cport 443
 ./bin/gwctl hello
 ./bin/gwctl addService --id test-s --ip 127.0.0.1:8000
 
@@ -29,12 +29,12 @@ go run testservice.go --type client --port 10081
 
 
 ##tcnode6 with MBG3
-./bin/mbg start --ip 10.20.20.1 --id mbg3 --cport 8445 --cportLocal 8445 --localDataPortRange 20000 --externalDataPortRange 20000 --rootCa /home/pravein/certs/ca.crt --certificate /home/pravein/certs/tcnode6-cert.pem --key /home/pravein/certs/tcnode6-key.pem --dataplane mtls
-./bin/gwctl start --id "tcnode6-1cluster" --ip 127.0.0.1 --mbgIP 10.20.20.1:8445 --rootCa /home/pravein/certs/ca.crt --certificate /home/pravein/certs/tcnode6-cert.pem --key /home/pravein/certs/tcnode6-key.pem --dataplane mtls
+./bin/mbg start --ip 10.20.20.1 --id mbg3 --cport 8445 --cportLocal 8445 --localDataPortRange 20000 --externalDataPortRange 20000 --certca /home/pravein/certs/ca.crt --cert /home/pravein/certs/tcnode6-cert.pem --key /home/pravein/certs/tcnode6-key.pem --dataplane mtls
+./bin/gwctl start --id "tcnode6-1cluster" --ip 127.0.0.1 --mbgIP 10.20.20.1:8445 --certca /home/pravein/certs/ca.crt --cert /home/pravein/certs/tcnode6-cert.pem --key /home/pravein/certs/tcnode6-key.pem --dataplane mtls
 ./bin/mbg addPolicyEngine --target localhost:9995 --start
 ./bin/gwctl addPolicyEngine --target localhost:9990
-./bin/gwctl addPeer --id mbg1 --ip 10.20.20.1 --cport 8443
-./bin/gwctl addPeer --id mbg2 --ip 10.20.20.1 --cport 8443
+./bin/gwctl addPeer --id mbg1 --ip 10.20.20.1 --cport 443
+./bin/gwctl addPeer --id mbg2 --ip 10.20.20.1 --cport 443
 ./bin/gwctl hello
 
 ### Test Policies at mbg2 (tcnode7)

@@ -38,9 +38,9 @@ if __name__ == "__main__":
     #MBG1 parameters 
     mbg1DataPort    = "30001"
     mbg1cPort       = "30443"
-    mbg1cPortLocal  = "8443"
+    mbg1cPortLocal  = "443"
     mbg1Name        = "mbg1"
-    mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    mbg1crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     gwctl1Name     = "gwctl1"   
     webApp       = app(name="qotd-web"      , namespace = "qotd-app-eks", target=""                                          , port=30010)
     engravingApp = app(name="qotd-engraving", namespace = "qotd"        , target=""                                          , port=3006)
@@ -49,8 +49,8 @@ if __name__ == "__main__":
     #MBG2 parameters 
     mbg2DataPort    = "30001"
     mbg2cPort       = "30443"
-    mbg2cPortLocal  = "8443"
-    mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    mbg2cPortLocal  = "443"
+    mbg2crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     mbg2Name        = "mbg2"
     gwctl2Name     = "gwctl2"
     quoteApp     = app(name="qotd-quote"    , namespace = "qotd-svc-iks", target="qotd-quote.qotd-svc-iks.svc.cluster.local" , port=3001)
@@ -61,8 +61,8 @@ if __name__ == "__main__":
     #MBG3 parameters 
     mbg3DataPort    = "30001"
     mbg3cPort       = "30443"
-    mbg3cPortLocal  = "8443"
-    mbg3crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg3.crt --key ./mtls/mbg3.key"  if dataplane =="mtls" else ""
+    mbg3cPortLocal  = "443"
+    mbg3crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg3.crt --key ./mtls/mbg3.key"  if dataplane =="mtls" else ""
     mbg3Name        = "mbg3"
     gwctl3Name     = "gwctl3"
     pdfApp       = app(name="qotd-pdf"      , namespace = "qotd-svc-ocp", target="qotd-pdf.qotd-svc-ocp.svc.cluster.local"   , port=3005)
@@ -107,7 +107,8 @@ if __name__ == "__main__":
     runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add peer --id {mbg3Name} --target {mbg3Ip} --port {mbg3cPort}')
     useKindCluster(mbg2Name)
     runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add peer --id {mbg3Name} --target {mbg3Ip} --port {mbg3cPort}')
-    # Send Hello
+    time.sleep(1)
+    #Send Hello
     printHeader("Send Hello commands")
     useKindCluster(mbg1Name)
     runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl hello')

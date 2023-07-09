@@ -57,15 +57,15 @@ if __name__ == "__main__":
     #MBG1 parameters 
     mbg1DataPort    = "30001"
     mbg1cPort       = "30443"
-    mbg1cPortLocal  = "8443"
+    mbg1cPortLocal  = "443"
     mbg1ClusterName = "mbg-agent1"
-    mbg1crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    mbg1crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     
     #MBG2 parameters 
     mbg2DataPort    = "30001"
     mbg2cPort       = "30443"
-    mbg2cPortLocal  = "8443"
-    mbg2crtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    mbg2cPortLocal  = "443"
+    mbg2crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     mbg2ClusterName = "mbg-agent2"
     #Product cluster
     srcSvc             = "productpage"
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     srcK8sSvcIp        = ":"+srcK8sSvcPort
     srcDefaultGW       = "10.244.0.1"
     svcpolicy          = "Forward"
-    productCrtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    productCrtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     productClusterName = "mbg-agent1" if mbgMode =="inside" else "product-cluster"
 
     #Review cluster
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     review3DestPort   = "30002"
     review3svc        = "reviews-v3"
     reviewClusterName = "mbg-agent2" if mbgMode =="inside" else"review-cluster"
-    reviewCrtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    reviewCrtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     
     
 

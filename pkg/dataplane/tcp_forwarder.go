@@ -1,9 +1,8 @@
 /**********************************************************/
-/* Package client contain function that run for
-/* mbg client that can run inside the host, destination
-/* and mbg
+/* TCP forwarder create bi directional TCP forwarding from client
+/* to server
 /**********************************************************/
-package mbgDataplane
+package dataplane
 
 import (
 	"io"
@@ -15,7 +14,7 @@ var (
 	maxDataBufferSize = 64 * 1024
 )
 
-type MbgTcpForwarder struct {
+type TCPForwarder struct {
 	Listener   string
 	Target     string
 	Name       string
@@ -25,21 +24,21 @@ type MbgTcpForwarder struct {
 }
 
 // Init client fields
-func (c *MbgTcpForwarder) InitTcpForwarder(listener, target, name string) {
+func (c *TCPForwarder) Init(listener, target, name string) {
 	c.Listener = listener
 	c.Target = target
 	c.Name = name
 }
 
-func (c *MbgTcpForwarder) SetServerConnection(SeverConn net.Conn) {
+func (c *TCPForwarder) SetServerConnection(SeverConn net.Conn) {
 	c.SeverConn = SeverConn
 }
-func (c *MbgTcpForwarder) SetClientConnection(ClientConn net.Conn) {
+func (c *TCPForwarder) SetClientConnection(ClientConn net.Conn) {
 	c.ClientConn = ClientConn
 }
 
 // Run client object
-func (c *MbgTcpForwarder) RunTcpForwarder() {
+func (c *TCPForwarder) RunTCPForwarder() {
 	clog.Infof("*** Start TCP Forwarder ***")
 	clog.Infof("[%v] Start listen: %v  send to : %v \n", c.Name, c.Listener, c.Target)
 
@@ -48,7 +47,7 @@ func (c *MbgTcpForwarder) RunTcpForwarder() {
 }
 
 // Start listen loop and pass data to destination according to controlFrame
-func (c *MbgTcpForwarder) acceptLoop() {
+func (c *TCPForwarder) acceptLoop() {
 	if c.SeverConn != nil {
 		c.dispatch(c.SeverConn)
 	} else {
@@ -70,7 +69,7 @@ func (c *MbgTcpForwarder) acceptLoop() {
 }
 
 // Connect to client and call ioLoop function
-func (c *MbgTcpForwarder) dispatch(ac net.Conn) error {
+func (c *TCPForwarder) dispatch(ac net.Conn) error {
 	var nodeConn net.Conn
 	if c.ClientConn == nil {
 		var err error
@@ -87,17 +86,17 @@ func (c *MbgTcpForwarder) dispatch(ac net.Conn) error {
 }
 
 // Transfer data from server to client and back
-func (c *MbgTcpForwarder) ioLoop(cl, mbg net.Conn) error {
+func (c *TCPForwarder) ioLoop(cl, server net.Conn) error {
 	defer cl.Close()
-	defer mbg.Close()
+	defer server.Close()
 
 	clog.Debug("[Cient] listen to:", cl.LocalAddr().String(), "in port:", cl.RemoteAddr().String())
-	clog.Debug("[Cient] send data to:", mbg.RemoteAddr().String(), "from port:", mbg.LocalAddr().String())
+	clog.Debug("[Cient] send data to:", server.RemoteAddr().String(), "from port:", server.LocalAddr().String())
 	done := &sync.WaitGroup{}
 	done.Add(2)
 
-	go c.clientToServer(done, cl, mbg)
-	go c.serverToClient(done, cl, mbg)
+	go c.clientToServer(done, cl, server)
+	go c.serverToClient(done, cl, server)
 
 	done.Wait()
 
@@ -105,7 +104,7 @@ func (c *MbgTcpForwarder) ioLoop(cl, mbg net.Conn) error {
 }
 
 // Copy data from client to server and send control frame
-func (c *MbgTcpForwarder) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) error {
+func (c *TCPForwarder) clientToServer(wg *sync.WaitGroup, cl, server net.Conn) error {
 	defer wg.Done()
 	var err error
 	bufData := make([]byte, maxDataBufferSize)
@@ -122,7 +121,7 @@ func (c *MbgTcpForwarder) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) e
 			break
 		}
 		// Another point to apply policies
-		_, err = mbg.Write(bufData[:numBytes])
+		_, err = server.Write(bufData[:numBytes])
 		if err != nil {
 			clog.Infof("[clientToServer]: Write error %v\n", err)
 			break
@@ -138,13 +137,13 @@ func (c *MbgTcpForwarder) clientToServer(wg *sync.WaitGroup, cl, mbg net.Conn) e
 }
 
 // Copy data from server to client
-func (c *MbgTcpForwarder) serverToClient(wg *sync.WaitGroup, cl, mbg net.Conn) error {
+func (c *TCPForwarder) serverToClient(wg *sync.WaitGroup, cl, server net.Conn) error {
 	defer wg.Done()
 
 	bufData := make([]byte, maxDataBufferSize)
 	var err error
 	for {
-		numBytes, err := mbg.Read(bufData)
+		numBytes, err := server.Read(bufData)
 		if err != nil {
 			if err == io.EOF {
 				err = nil //Ignore EOF error
@@ -168,7 +167,8 @@ func (c *MbgTcpForwarder) serverToClient(wg *sync.WaitGroup, cl, mbg net.Conn) e
 	}
 }
 
-func (c *MbgTcpForwarder) CloseConnection() {
+// Close connections fo all net.Conn
+func (c *TCPForwarder) CloseConnection() {
 	if c.SeverConn != nil {
 		c.SeverConn.Close()
 	}
@@ -178,13 +178,15 @@ func (c *MbgTcpForwarder) CloseConnection() {
 
 }
 
-func (c *MbgTcpForwarder) waitToCloseSignal(wg *sync.WaitGroup) {
+// Function that wait for close connection signal
+func (c *TCPForwarder) waitToCloseSignal(wg *sync.WaitGroup) {
 	defer wg.Done()
 	<-c.CloseConn
-	//cl.Close() ,mbg.Close()- TBD -check if need to close also the internal connections
-	clog.Infof("[%v] Receive signal to close connection\n", c.Name)
+	c.CloseConnection()
+	clog.Infof("[%v] close all connection\n", c.Name)
 }
 
-func (c *MbgTcpForwarder) CloseConnectionSignal() {
+// Trigger close connection signal
+func (c *TCPForwarder) CloseConnectionSignal() {
 	c.CloseConn <- true
 }

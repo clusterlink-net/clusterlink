@@ -33,8 +33,8 @@ if __name__ == "__main__":
     #MBG parameters 
     mbgDataPort    = "30001"
     mbgcPort       = "30443"
-    mbgcPortLocal  = "8443"
-    mbgcrtFlags    = f"--rootCa ./mtls/ca.crt --certificate ./mtls/{mbg}.crt --key ./mtls/{mbg}.key"  if dataplane =="mtls" else ""
+    mbgcPortLocal  = "443"
+    mbgcrtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/{mbg}.crt --key ./mtls/{mbg}.key"  if dataplane =="mtls" else ""
     gwctlName     = mbg[:-1]+"ctl"+ mbg[-1]
     
     print("Starting mbg ("+mbg+") with dataplane "+ dataplane)

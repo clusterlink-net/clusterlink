@@ -32,7 +32,7 @@ var stateGetCmd = &cobra.Command{
 	Short: "Get mbg state",
 	Long:  `Get mbg state`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunCmd("cat /root/.mbg/mbgApp")
+		RunCmd("cat /root/.gw/gwApp")
 	},
 }
 

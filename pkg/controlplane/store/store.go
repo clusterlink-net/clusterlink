@@ -5,14 +5,11 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/user"
 	"path"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -45,15 +42,16 @@ type mbgState struct {
 }
 
 type MbgInfo struct {
-	Id              string
-	Ip              string
-	Cport           ServicePort
-	DataPortRange   ServicePort
-	MaxPorts        int
-	CaFile          string
-	CertificateFile string
-	KeyFile         string
-	Dataplane       string
+	Id                string
+	Ip                string
+	Cport             ServicePort
+	DataPortRange     ServicePort
+	MaxPorts          int
+	CaFile            string
+	CertificateFile   string
+	KeyFile           string
+	Dataplane         string
+	DataplaneEndpoint string
 }
 
 type Mbgctl struct {
@@ -87,16 +85,15 @@ var s = mbgState{MyInfo: MbgInfo{},
 	InactiveMbgArr:   make(map[string]MbgInfo),
 	MyServices:       make(map[string]LocalService),
 	RemoteServices:   make(map[string][]RemoteService),
-	Connections:      make(map[string]ServicePort),
 	LocalPortMap:     make(map[int]bool),
 	ExternalPortMap:  make(map[int]bool),
+	Connections:      make(map[string]ServicePort),
 	RemoteServiceMap: make(map[string][]string),
 	MyEventManager:   eventManager.MbgEventManager{},
 }
 var stopCh = make(map[string]chan bool)
 
 const (
-	ConnExist     = "connection already setup"
 	ProjectFolder = "/.gw/"
 	LogFile       = "gw.log"
 	DBFile        = "gwApp"
@@ -140,6 +137,9 @@ func GetMbgctlArr() map[string]Mbgctl {
 func GetDataplane() string {
 	return s.MyInfo.Dataplane
 }
+func GetDataplaneEndpoint() string {
+	return s.MyInfo.DataplaneEndpoint
+}
 func GetChiRouter() (r *chi.Mux) {
 	return ChiRouter
 }
@@ -168,6 +168,7 @@ func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDat
 	s.MyInfo.CertificateFile = certificate
 	s.MyInfo.KeyFile = key
 	s.MyInfo.Dataplane = dataplane
+	s.MyInfo.DataplaneEndpoint = "dataplane:443"
 	log = logrus.WithField("component", s.MyInfo.Id)
 	CreateProjectfolder()
 	SaveState()
@@ -183,6 +184,9 @@ func SetChiRouter(r *chi.Mux) {
 	ChiRouter = r
 }
 
+func SetConnection(service, port string) {
+	s.Connections[service] = ServicePort{Local: port}
+}
 func UpdateState() {
 	s = readState()
 	log = logrus.WithField("component", s.MyInfo.Id)
@@ -359,10 +363,6 @@ func IsMbgInactivePeer(id string) bool {
 	return ok
 }
 
-func GetMyMbgCerts() (string, string, string) {
-	return s.MyInfo.CaFile, s.MyInfo.CertificateFile, s.MyInfo.KeyFile
-}
-
 func IsServiceLocal(id string) bool {
 	_, exist := s.MyServices[id]
 	return exist
@@ -387,51 +387,6 @@ func RemoveMbgNbr(id string) {
 	delete(s.MbgArr, id)
 	mbgArrMutex.Unlock()
 	SaveState()
-}
-
-// Gets an available free port to use per connection
-func GetFreePorts(connectionID string) (ServicePort, error) {
-	if port, ok := s.Connections[connectionID]; ok {
-		if _, okStop := stopCh[connectionID]; !okStop { //Create stop channel for case is not exist link in MBG restore
-			stopCh[connectionID] = make(chan bool)
-		}
-		return port, fmt.Errorf(ConnExist)
-	}
-	rand.NewSource(time.Now().UnixNano())
-	if len(s.Connections) == s.MyInfo.MaxPorts {
-		return ServicePort{}, fmt.Errorf("all ports taken up, Try again after sometime")
-	}
-	lval, _ := strconv.Atoi(s.MyInfo.DataPortRange.Local)
-	eval, _ := strconv.Atoi(s.MyInfo.DataPortRange.External)
-	timeout := time.After(10 * time.Second)
-	for {
-		select {
-		// Got a timeout! fail with a timeout error
-		case <-timeout:
-			return ServicePort{}, fmt.Errorf("all ports taken up, Try again after sometime")
-		default:
-			random := rand.Intn(s.MyInfo.MaxPorts)
-			localPort := lval + random
-			externalPort := eval + random
-			if !s.LocalPortMap[localPort] {
-				if !s.ExternalPortMap[externalPort] {
-					s.LocalPortMap[localPort] = true
-					s.ExternalPortMap[externalPort] = true
-					s.Connections[connectionID] = ServicePort{Local: ":" + strconv.Itoa(localPort), External: ":" + strconv.Itoa(externalPort)}
-					stopCh[connectionID] = make(chan bool)
-					PrintState()
-					SaveState()
-					return s.Connections[connectionID], nil
-				}
-			}
-		}
-	}
-}
-func WaitServiceStopCh(connectionID, servicePort string) {
-	if _, ok := s.Connections[connectionID]; ok {
-		<-stopCh[connectionID]
-		log.Infof("Receive signal to close service %v: with local port %v\n", connectionID, servicePort)
-	}
 }
 
 // Frees up used ports by a connection
@@ -641,7 +596,6 @@ func PrintState() {
 	log.Infof("****************************")
 }
 
-/** logfile **/
 func CreateProjectfolder() string {
 	usr, _ := user.Current()
 	fol := path.Join(usr.HomeDir, ProjectFolder)
@@ -651,61 +605,6 @@ func CreateProjectfolder() string {
 		log.Println(err)
 	}
 	return fol
-}
-
-func SetLog(logLevel string, logfile bool) {
-	fol := CreateProjectfolder()
-	if logfile {
-		f, err := os.OpenFile(path.Join(fol, LogFile), os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
-		fmt.Printf("Creating log file: %v\n", path.Join(fol, LogFile))
-		if err != nil {
-			fmt.Printf("error opening file: %v", err)
-		}
-		// assign it to the standard logger
-		logrus.SetOutput(f)
-	}
-	//Set logrus
-	ll, err := logrus.ParseLevel(logLevel)
-	if err != nil {
-		ll = logrus.ErrorLevel
-	}
-	logrus.SetLevel(ll)
-	logrus.SetFormatter(&MyFormatter{
-		TextFormatter: &logrus.TextFormatter{
-			ForceColors:     true,
-			FullTimestamp:   true,
-			TimestampFormat: "2006-01-02 15:04:05",
-			PadLevelText:    true,
-			DisableQuote:    true,
-		},
-	})
-}
-
-type MyFormatter struct {
-	*logrus.TextFormatter
-}
-
-func (f *MyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	if entry.Level == logrus.ErrorLevel {
-		file, line := getLineNumber()
-		entry.Data["file"] = file
-		entry.Data["line"] = line
-	}
-
-	return f.TextFormatter.Format(entry)
-}
-
-func getLineNumber() (string, int) {
-	_, file, line, ok := runtime.Caller(0)
-	if !ok {
-		return "", 0
-	}
-	return file, line
-}
-
-func GetLogFile() string {
-	usr, _ := user.Current()
-	return path.Join(usr.HomeDir, ProjectFolder, LogFile)
 }
 
 /** Database **/

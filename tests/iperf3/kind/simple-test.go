@@ -21,7 +21,7 @@ const (
 	//MBG1 parameters
 	mbg1DataPort   = "30001"
 	mbg1cPort      = "30443"
-	mbg1cPortLocal = "8443"
+	mbg1cPortLocal = "443"
 	mbg1crt        = "./mtls/mbg1.crt"
 	mbg1key        = "./mtls/mbg1.key"
 	mbg1Name       = "mbg1"
@@ -32,7 +32,7 @@ const (
 	//MBG2 parameters
 	mbg2DataPort   = "30001"
 	mbg2cPort      = "30443"
-	mbg2cPortLocal = "8443"
+	mbg2cPortLocal = "443"
 	mbg2crt        = "./mtls/mbg2.crt"
 	mbg2key        = "./mtls/mbg2.key"
 	mbg2Name       = "mbg2"

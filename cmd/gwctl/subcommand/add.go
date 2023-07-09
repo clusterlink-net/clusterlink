@@ -14,7 +14,7 @@ func emptyRun(*cobra.Command, []string) {}
 const (
 	acl    = "acl"
 	lb     = "lb"
-	mbgApp = "mbg"
+	mbgApp = "dataplane"
 )
 
 // updateCmd represents the update command

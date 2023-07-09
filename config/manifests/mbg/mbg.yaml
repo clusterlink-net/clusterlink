@@ -25,4 +25,18 @@ spec:
         command: [ "sleep" ]
         args: [ "infinity" ]        
         ports:
-        - containerPort: 50051
+        - containerPort: 443
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: controlplane
+spec:
+  type: ClusterIP
+  selector:
+    app: mbg
+  ports:
+    - port: 443
+      targetPort: 443
+      protocol: TCP
+      name: http

@@ -30,7 +30,7 @@ type PolicyHandler struct {
 
 func (pH PolicyHandler) Routes(r *chi.Mux) chi.Router {
 
-	r.Get("/", pH.policyWelcome)
+	r.Get("/policywelcome/", pH.policyWelcome)
 
 	r.Route("/"+event.NewConnectionRequest, func(r chi.Router) {
 		r.Post("/", pH.newConnectionRequest) // New connection request

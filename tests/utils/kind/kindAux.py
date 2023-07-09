@@ -1,7 +1,7 @@
 import json,os
 import subprocess as sp
 from tests.utils.manifests.kind.flannel.create_cni_bridge import createCniBridge,createKindCfgForflunnel
-from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getMbgPorts,buildMbg,buildMbgctl,getPodIp,proj_dir
+from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodNameIp, getMbgPorts,buildMbg,buildMbgctl,getPodIp,proj_dir
 
 def BuildKindCluster(name, cni="default", cfg="" ):
     #Set config file
@@ -41,9 +41,11 @@ def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort
     printHeader(f"\n\nStart building {mbgName}")
     mbgKindIp           = BuildKindCluster(mbgName,cni)
     podMbg, podMbgIp    = buildMbg(mbgName)
+    podDataPlane, _= getPodNameIp("dataplane")
+
     destMbgIp          = f"{podMbgIp}:{mbgcPortLocal}"
 
-    runcmd(f"kubectl create service nodeport mbg --tcp={mbgcPortLocal}:{mbgcPortLocal} --node-port={mbgcPort}")
+    runcmd(f"kubectl create service nodeport dataplane --tcp={mbgcPortLocal}:{mbgcPortLocal} --node-port={mbgcPort}")
     
     printHeader(f"\n\nStart {mbgName} (along with PolicyEngine)")
     startcmd= f'{podMbg} -- ./controlplane start --id "{mbgName}" --ip {mbgKindIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --externalDataPortRange {mbgDataPort}\
@@ -51,8 +53,10 @@ def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort
 
     if runInfg:
         runcmd("kubectl exec -it " + startcmd)
+        runcmd(f"kubectl exec -it {podDataPlane} -- ./dataplane --id {mbgName} --dataplane {dataplane} {mbgcrtFlags}")
     else:
         runcmdb("kubectl exec -i " + startcmd)
+        runcmdb(f"kubectl exec -i {podDataPlane} -- ./dataplane --id {mbgName} --dataplane {dataplane} {mbgcrtFlags}")
 
     if gwctlLocal:
         gwctlPod, gwctlIp = buildMbgctl(gwctlName)
