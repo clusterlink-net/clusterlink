@@ -1,8 +1,8 @@
 package dataplane
 
 import (
+	"io"
 	"net/http"
-	"net/http/httputil"
 
 	"github.com/go-chi/chi"
 
@@ -42,52 +42,52 @@ func (d *Dataplane) routes() {
 	})
 	// Routing to controlplane functions
 	d.Router.Route("/peer", func(r chi.Router) {
-		r.Get("/", d.controlPlaneRedirectHandler)        // GET    /peer      - Get all peers
-		r.Post("/", d.controlPlaneRedirectHandler)       // Post   /peer      - Add peer Id to peers list
-		r.Get("/{id}", d.controlPlaneRedirectHandler)    // GET    /peer/{id} - Get peer Id
-		r.Delete("/{id}", d.controlPlaneRedirectHandler) // Delete /peer/{id} - Delete peer
+		r.Get("/", d.controlPlaneForwardingHandler)        // GET    /peer      - Get all peers
+		r.Post("/", d.controlPlaneForwardingHandler)       // Post   /peer      - Add peer Id to peers list
+		r.Get("/{id}", d.controlPlaneForwardingHandler)    // GET    /peer/{id} - Get peer Id
+		r.Delete("/{id}", d.controlPlaneForwardingHandler) // Delete /peer/{id} - Delete peer
 	})
 
 	d.Router.Route("/hello", func(r chi.Router) {
-		r.Post("/", d.controlPlaneRedirectHandler)         // Post /hello Hello to all peers
-		r.Post("/{peerID}", d.controlPlaneRedirectHandler) // Post /hello/{peerID} send Hello to a peer
+		r.Post("/", d.controlPlaneForwardingHandler)         // Post /hello Hello to all peers
+		r.Post("/{peerID}", d.controlPlaneForwardingHandler) // Post /hello/{peerID} send Hello to a peer
 	})
 
 	d.Router.Route("/hb", func(r chi.Router) {
-		r.Post("/", d.controlPlaneRedirectHandler) // Heartbeat messages
+		r.Post("/", d.controlPlaneForwardingHandler) // Heartbeat messages
 	})
 
 	d.Router.Route("/service", func(r chi.Router) {
-		r.Post("/", d.controlPlaneRedirectHandler)            // Post /service    - Add local service
-		r.Get("/", d.controlPlaneRedirectHandler)             // Get  /service    - Get all local services
-		r.Get("/{id}", d.controlPlaneRedirectHandler)         // Get  /service    - Get specific local service
-		r.Delete("/{id}", d.controlPlaneRedirectHandler)      // Delete  /service - Delete local service
-		r.Delete("/{id}/peer", d.controlPlaneRedirectHandler) // Delete  /service - Delete local service from peer
+		r.Post("/", d.controlPlaneForwardingHandler)            // Post /service    - Add local service
+		r.Get("/", d.controlPlaneForwardingHandler)             // Get  /service    - Get all local services
+		r.Get("/{id}", d.controlPlaneForwardingHandler)         // Get  /service    - Get specific local service
+		r.Delete("/{id}", d.controlPlaneForwardingHandler)      // Delete  /service - Delete local service
+		r.Delete("/{id}/peer", d.controlPlaneForwardingHandler) // Delete  /service - Delete local service from peer
 
 	})
 
 	d.Router.Route("/remoteservice", func(r chi.Router) {
-		r.Post("/", d.controlPlaneRedirectHandler)          // Post /remoteservice            - Add Remote service
-		r.Get("/", d.controlPlaneRedirectHandler)           // Get  /remoteservice            - Get all remote services
-		r.Get("/{svcId}", d.controlPlaneRedirectHandler)    // Get  /remoteservice/{svcId}    - Get specific remote service
-		r.Delete("/{svcId}", d.controlPlaneRedirectHandler) // Delete  /remoteservice/{svcId} - Delete specific remote service
+		r.Post("/", d.controlPlaneForwardingHandler)          // Post /remoteservice            - Add Remote service
+		r.Get("/", d.controlPlaneForwardingHandler)           // Get  /remoteservice            - Get all remote services
+		r.Get("/{svcId}", d.controlPlaneForwardingHandler)    // Get  /remoteservice/{svcId}    - Get specific remote service
+		r.Delete("/{svcId}", d.controlPlaneForwardingHandler) // Delete  /remoteservice/{svcId} - Delete specific remote service
 
 	})
 
 	d.Router.Route("/expose", func(r chi.Router) {
-		r.Post("/", d.controlPlaneRedirectHandler) // Post /expose  - Expose  service
+		r.Post("/", d.controlPlaneForwardingHandler) // Post /expose  - Expose  service
 	})
 
 	d.Router.Route("/binding", func(r chi.Router) {
-		r.Post("/", d.controlPlaneRedirectHandler)          // Post /binding   - Bind remote service to local port
-		r.Delete("/{svcId}", d.controlPlaneRedirectHandler) // Delete /binding - Remove Binding of remote service to local port
+		r.Post("/", d.controlPlaneForwardingHandler)          // Post /binding   - Bind remote service to local port
+		r.Delete("/{svcId}", d.controlPlaneForwardingHandler) // Delete /binding - Remove Binding of remote service to local port
 	})
 
 	d.Router.Route("/newRemoteConnection", func(r chi.Router) {
-		r.Post("/", d.controlPlaneRedirectHandler) // Post /newRemoteConnection - New remote connection parameters check
+		r.Post("/", d.controlPlaneForwardingHandler) // Post /newRemoteConnection - New remote connection parameters check
 	})
 	d.Router.Route("/newLocalConnection", func(r chi.Router) {
-		r.Post("/", d.controlPlaneRedirectHandler) // Post /newLocalConnection  - New connection parameters check
+		r.Post("/", d.controlPlaneForwardingHandler) // Post /newLocalConnection  - New connection parameters check
 	})
 
 }
@@ -102,26 +102,29 @@ func (d Dataplane) welcome(w http.ResponseWriter, r *http.Request) {
 }
 
 // Forwarding request to control-plane
-func (d *Dataplane) controlPlaneRedirectHandler(w http.ResponseWriter, r *http.Request) {
+func (d *Dataplane) controlPlaneForwardingHandler(w http.ResponseWriter, r *http.Request) {
 
-	redirectURL := d.Store.GetControlPlaneAddr() + r.URL.Path
+	forwardingURL := d.Store.GetControlPlaneAddr() + r.URL.Path
 
-	// Create a new request to the redirect URL
-	redirectReq, err := http.NewRequest(r.Method, redirectURL, r.Body)
+	// Create a new request to the forwarding URL
+	forwardingReq, err := http.NewRequest(r.Method, forwardingURL, r.Body)
 	if err != nil {
+		clog.Error("Forwarding error in NewRequest", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	client := d.Store.GetLocalHttpClient()
-	// Send the redirect request
-	resp, err := client.Do(redirectReq)
+	// Send the forwardingURL request
+	resp, err := client.Do(forwardingReq)
+	forwardingReq.Close = true
 	if err != nil {
+		clog.Error("Forwarding error in sending operation", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
 
-	// Copy the response headers from the redirect response
+	// Copy the response headers from the forwarding response
 	for key, values := range resp.Header {
 		for _, value := range values {
 			w.Header().Add(key, value)
