@@ -131,10 +131,6 @@ func (d *Dataplane) controlPlaneRedirectHandler(w http.ResponseWriter, r *http.R
 	// Set the response status code
 	w.WriteHeader(resp.StatusCode)
 
-	// Copy the response body from the redirect response
-	_, err = httputil.DumpResponse(resp, true)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// Copy the response body from the forwarding response
+	io.Copy(w, resp.Body)
 }
