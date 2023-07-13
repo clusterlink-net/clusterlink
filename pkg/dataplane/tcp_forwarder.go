@@ -8,6 +8,9 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
+
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 )
 
 var (
@@ -15,12 +18,16 @@ var (
 )
 
 type TCPForwarder struct {
-	Listener   string
-	Target     string
-	Name       string
-	SeverConn  net.Conn //getting server handle incase of http connect
-	ClientConn net.Conn //getting client handle incase of http connect
-	CloseConn  chan bool
+	Listener      string
+	Target        string
+	Name          string
+	SeverConn     net.Conn //getting server handle incase of http connect
+	ClientConn    net.Conn //getting client handle incase of http connect
+	CloseConn     chan bool
+	incomingBytes int
+	outgoingBytes int
+	direction     eventManager.Direction
+	startTstamp   time.Time
 }
 
 // Init client fields
@@ -35,26 +42,29 @@ func (c *TCPForwarder) SetServerConnection(SeverConn net.Conn) {
 }
 func (c *TCPForwarder) SetClientConnection(ClientConn net.Conn) {
 	c.ClientConn = ClientConn
+	c.direction = eventManager.Incoming
 }
 
 // Run client object
-func (c *TCPForwarder) RunTCPForwarder() {
+func (c *TCPForwarder) RunTcpForwarder(direction eventManager.Direction) (int, int, time.Time, time.Time, error) {
+	c.startTstamp = time.Now()
 	clog.Infof("*** Start TCP Forwarder ***")
 	clog.Infof("[%v] Start listen: %v  send to : %v \n", c.Name, c.Listener, c.Target)
-
-	c.acceptLoop()
-
+	c.direction = direction
+	err := c.acceptLoop(direction)
+	return c.incomingBytes, c.outgoingBytes, c.startTstamp, time.Now(), err
 }
 
 // Start listen loop and pass data to destination according to controlFrame
-func (c *TCPForwarder) acceptLoop() {
+func (c *TCPForwarder) acceptLoop(direction eventManager.Direction) error {
 	if c.SeverConn != nil {
-		c.dispatch(c.SeverConn)
+		c.dispatch(c.SeverConn, direction)
 	} else {
 		// open listener
 		acceptor, err := net.Listen("tcp", c.Listener)
 		if err != nil {
 			clog.Errorln("Error:", err)
+			return err
 		}
 		// loop until signalled to stop
 		for {
@@ -62,14 +72,16 @@ func (c *TCPForwarder) acceptLoop() {
 			clog.Info("[", c.Name, "]: accept connetion", ac.LocalAddr().String(), "->", ac.RemoteAddr().String())
 			if err != nil {
 				clog.Errorln("Error:", err)
+				return err
 			}
-			go c.dispatch(ac)
+			c.dispatch(ac, direction)
 		}
 	}
+	return nil
 }
 
 // Connect to client and call ioLoop function
-func (c *TCPForwarder) dispatch(ac net.Conn) error {
+func (c *TCPForwarder) dispatch(ac net.Conn, direction eventManager.Direction) error {
 	var nodeConn net.Conn
 	if c.ClientConn == nil {
 		var err error
@@ -82,11 +94,11 @@ func (c *TCPForwarder) dispatch(ac net.Conn) error {
 	} else {
 		nodeConn = c.ClientConn
 	}
-	return c.ioLoop(ac, nodeConn)
+	return c.ioLoop(ac, nodeConn, direction)
 }
 
 // Transfer data from server to client and back
-func (c *TCPForwarder) ioLoop(cl, server net.Conn) error {
+func (c *TCPForwarder) ioLoop(cl, server net.Conn, direction eventManager.Direction) error {
 	defer cl.Close()
 	defer server.Close()
 
@@ -95,8 +107,13 @@ func (c *TCPForwarder) ioLoop(cl, server net.Conn) error {
 	done := &sync.WaitGroup{}
 	done.Add(2)
 
-	go c.clientToServer(done, cl, server)
-	go c.serverToClient(done, cl, server)
+	if direction == eventManager.Incoming {
+		go c.clientToServer(done, cl, server, eventManager.Incoming)
+		go c.serverToClient(done, cl, server, eventManager.Outgoing)
+	} else {
+		go c.clientToServer(done, cl, server, eventManager.Outgoing)
+		go c.serverToClient(done, cl, server, eventManager.Incoming)
+	}
 
 	done.Wait()
 
@@ -104,7 +121,7 @@ func (c *TCPForwarder) ioLoop(cl, server net.Conn) error {
 }
 
 // Copy data from client to server and send control frame
-func (c *TCPForwarder) clientToServer(wg *sync.WaitGroup, cl, server net.Conn) error {
+func (c *TCPForwarder) clientToServer(wg *sync.WaitGroup, cl, server net.Conn, direction eventManager.Direction) error {
 	defer wg.Done()
 	var err error
 	bufData := make([]byte, maxDataBufferSize)
@@ -119,6 +136,11 @@ func (c *TCPForwarder) clientToServer(wg *sync.WaitGroup, cl, server net.Conn) e
 			}
 
 			break
+		}
+		if direction == eventManager.Incoming {
+			c.incomingBytes += numBytes
+		} else {
+			c.outgoingBytes += numBytes
 		}
 		// Another point to apply policies
 		_, err = server.Write(bufData[:numBytes])
@@ -137,7 +159,7 @@ func (c *TCPForwarder) clientToServer(wg *sync.WaitGroup, cl, server net.Conn) e
 }
 
 // Copy data from server to client
-func (c *TCPForwarder) serverToClient(wg *sync.WaitGroup, cl, server net.Conn) error {
+func (c *TCPForwarder) serverToClient(wg *sync.WaitGroup, cl, server net.Conn, direction eventManager.Direction) error {
 	defer wg.Done()
 
 	bufData := make([]byte, maxDataBufferSize)
@@ -151,6 +173,11 @@ func (c *TCPForwarder) serverToClient(wg *sync.WaitGroup, cl, server net.Conn) e
 				clog.Infof("[serverToClient]: Read error %v\n", err)
 			}
 			break
+		}
+		if direction == eventManager.Incoming {
+			c.incomingBytes += numBytes
+		} else {
+			c.outgoingBytes += numBytes
 		}
 		// Another point to apply policies
 		_, err = cl.Write(bufData[:numBytes])

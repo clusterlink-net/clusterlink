@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/segmentio/ksuid"
 	log "github.com/sirupsen/logrus"
 
 	cp "github.ibm.com/mbg-agent/pkg/controlplane"
@@ -71,7 +73,9 @@ func (m MbgHandler) Routes() chi.Router {
 	r.Route("/exports", func(r chi.Router) {
 		r.Post("/newConnection", setupNewExportConnHandler) // Post /newExportConnection  - New connection parameters check
 	})
-
+	r.Route("/connectionStatus", func(r chi.Router) {
+		r.Post("/", connStatusHandler) // Post /  - Connection Status
+	})
 	return r
 }
 
@@ -127,6 +131,19 @@ func setupNewImportConn(srcIp, destIp, destSvcId string) apiObject.NewImportConn
 		log.Errorf("Unable to raise connection request event")
 		return apiObject.NewImportConnParmaReply{Action: eventManager.Deny.String()}
 	}
+	connectionId := srcSvc.Id + ":" + destSvcId + ":" + ksuid.New().String()
+	connectionStatus := eventManager.ConnectionStatusAttr{ConnectionId: connectionId,
+		SrcService:      srcSvc.Id,
+		DstService:      destSvcId,
+		DestinationPeer: eventManager.Wildcard,
+		StartTstamp:     time.Now(),
+		Direction:       eventManager.Outgoing,
+		State:           eventManager.Ongoing}
+
+	if policyResp.Action == eventManager.Deny {
+		connectionStatus.State = eventManager.Denied
+	}
+	store.GetEventManager().RaiseConnectionStatusEvent(connectionStatus)
 
 	log.Infof("Accepting Outgoing Connect request from service: %v to service: %v", srcSvc.Id, destSvcId)
 
@@ -137,7 +154,7 @@ func setupNewImportConn(srcIp, destIp, destSvcId string) apiObject.NewImportConn
 	} else {
 		target = store.GetMbgTarget(policyResp.TargetMbg)
 	}
-	return apiObject.NewImportConnParmaReply{Action: policyResp.Action.String(), Target: target, SrcId: srcSvc.Id}
+	return apiObject.NewImportConnParmaReply{Action: policyResp.Action.String(), Target: target, SrcId: srcSvc.Id, ConnId: connectionId}
 }
 
 // New connection request to export service- HTTP handler
@@ -170,6 +187,44 @@ func setupNewExportConn(srcSvcId, srcGwId, destSvcId string) apiObject.NewExport
 		log.Error("Unable to raise connection request event ", store.GetMyId())
 		return apiObject.NewExportConnParmaReply{Action: eventManager.Deny.String()}
 	}
+
+	connectionId := srcSvcId + ":" + destSvcId + ":" + ksuid.New().String()
+	connectionStatus := eventManager.ConnectionStatusAttr{ConnectionId: connectionId,
+		SrcService:      srcSvcId,
+		DstService:      destSvcId,
+		DestinationPeer: srcGwId,
+		StartTstamp:     time.Now(),
+		Direction:       eventManager.Incoming,
+		State:           eventManager.Ongoing}
+
+	if policyResp.Action == eventManager.Deny {
+		connectionStatus.State = eventManager.Denied
+	}
+	store.GetEventManager().RaiseConnectionStatusEvent(connectionStatus)
+
 	srcGw := store.GetMbgTarget(srcGwId)
-	return apiObject.NewExportConnParmaReply{Action: policyResp.Action.String(), SrcGwEndpoint: srcGw, DestSvcEndpoint: localSvc.GetIpAndPort()}
+	return apiObject.NewExportConnParmaReply{Action: policyResp.Action.String(), SrcGwEndpoint: srcGw, DestSvcEndpoint: localSvc.GetIpAndPort(), ConnId: connectionId}
+}
+
+// Status of an ongoing connection
+func connStatusHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse expose struct from request
+	var c apiObject.ConnectionStatus
+	err := json.NewDecoder(r.Body).Decode(&c)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+
+	}
+	connectionStatus := eventManager.ConnectionStatusAttr{ConnectionId: c.ConnectionId,
+		IncomingBytes: c.IncomingBytes,
+		OutgoingBytes: c.OutgoingBytes,
+		StartTstamp:   c.StartTstamp,
+		Direction:     c.Direction,
+		State:         c.State}
+
+	store.GetEventManager().RaiseConnectionStatusEvent(connectionStatus)
+
+	w.WriteHeader(http.StatusOK)
+
 }

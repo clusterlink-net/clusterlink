@@ -1,5 +1,11 @@
 package apiObject
 
+import (
+	"time"
+
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+)
+
 // AddPeer
 type PeerRequest struct {
 	Id    string
@@ -85,6 +91,7 @@ type NewImportConnParmaReply struct {
 	Action string
 	Target string
 	SrcId  string
+	ConnId string
 }
 
 // New connection to export service struct request
@@ -99,4 +106,16 @@ type NewExportConnParmaReply struct {
 	Action          string
 	SrcGwEndpoint   string
 	DestSvcEndpoint string
+	ConnId          string
+}
+
+// Connection Status
+type ConnectionStatus struct {
+	ConnectionId  string
+	IncomingBytes int
+	OutgoingBytes int
+	StartTstamp   time.Time
+	LastTstamp    time.Time
+	Direction     eventManager.Direction
+	State         eventManager.ConnectionState
 }

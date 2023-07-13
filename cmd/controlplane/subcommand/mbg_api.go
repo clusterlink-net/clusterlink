@@ -8,6 +8,7 @@ import (
 	handler "github.ibm.com/mbg-agent/pkg/controlplane/api"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/health"
+	metrics "github.ibm.com/mbg-agent/pkg/controlplane/metrics"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
@@ -34,6 +35,14 @@ func (m *Mbg) AddPolicyEngine(policyEngineTarget string, start bool, zeroTrust b
 	}
 	if start {
 		policyEngine.StartPolicyDispatcher(store.GetChiRouter(), defaultRule)
+	}
+}
+
+func (m *Mbg) AddMetricsManager(metricsManagerTarget string, start bool) {
+	store.GetEventManager().AssignMetricsManager(store.GetAddrStart()+metricsManagerTarget, store.GetHttpClient())
+	store.SaveState()
+	if start {
+		metrics.StartMetricsManager(store.GetChiRouter())
 	}
 }
 

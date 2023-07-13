@@ -27,8 +27,10 @@ type GwctlConfigInterface interface {
 	GetCaFile() string
 	GetKeyFile() string
 	GetPolicyDispatcher() string
+	GetMetricsManager() string
 	Set(id, mbgIp, caFile, certificateFile, keyFile, dataplane string)
-	SetPolicyDispatcher(mId, targetUrl string)
+	SetPolicyDispatcher(targetUrl string)
+	SetMetricsManager(targetUrl string)
 }
 type GwctlConfig struct {
 	MbgIP                  string `json:"MbgIP"`
@@ -38,6 +40,7 @@ type GwctlConfig struct {
 	KeyFile                string
 	Dataplane              string
 	PolicyDispatcherTarget string
+	MetricsManagerTarget   string
 	GwctlConfigInterface
 }
 
@@ -71,6 +74,10 @@ func (c *GwctlConfig) GetPolicyDispatcher() string {
 	return c.PolicyDispatcherTarget
 }
 
+func (c *GwctlConfig) GetMetricsManager() string {
+	return c.MetricsManagerTarget
+}
+
 func (c *GwctlConfig) Set(id, mbgIp, caFile, certificateFile, keyFile, dataplane string) error {
 	c.Id = id
 	c.MbgIP = mbgIp
@@ -82,8 +89,13 @@ func (c *GwctlConfig) Set(id, mbgIp, caFile, certificateFile, keyFile, dataplane
 	return c.CreateState()
 }
 
-func (c *GwctlConfig) SetPolicyDispatcher(mId, targetUrl string) error {
+func (c *GwctlConfig) SetPolicyDispatcher(targetUrl string) error {
 	c.PolicyDispatcherTarget = targetUrl
+	return c.SaveState()
+}
+
+func (c *GwctlConfig) SetMetricsManager(targetUrl string) error {
+	c.MetricsManagerTarget = targetUrl
 	return c.SaveState()
 }
 

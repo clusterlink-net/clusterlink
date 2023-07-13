@@ -146,6 +146,26 @@ var policyGetCmd = &cobra.Command{
 	},
 }
 
+var metricsGetCmd = &cobra.Command{
+	Use:   "metrics",
+	Short: "Get metrics from the gateway",
+	Long:  `Get connection-level from the gateway`,
+	Run: func(cmd *cobra.Command, args []string) {
+		mId, _ := cmd.Flags().GetString("myid")
+		m := api.Gwctl{Id: mId}
+
+		metrics, err := m.GetMetrics()
+		if err != nil {
+			fmt.Printf("Unable to get metrics %v\n", err)
+		} else {
+			fmt.Printf("Metrics\n")
+			for _, conn := range metrics {
+				fmt.Printf("%v\n", conn)
+			}
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(getCmd)
 	// Get Peer
@@ -160,6 +180,9 @@ func init() {
 	// Get policy
 	getCmd.AddCommand(policyGetCmd)
 	policyGetCmd.Flags().String("myid", "", "Gwctl Id")
+	// Get metrics
+	getCmd.AddCommand(metricsGetCmd)
+	metricsGetCmd.Flags().String("myid", "", "Gwctl Id")
 	// Get Gwctl state
 	getCmd.AddCommand(stateGetCmd)
 	stateGetCmd.Flags().String("myid", "", "Gwctl Id")

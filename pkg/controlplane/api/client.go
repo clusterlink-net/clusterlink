@@ -47,7 +47,7 @@ func CreateGwctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane string) 
 	if err != nil {
 		return Gwctl{}, err
 	}
-	c.SetPolicyDispatcher(id, gwctl.GetAddrStart(dataplane)+mbgIP+"/policy")
+	c.SetPolicyDispatcher(gwctl.GetAddrStart(dataplane) + mbgIP + "/policy")
 	return gwctl, nil
 }
 
@@ -71,7 +71,15 @@ func (g *Gwctl) AddPolicyEngine(target string) error {
 	if err != nil {
 		return err
 	}
-	return d.SetPolicyDispatcher(g.Id, g.GetAddrStart(d.GetDataplane())+target+"/policy")
+	return d.SetPolicyDispatcher(g.GetAddrStart(d.GetDataplane()) + target + "/policy")
+}
+
+func (g *Gwctl) AddMetricsManager(target string) error {
+	d, err := config.GetConfig(g.Id)
+	if err != nil {
+		return err
+	}
+	return d.SetMetricsManager(g.GetAddrStart(d.GetDataplane()) + target)
 }
 
 func (g *Gwctl) AddService(id, target, port, description string) error {
@@ -346,6 +354,21 @@ func (g *Gwctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBa
 		return make(map[string]map[string]policyEngine.PolicyLoadBalancer), err
 	}
 	return policies, nil
+}
+
+func (g *Gwctl) GetMetrics() (map[string]event.ConnectionStatusAttr, error) {
+	d, _ := config.GetConfig(g.Id)
+	var connections map[string]event.ConnectionStatusAttr
+	url := d.GetMetricsManager()
+	resp, err := httputils.HttpGet(url, g.GetHttpClient())
+	if err != nil {
+		return make(map[string]event.ConnectionStatusAttr), err
+	}
+
+	if err := json.Unmarshal(resp, &connections); err != nil {
+		return make(map[string]event.ConnectionStatusAttr), err
+	}
+	return connections, nil
 }
 
 func (g *Gwctl) CreateServiceEndpoint(serviceId string, port int, name, namespace, mbgAppName string) error {

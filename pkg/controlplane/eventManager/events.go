@@ -1,5 +1,7 @@
 package eventManager
 
+import "time"
+
 type Direction int
 
 const (
@@ -20,6 +22,15 @@ const (
 	AllowPartial
 )
 
+type ConnectionState int
+
+const (
+	Ongoing ConnectionState = iota
+	Complete
+	Denied
+	DeniedPeer
+)
+
 func (a Action) String() string {
 	return [...]string{"Allow", "Deny", "AllowAll", "AllowPartial"}[a]
 }
@@ -28,6 +39,7 @@ const Wildcard = "*"
 
 const (
 	NewConnectionRequest = "NewConnectionRequest"
+	ConnectionStatus     = "ConnectionStatus"
 	AddPeerRequest       = "AddPeerRequest"
 	NewRemoteService     = "NewRemoteService"
 	ExposeRequest        = "ExposeRequest"
@@ -46,6 +58,19 @@ type ConnectionRequestResp struct {
 	Action    Action
 	TargetMbg string
 	BitRate   int // Mbps
+}
+
+type ConnectionStatusAttr struct {
+	ConnectionId    string
+	SrcService      string
+	DstService      string
+	IncomingBytes   int
+	OutgoingBytes   int
+	DestinationPeer string
+	StartTstamp     time.Time
+	LastTstamp      time.Time
+	Direction       Direction
+	State           ConnectionState
 }
 
 type NewRemoteServiceAttr struct {
