@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 ##############################################################################################
 # Name: Bookinfo
 # Info: support bookinfo application with gwctl inside the clusters 
@@ -14,8 +15,8 @@ import argparse
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{proj_dir}')
 
-from tests.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName, waitPod,getMbgPorts,buildMbg,buildMbgctl,getPodIp,getPodNameIp
-from tests.utils.kind.kindAux import useKindCluster,startKindClusterMbg,getKindIp
+from tests.utils.mbgAux import runcmd, printHeader, getPodNameIp
+from tests.utils.kind.kindAux import useKindCluster,getKindIp
 
 
 
@@ -65,18 +66,11 @@ if __name__ == "__main__":
     runcmd(f'gwctl get service --myid {gwctl1Name} ')
     runcmd(f'gwctl add binding  --myid {gwctl1Name} --service {destSvc} --port 3000')
 
-    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(mbg1Pod, destSvc)
-    #runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg1LocalPort}")
-    #runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
-
     printHeader("\n\nStart get service")
     useKindCluster(mbg3Name)
     runcmd(f'gwctl get service  --myid {gwctl3Name} ')
-    #mbg3LocalPort, mbg3ExternalPort = getMbgPorts(mbg3Pod, destSvc)
     runcmd(f'gwctl add binding  --myid {gwctl3Name} --service {destSvc} --port 3000')
 
-    #runcmd(f"kubectl create service clusterip {destSvc} --tcp=3000:{mbg3LocalPort}")
-    #runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
     #Firefox communications
     printHeader(f"Firefox urls")
     print(f"To use the mbg1 firefox client, run the command:\n    firefox http://{mbg1Ip}:30000/")
