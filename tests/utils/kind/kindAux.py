@@ -50,7 +50,7 @@ def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort
     
     printHeader(f"\n\nStart {mbgName} (along with PolicyEngine)")
     startcmd= f'{podMbg} -- ./controlplane start --id "{mbgName}" --ip {mbgKindIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --externalDataPortRange {mbgDataPort}\
-    --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine={True} --logFile={logFile} --zeroTrust={zeroTrust}'
+    --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine={True} --observe={True} --logFile={logFile} --zeroTrust={zeroTrust}'
 
     if runInfg:
         runcmd("kubectl exec -it " + startcmd)
