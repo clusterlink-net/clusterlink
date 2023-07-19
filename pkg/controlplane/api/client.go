@@ -353,7 +353,6 @@ func (g *Gwctl) GetMetrics() (map[string]event.ConnectionStatusAttr, error) {
 	d, _ := config.GetConfig(g.Id)
 	var connections map[string]event.ConnectionStatusAttr
 	url := d.GetMetricsManager() + "/" + event.ConnectionStatus
-	fmt.Printf("Getting metrics from : %+v", url)
 	resp, err := httputils.HttpGet(url, g.GetHttpClient())
 	if err != nil {
 		return make(map[string]event.ConnectionStatusAttr), err
