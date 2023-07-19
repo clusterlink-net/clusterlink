@@ -66,7 +66,7 @@ type ConnectionStatusAttr struct {
 	DstService      string // Destination application/service receiving the connection
 	IncomingBytes   int
 	OutgoingBytes   int
-	DestinationPeer string // The peer where the destination/source service is located depending on the Direction
+	DestinationPeer string // The peer(gateway) where the destination/source service is located depending on the Direction
 	StartTstamp     time.Time
 	LastTstamp      time.Time
 	Direction       Direction // Incoming/Outgoing
