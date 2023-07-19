@@ -34,7 +34,6 @@ def getKindIp(name):
 def startMbgctl(gwctlName, mbgIP, mbgcPort, dataplane, gwctlcrt):
     runcmd(f'gwctl create --id {gwctlName} --mbgIP {mbgIP}:{mbgcPort}  --dataplane {dataplane} {gwctlcrt} ')
     runcmd(f'gwctl add policyengine --myid {gwctlName} --target {mbgIP}:{mbgcPort}')
-    runcmd(f'gwctl add metrics --myid {gwctlName} --target {mbgIP}:{mbgcPort}/metrics')
 
 def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane, mbgcrtFlags, gwctlLocal=True, runInfg=False, cni="default", logFile=True,zeroTrust=False):
     os.system(f"kind delete cluster --name={mbgName}")
