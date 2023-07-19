@@ -287,7 +287,7 @@ func (d *Dataplane) StartListenerToImportServiceEndpoint(destId string, acceptor
 			if err != nil {
 				clog.Infof("Unable to connect(tcp): %v ", err.Error())
 				ac.Close()
-				d.SendToControlPlaneConnStatus(r.ConnId, 0, 0, time.Now(), time.Now(), eventManager.Outgoing, eventManager.DeniedPeer)
+				d.SendToControlPlaneConnStatus(r.ConnId, 0, 0, time.Now(), time.Now(), eventManager.Outgoing, eventManager.PeerDenied)
 				continue
 			}
 			connectDest := "Use open connect socket" //not needed ehr we use connect - destSvc.Service.Ip + ":" + connectDest
@@ -301,7 +301,7 @@ func (d *Dataplane) StartListenerToImportServiceEndpoint(destId string, acceptor
 			if err != nil {
 				clog.Infof("Unable to connect(MTLS): %v ", err.Error())
 				ac.Close()
-				d.SendToControlPlaneConnStatus(r.ConnId, 0, 0, time.Now(), time.Now(), eventManager.Outgoing, eventManager.DeniedPeer)
+				d.SendToControlPlaneConnStatus(r.ConnId, 0, 0, time.Now(), time.Now(), eventManager.Outgoing, eventManager.PeerDenied)
 				continue
 			}
 			clog.Infof("Using %s for  %s/%s to connect to Service-%v", connectType, r.Target, connectDest, destId)
