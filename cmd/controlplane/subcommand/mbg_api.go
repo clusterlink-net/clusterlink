@@ -26,7 +26,7 @@ type Mbg struct {
 }
 
 func (m *Mbg) AddPolicyEngine(policyEngineTarget string, start bool, zeroTrust bool) {
-	store.GetEventManager().AssignPolicyDispatcher(store.GetAddrStart()+policyEngineTarget+"/policy", store.GetHttpClient())
+	store.GetEventManager().AssignPolicyDispatcher(store.GetAddrStart()+policyEngineTarget, store.GetHttpClient())
 	// TODO : Handle different MBG IDs
 	store.SaveState()
 	defaultRule := event.AllowAll

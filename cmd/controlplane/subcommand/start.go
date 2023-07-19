@@ -59,7 +59,7 @@ var startCmd = &cobra.Command{
 		}
 
 		if startPolicyEngine {
-			m.AddPolicyEngine("localhost:"+cportLocal, true, zeroTrust)
+			m.AddPolicyEngine("localhost:"+cportLocal+"/policy", true, zeroTrust)
 		}
 
 		if observe {
