@@ -28,7 +28,7 @@ const (
 	Ongoing ConnectionState = iota
 	Complete
 	Denied
-	DeniedPeer
+	PeerDenied
 )
 
 func (a Action) String() string {
@@ -61,15 +61,15 @@ type ConnectionRequestResp struct {
 }
 
 type ConnectionStatusAttr struct {
-	ConnectionId    string
-	SrcService      string
-	DstService      string
+	ConnectionId    string // Unique ID to track a connection from start to end within the gateway
+	SrcService      string // Source application/service initiating the connection
+	DstService      string // Destination application/service receiving the connection
 	IncomingBytes   int
 	OutgoingBytes   int
-	DestinationPeer string
+	DestinationPeer string // The peer where the destination/source service is located depending on the Direction
 	StartTstamp     time.Time
 	LastTstamp      time.Time
-	Direction       Direction
+	Direction       Direction // Incoming/Outgoing
 	State           ConnectionState
 }
 

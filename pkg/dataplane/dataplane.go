@@ -433,24 +433,21 @@ func (d *Dataplane) delImportServiceEndpoint(svcId, mbgId string) {
 
 // Send request to control-plane to check connection permission and parameters
 func (d *Dataplane) SendToControlPlaneConnStatus(connId string, incomingBytes, outgoingBytes int, startTstamp, endTstamp time.Time, direction eventManager.Direction, state eventManager.ConnectionState) error {
-	var rep apiObject.NewImportConnParmaReply
 	address := d.Store.GetControlPlaneAddr() + "/connectionStatus"
 
-	j, err := json.Marshal(apiObject.ConnectionStatus{ConnectionId: connId,
+	connStatus := apiObject.ConnectionStatus{ConnectionId: connId,
 		IncomingBytes: incomingBytes,
 		OutgoingBytes: outgoingBytes,
 		StartTstamp:   startTstamp,
 		LastTstamp:    endTstamp,
 		Direction:     direction,
-		State:         state})
+		State:         state}
+	j, err := json.Marshal(connStatus)
 	if err != nil {
 		clog.Error(err)
 		return err
 	}
-	resp, err := httputils.HttpPost(address, j, d.Store.GetLocalHttpClient())
-	if err := json.Unmarshal(resp, &rep); err != nil {
-		clog.Error("Unable to Unmarshal json NewConnParmaReply ", err)
-	}
+	_, err = httputils.HttpPost(address, j, d.Store.GetLocalHttpClient())
 
 	return err
 }
