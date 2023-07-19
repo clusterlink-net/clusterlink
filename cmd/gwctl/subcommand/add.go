@@ -61,22 +61,6 @@ var policyengineCmd = &cobra.Command{
 	},
 }
 
-var metricsManagerCmd = &cobra.Command{
-	Use:   "metrics",
-	Short: "add the location of metrics manager",
-	Long:  `add the location of metrics manager`,
-	Run: func(cmd *cobra.Command, args []string) {
-		mId, _ := cmd.Flags().GetString("myid")
-		target, _ := cmd.Flags().GetString("target")
-		m := api.Gwctl{Id: mId}
-		err := m.AddMetricsManager(target)
-		if err != nil {
-			fmt.Printf("Failed to add metrics manager :%v\n", err)
-			return
-		}
-		fmt.Printf("Metrics manager added successfully\n")
-	},
-}
 var serviceCmd = &cobra.Command{
 	Use:   "service",
 	Short: "Add local service to the MBG",
@@ -162,10 +146,6 @@ func init() {
 	addCmd.AddCommand(policyengineCmd)
 	policyengineCmd.Flags().String("myid", "", "Gwctl Id")
 	policyengineCmd.Flags().String("target", "", "Target endpoint(e.g.ip:port) to reach the policy agent")
-	// add metrics manager
-	addCmd.AddCommand(metricsManagerCmd)
-	metricsManagerCmd.Flags().String("myid", "", "Gwctl Id")
-	metricsManagerCmd.Flags().String("target", "", "Target endpoint(e.g.ip:port) to reach the metrics manager")
 	// add service
 	addCmd.AddCommand(serviceCmd)
 	serviceCmd.Flags().String("myid", "", "Gwctl Id")
