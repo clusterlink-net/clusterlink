@@ -17,30 +17,27 @@ var mlog = logrus.WithField("component", "Metrics")
 var MyMetricsManager Metrics
 
 type Metrics struct {
-	ConnectionFlow map[string]event.ConnectionStatusAttr
+	ConnectionFlow map[string]*event.ConnectionStatusAttr
 }
 
 func (m *Metrics) Routes(r *chi.Mux) chi.Router {
-
-	r.Get("/", m.GetMetrics)
-	r.Post("/"+event.ConnectionStatus, m.PostMetrics)
-
-	// TODO : Add more end-points specific to the queries, But this could be done after a broader discussion
-	// For Example, /source/<SourceApp> , should return all connections coming out of SourceApp
-	// /gateway should return all connections going in/out of a gateway, etc
-
+	r.Route("/"+event.ConnectionStatus, func(r chi.Router) {
+		r.Get("/", m.GetConnectionMetrics)   // Get Metrics from the metrics manager
+		r.Post("/", m.PostConnectionMetrics) // Post Metrics to the metrics manager
+	})
+	// TODO : Add more endpoints to support query
 	return r
 }
 
 func (m *Metrics) init(router *chi.Mux) {
-	m.ConnectionFlow = make(map[string]event.ConnectionStatusAttr)
+	m.ConnectionFlow = make(map[string]*event.ConnectionStatusAttr)
 
 	routes := m.Routes(router)
 
 	router.Mount("/metrics", routes)
 }
 
-func (m *Metrics) GetMetrics(w http.ResponseWriter, r *http.Request) {
+func (m *Metrics) GetConnectionMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(m.ConnectionFlow); err != nil {
@@ -49,21 +46,32 @@ func (m *Metrics) GetMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (m *Metrics) PostMetrics(w http.ResponseWriter, r *http.Request) {
+func (m *Metrics) PostConnectionMetrics(w http.ResponseWriter, r *http.Request) {
 	var connectionStatus event.ConnectionStatusAttr
 	err := json.NewDecoder(r.Body).Decode(&connectionStatus)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	// Aggregate Metrics
+	m.aggregateMetrics(connectionStatus)
 
-	// if _, exists := m.ConnectionFlow[connectionStatus.connectionID]; exists {
-	// 	// Recompute
-	// 	m.ConnectionFlow[connectionStatus.connectionID]
-	// 	return
-	// }
-	m.ConnectionFlow[connectionStatus.ConnectionId] = connectionStatus
 	return
+}
+
+func (m *Metrics) aggregateMetrics(connectionStatus event.ConnectionStatusAttr) {
+	if _, exists := m.ConnectionFlow[connectionStatus.ConnectionId]; exists {
+		// Update existing metrics
+		flow := m.ConnectionFlow[connectionStatus.ConnectionId]
+		flow.IncomingBytes += connectionStatus.IncomingBytes
+		flow.OutgoingBytes += connectionStatus.OutgoingBytes
+		flow.LastTstamp = connectionStatus.LastTstamp
+		flow.State = connectionStatus.State
+		//m.ConnectionFlow[connectionStatus.ConnectionId] = flow
+		return
+	} else {
+		m.ConnectionFlow[connectionStatus.ConnectionId] = &connectionStatus
+	}
 }
 
 func StartMetricsManager(router *chi.Mux) {

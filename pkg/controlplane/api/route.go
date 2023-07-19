@@ -74,7 +74,7 @@ func (m MbgHandler) Routes() chi.Router {
 		r.Post("/newConnection", setupNewExportConnHandler) // Post /newExportConnection  - New connection parameters check
 	})
 	r.Route("/connectionStatus", func(r chi.Router) {
-		r.Post("/", connStatusHandler) // Post /  - Connection Status
+		r.Post("/", connStatusHandler) // Post /connectionStatus  - Metrics regarding connections
 	})
 	return r
 }
@@ -135,7 +135,7 @@ func setupNewImportConn(srcIp, destIp, destSvcId string) apiObject.NewImportConn
 	connectionStatus := eventManager.ConnectionStatusAttr{ConnectionId: connectionId,
 		SrcService:      srcSvc.Id,
 		DstService:      destSvcId,
-		DestinationPeer: eventManager.Wildcard,
+		DestinationPeer: policyResp.TargetMbg,
 		StartTstamp:     time.Now(),
 		Direction:       eventManager.Outgoing,
 		State:           eventManager.Ongoing}
@@ -206,7 +206,7 @@ func setupNewExportConn(srcSvcId, srcGwId, destSvcId string) apiObject.NewExport
 	return apiObject.NewExportConnParmaReply{Action: policyResp.Action.String(), SrcGwEndpoint: srcGw, DestSvcEndpoint: localSvc.GetIpAndPort(), ConnId: connectionId}
 }
 
-// Status of an ongoing connection
+// Connection Status handler to receive metrics regarding connection from the dataplane
 func connStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse expose struct from request
 	var c apiObject.ConnectionStatus
@@ -220,6 +220,7 @@ func connStatusHandler(w http.ResponseWriter, r *http.Request) {
 		IncomingBytes: c.IncomingBytes,
 		OutgoingBytes: c.OutgoingBytes,
 		StartTstamp:   c.StartTstamp,
+		LastTstamp:    c.LastTstamp,
 		Direction:     c.Direction,
 		State:         c.State}
 

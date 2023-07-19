@@ -48,6 +48,7 @@ func CreateGwctl(id, mbgIP, caFile, certificateFile, keyFile, dataplane string) 
 		return Gwctl{}, err
 	}
 	c.SetPolicyDispatcher(gwctl.GetAddrStart(dataplane) + mbgIP + "/policy")
+	c.SetMetricsManager(gwctl.GetAddrStart(dataplane) + mbgIP + "/metrics")
 	return gwctl, nil
 }
 
@@ -72,14 +73,6 @@ func (g *Gwctl) AddPolicyEngine(target string) error {
 		return err
 	}
 	return d.SetPolicyDispatcher(g.GetAddrStart(d.GetDataplane()) + target + "/policy")
-}
-
-func (g *Gwctl) AddMetricsManager(target string) error {
-	d, err := config.GetConfig(g.Id)
-	if err != nil {
-		return err
-	}
-	return d.SetMetricsManager(g.GetAddrStart(d.GetDataplane()) + target)
 }
 
 func (g *Gwctl) AddService(id, target, port, description string) error {
@@ -359,7 +352,8 @@ func (g *Gwctl) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBa
 func (g *Gwctl) GetMetrics() (map[string]event.ConnectionStatusAttr, error) {
 	d, _ := config.GetConfig(g.Id)
 	var connections map[string]event.ConnectionStatusAttr
-	url := d.GetMetricsManager()
+	url := d.GetMetricsManager() + "/" + event.ConnectionStatus
+	fmt.Printf("Getting metrics from : %+v", url)
 	resp, err := httputils.HttpGet(url, g.GetHttpClient())
 	if err != nil {
 		return make(map[string]event.ConnectionStatusAttr), err

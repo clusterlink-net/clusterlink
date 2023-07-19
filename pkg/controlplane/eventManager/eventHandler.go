@@ -47,7 +47,7 @@ func (m *EventManager) RaiseConnectionStatusEvent(connectionStatusAttr Connectio
 	// Send the event to Metrics Manager
 	url := m.MetricsManagerTarget + "/" + ConnectionStatus
 	if m.MetricsManagerTarget != "" {
-		elog.Infof("Sending to metrics manager : %s", m.MetricsManagerTarget)
+		elog.Infof("Sending to metrics manager : %s", url)
 		jsonReq, err := json.Marshal(connectionStatusAttr)
 		if err != nil {
 			elog.Errorf("Unable to marshal json %v", err)
