@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// addPolicyCmd represents the addPolicy command
+// observe represents the addPolicy command
 var observeCmd = &cobra.Command{
 	Use:   "observe",
 	Short: "add the metrics exporter target",

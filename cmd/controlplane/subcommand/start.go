@@ -85,7 +85,7 @@ func init() {
 	startCmd.Flags().String("key", "", "Path to the Key File (.pem)")
 	startCmd.Flags().String("dataplane", "mtls", "tcp/mtls based data-plane proxies")
 	startCmd.Flags().Bool("startPolicyEngine", true, "Start policy engine in port")
-	startCmd.Flags().Bool("observe", true, "Start metrics manager in the local port")
+	startCmd.Flags().Bool("observe", true, "Start metrics manager in port")
 	startCmd.Flags().String("policyEngineIp", "", "Set the policy engine ip")
 	startCmd.Flags().Bool("zeroTrust", false, "deny (true)/allow(false) by default all incoming traffic")
 	startCmd.Flags().Bool("restore", false, "Restore existing stored MBG states")
