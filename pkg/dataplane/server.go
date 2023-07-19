@@ -86,10 +86,26 @@ func (d *Dataplane) routes() {
 	d.Router.Route("/newRemoteConnection", func(r chi.Router) {
 		r.Post("/", d.controlPlaneForwardingHandler) // Post /newRemoteConnection - New remote connection parameters check
 	})
+
 	d.Router.Route("/newLocalConnection", func(r chi.Router) {
 		r.Post("/", d.controlPlaneForwardingHandler) // Post /newLocalConnection  - New connection parameters check
 	})
 
+	d.Router.Route("/policy/acl", func(r chi.Router) {
+		r.Get("/", d.controlPlaneForwardingHandler)
+		r.Post("/add", d.controlPlaneForwardingHandler)    // Add ACL Rule
+		r.Post("/delete", d.controlPlaneForwardingHandler) // Delete ACL Rule
+	})
+
+	d.Router.Route("/policy/lb", func(r chi.Router) {
+		r.Get("/", d.controlPlaneForwardingHandler)
+		r.Post("/add", d.controlPlaneForwardingHandler)    // Add LB Policy
+		r.Post("/delete", d.controlPlaneForwardingHandler) // Delete LB Policy
+	})
+
+	d.Router.Route("/metrics", func(r chi.Router) {
+		r.Get("/ConnectionStatus", d.controlPlaneForwardingHandler)
+	})
 }
 
 // Welcome message to data-plane
