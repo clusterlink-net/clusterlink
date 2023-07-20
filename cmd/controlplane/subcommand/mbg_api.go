@@ -8,9 +8,9 @@ import (
 	handler "github.ibm.com/mbg-agent/pkg/controlplane/api"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/health"
-	metrics "github.ibm.com/mbg-agent/pkg/controlplane/metrics"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
+	metrics "github.ibm.com/mbg-agent/pkg/metrics"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 
 	"github.ibm.com/mbg-agent/pkg/utils/logutils"

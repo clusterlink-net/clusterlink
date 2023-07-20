@@ -111,7 +111,7 @@ func (d *Dataplane) startListenerToExportServiceEndpoint(c apiObject.ConnectRequ
 			return false, "", ""
 		}
 		go d.startTCPListenerService("httpconnect", rep.DestSvcEndpoint, c.Policy, rep.ConnId, conn, nil, eventManager.Incoming)
-		return true, dataplane, "httpconnect"
+		return true, dataplane, endpoint
 	case MTLS_TYPE:
 		clog.Infof("Starting a Receiver service for %s Using serviceEndpoint : %s/%s",
 			rep.DestSvcEndpoint, rep.SrcGwEndpoint, endpoint)

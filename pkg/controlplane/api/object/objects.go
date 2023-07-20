@@ -112,6 +112,7 @@ type NewExportConnParmaReply struct {
 // Connection Status
 type ConnectionStatus struct {
 	ConnectionId  string
+	GlobalId      string
 	IncomingBytes int
 	OutgoingBytes int
 	StartTstamp   time.Time
