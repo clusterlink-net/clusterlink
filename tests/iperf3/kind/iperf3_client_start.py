@@ -66,16 +66,17 @@ if __name__ == "__main__":
     destSvc         = "iperf3-server"    
     #MBG3 parameters 
     mbg3ClusterName = "mbg3"
-        
+    destPort        = "5000"
+    
     os.chdir(proj_dir)
 
     if mbg == "mbg1":
         #Test MBG1
-        testIperf3Client(mbg,srcSvc ,destSvc)
+        testIperf3Client(mbg, srcSvc ,destSvc, destPort)
         
     elif mbg == "mbg3":
         #Test MBG3
-        testIperf3Client(mbg,srcSvc ,destSvc)
-        testIperf3Client(mbg,srcSvc2 ,destSvc)
+        testIperf3Client(mbg, srcSvc ,destSvc, destPort)
+        testIperf3Client(mbg, srcSvc2 ,destSvc, destPort)
     else:
         print("Please choose either mbg1/mbg3 for running iperf3 client")

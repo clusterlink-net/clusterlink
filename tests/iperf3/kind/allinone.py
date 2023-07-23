@@ -16,7 +16,7 @@ from tests.iperf3.kind.iperf3_service_get import getService
 from tests.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
 from tests.iperf3.kind.apply_policy import applyPolicy
 
-from tests.utils.kind.kindAux import useKindCluster, getKindIp,startKindClusterMbg
+from tests.utils.kind.kindAux import useKindCluster, startMbgctl, getKindIp,startKindClusterMbg
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -29,6 +29,7 @@ if __name__ == "__main__":
     printHeader("\n\nStart Kind Test\n\n")
     printHeader("Start pre-setting")
 
+    crtFol   = f"{proj_dir}/tests/utils/mtls"
     dataplane = args["dataplane"]
     cni = args["cni"]
     #MBG1 parameters 
@@ -36,6 +37,7 @@ if __name__ == "__main__":
     mbg1cPort       = "30443"
     mbg1cPortLocal  = "443"
     mbg1crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    gwctl1crt    = f"--certca {crtFol}/ca.crt --cert {crtFol}/mbg1.crt --key {crtFol}/mbg1.key"  if dataplane =="mtls" else ""
     mbg1Name        = "mbg1"
     gwctl1Name     = "gwctl1"
     mbg1cni         = cni 
@@ -46,6 +48,7 @@ if __name__ == "__main__":
     mbg2cPort       = "30443"
     mbg2cPortLocal  = "443"
     mbg2crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    gwctl2crt    = f"--certca {crtFol}/ca.crt --cert {crtFol}/mbg2.crt --key {crtFol}/mbg2.key"  if dataplane =="mtls" else ""
     mbg2Name        = "mbg2"
     gwctl2Name     = "gwctl2"
     mbg2cni         = "flannel" if cni == "diff" else cni
@@ -60,6 +63,7 @@ if __name__ == "__main__":
     mbg3cPort       = "30443"
     mbg3cPortLocal  = "443"
     mbg3crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg3.crt --key ./mtls/mbg3.key"  if dataplane =="mtls" else ""
+    gwctl3crt    = f"--certca {crtFol}/ca.crt --cert {crtFol}/mbg3.crt --key {crtFol}/mbg3.key"  if dataplane =="mtls" else ""
     mbg3Name        = "mbg3"
     gwctl3Name     = "gwctl3"
     mbg3cni         = "calico" if cni == "diff" else cni
@@ -79,6 +83,10 @@ if __name__ == "__main__":
     os.system("make clean-kind-iperf3")
     
     ### build docker environment 
+
+    os.system("make build")
+    os.system("sudo make install")
+    
     printHeader(f"Build docker image")
     os.system("make docker-build")
     
@@ -102,19 +110,20 @@ if __name__ == "__main__":
     mbg3Ip                = getKindIp("mbg3")
     gwctl3Pod, gwctl3Ip = getPodNameIp("gwctl")
 
-    
+    # Start gwctl
+    startMbgctl(gwctl1Name, mbg1Ip, mbg1cPort, dataplane, gwctl1crt)
+    startMbgctl(gwctl2Name, mbg2Ip, mbg2cPort, dataplane, gwctl2crt)
+    startMbgctl(gwctl3Name, mbg3Ip, mbg3cPort, dataplane, gwctl3crt)
+
     # Add MBG Peer
     useKindCluster(mbg1Name)
     printHeader("Add MBG2 peer to MBG1")
-    connectMbgs(mbg1Name, gwctl1Name, gwctl1Pod, mbg2Name, mbg2Ip, mbg2cPort)
-    useKindCluster(mbg2Name)
+    connectMbgs(gwctl1Name, mbg2Name, mbg2Ip, mbg2cPort)
     printHeader("Add MBG1, MBG3 peer to MBG2")
-    connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
-    connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg3Name, mbg3Ip, mbg3cPort)
-    useKindCluster(mbg3Name)
-    printHeader("Add MBG3 peer to MBG1")
-    connectMbgs(mbg3Name, gwctl3Name, gwctl3Pod, mbg2Name,mbg2Ip , mbg2cPort)
-
+    connectMbgs(gwctl2Name, mbg1Name, mbg1Ip, mbg1cPort)
+    connectMbgs(gwctl2Name, mbg3Name, mbg3Ip, mbg3cPort)
+    printHeader("Add MBG2 peer to MBG3")
+    connectMbgs(gwctl3Name, mbg2Name,mbg2Ip , mbg2cPort)
     
     # Set service iperf3-client in MBG1
     setIperf3client(mbg1Name, gwctl1Name, srcSvc)
@@ -130,8 +139,12 @@ if __name__ == "__main__":
     importService(mbg1Name, destSvc,destPort, mbg2Name)
     importService(mbg3Name, destSvc,destPort, mbg2Name)
 
+    #bind destination service
+    bindService(gwctl1Name, destSvc, destPort)
+    bindService(gwctl3Name, destSvc, destPort)
+
     #Get services
-    getService(mbg1Name, gwctl1Name)
+    getService(gwctl1Name)
     
     #Testing
     printHeader("\n\nStart Iperf3 testing")
@@ -139,8 +152,8 @@ if __name__ == "__main__":
     waitPod("iperf3-server")
     
     #Test MBG1
-    directTestIperf3(mbg1Name, srcSvc,mbg2Ip,kindDestPort)
-    testIperf3Client(mbg1Name,srcSvc,destSvc,destPort)
+    directTestIperf3(mbg1Name, srcSvc, mbg2Ip, kindDestPort)
+    testIperf3Client(mbg1Name, srcSvc, destSvc, destPort)
 
     #Test MBG3
     directTestIperf3(mbg3Name, srcSvc, mbg2Ip, kindDestPort)

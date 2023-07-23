@@ -11,9 +11,8 @@ from tests.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName
 from tests.utils.kind.kindAux import useKindCluster, getKindIp
 
 # Add MBG Peer
-def connectMbgs(mbgName, gwctlName, gwctlPod, peerName, peerIp, peercPort):
-    useKindCluster(mbgName)
-    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create peer  --name {peerName} --host {peerIp} --port {peercPort}')
+def connectMbgs( gwctlName, peerName, peerIp, peercPort):
+    runcmd(f'gwctl create peer --myid {gwctlName} --name {peerName} --host {peerIp} --port {peercPort}')
     
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -37,7 +36,14 @@ if __name__ == "__main__":
     mbg3Ip=getKindIp(mbg3Name)
     
     useKindCluster(mbg2Name)
-    gwctl2Pod =getPodName("gwctl")
     printHeader("Add MBG2, MBG3 peer to MBG1")
+<<<<<<< HEAD
     connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
     connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg3Name, mbg3Ip, mbg3cPort)    
+=======
+    connectMbgs(gwctl2Name, mbg1Name, mbg1Ip, mbg1cPort)
+    connectMbgs(gwctl2Name, mbg3Name, mbg3Ip, mbg3cPort)
+
+    sendHello(gwctl2Name)
+    
+>>>>>>> c751f4f (Update readme instructions of iperf to latest)

@@ -1,8 +1,8 @@
-# <ins>iPerf3 Connectivity and Performance Test<ins>
+# <ins>Scenario with iPerf3 Connectivity between 2 clusters<ins>
 In this test we check iPerf3 connectivity between different kind cluster using the MBG components.  
 This setup use two Kind clusters- 
-1) MBG1 cluster - contain MBG, gwctl (MBG control component), and iPerf3 client.
-2) MBG2 cluster - contain MBG, gwctl (MBG control component), and iPerf3 server.
+1) Cluster 1 - contains the gateway (Control-plane/Data-plane) and iPerf3 client.
+2) Cluster 2 - contains the gateway (Control-plane/Data-plane) and iPerf3 client.
 
 
 ## <ins> Pre-requires installations <ins>
@@ -12,54 +12,52 @@ To run a Kind test, check all pre-requires are installed (Go, docker, Kubectl, K
     cd $PROJECT_FOLDER
     make prereqs
 
-## <ins> iPerf3 test<ins>
-Use a single script to run, build kind clusters, and run the iperf3 test. 
-
-    make run-kind-iperf3
-
-or use the following steps:
-
+Following are the steps to run the iperf3 connectivity scenario (or you could also run the scripts towards the end):
 ### <ins> Step 1: Build docker image <ins>
 Build MBG docker image:
     
     make docker-build
 
-### <ins> Step 2: Create kind clusters with MBG image <ins>
-In this step, we build the kind cluster with an MBG image.  
-Build the first kind cluster with MBG, gwctl, and iperf3-client:
-1) Create a Kind cluster with MBG image:
+Install local control (gwctl) for the gateway: 
+    make build
+    sudo make install
 
-        kind create cluster --name=mbg1
-        kind load docker-image mbg --name=mbg1
+### <ins> Step 2: Create kind clusters with the gateway <ins>
+In this step, we build the kind cluster with the gateway image.  
+Build the first kind cluster with gateway, and iperf3-client:
+1) Create a Kind cluster with the gateway image:
 
-2) Create a MBG deployment: 
+        kind create cluster --name=cluster1
+        kind load docker-image mbg --name=cluster1
+
+2) Create the gateway control plane and data plane deployment: 
     
         kubectl create -f $PROJECT_FOLDER/config/manifests/mbg/mbg.yaml
         kubectl apply -f $PROJECT_FOLDER/config/manifests/mbg/mbg-role.yaml
+        kubectl create -f $PROJECT_FOLDER/config/manifests/mbg/dataplane.yaml 
+        kubectl create service nodeport dataplane --tcp=443:443 --node-port=30443
 
-3) Create a gwctl deployment: 
-   
-        kubectl create -f $PROJECT_FOLDER/config/manifests/gwctl/gwctl.yaml
-4) Create an iPerf3-client deployment: 
-   
+3) Create an iPerf3-client deployment: 
+        kind load docker-image mlabbe/iperf3 --name=cluster1
         kubectl create -f $PROJECT_FOLDER/tests/iperf3/manifests/iperf3-client/iperf3-client.yaml
 
-Build the second kind cluster with MBG, gwctl, and iperf3-server:
-1) Create a Kind cluster with MBG image:
+Build the second kind cluster with gateway, and iperf3-client:
+1) Create a Kind cluster with the gateway image:
 
-        kind create cluster --name=mbg2
-        kind load docker-image mbg --name=mbg2
-2) Create a MBG deployment:
+        kind create cluster --name=cluster2
+        kind load docker-image mbg --name=cluster2
+
+2) Create the gateway control plane and data plane deployment:
    
         kubectl create -f $PROJECT_FOLDER/config/manifests/mbg/mbg.yaml
         kubectl apply -f $PROJECT_FOLDER/config/manifests/mbg/mbg-role.yaml
-3) Create a gwctl deployment: 
+        kubectl create -f $PROJECT_FOLDER/config/manifests/mbg/dataplane.yaml 
+        kubectl create service nodeport dataplane --tcp=443:443 --node-port=30443
 
-        kubectl create -f $PROJECT_FOLDER/config/manifests/gwctl/gwctl.yaml
-4) Create an iPerf3-server deployment:
-   
+3) Create an iPerf3-server deployment:
+        kind load docker-image mlabbe/iperf3 --name=mbg2
         kubectl create -f $PROJECT_FOLDER/tests/iperf3/manifests/iperf3-server/iperf3.yaml
-        kubectl create -f $PROJECT_FOLDER/tests/iperf3/manifests/iperf3-server/iperf3-svc.yaml
+        kubectl create service nodeport iperf3-server --tcp=5000:5000 --node-port=30001
 
 Check that container statuses are Running.
 
@@ -69,85 +67,70 @@ Check that container statuses are Running.
 In this step, start to run the MBG and gwctl.  
 First, Initialize the parameters of the test (pods' names and IPs):
     
-    kubectl config use-context kind-mbg1
-    export MBG1=`kubectl get pods -l app=mbg -o custom-columns=:metadata.name`
+    kubectl config use-context kind-cluster1
+    export MBG1_CP=`kubectl get pods -l app=mbg -o custom-columns=:metadata.name`
+    export MBG1_DP=`kubectl get pods -l app=dataplane -o custom-columns=:metadata.name`
     export MBG1IP=`kubectl get nodes -o jsonpath={.items[0].status.addresses[0].address}`
-    export MBG1PODIP=`kubectl get pod $MBG1 --template '{{.status.podIP}}'`
     export MBGCTL1=`kubectl get pods -l app=gwctl -o custom-columns=:metadata.name`
     export MBGCTL1IP=`kubectl get pod $MBGCTL1 --template '{{.status.podIP}}'`
-    export IPERF3CLIENT_IP=`kubectl get pods -l app=iperf3-client -o jsonpath={.items[*].status.podIP}`
     export IPERF3CLIENT=`kubectl get pods -l app=iperf3-client -o custom-columns=:metadata.name`
 
-    kubectl config use-context kind-mbg2
-    export MBG2=`kubectl get pods -l app=mbg -o custom-columns=:metadata.name`
+    kubectl config use-context kind-cluster2
+    export MBG2_CP=`kubectl get pods -l app=mbg -o custom-columns=:metadata.name`
+    export MBG2_DP=`kubectl get pods -l app=dataplane -o custom-columns=:metadata.name`
     export MBG2IP=`kubectl get nodes -o jsonpath={.items[0].status.addresses[0].address}`
-    export MBG2PODIP=`kubectl get pod $MBG2 --template '{{.status.podIP}}'`
     export MBGCTL2=`kubectl get pods -l app=gwctl -o custom-columns=:metadata.name`
     export MBGCTL2IP=`kubectl get pod $MBGCTL2 --template '{{.status.podIP}}'`
-    export IPERF3SERVER_IP=`kubectl get pods -l app=iperf3-server -o jsonpath={.items[*].status.podIP}`
 
-Start MBG1: (the MBG creates an HTTP server, so it is better to run this command in a different terminal (using tmux) or run it in the background)
+Start the Gateway in Cluster 1:
 
-    kubectl config use-context kind-mbg1
-    kubectl exec -i $MBG1 -- ./controlplane start --name "MBG1" --ip $MBG1IP --cport 30443 --cportLocal 443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key &
+    kubectl config use-context kind-cluster1
+    kubectl exec -i $MBG1_CP -- ./controlplane start --id mbg1 --ip $MBG1IP --cport 30443 --cportLocal 443 --externalDataPortRange 30001 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key --startPolicyEngine=true --logFile=true --zeroTrust=false &
+    kubectl exec -i $MBG1_DP -- ./dataplane --id mbg1 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key &
 
-Initialize gwctl (mbg control):
 
-    kubectl exec -i $MBGCTL1 -- ./gwctl create --name "gwctl1" --gwIP $MBG1PODIP:443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key
+Initialize gwctl CLI:
 
-Create K8s service nodeport to connect MBG cport to the MBG localcport.
+    gwctl create --id "gwctl1" --mbgIP $MBG1IP:30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils//mtls/mbg1.crt --key $PROJECT_FOLDER/tests/utils//mtls/mbg1.key
 
-    kubectl create service nodeport mbg --tcp=443:443 --node-port=30443
+Start the Gateway in Cluster 2:
 
-Start MBG2: (the MBG creates an HTTP server, so it is better to run this command in a different terminal (using tmux) or run it in the background)
+    kubectl config use-context kind-cluster2
+    kubectl exec -i $MBG2_CP -- ./controlplane start --id mbg2 --ip $MBG2IP --cport 30443 --cportLocal 443 --externalDataPortRange 30001 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key --startPolicyEngine=true --logFile=true --zeroTrust=false &
+    kubectl exec -i $MBG2_DP -- ./dataplane --id mbg2 --dataplane mtls --certca $PROJECT/mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key &
 
-    kubectl config use-context kind-mbg2
-    kubectl exec -i $MBG2 -- ./controlplane start --name "MBG2" --ip $MBG2IP --cport 30443 --cportLocal 443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key &
+Initialize gwctl CLI:
 
-Initialize gwctl (mbg control):
+    gwctl create --id gwctl2 --mbgIP $MBG2IP:30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils/mtls/mbg2.crt --key $PROJECT_FOLDER/tests/utils/mtls/mbg2.key
 
-    kubectl exec -i $MBGCTL2 -- ./gwctl create --name "gwctl2" --gwIP $MBG2PODIP:443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key
 
-Create K8s service nodeport to connect MBG cport to the MBG localcport.
-
-    kubectl create service nodeport mbg --tcp=443:443 --node-port=30443
-
-Note: The MBG certificate and key files are located in $PROJECT_FOLDER/tests/aux/mtls. The files are loaded to the MBG image (in step 1) and can be replaced.
+Note: The gateway certificate and key files are located in $PROJECT_FOLDER/tests/aux/mtls. The files are loaded to the gateway image (in step 1) and can be replaced.
 
 ### <ins> Step 4: MBG peers communication <ins>
-In this step, we set the communication between the MBGs.  
-First, send MBG2 details information to MBG1 using gwctl:
+In this step, we pair the gateways.  
+First, send mbg2 details information to mbg1 using gwctl:
 
-    kubectl config use-context kind-mbg1
-    kubectl exec -i $MBGCTL1 -- ./gwctl create peer --name "MBG2" --host $MBG2IP --port 30443
-Send Hello message from MBG1 to MBG2:
+    gwctl create peer --myid gwctl1 --name mbg2 --host $MBG2IP --port 30443
 
-    kubectl exec -i $MBGCTL1 -- ./gwctl hello
 ### <ins> Step 5: Add services <ins>
-In this step, we add the iperf3 services for each MBG.  
-Add an iperf3-server service to MBG2:
+In this step, we add the iperf3 server/client in the respective cluster gateways.  
+Add the iperf3-server service to the Cluster 2 gateway:
 
-    kubectl config use-context kind-mbg2
-    kubectl exec -i $MBGCTL2 -- ./gwctl create export --name iperf3-server --host $IPERF3SERVER_IP --port 5000
+    gwctl create export -myid gwctl2  --name iperf3-server --host $IPERF3SERVER_IP --port 5000
 
-Add an iperf3-client service to MBG1 (Optional -by default allow to services access to remote services- in the client side use to add a policy on the local services):
+Add the iperf3-client service to cluster 1 gateway (Optional - by default, allows services access remote services ):
 
-    kubectl config use-context kind-mbg1
-    kubectl exec -i $MBGCTL1 -- ./gwctl create export --name iperf3-client --host $IPERF3CLIENT_IP
+    gwctl create export --myid gwctl1 --name iperf3-client --host $IPERF3CLIENT_IP
 
-### <ins> Step 6: Expose service <ins>
-In this step, we expose the iperf3-server service from MBG2 to MBG1.
+### <ins> Step 6: Expose iperf3 server service from Cluster 2 <ins>
+In this step, we expose the iperf3-server service from Cluster 2 gateway to Cluster 1 gateway
 
-    kubectl config use-context kind-mbg2
-    kubectl exec -i $MBGCTL2 -- ./gwctl expose --service iperf3-server
+    gwctl expose --myid gwctl2 --service iperf3-server
 
 ### <ins> Step 7: iPerf3 test <ins>
-In this step, we can check the secure communication between the iPerf3 client and server by sending the traffic using the MBGs.
+In this step, we import the iPerf3 server in cluster 1.
     
-    kubectl config use-context kind-mbg1
-    export MBG1PORT_IPERF3SERVER=`python3 $PROJECT_FOLDER/tests/utils/getMbgLocalPort.py -m $MBG1 -s iperf3-server`
-    kubectl exec -i $IPERF3CLIENT -- iperf3 -c $MBG1PODIP -p $MBG1PORT_IPERF3SERVER
-
+    gwctl add binding --myid gwctl1 --service iperf3-server --port 5000
 
 ### <ins> Cleanup <ins>
 Delete all Kind cluster.

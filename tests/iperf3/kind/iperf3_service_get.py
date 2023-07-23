@@ -10,13 +10,11 @@ sys.path.insert(0,f'{proj_dir}')
 from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodName
 from tests.utils.kind.kindAux import useKindCluster
 
-def getService(mbgName, destSvc):
-    useKindCluster(mbgName)
-    gwctlPod = getPodName("gwctl")
-    printHeader(f"\n\Query service from {mbgName}")
-    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl get import ')
-    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl get binding --import {destSvc}')
-    
+
+def getService(gwctlName, destSvc):
+    printHeader(f"\n\Get imported serviced from {gwctlName}")
+    runcmd(f'gwctl get import --myid {gwctlName}')
+    runcmd(f'gwctl get binding --myid {gwctlName }--import {destSvc}')
 
 
 ############################### MAIN ##########################

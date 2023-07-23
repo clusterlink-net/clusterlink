@@ -7,7 +7,7 @@ proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.p
 sys.path.insert(0,f'{proj_dir}')
 
 from tests.utils.mbgAux import printHeader
-from tests.utils.kind.kindAux import useKindCluster, getKindIp, startKindClusterMbg
+from tests.utils.kind.kindAux import useKindCluster, startMbgctl, getKindIp, startKindClusterMbg
 
 
 
@@ -23,6 +23,8 @@ if __name__ == "__main__":
 
     args = vars(parser.parse_args())
 
+    crtFol   = f"{proj_dir}/tests/utils/mtls"
+
     dataplane = args["dataplane"]
     mbg       = args["mbg"]
     build     = args["build"]
@@ -35,7 +37,8 @@ if __name__ == "__main__":
     mbgcPort       = "30443"
     mbgcPortLocal  = "443"
     mbgcrtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/{mbg}.crt --key ./mtls/{mbg}.key"  if dataplane =="mtls" else ""
-    gwctlName     = mbg[:-1]+"ctl"+ mbg[-1]
+    gwctlcrt      = f"--certca {crtFol}/ca.crt --cert {crtFol}/{mbg}.crt --key {crtFol}/{mbg}.key"  if dataplane =="mtls" else ""
+    gwctlName     = "gwctl"+ mbg[-1]
     
     print("Starting mbg ("+mbg+") with dataplane "+ dataplane)
         
@@ -51,7 +54,9 @@ if __name__ == "__main__":
     
     ### build Kind clusters environment 
     if mbg in ["mbg1", "mbg2","mbg3"]:
-        startKindClusterMbg(mbg, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg,cni=cni,logFile=logFile)        
+        startKindClusterMbg(mbg, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg, cni=cni,logFile=logFile) 
+        mbgIP = getKindIp(mbg)
+        startMbgctl(gwctlName, mbgIP, mbgcPort, dataplane, gwctlcrt)
     else:
         print("mbg value should be mbg1, mbg2 or mbg3")
 

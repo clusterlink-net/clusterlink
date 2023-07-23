@@ -21,8 +21,7 @@ def setIperf3client(mbgName, gwctlName,srcSvc):
     runcmd(f"kind load docker-image mlabbe/iperf3 --name={mbgName}")
     runcmd(f"kubectl create -f {folCl}/{srcSvc}.yaml")
     waitPod(srcSvc)
-    gwctlPod =getPodName("gwctl")
-    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create export --name {srcSvc} --host {srcSvc} --port {5000}')
+    runcmd(f'gwctl create export --myid {gwctlName} --name {srcSvc} --host {srcSvc} --port {5000}')
 
 def setIperf3Server(mbgName, gwctlName, destSvc):
     printHeader(f"Add {destSvc} (server) service in {mbgName}")
@@ -34,29 +33,32 @@ def setIperf3Server(mbgName, gwctlName, destSvc):
     destSvcPort = f"5000"
     gwctlPod =getPodName("gwctl")
     destSvcIp  = "iperf3-server"
-    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create export --name {destSvc} --host {destSvcIp} --port {destSvcPort}')
+    runcmd(f'gwctl --myid {gwctlName} create export --name {destSvc} --host {destSvcIp} --port {destSvcPort}')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
     #parameters 
     mbg1Name    = "mbg1"
+    gwctl1Name = "gwctl2"
     srcSvc      = "iperf3-client"
     srcSvc2     = "iperf3-client2"
     mbg2Name    = "mbg2"
     gwctl2Name = "gwctl2"
     destSvc     = "iperf3-server"
     mbg3Name    = "mbg3"
-        
+    gwctl3Name = "gwctl3"
+    destPort        = "5000"
+
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
     
     # Set iperf3-client in MBG1
-    setIperf3client(mbg1Name, srcSvc)
+    setIperf3client(mbg1Name, gwctl1Name, srcSvc)
     
     #Set iperf3-service in MBG2
-    setIperf3Server(mbg2Name,destSvc)
+    setIperf3Server(mbg2Name,gwctl2Name, destSvc)
 
     # Set iperf3-client in MBG3
-    setIperf3client(mbg3Name, srcSvc)
-    setIperf3client(mbg3Name, srcSvc2)
+    setIperf3client(mbg3Name, gwctl3Name, srcSvc)
+    setIperf3client(mbg3Name, gwctl3Name, srcSvc2)
     

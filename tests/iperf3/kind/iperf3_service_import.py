@@ -10,21 +10,23 @@ sys.path.insert(0,f'{proj_dir}')
 from tests.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName
 from tests.utils.kind.kindAux import useKindCluster
 
-def importService(mbgName,destSvc,destPort, peer):
-    useKindCluster(mbgName)
-    gwctlPod = getPodName("gwctl")
+
+def importService(mbgName,gwctlName,destSvc,destPort, peer):
     printHeader(f"\n\nStart Importing {destSvc} service to {mbgName}")
-    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create import --name {destSvc} --host {destSvc} --port {destPort}')
+    runcmd(f'gwctl --myid {gwctlName} create import --name {destSvc} --host {destSvc} --port {destPort}')
     printHeader(f"\n\nStart binding {destSvc} service to {mbgName}")
-    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create binding --import {destSvc} --peer {peer}')
+    runcmd(f'gwctl --myid {gwctlName} create binding --import {destSvc} --peer {peer}')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
     #parameters 
-    mbg2Name     = "mbg2"
+    mbg1Name    = "mbg1"
+    gwctl1Name  = "gwctl1"
+    mbg2Name    = "mbg2"
     gwctl2Name  = "gwctl2"
-    destSvc      = "iperf3-server"
-    
+    destSvc     = "iperf3-server"
+    destPort    = "5000"
+
         
     
     print(f'Working directory {proj_dir}')
@@ -32,5 +34,5 @@ if __name__ == "__main__":
 
     importService(mbg2Name, gwctl2Name, destSvc)
     
-
+    bindService(mbg1Name, gwctl1Name, destSvc, destPort)
     

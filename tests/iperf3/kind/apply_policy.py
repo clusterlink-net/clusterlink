@@ -19,29 +19,25 @@ def addPolicy(mbg, gwctlName, command, action, srcSvc=srcSvc,destSvc=destSvc, pr
                     
 def applyPolicy(mbg, gwctlName, type, srcSvc=srcSvc,destSvc=destSvc ):
     if mbg in ["mbg1","mbg3"]:
-        useKindCluster(mbg)
-        gwctlPod=getPodName("gwctl")
         if type == "deny":
             printHeader(f"Block Traffic in {mbg}")          
-            runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --gwDest mbg2 --priority 0 --action 1')
+            runcmd(f'gwctl create policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --gwDest mbg2 --priority 0 --action 1')
         elif type == "allow":
             printHeader(f"Allow Traffic in {mbg}")
-            runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl delete policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --gwDest mbg2')
+            runcmd(f'gwctl delete policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --gwDest mbg2')
         elif type == "show":
             printHeader(f"Show Policies in {mbg}")
-            runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl get policy --myid {gwctlName}')
+            runcmd(f'gwctl get policy --myid {gwctlName}')
 
         else:
             print("Unknown command")
     if mbg == "mbg2":
-        useKindCluster(mbg)
-        gwctl2Pod=getPodName("gwctl")
         if type == "deny":
             printHeader("Block Traffic in MBG2")
-            runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl create policy --myid {gwctlName} --type acl --gwDest mbg3 --priority 0 --action 1')
+            runcmd(f'gwctl create policy --myid {gwctlName} --type acl --gwDest mbg3 --priority 0 --action 1')
         elif type == "allow":
             printHeader("Allow Traffic in MBG2")
-            runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl delete policy --myid {gwctlName} --type acl --gwDest mbg3 ')
+            runcmd(f'gwctl delete policy --myid {gwctlName} --type acl --gwDest mbg3 ')
         else:
             print("Unknown command")
 
