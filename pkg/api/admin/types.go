@@ -82,8 +82,10 @@ type ImportSpec struct {
 	Service Endpoint
 }
 
-// ImportStatus contains the export service status.
+// ImportStatus contains the import service status.
 type ImportStatus struct {
+	// Listener endpoint created for the imported service.
+	Listener Endpoint
 }
 
 // Binding of an imported service to a remotely exposed service from a specific Peer.
@@ -94,9 +96,8 @@ type Binding struct {
 
 // BindingSpec contains all the binding attributes.
 type BindingSpec struct {
-	// Import serviec name.
+	// Import service name.
 	Import string
-
 	// Peer providing the imported service.
 	Peer string
 }
