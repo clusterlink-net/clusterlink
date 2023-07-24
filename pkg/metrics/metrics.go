@@ -1,6 +1,5 @@
 /**********************************************************/
-/* Package Policy contain all Policies and data structure
-/* related to Policy that can run in mbg
+/* Package Metrics provides an exporter of gateway's connection-level metrics
 /**********************************************************/
 package metrics
 
