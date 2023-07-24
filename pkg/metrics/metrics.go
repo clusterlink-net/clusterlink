@@ -2,7 +2,7 @@
 /* Package Policy contain all Policies and data structure
 /* related to Policy that can run in mbg
 /**********************************************************/
-package policyEngine
+package metrics
 
 import (
 	"encoding/json"

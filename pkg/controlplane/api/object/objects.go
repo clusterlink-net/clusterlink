@@ -112,7 +112,7 @@ type NewExportConnParmaReply struct {
 // Connection Status
 type ConnectionStatus struct {
 	ConnectionId  string
-	GlobalId      string
+	GlobalId      string // To be used to trace a flow across gateways
 	IncomingBytes int
 	OutgoingBytes int
 	StartTstamp   time.Time
