@@ -2,7 +2,7 @@
 In this test we check iPerf3 connectivity between different kind cluster using the MBG components.  
 This setup use two Kind clusters- 
 1) Cluster 1 - contains the gateway (Control-plane/Data-plane) and iPerf3 client.
-2) Cluster 2 - contains the gateway (Control-plane/Data-plane) and iPerf3 client.
+2) Cluster 2 - contains the gateway (Control-plane/Data-plane) and iPerf3 server.
 
 
 ## <ins> Pre-requires installations <ins>
