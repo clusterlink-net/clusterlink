@@ -7,8 +7,8 @@ import (
 	"os"
 )
 
-// ReadTLSFiles reads the given TLS-related files.
-func ReadTLSFiles(ca, cert, key string) (*RawCertData, error) {
+// ParseTLSFiles parses the given TLS-related files.
+func ParseTLSFiles(ca, cert, key string) (*ParsedCertData, error) {
 	rawCA, err := os.ReadFile(ca)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read CA file '%s': %v", ca, err)
@@ -24,32 +24,13 @@ func ReadTLSFiles(ca, cert, key string) (*RawCertData, error) {
 		return nil, fmt.Errorf("unable to read private key file: %v", err)
 	}
 
-	return &RawCertData{
-		CA:          rawCA,
-		Certificate: rawCertificate,
-		PrivateKey:  rawPrivateKey,
-	}, nil
-}
-
-// RawCertData contains raw cert/ca/key data.
-type RawCertData struct {
-	// CA holds the raw bytes of the certificate authority.
-	CA []byte
-	// Certificate holds the raw bytes of the TLS certificate.
-	Certificate []byte
-	// PrivateKey holds the raw bytes of the TLS private key.
-	PrivateKey []byte
-}
-
-// Parse the raw byte arrays of this RawCertData.
-func (d *RawCertData) Parse() (*ParsedCertData, error) {
-	certificate, err := tls.X509KeyPair(d.Certificate, d.PrivateKey)
+	certificate, err := tls.X509KeyPair(rawCertificate, rawPrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse certificate keypair: %v", err)
 	}
 
 	caCertPool := x509.NewCertPool()
-	if !caCertPool.AppendCertsFromPEM(d.CA) {
+	if !caCertPool.AppendCertsFromPEM(rawCA) {
 		return nil, fmt.Errorf("unable to parse CA file")
 	}
 
