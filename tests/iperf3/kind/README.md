@@ -132,6 +132,10 @@ In this step, we import the iPerf3 server in cluster 1.
     
     gwctl add binding --myid gwctl1 --service iperf3-server --port 5000
 
+### <ins> Final Step : Test Service connectivity <ins>
+Start the iperf3 test from cluster 1
+    kubectl exec -i $IPERF3CLIENT -- iperf3 -c iperf3-server --port 5000
+    
 ### <ins> Cleanup <ins>
 Delete all Kind cluster.
 
