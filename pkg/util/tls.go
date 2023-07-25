@@ -75,3 +75,8 @@ func (c *ParsedCertData) ClientConfig(sni string) *tls.Config {
 func (c *ParsedCertData) DNSNames() []string {
 	return c.x509cert.DNSNames
 }
+
+// CommonName returns the certificate common name.
+func (c *ParsedCertData) CommonName() string {
+	return c.x509cert.Subject.CommonName
+}
