@@ -1,4 +1,4 @@
-package admin
+package api
 
 // The API package defines the object model used by the control plane.
 // Conceptually, we envisage a set of locations or sites, called Peers.
@@ -45,7 +45,7 @@ type PeerStatus struct {
 // Export defines a service being exported by the local Peer for use by others.
 // Only explicitly exported services can be accessed remotely.
 type Export struct {
-	// Name that will be used to identify the exported service in subsequent admin API calls.
+	// Name that will be used to identify the exported service in subsequent API calls.
 	// Furthermore, this name will be used by remote peers to identify it as an import source.
 	Name string
 	// Spec represents the attributes of the export service.
