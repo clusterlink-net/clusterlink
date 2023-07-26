@@ -15,7 +15,7 @@ type Endpoint struct {
 	// Host or IP address of the endpoint.
 	Host string
 	// Port of the endpoint.
-	Port uint32
+	Port uint16
 }
 
 // Peer represents a location (or site) that can be used to import services from.
