@@ -1,5 +1,11 @@
 package store
 
+// Manager of multiple object stores that are persisted together.
+type Manager interface {
+	// GetObjectStore returns a store for a specific object type.
+	GetObjectStore(name string, sampleObject any) ObjectStore
+}
+
 // ObjectStore represents a persistent store of objects.
 type ObjectStore interface {
 	// Store an object.
