@@ -5,7 +5,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	cp "github.ibm.com/mbg-agent/pkg/controlplane"
-	handler "github.ibm.com/mbg-agent/pkg/controlplane/api"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/health"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
@@ -54,7 +53,7 @@ func CreateMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalData
 
 	//Set chi router
 	r := store.GetChiRouter()
-	r.Mount("/", handler.MbgHandler{}.Routes())
+	r.Mount("/", cp.MbgHandler{}.Routes())
 
 	if dataplane == "mtls" {
 		go netutils.StartMTLSServer(":"+cportLocal, caFile, certificateFile, keyFile, r)
@@ -76,7 +75,7 @@ func RestoreMbg(id string, policyEngineTarget, logLevel string, logFile, startPo
 
 	//Set chi router
 	r := store.GetChiRouter()
-	r.Mount("/", handler.MbgHandler{}.Routes())
+	r.Mount("/", cp.MbgHandler{}.Routes())
 	if store.GetDataplane() == "mtls" {
 		go netutils.StartMTLSServer(store.GetMyCport().Local, store.GetMyInfo().CaFile, store.GetMyInfo().CertificateFile, store.GetMyInfo().KeyFile, r)
 	} else {
