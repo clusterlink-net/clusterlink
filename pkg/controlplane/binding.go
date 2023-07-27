@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/api/admin"
+	"github.ibm.com/mbg-agent/pkg/api"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 )
@@ -18,7 +18,7 @@ var blog = logrus.WithField("component", "mbgControlPlane/binding")
 func CreateBindingHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse add service struct from request
-	var b admin.Binding
+	var b api.Binding
 	err := json.NewDecoder(r.Body).Decode(&b)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -38,7 +38,7 @@ func CreateBindingHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createBinding(b admin.Binding) error {
+func createBinding(b api.Binding) error {
 	policyResp, err := store.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: b.Spec.Import, Mbg: b.Spec.Peer})
 	if err != nil {
 		blog.Error("unable to raise connection request event ", store.GetMyId())
@@ -56,7 +56,7 @@ func createBinding(b admin.Binding) error {
 // DelBindingHandler - HTTP handler for delete an import service -
 func DelBindingHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse add service struct from request
-	var s admin.Binding
+	var s api.Binding
 	err := json.NewDecoder(r.Body).Decode(&s)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -97,10 +97,10 @@ func GetBindingHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getBinding(svcID string) []admin.Binding {
-	bArr := []admin.Binding{}
+func getBinding(svcID string) []api.Binding {
+	bArr := []api.Binding{}
 	for _, s := range store.GetRemoteService(svcID) {
-		bArr = append(bArr, admin.Binding{Spec: admin.BindingSpec{Import: s.Id, Peer: s.MbgId}})
+		bArr = append(bArr, api.Binding{Spec: api.BindingSpec{Import: s.Id, Peer: s.MbgId}})
 	}
 	blog.Infof("getBinding bArr: %v", bArr)
 

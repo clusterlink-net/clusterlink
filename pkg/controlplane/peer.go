@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/api/admin"
+	"github.ibm.com/mbg-agent/pkg/api"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/health"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
@@ -20,7 +20,7 @@ var plog = logrus.WithField("component", "mbgControlPlane/Peer")
 func AddPeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse add peer struct from request
-	var p admin.Peer
+	var p api.Peer
 	err := json.NewDecoder(r.Body).Decode(&p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -38,7 +38,7 @@ func AddPeerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // AddPeer control plane logic
-func addPeer(p admin.Peer) {
+func addPeer(p api.Peer) {
 	// Update MBG state
 	store.UpdateState()
 
@@ -71,15 +71,15 @@ func GetAllPeersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Get all peers control plane logic
-func getAllPeers() []admin.Peer {
+func getAllPeers() []api.Peer {
 	//Update MBG state
 	store.UpdateState()
-	pArr := []admin.Peer{}
+	pArr := []api.Peer{}
 
 	for _, s := range store.GetMbgList() {
 		ip, sport := store.GetMbgTargetPair(s)
 		port, _ := strconv.ParseUint(sport, 10, 32)
-		pArr = append(pArr, admin.Peer{Name: s, Spec: admin.PeerSpec{Gateways: []admin.Endpoint{{Host: ip, Port: uint16(port)}}}})
+		pArr = append(pArr, api.Peer{Name: s, Spec: api.PeerSpec{Gateways: []api.Endpoint{{Host: ip, Port: uint16(port)}}}})
 	}
 	return pArr
 
@@ -103,15 +103,15 @@ func GetPeerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Get peer control plane logic
-func getPeer(peerID string) admin.Peer {
-	peer := admin.Peer{}
+func getPeer(peerID string) api.Peer {
+	peer := api.Peer{}
 	//Update MBG state
 	store.UpdateState()
 	ok := store.IsMbgPeer(peerID)
 	if ok {
 		ip, sport := store.GetMbgTargetPair(peerID)
 		port, _ := strconv.ParseUint(sport, 10, 32)
-		peer = admin.Peer{Name: peerID, Spec: admin.PeerSpec{Gateways: []admin.Endpoint{{Host: ip, Port: uint16(port)}}}}
+		peer = api.Peer{Name: peerID, Spec: api.PeerSpec{Gateways: []api.Endpoint{{Host: ip, Port: uint16(port)}}}}
 	} else {
 		plog.Infof("MBG %s does not exist in the peers list ", peerID)
 	}
@@ -123,7 +123,7 @@ func getPeer(peerID string) admin.Peer {
 func RemovePeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	//Parse add peer struct from request
-	var p admin.Peer
+	var p api.Peer
 	err := json.NewDecoder(r.Body).Decode(&p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -141,7 +141,7 @@ func RemovePeerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Remove peer control plane logic
-func removePeer(p admin.Peer) {
+func removePeer(p api.Peer) {
 	//Update MBG state
 	store.UpdateState()
 

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.ibm.com/mbg-agent/cmd/gwctl/config"
-	api "github.ibm.com/mbg-agent/pkg/api/admin"
+	"github.ibm.com/mbg-agent/pkg/api"
 
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"

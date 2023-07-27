@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/cmd/gwctl/config"
 	"github.ibm.com/mbg-agent/pkg/admin"
-	api "github.ibm.com/mbg-agent/pkg/api/admin"
+	"github.ibm.com/mbg-agent/pkg/api"
 	mbgAux "github.ibm.com/mbg-agent/tests/utils"
 	kindAux "github.ibm.com/mbg-agent/tests/utils/kind"
 )

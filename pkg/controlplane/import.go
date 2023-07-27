@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/api/admin"
+	"github.ibm.com/mbg-agent/pkg/api"
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
@@ -27,7 +27,7 @@ const (
 func AddImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse add service struct from request
-	var e admin.Import
+	var e api.Import
 	err := json.NewDecoder(r.Body).Decode(&e)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -49,7 +49,7 @@ func AddImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Add remote service - control logic
-func addImportService(e admin.Import) error {
+func addImportService(e api.Import) error {
 	mlog.Infoln("addImportService ", e)
 	err := createImportServiceEndpoint(e)
 	if err != nil {
@@ -65,7 +65,7 @@ func addImportService(e admin.Import) error {
 }
 
 // Create remote service proxy
-func createImportServiceEndpoint(e admin.Import) error {
+func createImportServiceEndpoint(e api.Import) error {
 	address := store.GetAddrStart() + store.GetDataplaneEndpoint() + "/imports/serviceEndpoint/"
 
 	j, err := json.Marshal(e)
@@ -109,7 +109,7 @@ func GetImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Get remote service - control logic
-func getImportService(svcID string) admin.Import {
+func getImportService(svcID string) api.Import {
 	store.UpdateState()
 	return convertImportServiceToImportReq(svcID)
 }
@@ -130,9 +130,9 @@ func GetAllImportServicesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Get All remote service - control logic
-func getAllImportServices() []admin.Import {
+func getAllImportServices() []api.Import {
 	store.UpdateState()
-	sArr := []admin.Import{}
+	sArr := []api.Import{}
 
 	for svcID := range store.GetRemoteServicesArr() {
 		sArr = append(sArr, convertImportServiceToImportReq(svcID))
@@ -141,14 +141,14 @@ func getAllImportServices() []admin.Import {
 }
 
 // Convert service object to service request object
-func convertImportServiceToImportReq(svcID string) admin.Import {
+func convertImportServiceToImportReq(svcID string) api.Import {
 	for _, s := range store.GetRemoteService(svcID) {
 		sPort := store.GetConnectionArr()[s.Id]
 		port, _ := strconv.Atoi(sPort)
-		iSvc := admin.Import{Name: s.Id, Spec: admin.ImportSpec{Service: admin.Endpoint{Host: s.Id, Port: uint16(port)}}}
+		iSvc := api.Import{Name: s.Id, Spec: api.ImportSpec{Service: api.Endpoint{Host: s.Id, Port: uint16(port)}}}
 		return iSvc
 	}
-	return admin.Import{}
+	return api.Import{}
 
 }
 
@@ -157,7 +157,7 @@ func DelImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse del service struct from request
 	svcID := chi.URLParam(r, "id")
 	// Parse add service struct from request
-	var s admin.Import
+	var s api.Import
 	err := json.NewDecoder(r.Body).Decode(&s)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -199,13 +199,13 @@ func RestoreImportServices() {
 		}
 		// Create service endpoint only if the service from at least one MBG is allowed as per policy
 		if allow {
-			createImportServiceEndpoint(admin.Import{Name: svcID})
+			createImportServiceEndpoint(api.Import{Name: svcID})
 		}
 	}
 }
 
 // Create k8s service endpoint after import a service
-func createImportK8sService(i admin.Import) error {
+func createImportK8sService(i api.Import) error {
 	sPort := store.GetConnectionArr()[i.Name]
 
 	targetPort, err := strconv.Atoi(sPort[1:])

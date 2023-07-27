@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/segmentio/ksuid"
 	"github.com/sirupsen/logrus"
-	"github.ibm.com/mbg-agent/pkg/api/admin"
+	"github.ibm.com/mbg-agent/pkg/api"
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/dataplane/store"
@@ -176,7 +176,7 @@ func (d *Dataplane) startTCPListenerService(svcListenPort, svcIp, policy, connNa
 func (d *Dataplane) AddImportServiceEndpointHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse add service struct from request
-	var e admin.Import
+	var e api.Import
 	err := json.NewDecoder(r.Body).Decode(&e)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -196,7 +196,7 @@ func (d *Dataplane) AddImportServiceEndpointHandler(w http.ResponseWriter, r *ht
 }
 
 // Add import service - control logic
-func (d *Dataplane) addImportServiceEndpoint(e admin.Import) {
+func (d *Dataplane) addImportServiceEndpoint(e api.Import) {
 	err := d.createImportServiceEndpoint(e.Name, false)
 	if err != nil {
 		return
@@ -396,7 +396,7 @@ func (d *Dataplane) DelImportServiceEndpointHandler(w http.ResponseWriter, r *ht
 	// Parse del service struct from request
 	svcId := chi.URLParam(r, "svcId")
 	// Parse add service struct from request
-	var s admin.Import
+	var s api.Import
 	err := json.NewDecoder(r.Body).Decode(&s)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/pflag"
 	cmdutil "github.ibm.com/mbg-agent/cmd/util"
 	"github.ibm.com/mbg-agent/pkg/admin"
-	api "github.ibm.com/mbg-agent/pkg/api/admin"
+	"github.ibm.com/mbg-agent/pkg/api"
 )
 
 // importCreateOptions is the command line options for 'create import'

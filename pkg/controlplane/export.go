@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
 
-	"github.ibm.com/mbg-agent/pkg/api/admin"
+	"github.ibm.com/mbg-agent/pkg/api"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 )
 
@@ -19,7 +19,7 @@ var slog = logrus.WithField("component", "mbgControlPlane/export")
 func AddExportServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse add service struct from request
-	var e admin.Export
+	var e api.Export
 	err := json.NewDecoder(r.Body).Decode(&e)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -38,7 +38,7 @@ func AddExportServiceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Add local service - control plane logic
-func addExportService(e admin.Export) {
+func addExportService(e api.Export) {
 	store.UpdateState()
 	store.AddLocalService(e.Name, e.Spec.Service.Host, e.Spec.Service.Port)
 }
@@ -59,11 +59,11 @@ func GetExportServiceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Get local service - control plane logic
-func getExportService(svcID string) admin.Export {
+func getExportService(svcID string) api.Export {
 	store.UpdateState()
 	s := store.GetLocalService(svcID)
 	port, _ := strconv.Atoi(s.Port)
-	return admin.Export{Name: s.Id, Spec: admin.ExportSpec{Service: admin.Endpoint{Host: s.Ip, Port: uint16(port)}}}
+	return api.Export{Name: s.Id, Spec: api.ExportSpec{Service: api.Endpoint{Host: s.Ip, Port: uint16(port)}}}
 }
 
 // GetAllExportServicesHandler - HTTP handler for Get all export services
@@ -82,15 +82,15 @@ func GetAllExportServicesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Get all local services - control plane logic
-func getAllExportServices() map[string]admin.Export {
+func getAllExportServices() map[string]api.Export {
 	store.UpdateState()
-	sArr := make(map[string]admin.Export)
+	sArr := make(map[string]api.Export)
 
 	for _, s := range store.GetLocalServicesArr() {
 		sPort := store.GetConnectionArr()[s.Id]
 		sIP := store.GetMyIp()
 		port, _ := strconv.Atoi(sPort)
-		sArr[s.Id] = admin.Export{Name: s.Id, Spec: admin.ExportSpec{Service: admin.Endpoint{Host: sIP, Port: uint16(port)}}}
+		sArr[s.Id] = api.Export{Name: s.Id, Spec: api.ExportSpec{Service: api.Endpoint{Host: sIP, Port: uint16(port)}}}
 	}
 
 	return sArr
