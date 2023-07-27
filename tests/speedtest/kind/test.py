@@ -16,7 +16,7 @@ proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.p
 sys.path.insert(0,f'{proj_dir}')
 
 from tests.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName, waitPod,getMbgPorts,buildMbg,buildMbgctl,getPodIp,getPodNameIp
-from tests.utils.kind.kindAux import startKindClusterMbg, startMbgctl, useKindCluster,getKindIp
+from tests.utils.kind.kindAux import startKindClusterMbg, startGwctl, useKindCluster,getKindIp
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -113,9 +113,9 @@ if __name__ == "__main__":
 
 
     # Start gwctl
-    startMbgctl(gwctl1Name, mbg1Ip, mbg1cPort, dataplane, gwctl1crt)
-    startMbgctl(gwctl2Name, mbg2Ip, mbg2cPort, dataplane, gwctl2crt)
-    startMbgctl(gwctl3Name, mbg3Ip, mbg3cPort, dataplane, gwctl3crt)
+    startGwctl(gwctl1Name, mbg1Ip, mbg1cPort, dataplane, gwctl1crt)
+    startGwctl(gwctl2Name, mbg2Ip, mbg2cPort, dataplane, gwctl2crt)
+    startGwctl(gwctl3Name, mbg3Ip, mbg3cPort, dataplane, gwctl3crt)
 
 
     # Add MBG Peer

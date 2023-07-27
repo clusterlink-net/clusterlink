@@ -7,7 +7,7 @@ proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.p
 sys.path.insert(0,f'{proj_dir}')
 
 from tests.utils.mbgAux import printHeader
-from tests.utils.kind.kindAux import useKindCluster, startMbgctl, getKindIp, startKindClusterMbg
+from tests.utils.kind.kindAux import useKindCluster, startGwctl, getKindIp, startKindClusterMbg
 
 
 
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     if mbg in ["mbg1", "mbg2","mbg3"]:
         startKindClusterMbg(mbg, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane ,mbgcrtFlags, runInfg, cni=cni,logFile=logFile) 
         mbgIP = getKindIp(mbg)
-        startMbgctl(gwctlName, mbgIP, mbgcPort, dataplane, gwctlcrt)
+        startGwctl(gwctlName, mbgIP, mbgcPort, dataplane, gwctlcrt)
     else:
         print("mbg value should be mbg1, mbg2 or mbg3")
 

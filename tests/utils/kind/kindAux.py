@@ -31,7 +31,7 @@ def getKindIp(name):
     ip = clJson["items"][0]["status"]["addresses"][0]["address"]
     return ip
 
-def startMbgctl(gwctlName, mbgIP, mbgcPort, dataplane, gwctlcrt):
+def startGwctl(gwctlName, mbgIP, mbgcPort, dataplane, gwctlcrt):
     runcmd(f'gwctl init --id {gwctlName} --gwIP {mbgIP}:{mbgcPort}  --dataplane {dataplane} {gwctlcrt} ')
 
 def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane, mbgcrtFlags, gwctlLocal=True, runInfg=False, cni="default", logFile=True,zeroTrust=False):
