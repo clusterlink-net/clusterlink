@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/segmentio/ksuid"
 	"github.com/sirupsen/logrus"
-
+	"github.ibm.com/mbg-agent/pkg/api/admin"
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/dataplane/store"
@@ -23,15 +23,13 @@ const MTLS_TYPE = "mtls"
 var clog = logrus.WithField("component", "DataPlane")
 
 type Dataplane struct {
-	Store  store.Store
+	Store  *store.Store
 	Router *chi.Mux
 }
 
 // Set the data-plane store according the bootstrap
-func (d *Dataplane) SetStore(s store.Store) {
-	d.Store = s
-	d.Store.SetStore(s)
-	clog.Infoln("Set store")
+func NewDataplane(s *store.Store) *Dataplane {
+	return &Dataplane{Store: store.NewStore(s)}
 
 }
 
@@ -178,7 +176,7 @@ func (d *Dataplane) startTCPListenerService(svcListenPort, svcIp, policy, connNa
 func (d *Dataplane) AddImportServiceEndpointHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse add service struct from request
-	var e apiObject.ExposeRequest
+	var e admin.Import
 	err := json.NewDecoder(r.Body).Decode(&e)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -190,7 +188,7 @@ func (d *Dataplane) AddImportServiceEndpointHandler(w http.ResponseWriter, r *ht
 
 	// Response
 	w.WriteHeader(http.StatusOK)
-	rep := apiObject.ServiceReply{Id: e.Id, Port: d.Store.GetSvcPort(e.Id)}
+	rep := apiObject.ImportReply{Id: e.Name, Port: d.Store.GetSvcPort(e.Name)}
 	if err := json.NewEncoder(w).Encode(rep); err != nil {
 		clog.Errorf("Error happened in JSON encode. Err: %s", err)
 		return
@@ -198,8 +196,8 @@ func (d *Dataplane) AddImportServiceEndpointHandler(w http.ResponseWriter, r *ht
 }
 
 // Add import service - control logic
-func (d *Dataplane) addImportServiceEndpoint(e apiObject.ExposeRequest) {
-	err := d.createImportServiceEndpoint(e.Id, false)
+func (d *Dataplane) addImportServiceEndpoint(e admin.Import) {
+	err := d.createImportServiceEndpoint(e.Name, false)
 	if err != nil {
 		return
 	}
@@ -398,7 +396,7 @@ func (d *Dataplane) DelImportServiceEndpointHandler(w http.ResponseWriter, r *ht
 	// Parse del service struct from request
 	svcId := chi.URLParam(r, "svcId")
 	// Parse add service struct from request
-	var s apiObject.ServiceRequest
+	var s admin.Import
 	err := json.NewDecoder(r.Body).Decode(&s)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -406,7 +404,7 @@ func (d *Dataplane) DelImportServiceEndpointHandler(w http.ResponseWriter, r *ht
 	}
 
 	// AddService control plane logic
-	d.delImportServiceEndpoint(svcId, s.MbgID)
+	d.delImportServiceEndpoint(svcId)
 
 	// Response
 	w.WriteHeader(http.StatusOK)
@@ -417,6 +415,6 @@ func (d *Dataplane) DelImportServiceEndpointHandler(w http.ResponseWriter, r *ht
 }
 
 // Delete import service - control logic
-func (d *Dataplane) delImportServiceEndpoint(svcId, mbgId string) {
+func (d *Dataplane) delImportServiceEndpoint(svcId string) {
 	//Todo
 }

@@ -15,7 +15,7 @@ def addPolicy(mbg, gwctlName, command, action, srcSvc=srcSvc,destSvc=destSvc, pr
     gwctlPod=getPodName("gwctl")
     printHeader(f"Block Traffic in {mbg}")          
     action = 1 if action == "deny" else 0
-    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl {command} policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority {priority} --action {action}')
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl {command} policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --gwDest mbg2 --priority {priority} --action {action}')
                     
 def applyPolicy(mbg, gwctlName, type, srcSvc=srcSvc,destSvc=destSvc ):
     if mbg in ["mbg1","mbg3"]:
@@ -23,10 +23,10 @@ def applyPolicy(mbg, gwctlName, type, srcSvc=srcSvc,destSvc=destSvc ):
         gwctlPod=getPodName("gwctl")
         if type == "deny":
             printHeader(f"Block Traffic in {mbg}")          
-            runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2 --priority 0 --action 1')
+            runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --gwDest mbg2 --priority 0 --action 1')
         elif type == "allow":
             printHeader(f"Allow Traffic in {mbg}")
-            runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl remove policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --mbgDest mbg2')
+            runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl delete policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --gwDest mbg2')
         elif type == "show":
             printHeader(f"Show Policies in {mbg}")
             runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl get policy --myid {gwctlName}')
@@ -38,10 +38,10 @@ def applyPolicy(mbg, gwctlName, type, srcSvc=srcSvc,destSvc=destSvc ):
         gwctl2Pod=getPodName("gwctl")
         if type == "deny":
             printHeader("Block Traffic in MBG2")
-            runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add policy --myid {gwctlName} --type acl --mbgDest mbg3 --priority 0 --action 1')
+            runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl create policy --myid {gwctlName} --type acl --gwDest mbg3 --priority 0 --action 1')
         elif type == "allow":
             printHeader("Allow Traffic in MBG2")
-            runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl remove policy --myid {gwctlName} --type acl --mbgDest mbg3 ')
+            runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl delete policy --myid {gwctlName} --type acl --gwDest mbg3 ')
         else:
             print("Unknown command")
 

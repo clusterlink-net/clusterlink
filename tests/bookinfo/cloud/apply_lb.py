@@ -27,19 +27,19 @@ def applyPolicy(mbg, gwctlName, type):
     gwctlPod=getPodName("gwctl")
     if type == "ecmp":
         printHeader(f"Set Ecmp poilicy")          
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy --type lb --serviceDst {destSvc}  --policy ecmp')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy --type lb --serviceDst {destSvc}  --policy ecmp')
     elif type == "same":
         printHeader(f"Set same policy to all services")          
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy --type lb --serviceDst {destSvc} --mbgDest mbg2 --policy static')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy --type lb --serviceDst {destSvc} --gwDest mbg2 --policy static')
     elif type == "diff":
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} --mbgDest mbg2 --policy static')
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} --mbgDest mbg3 --policy static')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} --gwDest mbg2 --policy static')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} --gwDest mbg3 --policy static')
     elif type == "show":
         runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl get policy --myid {gwctlName}')
     elif type == "clean":
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl remove policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl remove policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl remove policy --type lb --serviceDst {destSvc}')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl delete policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} ')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl delete policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
+        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl delete policy --type lb --serviceDst {destSvc}')
 
 
 

@@ -12,6 +12,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -32,7 +33,8 @@ const (
 )
 
 type kubeDataInterface interface {
-	GetInfo(string) (*Info, error)
+	GetInfoIp(string) (*Info, error)
+	GetInfoApp(string) (*Info, error)
 	GetLabel(string, string) (string, error)
 	GetIpFromLabel(string) ([]string, error)
 	InitFromConfig(string) error
@@ -77,7 +79,8 @@ var commonIndexers = map[string]cache.IndexFunc{
 	},
 }
 
-func (k *KubeData) GetInfo(ip string) (*Info, error) {
+// Return pod information according to the pod Ip
+func (k *KubeData) GetInfoIp(ip string) (*Info, error) {
 	if info, ok := k.fetchInformers(ip); ok {
 		// Owner data might be discovered after the owned, so we fetch it
 		// at the last moment
@@ -88,6 +91,23 @@ func (k *KubeData) GetInfo(ip string) (*Info, error) {
 	}
 
 	return nil, fmt.Errorf("informers can't find IP %s", ip)
+}
+
+// Return pod information according to the application name
+func (k *KubeData) GetInfoApp(app string) (*Info, error) {
+	podLister := k.pods.GetIndexer()
+	// Define the label selector
+	labelSelector := labels.SelectorFromSet(labels.Set{"app": app})
+	// List all pods
+	allPods := podLister.List()
+
+	// Find the first pod that matches the label selector
+	for _, pod := range allPods {
+		if labelSelector.Matches(labels.Set(pod.(*Info).Labels)) {
+			return pod.(*Info), nil
+		}
+	}
+	return nil, fmt.Errorf("informers can't find App %s", app)
 }
 
 // Get Ip and key(prefix of label) and return pod label

@@ -53,23 +53,26 @@ if __name__ == "__main__":
     mbg3Ip                = getKindIp("mbg3")
     gwctl3Pod, gwctl3Ip = getPodNameIp("gwctl")
 
-    # Add MBG Peer
-    useKindCluster(mbg2Name)
 
-    #Expose service
-    printHeader(f"\n\nStart exposing svc {destSvc}")
-    runcmd(f'gwctl expose  --myid {gwctl2Name} --service {destSvc}')
-    
+
+    #Import service
+    printHeader(f"\n\nStart import svc {destSvc}")
+    useKindCluster(mbg1Name)    
+    runcmd(f'gwctl create import --myid {gwctl1Name} --name {destSvc} --host {destSvc} --port 3000')
+    useKindCluster(mbg3Name)    
+    runcmd(f'gwctl create import --myid {gwctl3Name} --name {destSvc} --host {destSvc} --port 3000')
     #Set K8s network services
-    printHeader("\n\nStart get service")
+    printHeader("\n\nStart binding service {destSvc}")
     useKindCluster(mbg1Name)
-    runcmd(f'gwctl get service --myid {gwctl1Name} ')
-    runcmd(f'gwctl add binding  --myid {gwctl1Name} --service {destSvc} --port 3000')
-
-    printHeader("\n\nStart get service")
+    runcmd(f'gwctl create binding --myid {gwctl1Name} --import {destSvc} --peer {mbg2Name}')
     useKindCluster(mbg3Name)
-    runcmd(f'gwctl get service  --myid {gwctl3Name} ')
-    runcmd(f'gwctl add binding  --myid {gwctl3Name} --service {destSvc} --port 3000')
+    runcmd(f'gwctl create binding --myid {gwctl3Name} --import {destSvc} --peer {mbg2Name}')
+    
+    printHeader("\n\nStart get service GW1")
+    runcmd(f'gwctl get import  --myid {gwctl1Name} ')
+    printHeader("\n\nStart get service GW3")
+    runcmd(f'gwctl get import  --myid {gwctl3Name} ')
+
 
     #Firefox communications
     printHeader(f"Firefox urls")

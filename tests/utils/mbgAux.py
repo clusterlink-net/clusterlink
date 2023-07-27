@@ -95,8 +95,8 @@ def clean_cluster():
     runcmd(f'kubectl delete --all svc')
 
 class app:
-    def __init__(self, name, namespace, target, port):  
+    def __init__(self, name, namespace, host, port):  
         self.name       = name
         self.namespace  = namespace
-        self.target     = target
+        self.host     = host
         self.port       = port

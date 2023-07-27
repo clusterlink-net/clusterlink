@@ -84,7 +84,7 @@ func RestoreMbg(id string, policyEngineTarget, logLevel string, logFile, startPo
 
 	time.Sleep(health.Interval)
 	store.RestoreMbg()
-	cp.RestoreRemoteServices()
+	cp.RestoreImportServices()
 
 	return Mbg{store.GetMyId()}, nil
 }

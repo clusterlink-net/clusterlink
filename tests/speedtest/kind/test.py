@@ -119,13 +119,16 @@ if __name__ == "__main__":
 
 
     # Add MBG Peer
+    useKindCluster(mbg1Name)
+    printHeader("Add MBG2 peer to MBG1")
+    runcmd(f'gwctl create peer --myid {gwctl1Name} --name {mbg2Name} --host {mbg2Ip} --port {mbg2cPort}')
     useKindCluster(mbg2Name)
     printHeader("Add MBG1, MBG3 peer to MBG2")
-    runcmd(f'gwctl add peer --myid {gwctl2Name} --id {mbg1Name} --target {mbg1Ip} --port {mbg1cPort}')
-    runcmd(f'gwctl add peer --myid {gwctl2Name} --id {mbg3Name} --target {mbg3Ip} --port {mbg3cPort}')
-    # Send Hello
-    printHeader("Send Hello commands")
-    runcmd(f'gwctl hello --myid {gwctl2Name} ')
+    runcmd(f'gwctl create peer --myid {gwctl2Name} --name {mbg1Name} --host {mbg1Ip} --port {mbg1cPort}')
+    runcmd(f'gwctl create peer --myid {gwctl2Name} --name {mbg3Name} --host {mbg3Ip} --port {mbg3cPort}')
+    useKindCluster(mbg3Name)
+    printHeader("Add MBG2 peer to MBG3")
+    runcmd(f'gwctl create peer --myid {gwctl3Name} --name {mbg2Name} --host {mbg2Ip} --port {mbg2cPort}')
     
     ###Set mbg1 services
     useKindCluster(mbg1Name)
@@ -133,7 +136,7 @@ if __name__ == "__main__":
     runcmd(f"kubectl create -f {folman}/firefox.yaml")    
     printHeader(f"Add {srcSvc1} services to host cluster")
     waitPod(srcSvc1)
-    runcmd(f'gwctl add service  --myid {gwctl1Name} --id {srcSvc1} --description {srcSvc1}')
+    runcmd(f'gwctl create export --myid {gwctl1Name} --name {srcSvc1} --host {srcSvc1} --port {5800}')
     runcmd(f"kubectl create service nodeport {srcSvc1} --tcp=5800:5800 --node-port=30000")
     
     ### Set mbg2 service
@@ -144,7 +147,7 @@ if __name__ == "__main__":
     waitPod(destSvc)
     destSvcPort = "3000"
     _ , destSvcIp =getPodNameIp(destSvc)
-    runcmd(f'gwctl add service  --myid {gwctl2Name} --id {destSvc} --target {destSvcIp} --port {destSvcPort} --description v2')
+    runcmd(f'gwctl create export --myid {gwctl2Name} --name {destSvc} --host {destSvcIp} --port {destSvcPort}')
     
     ### Set gwctl3
     useKindCluster(mbg3Name)
@@ -154,9 +157,9 @@ if __name__ == "__main__":
     printHeader(f"Add {srcSvc1} {srcSvc2} services to host cluster")
     waitPod(srcSvc1)
     waitPod(srcSvc2)
-    runcmd(f'gwctl add service  --myid {gwctl3Name} --id {srcSvc1} --description {srcSvc1}')
-    runcmd(f'gwctl add service  --myid {gwctl3Name} --id {srcSvc2} --description {srcSvc2}')
+    runcmd(f'gwctl create export --myid {gwctl3Name} --name {srcSvc1}  --host {srcSvc1} --port {5800}')
+    runcmd(f'gwctl create export --myid {gwctl3Name} --name {srcSvc2}  --host {srcSvc2} --port {5800}')
     runcmd(f"kubectl create service nodeport {srcSvc1} --tcp=5800:5800 --node-port=30000")
     runcmd(f"kubectl create service nodeport {srcSvc2} --tcp=5800:5800 --node-port=30001")
     
-    print(f"Services created. Run service_expose.py")
+    print(f"Services created. Run service_import.py")

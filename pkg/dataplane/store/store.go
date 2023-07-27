@@ -38,6 +38,25 @@ const (
 	MaxPort   = 10000
 )
 
+// Set store parameters
+func NewStore(s *Store) *Store {
+	sObj := &Store{
+		Id:               s.Id,
+		CertAuthority:    s.CertAuthority,
+		Cert:             s.Cert,
+		Key:              s.Key,
+		Dataplane:        s.Dataplane,
+		DataPortRange:    s.DataPortRange,
+		ControlPlaneAddr: s.GetProtocolPrefix() + "controlplane:443",
+		Connections:      make(map[string]string),
+		PortMap:          make(map[int]bool),
+		dataMutex:        sync.Mutex{},
+	}
+
+	sObj.SaveState()
+	return sObj
+}
+
 // Return data-plane id
 func (s *Store) GetMyId() string {
 	return s.Id
@@ -61,16 +80,6 @@ func (s *Store) GetControlPlaneAddr() string {
 // Return import service local port
 func (s *Store) GetSvcPort(id string) string {
 	return s.Connections[id]
-}
-
-// Set store parameters
-func (s *Store) SetStore(sObj Store) {
-	*s = sObj
-	s.ControlPlaneAddr = s.GetProtocolPrefix() + "controlplane:443"
-	s.Connections = make(map[string]string)
-	s.PortMap = make(map[int]bool)
-	s.dataMutex = sync.Mutex{}
-	s.SaveState()
 }
 
 // Gets an available free port to use per connection

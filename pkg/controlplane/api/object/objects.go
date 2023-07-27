@@ -1,65 +1,17 @@
 package apiObject
 
-// AddPeer
-type PeerRequest struct {
-	Id    string
-	Ip    string
-	Cport string
-}
-
-// Remove Peer
-type PeerRemoveRequest struct {
-	Id        string
-	Propagate bool
-}
-
-// Service Add
-type ServiceRequest struct {
-	Id          string
-	Ip          string
-	Port        string
-	Description string
-	MbgID       string
-}
-type ServiceReply struct { //Retrun open port for remote service
+// ImportReply return dataplane information (port) about new import endpoint
+type ImportReply struct {
 	Id   string
 	Port string
 }
 
-// Service Delete
-type ServiceDeleteRequest struct {
-	Id   string
-	Peer string
-}
-
-// Hello
-type HelloResponse struct {
-	Status string
-}
-
-// Hello - HeartBeats
+// HeartBeats
 type HeartBeat struct {
 	Id string
 }
 
-// Expose
-type ExposeRequest struct {
-	Id          string
-	Ip          string
-	Description string
-	MbgID       string
-}
-
-// Service Binding request
-type BindingRequest struct {
-	Id        string
-	Port      int
-	Name      string
-	Namespace string
-	MbgApp    string
-}
-
-// Connect
+// ConnectRequest
 type ConnectRequest struct {
 	Id     string
 	IdDest string

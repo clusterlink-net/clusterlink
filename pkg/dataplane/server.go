@@ -25,62 +25,48 @@ func (d *Dataplane) StartServer(port string) {
 }
 func (d *Dataplane) routes() {
 	d.Router.Get("/", d.welcome)
-	// Dataplane functions
+
 	d.Router.Route("/imports", func(r chi.Router) {
+		// Dataplane functions
 		r.Route("/serviceEndpoint", func(r chi.Router) {
 			r.Post("/", d.AddImportServiceEndpointHandler)          // Post /imports/serviceEndpoint            - Add endpoint for import service
 			r.Delete("/{svcId}", d.DelImportServiceEndpointHandler) // Delete  /imports/serviceEndpoint/{svcId} - Delete sendpoint for import service
 		})
-
+		// Controlplane Forwarding
+		r.Post("/", d.controlPlaneForwardingHandler)       // Post /remoteservice            - Add Remote service
+		r.Get("/", d.controlPlaneForwardingHandler)        // Get  /remoteservice            - Get all remote services
+		r.Get("/{id}", d.controlPlaneForwardingHandler)    // Get  /remoteservice/{svcId}    - Get specific remote service
+		r.Delete("/{id}", d.controlPlaneForwardingHandler) // Delete  /remoteservice/{svcId} - Delete specific remote service
 	})
 
 	d.Router.Route("/exports", func(r chi.Router) {
+		// Dataplane functions
 		r.Route("/serviceEndpoint", func(r chi.Router) {
 			r.Post("/", d.MTLSexportServiceEndpointHandler)   // Post /exports/serviceEndpoint    - Create Connection to a service (mTLS) for export service
 			r.Connect("/", d.TCPexportServiceEndpointHandler) // Connect /exports/serviceEndpoint - Create Connection to a service (TCP) for export service
 		})
+		// Controlplane Forwarding
+		r.Post("/", d.controlPlaneForwardingHandler)       // Post /service    - Add local service
+		r.Get("/", d.controlPlaneForwardingHandler)        // Get  /service    - Get all local services
+		r.Get("/{id}", d.controlPlaneForwardingHandler)    // Get  /service    - Get specific local service
+		r.Delete("/{id}", d.controlPlaneForwardingHandler) // Delete  /service - Delete local service
 	})
-	// Routing to controlplane functions
-	d.Router.Route("/peer", func(r chi.Router) {
-		r.Get("/", d.controlPlaneForwardingHandler)        // GET    /peer      - Get all peers
-		r.Post("/", d.controlPlaneForwardingHandler)       // Post   /peer      - Add peer Id to peers list
-		r.Get("/{id}", d.controlPlaneForwardingHandler)    // GET    /peer/{id} - Get peer Id
-		r.Delete("/{id}", d.controlPlaneForwardingHandler) // Delete /peer/{id} - Delete peer
-	})
-
-	d.Router.Route("/hello", func(r chi.Router) {
-		r.Post("/", d.controlPlaneForwardingHandler)         // Post /hello Hello to all peers
-		r.Post("/{peerID}", d.controlPlaneForwardingHandler) // Post /hello/{peerID} send Hello to a peer
+	// Controlplane Forwarding
+	d.Router.Route("/peers", func(r chi.Router) {
+		r.Get("/", d.controlPlaneForwardingHandler)        // GET    /peers      - Get all peers
+		r.Post("/", d.controlPlaneForwardingHandler)       // Post   /peers      - Add peer Id to peers list
+		r.Get("/{id}", d.controlPlaneForwardingHandler)    // GET    /peers/{id} - Get peer Id
+		r.Delete("/{id}", d.controlPlaneForwardingHandler) // Delete /peers/{id} - Delete peer
 	})
 
 	d.Router.Route("/hb", func(r chi.Router) {
 		r.Post("/", d.controlPlaneForwardingHandler) // Heartbeat messages
 	})
 
-	d.Router.Route("/service", func(r chi.Router) {
-		r.Post("/", d.controlPlaneForwardingHandler)            // Post /service    - Add local service
-		r.Get("/", d.controlPlaneForwardingHandler)             // Get  /service    - Get all local services
-		r.Get("/{id}", d.controlPlaneForwardingHandler)         // Get  /service    - Get specific local service
-		r.Delete("/{id}", d.controlPlaneForwardingHandler)      // Delete  /service - Delete local service
-		r.Delete("/{id}/peer", d.controlPlaneForwardingHandler) // Delete  /service - Delete local service from peer
-
-	})
-
-	d.Router.Route("/remoteservice", func(r chi.Router) {
-		r.Post("/", d.controlPlaneForwardingHandler)          // Post /remoteservice            - Add Remote service
-		r.Get("/", d.controlPlaneForwardingHandler)           // Get  /remoteservice            - Get all remote services
-		r.Get("/{svcId}", d.controlPlaneForwardingHandler)    // Get  /remoteservice/{svcId}    - Get specific remote service
-		r.Delete("/{svcId}", d.controlPlaneForwardingHandler) // Delete  /remoteservice/{svcId} - Delete specific remote service
-
-	})
-
-	d.Router.Route("/expose", func(r chi.Router) {
-		r.Post("/", d.controlPlaneForwardingHandler) // Post /expose  - Expose  service
-	})
-
-	d.Router.Route("/binding", func(r chi.Router) {
-		r.Post("/", d.controlPlaneForwardingHandler)          // Post /binding   - Bind remote service to local port
-		r.Delete("/{svcId}", d.controlPlaneForwardingHandler) // Delete /binding - Remove Binding of remote service to local port
+	d.Router.Route("/bindings", func(r chi.Router) {
+		r.Post("/", d.controlPlaneForwardingHandler)       // Post   /bindings   - Bind remote service to local port
+		r.Get("/{id}", d.controlPlaneForwardingHandler)    // Get    /bindings   - Bind remote service to local port
+		r.Delete("/{id}", d.controlPlaneForwardingHandler) // Delete /bindings - Remove Binding of remote service to local port
 	})
 
 	d.Router.Route("/newRemoteConnection", func(r chi.Router) {
@@ -93,7 +79,7 @@ func (d *Dataplane) routes() {
 }
 
 // Welcome message to data-plane
-func (d Dataplane) welcome(w http.ResponseWriter, r *http.Request) {
+func (d *Dataplane) welcome(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write([]byte("Welcome to dataplane agent"))
 	clog.Info("Welcome to dataplane agent")
 	if err != nil {
@@ -105,7 +91,6 @@ func (d Dataplane) welcome(w http.ResponseWriter, r *http.Request) {
 func (d *Dataplane) controlPlaneForwardingHandler(w http.ResponseWriter, r *http.Request) {
 
 	forwardingURL := d.Store.GetControlPlaneAddr() + r.URL.Path
-
 	// Create a new request to the forwarding URL
 	forwardingReq, err := http.NewRequest(r.Method, forwardingURL, r.Body)
 	if err != nil {

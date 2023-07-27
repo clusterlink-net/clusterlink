@@ -33,10 +33,9 @@ type mbgState struct {
 	InactiveMbgArr        map[string]MbgInfo
 	MyServices            map[string]LocalService
 	RemoteServices        map[string][]RemoteService
-	Connections           map[string]ServicePort
+	Connections           map[string]string
 	LocalServiceEndpoints map[string]string
 	LocalPortMap          map[int]bool
-	ExternalPortMap       map[int]bool
 	RemoteServiceMap      map[string][]string
 	MyEventManager        eventManager.MbgEventManager
 }
@@ -86,8 +85,7 @@ var s = mbgState{MyInfo: MbgInfo{},
 	MyServices:       make(map[string]LocalService),
 	RemoteServices:   make(map[string][]RemoteService),
 	LocalPortMap:     make(map[int]bool),
-	ExternalPortMap:  make(map[int]bool),
-	Connections:      make(map[string]ServicePort),
+	Connections:      make(map[string]string),
 	RemoteServiceMap: make(map[string][]string),
 	MyEventManager:   eventManager.MbgEventManager{},
 }
@@ -127,7 +125,7 @@ func GetMbgList() []string {
 	return mList
 }
 
-func GetConnectionArr() map[string]ServicePort {
+func GetConnectionArr() map[string]string {
 	return s.Connections
 }
 func GetMbgctlArr() map[string]Mbgctl {
@@ -185,7 +183,7 @@ func SetChiRouter(r *chi.Mux) {
 }
 
 func SetConnection(service, port string) {
-	s.Connections[service] = ServicePort{Local: port}
+	s.Connections[service] = port
 }
 func UpdateState() {
 	s = readState()
@@ -375,7 +373,7 @@ func AddMbgNbr(id, ip, cport string) {
 		mbgArrMutex.Unlock()
 		return
 	}
-	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ServicePort{External: cport, Local: ""}}
+	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ServicePort{External: ":" + cport, Local: ""}}
 	mbgArrMutex.Unlock()
 
 	PrintState()
@@ -393,20 +391,18 @@ func RemoveMbgNbr(id string) {
 func FreeUpPorts(connectionID string) {
 	log.Infof("Start to FreeUpPorts for service: %s", connectionID)
 	port, _ := s.Connections[connectionID]
-	lval, _ := strconv.Atoi(port.Local[1:])
-	eval, _ := strconv.Atoi(port.External[1:])
+	lval, _ := strconv.Atoi(port[1:])
 	stopCh[connectionID] <- true
 	delete(s.LocalPortMap, lval)
-	delete(s.ExternalPortMap, eval)
 	delete(s.Connections, connectionID)
 	SaveState()
 }
 
-func AddLocalService(id, ip, port, description string) {
+func AddLocalService(id, ip string, port uint16) {
 	if _, ok := s.MyServices[id]; ok {
 		log.Infof("Local Service already added %s", id) //Allow overwrite service
 	}
-	s.MyServices[id] = LocalService{Id: id, Ip: ip, Port: port, Description: description}
+	s.MyServices[id] = LocalService{Id: id, Ip: ip, Port: strconv.Itoa(int(port))}
 	log.Infof("Adding local service: %s", id)
 	PrintState()
 	SaveState()
@@ -456,6 +452,21 @@ func exists(slice []string, entry string) (int, bool) {
 		}
 	}
 	return -1, false
+}
+
+func CreateImportService(importId string) {
+	if _, ok := s.RemoteServices[importId]; ok {
+		log.Infof("Import service:[%v] already exist", importId)
+
+	} else {
+		s.RemoteServiceMap[importId] = []string{}
+		s.RemoteServices[importId] = []RemoteService{}
+		log.Infof("Create import service:[%v] ", importId)
+
+	}
+
+	PrintState()
+	SaveState()
 }
 
 func AddRemoteService(id, ip, description, MbgId string) {

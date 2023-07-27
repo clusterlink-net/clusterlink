@@ -128,11 +128,11 @@ First, Initialize the parameters of the test (pods' names and IPs):
 Start MBG1: (the MBG creates an HTTP server, so it is better to run this command in a different terminal (using tmux) or run it in the background)
 
     kubectl config use-context kind-mbg-agent1
-    kubectl exec -i $MBG1 -- ./controlplane start --id "MBG1" --ip $MBG1IP --cport 30443 --cportLocal 443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key
+    kubectl exec -i $MBG1 -- ./controlplane start --name "MBG1" --ip $MBG1IP --cport 30443 --cportLocal 443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key
 
 Initialize gwctl (mbg control):
 
-    kubectl exec -i $MBGCTL1 -- ./gwctl start --id "gwctl1" --ip $MBGCTL1IP --mbgIP $MBG1PODIP:443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key
+    kubectl exec -i $MBGCTL1 -- ./gwctl start --name "gwctl1" --ip $MBGCTL1IP --gwIP $MBG1PODIP:443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key
 
 Create K8s service nodeport to connect MBG cport to the MBG localcport.
 
@@ -141,11 +141,11 @@ Create K8s service nodeport to connect MBG cport to the MBG localcport.
 Start MBG2: (the MBG creates an HTTP server, so it is better to run this command in a different terminal (using tmux) or run it in the background)
 
     kubectl config use-context kind-mbg-agent2
-    kubectl exec -i $MBG2 -- ./controlplane start --id "MBG2" --ip $MBG2IP --cport 30443 --cportLocal 443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key 
+    kubectl exec -i $MBG2 -- ./controlplane start --name "MBG2" --ip $MBG2IP --cport 30443 --cportLocal 443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key 
 
 Initialize gwctl (mbg control):
 
-    kubectl exec -i $MBGCTL2 -- ./gwctl start --id "gwctl2" --ip $MBGCTL2IP --mbgIP $MBG2PODIP:443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key
+    kubectl exec -i $MBGCTL2 -- ./gwctl start --name "gwctl2" --ip $MBGCTL2IP --gwIP $MBG2PODIP:443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key
 
 Create K8s service nodeport to connect MBG cport to the MBG localcport.
 
@@ -154,11 +154,11 @@ Create K8s service nodeport to connect MBG cport to the MBG localcport.
 Start MBG3: (the MBG creates an HTTP server, so it is better to run this command in a different terminal (using tmux) or run it in the background)
 
     kubectl config use-context kind-mbg-agent3
-    kubectl exec -i $MBG3 -- ./controlplane start --id "MBG3" --ip $MBG3IP --cport 30443 --cportLocal 443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg3.crt --key ./mtls/mbg3.key 
+    kubectl exec -i $MBG3 -- ./controlplane start --name "MBG3" --ip $MBG3IP --cport 30443 --cportLocal 443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg3.crt --key ./mtls/mbg3.key 
 
 Initialize gwctl (mbg control):
 
-    kubectl exec -i $MBGCTL3 -- ./gwctl start --id "gwctl3" --ip $MBGCTL3IP --mbgIP $MBG3PODIP:443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg3.crt --key ./mtls/mbg3.key
+    kubectl exec -i $MBGCTL3 -- ./gwctl start --name "gwctl3" --ip $MBGCTL3IP --gwIP $MBG3PODIP:443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg3.crt --key ./mtls/mbg3.key
 
 Create K8s service nodeport to connect MBG cport to the MBG localcport.
 
@@ -171,8 +171,8 @@ In this step, we set the communication between the MBGs.
 First, send MBG2, MBG3 details information to MBG1 using gwctl:
 
     kubectl config use-context kind-mbg-agent1
-    kubectl exec -i $MBGCTL1 -- ./gwctl addPeer --id "MBG2" --ip $MBG2IP --cport 30443
-    kubectl exec -i $MBGCTL1 -- ./gwctl addPeer --id "MBG3" --ip $MBG3IP --cport 30443
+    kubectl exec -i $MBGCTL1 -- ./gwctl createPeer --name "MBG2" --ip $MBG2IP --cport 30443
+    kubectl exec -i $MBGCTL1 -- ./gwctl createPeer --name "MBG3" --ip $MBG3IP --cport 30443
 
 Send Hello message from MBG1 to MBG2, MBG3:
 
@@ -182,14 +182,14 @@ In this step, we add servicers to the MBGs.
 Add service product to MBG1.
 
     kubectl config use-context kind-mbg-agent2
-    kubectl exec -i $MBGCTL1 -- ./gwctl addService --id "productpage" --id $PRODUCTPAGEPOD_IP
+    kubectl exec -i $MBGCTL1 -- ./gwctl createService --name "productpage" --name $PRODUCTPAGEPOD_IP
         
 Add services reviews-v2 and reviews-v3 services to MBG2 and MBG3 respectively.
 
     kubectl config use-context kind-mbg-agent2
-    kubectl exec -i $MBGCTL2 -- ./gwctl addService --id reviews-v2 --ip $REVIEWS2POD_IP:9080
+    kubectl exec -i $MBGCTL2 -- ./gwctl createService --name reviews-v2 --ip $REVIEWS2POD_IP:9080
     kubectl config use-context kind-mbg-agent3
-    kubectl exec -i $MBGCTL3 -- ./gwctl addService --id reviews-v3 --ip $REVIEWS3POD_IP:9080
+    kubectl exec -i $MBGCTL3 -- ./gwctl createService --name reviews-v3 --ip $REVIEWS3POD_IP:9080
 
 ### <ins> Step 6: Expose service <ins>
 In this step, we expose the reviews services from MBG2 and MBG3 to MBG1.
