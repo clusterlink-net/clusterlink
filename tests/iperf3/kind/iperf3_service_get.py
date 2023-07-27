@@ -14,7 +14,7 @@ from tests.utils.kind.kindAux import useKindCluster
 def getService(gwctlName, destSvc):
     printHeader(f"\n\Get imported serviced from {gwctlName}")
     runcmd(f'gwctl get import --myid {gwctlName}')
-    runcmd(f'gwctl get binding --myid {gwctlName }--import {destSvc}')
+    runcmd(f'gwctl get binding --myid {gwctlName} --import {destSvc}')
 
 
 ############################### MAIN ##########################

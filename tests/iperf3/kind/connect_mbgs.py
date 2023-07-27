@@ -37,13 +37,5 @@ if __name__ == "__main__":
     
     useKindCluster(mbg2Name)
     printHeader("Add MBG2, MBG3 peer to MBG1")
-<<<<<<< HEAD
-    connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
-    connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg3Name, mbg3Ip, mbg3cPort)    
-=======
     connectMbgs(gwctl2Name, mbg1Name, mbg1Ip, mbg1cPort)
     connectMbgs(gwctl2Name, mbg3Name, mbg3Ip, mbg3cPort)
-
-    sendHello(gwctl2Name)
-    
->>>>>>> c751f4f (Update readme instructions of iperf to latest)

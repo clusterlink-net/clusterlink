@@ -32,7 +32,5 @@ if __name__ == "__main__":
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
 
-    importService(mbg2Name, gwctl2Name, destSvc)
-    
-    bindService(mbg1Name, gwctl1Name, destSvc, destPort)
+    importService(mbg2Name, gwctl2Name, destSvc,destPort,mbg2Name)
     

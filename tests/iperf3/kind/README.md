@@ -38,6 +38,7 @@ Build the first kind cluster with gateway, and iperf3-client:
         kubectl create service nodeport dataplane --tcp=443:443 --node-port=30443
 
 3) Create an iPerf3-client deployment: 
+   
         kind load docker-image mlabbe/iperf3 --name=cluster1
         kubectl create -f $PROJECT_FOLDER/tests/iperf3/manifests/iperf3-client/iperf3-client.yaml
 
@@ -55,7 +56,8 @@ Build the second kind cluster with gateway, and iperf3-client:
         kubectl create service nodeport dataplane --tcp=443:443 --node-port=30443
 
 3) Create an iPerf3-server deployment:
-        kind load docker-image mlabbe/iperf3 --name=mbg2
+   
+        kind load docker-image mlabbe/iperf3 --name=cluster2
         kubectl create -f $PROJECT_FOLDER/tests/iperf3/manifests/iperf3-server/iperf3.yaml
         kubectl create service nodeport iperf3-server --tcp=5000:5000 --node-port=30001
 
@@ -71,16 +73,12 @@ First, Initialize the parameters of the test (pods' names and IPs):
     export MBG1_CP=`kubectl get pods -l app=mbg -o custom-columns=:metadata.name`
     export MBG1_DP=`kubectl get pods -l app=dataplane -o custom-columns=:metadata.name`
     export MBG1IP=`kubectl get nodes -o jsonpath={.items[0].status.addresses[0].address}`
-    export MBGCTL1=`kubectl get pods -l app=gwctl -o custom-columns=:metadata.name`
-    export MBGCTL1IP=`kubectl get pod $MBGCTL1 --template '{{.status.podIP}}'`
     export IPERF3CLIENT=`kubectl get pods -l app=iperf3-client -o custom-columns=:metadata.name`
 
     kubectl config use-context kind-cluster2
     export MBG2_CP=`kubectl get pods -l app=mbg -o custom-columns=:metadata.name`
     export MBG2_DP=`kubectl get pods -l app=dataplane -o custom-columns=:metadata.name`
     export MBG2IP=`kubectl get nodes -o jsonpath={.items[0].status.addresses[0].address}`
-    export MBGCTL2=`kubectl get pods -l app=gwctl -o custom-columns=:metadata.name`
-    export MBGCTL2IP=`kubectl get pod $MBGCTL2 --template '{{.status.podIP}}'`
 
 Start the Gateway in Cluster 1:
 
@@ -91,55 +89,60 @@ Start the Gateway in Cluster 1:
 
 Initialize gwctl CLI:
 
-    gwctl create --id "gwctl1" --mbgIP $MBG1IP:30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils//mtls/mbg1.crt --key $PROJECT_FOLDER/tests/utils//mtls/mbg1.key
+    gwctl init --id "gwctl1" --gwIP $MBG1IP:30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils//mtls/mbg1.crt --key $PROJECT_FOLDER/tests/utils/mtls/mbg1.key
 
 Start the Gateway in Cluster 2:
 
     kubectl config use-context kind-cluster2
-    kubectl exec -i $MBG2_CP -- ./controlplane start --id mbg2 --ip $MBG2IP --cport 30443 --cportLocal 443 --externalDataPortRange 30001 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key --startPolicyEngine=true --logFile=true --zeroTrust=false &
+    kubectl exec -i $MBG2_CP -- ./controlplane start --id mbg2 --ip $MBG2IP --cport 30443 --cportLocal 443  --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key &
     kubectl exec -i $MBG2_DP -- ./dataplane --id mbg2 --dataplane mtls --certca $PROJECT/mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key &
 
 Initialize gwctl CLI:
 
-    gwctl create --id gwctl2 --mbgIP $MBG2IP:30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils/mtls/mbg2.crt --key $PROJECT_FOLDER/tests/utils/mtls/mbg2.key
+    gwctl init --id gwctl2 --gwIP $MBG2IP:30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils/mtls/mbg2.crt --key $PROJECT_FOLDER/tests/utils/mtls/mbg2.key
 
 
 Note: The gateway certificate and key files are located in $PROJECT_FOLDER/tests/aux/mtls. The files are loaded to the gateway image (in step 1) and can be replaced.
 
-### <ins> Step 4: MBG peers communication <ins>
-In this step, we pair the gateways.  
-First, send mbg2 details information to mbg1 using gwctl:
+### <ins> Step 4: Peers communication <ins>
+In this step, we add the peer for each  gateway using the gwctl:
 
     gwctl create peer --myid gwctl1 --name mbg2 --host $MBG2IP --port 30443
+    gwctl create peer --myid gwctl2 --name mbg1 --host $MBG1IP --port 30443
 
 ### <ins> Step 5: Add services <ins>
 In this step, we add the iperf3 server/client in the respective cluster gateways.  
 Add the iperf3-server service to the Cluster 2 gateway:
 
-    gwctl create export -myid gwctl2  --name iperf3-server --host $IPERF3SERVER_IP --port 5000
+    gwctl create export --myid gwctl2 --name iperf3-server --host iperf3-server --port 5000
 
-Add the iperf3-client service to cluster 1 gateway (Optional - by default, allows services access remote services ):
+### <ins> Step 6: import iperf3 server service from Cluster 2 <ins>
+In this step, we import the iperf3-server service from Cluster 2 gateway to Cluster 1 gateway
+First, we specify which service we want to import:
 
-    gwctl create export --myid gwctl1 --name iperf3-client --host $IPERF3CLIENT_IP
+    gwctl --myid gwctl1 create import --name iperf3-server --host iperf3-server --port 5000
+Second, we specify the peer we want to import the service:
 
-### <ins> Step 6: Expose iperf3 server service from Cluster 2 <ins>
-In this step, we expose the iperf3-server service from Cluster 2 gateway to Cluster 1 gateway
-
-    gwctl expose --myid gwctl2 --service iperf3-server
-
-### <ins> Step 7: iPerf3 test <ins>
-In this step, we import the iPerf3 server in cluster 1.
-    
-    gwctl add binding --myid gwctl1 --service iperf3-server --port 5000
+    gwctl --myid gwctl1 create binding --import iperf3-server --peer mbg2
 
 ### <ins> Final Step : Test Service connectivity <ins>
-Start the iperf3 test from cluster 1
+Start the iperf3 test from cluster 1:
+
+    kubectl config use-context kind-cluster1
     kubectl exec -i $IPERF3CLIENT -- iperf3 -c iperf3-server --port 5000
     
-### <ins> Cleanup <ins>
-Delete all Kind cluster.
+### <ins> Debug <ins>
+To see the control-plane state of the cluster:
 
-    make clean-kind
+    kubectl exec -i $MBG1_CP -- ./controlplane get state
+To see the control-plane log of the cluster:
+
+    kubectl exec -i $MBG1_CP -- ./controlplane get log
+### <ins> Cleanup <ins>
+Delete all Kind clusters:
+
+    kind delete cluster --name=cluster1
+    kind delete cluster --name=cluster2
 
 ### <ins> Automated Tests <ins>
 To run the above tests as part of an automated script.

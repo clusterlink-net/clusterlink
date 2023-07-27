@@ -22,7 +22,7 @@ from tests.iperf3.kind.iperf3_service_get import getService
 from tests.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
 from tests.iperf3.kind.apply_policy import addPolicy
 
-from tests.utils.kind.kindAux import useKindCluster, getKindIp,startKindClusterMbg
+from tests.utils.kind.kindAux import useKindCluster, getKindIp,startKindClusterMbg,startGwctl
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -39,11 +39,13 @@ if __name__ == "__main__":
     dataplane = args["dataplane"]
     cni = args["cni"]
     zeroTrust= args["zeroTrust"]
+    crtFol   = f"{proj_dir}/tests/utils/mtls"
     #MBG1 parameters 
     mbg1DataPort    = "30001"
     mbg1cPort       = "30443"
     mbg1cPortLocal  = 443
     mbg1crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
+    gwctl1crt    = f"--certca {crtFol}/ca.crt --cert {crtFol}/mbg1.crt --key {crtFol}/mbg1.key"  if dataplane =="mtls" else ""
     mbg1Name        = "mbg1"
     gwctl1Name     = "gwctl1"
     mbg1cni         = cni 
@@ -55,6 +57,7 @@ if __name__ == "__main__":
     mbg2cPort       = "30443"
     mbg2cPortLocal  = 443
     mbg2crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
+    gwctl2crt    = f"--certca {crtFol}/ca.crt --cert {crtFol}/mbg2.crt --key {crtFol}/mbg2.key"  if dataplane =="mtls" else ""
     mbg2Name        = "mbg2"
     gwctl2Name     = "gwctl2"
     mbg2cni         = "flannel" if cni == "diff" else cni
@@ -75,6 +78,9 @@ if __name__ == "__main__":
     os.system("make clean-kind-iperf3")
     
     ### build docker environment 
+    os.system("make build")
+    os.system("sudo make install")
+
     printHeader(f"Build docker image")
     os.system("make docker-build")
     
@@ -85,23 +91,19 @@ if __name__ == "__main__":
       
     ###get mbg parameters
     useKindCluster(mbg1Name)
-    mbg1Pod, _           = getPodNameIp("mbg")
-    mbg1Ip               = getKindIp("mbg1")
-    gwctl1Pod, gwctl1Ip= getPodNameIp("gwctl")
+    mbg1Ip               = getKindIp(mbg1Name)
     useKindCluster(mbg2Name)
-    mbg2Pod, _       = getPodNameIp("mbg")
-    mbg2Ip               = getKindIp("mbg2")
-    gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
-    destkindIp=getKindIp(mbg2Name)
-
+    mbg2Ip               = getKindIp(mbg2Name)
+   
+    # Start gwctl
+    startGwctl(gwctl1Name, mbg1Ip, mbg1cPort, dataplane, gwctl1crt)
+    startGwctl(gwctl2Name, mbg2Ip, mbg2cPort, dataplane, gwctl2crt)
     
     # Add MBG Peer
-    useKindCluster(mbg1Name)
     printHeader("Add MBG1 peer to MBG2")
-    connectMbgs(mbg1Name, gwctl1Name, gwctl1Pod, mbg2Name, mbg2Ip, mbg2cPort)
-    useKindCluster(mbg2Name)
+    connectMbgs(gwctl1Name, mbg2Name, mbg2Ip, mbg2cPort)
     printHeader("Add MBG2 peer to MBG1")
-    connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
+    connectMbgs(gwctl2Name, mbg1Name, mbg1Ip, mbg1cPort)
     
     # Set service iperf3-client in MBG1
     setIperf3client(mbg1Name, gwctl1Name, srcSvc)
@@ -110,10 +112,10 @@ if __name__ == "__main__":
     setIperf3Server(mbg2Name, gwctl2Name,destSvc)
 
     #Import destination service
-    importService(mbg1Name, destSvc,destPort, mbg2Name)
+    importService(mbg1Name, gwctl1Name, destSvc,destPort, mbg2Name)
 
     #Get services
-    getService(mbg1Name, destSvc)
+    getService(gwctl1Name, destSvc)
     #Add policy
     addPolicy(mbg1Name, gwctl1Name, command="create", action="allow", srcSvc=srcSvc,destSvc=destSvc, priority=0)
     #Testing
@@ -121,5 +123,5 @@ if __name__ == "__main__":
     useKindCluster(mbg2Name)
     waitPod("iperf3-server")
     #Test MBG1
-    directTestIperf3(mbg1Name, srcSvc, destkindIp, kindDestPort)
+    directTestIperf3(mbg1Name, srcSvc, mbg2Ip, kindDestPort)
     testIperf3Client(mbg1Name, srcSvc, destSvc,    destPort)

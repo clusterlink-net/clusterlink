@@ -16,7 +16,7 @@ from tests.iperf3.kind.iperf3_service_get import getService
 from tests.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
 from tests.iperf3.kind.apply_policy import applyPolicy
 
-from tests.utils.kind.kindAux import useKindCluster, startMbgctl, getKindIp,startKindClusterMbg
+from tests.utils.kind.kindAux import useKindCluster, startGwctl, getKindIp,startKindClusterMbg
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -83,10 +83,9 @@ if __name__ == "__main__":
     os.system("make clean-kind-iperf3")
     
     ### build docker environment 
-
     os.system("make build")
     os.system("sudo make install")
-    
+
     printHeader(f"Build docker image")
     os.system("make docker-build")
     
@@ -98,22 +97,16 @@ if __name__ == "__main__":
       
     ###get mbg parameters
     useKindCluster(mbg1Name)
-    mbg1Pod, _           = getPodNameIp("mbg")
     mbg1Ip               = getKindIp("mbg1")
-    gwctl1Pod, gwctl1Ip= getPodNameIp("gwctl")
     useKindCluster(mbg2Name)
-    mbg2Pod, _       = getPodNameIp("mbg")
     mbg2Ip=getKindIp(mbg2Name)
-    gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
     useKindCluster(mbg3Name)
-    mbg3Pod, _            = getPodNameIp("mbg")
     mbg3Ip                = getKindIp("mbg3")
-    gwctl3Pod, gwctl3Ip = getPodNameIp("gwctl")
 
     # Start gwctl
-    startMbgctl(gwctl1Name, mbg1Ip, mbg1cPort, dataplane, gwctl1crt)
-    startMbgctl(gwctl2Name, mbg2Ip, mbg2cPort, dataplane, gwctl2crt)
-    startMbgctl(gwctl3Name, mbg3Ip, mbg3cPort, dataplane, gwctl3crt)
+    startGwctl(gwctl1Name, mbg1Ip, mbg1cPort, dataplane, gwctl1crt)
+    startGwctl(gwctl2Name, mbg2Ip, mbg2cPort, dataplane, gwctl2crt)
+    startGwctl(gwctl3Name, mbg3Ip, mbg3cPort, dataplane, gwctl3crt)
 
     # Add MBG Peer
     useKindCluster(mbg1Name)
@@ -135,16 +128,12 @@ if __name__ == "__main__":
     setIperf3client(mbg3Name, gwctl3Name, srcSvc)
     setIperf3client(mbg3Name, gwctl3Name, srcSvc2)
     
-    #Import destination service
-    importService(mbg1Name, destSvc,destPort, mbg2Name)
-    importService(mbg3Name, destSvc,destPort, mbg2Name)
-
-    #bind destination service
-    bindService(gwctl1Name, destSvc, destPort)
-    bindService(gwctl3Name, destSvc, destPort)
+    #Import and bind a service
+    importService(mbg1Name, gwctl1Name, destSvc,destPort, mbg2Name)
+    importService(mbg3Name, gwctl3Name, destSvc,destPort, mbg2Name)
 
     #Get services
-    getService(gwctl1Name)
+    getService(gwctl1Name,destSvc)
     
     #Testing
     printHeader("\n\nStart Iperf3 testing")
