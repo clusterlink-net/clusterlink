@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -12,179 +11,159 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var clog = logrus.WithField("component", "gwctl")
-
 const (
-	ProjectFolder = "/.gw/"
-	ConfigFile    = "gwctl"
+	projectFolder = "/.gw/"
+	configFile    = "gwctl"
 )
 
-type GwctlConfigInterface interface {
-	GetMbgIP() string
-	GetId() string
+// ClientConfig contain all Client configuration to send requests to the GW
+type ClientConfig struct {
+	GwIP           string        `json:"gwIP"`
+	ID             string        `json:"ID"`
+	CaFile         string        `json:"CaFile"`
+	CertFile       string        `json:"CertFile"`
+	KeyFile        string        `json:"KeyFile"`
+	Dataplane      string        `json:"Dataplane"`
+	PolicyEngineIP string        `json:"PolicyEngineIP"`
+	logger         *logrus.Entry `json:"-"`
+	ClientConfigInterface
+}
+
+// ClientConfigInterface contain all the method of Client
+type ClientConfigInterface interface {
+	GetGwIP() string
+	GetID() string
 	GetDataplane() string
-	GetCertificate() string
+	GetCert() string
 	GetCaFile() string
 	GetKeyFile() string
-	GetPolicyDispatcher() string
-	GetMetricsManager() string
-	Set(id, mbgIp, caFile, certificateFile, keyFile, dataplane string)
-	SetPolicyDispatcher(targetUrl string)
-	SetMetricsManager(targetUrl string)
-}
-type GwctlConfig struct {
-	MbgIP                  string `json:"MbgIP"`
-	Id                     string `json:"Id"`
-	CaFile                 string
-	CertificateFile        string
-	KeyFile                string
-	Dataplane              string
-	PolicyDispatcherTarget string
-	MetricsManagerTarget   string
-	GwctlConfigInterface
+	GetPolicyEngineIP() string
+	NewConfig(id, GwIP, caFile, certificateFile, keyFile, dataplane string)
 }
 
-func GetConfig(id string) (GwctlConfig, error) {
-	c, err := readState(id)
-	return c, err
+// NewClientConfig create config file with all the configuration of the Client
+func NewClientConfig(cfg ClientConfig) (*ClientConfig, error) {
+	c := ClientConfig{
+		ID:             cfg.ID,
+		GwIP:           cfg.GwIP,
+		Dataplane:      cfg.Dataplane,
+		CertFile:       cfg.CertFile,
+		KeyFile:        cfg.KeyFile,
+		CaFile:         cfg.CaFile,
+		PolicyEngineIP: cfg.PolicyEngineIP,
+		logger:         logrus.WithField("component", "gwctl/config"),
+	}
+
+	_, err := c.createProjectfolder()
+	if err != nil {
+		return nil, err
+	}
+	err = c.createConfigFile()
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
 }
 
-func (c *GwctlConfig) GetMbgIP() string {
-	return c.MbgIP
+// GetConfigFromID return configuration of Client according to the Client ID
+func GetConfigFromID(id string) (*ClientConfig, error) {
+	c, err := readConfigFromFile(id)
+	return &c, err
 }
 
-func (c *GwctlConfig) GetId() string {
-	return c.Id
+// GetGwIP return the gw IP that the Client is connected
+func (c *ClientConfig) GetGwIP() string {
+	return c.GwIP
 }
-func (c *GwctlConfig) GetDataplane() string {
+
+// GetID return the Client ID
+func (c *ClientConfig) GetID() string {
+	return c.ID
+}
+
+// GetDataplane return the Client dataplane type (MTLS or TCP)
+func (c *ClientConfig) GetDataplane() string {
 	return c.Dataplane
 }
-func (c *GwctlConfig) GetCertificate() string {
-	return c.CertificateFile
+
+// GetCert return the Client certificate
+func (c *ClientConfig) GetCert() string {
+	return c.CertFile
 }
-func (c *GwctlConfig) GetCaFile() string {
+
+// GetCaFile return the Client certificate Authority
+func (c *ClientConfig) GetCaFile() string {
 	return c.CaFile
 }
 
-func (c *GwctlConfig) GetKeyFile() string {
+// GetKeyFile return the Client key file
+func (c *ClientConfig) GetKeyFile() string {
 	return c.KeyFile
 }
 
-func (c *GwctlConfig) GetPolicyDispatcher() string {
-	return c.PolicyDispatcherTarget
-}
-
-func (c *GwctlConfig) GetMetricsManager() string {
-	return c.MetricsManagerTarget
-}
-
-func (c *GwctlConfig) Set(id, mbgIp, caFile, certificateFile, keyFile, dataplane string) error {
-	c.Id = id
-	c.MbgIP = mbgIp
-	c.Dataplane = dataplane
-	c.CertificateFile = certificateFile
-	c.KeyFile = keyFile
-	c.CaFile = caFile
-	CreateProjectfolder()
-	return c.CreateState()
-}
-
-func (c *GwctlConfig) SetPolicyDispatcher(targetUrl string) error {
-	c.PolicyDispatcherTarget = targetUrl
-	return c.SaveState()
-}
-
-func (c *GwctlConfig) SetMetricsManager(targetUrl string) error {
-	c.MetricsManagerTarget = targetUrl
-	return c.SaveState()
-}
-
-func (c *GwctlConfig) Print() {
-	fmt.Printf("Id: %v,  mbgTarget: %v", c.Id, c.MbgIP)
+// GetPolicyEngineIP return the policy server address
+func (c *ClientConfig) GetPolicyEngineIP() string {
+	return c.PolicyEngineIP
 }
 
 /********************************/
 /******** Config functions **********/
 /********************************/
-func CreateProjectfolder() string {
+func (c *ClientConfig) createProjectfolder() (string, error) {
 	usr, _ := user.Current()
-	fol := path.Join(usr.HomeDir, ProjectFolder)
+	fol := path.Join(usr.HomeDir, projectFolder)
 	//Create folder
 	err := os.MkdirAll(fol, 0755)
 	if err != nil {
-		clog.Errorln(err)
+		c.logger.Errorln(err)
+		return "", err
 	}
-	return fol
+	return fol, nil
 }
 
-func GwctlPath(id string) string {
-	cfgFile := ConfigFile
-	if id != "" {
-		cfgFile += "_" + id
-	}
-	//set cfg file in home directory
-	usr, _ := user.Current()
-	return path.Join(usr.HomeDir, ProjectFolder, cfgFile)
-}
-
-func (c *GwctlConfig) CreateState() error {
+func (c *ClientConfig) createConfigFile() error {
 	jsonC, err := json.MarshalIndent(c, "", "\t")
 	if err != nil {
-		clog.Errorln("Gwctl create config File", err)
+		c.logger.Errorln("Client create config File", err)
 		return err
 	}
-	f := GwctlPath(c.Id)
+	f := ClientPath(c.ID)
 	err = ioutil.WriteFile(f, jsonC, 0644) // os.ModeAppend)
-	clog.Println("create Gwctl config File:", f)
+	c.logger.Println("Create Client config File:", f)
 	if err != nil {
-		clog.Errorln("Gwctl- create config File", err)
+		c.logger.Errorln("Creating clinent config File", err)
 		return err
 	}
-	SetDefaultLink(c.Id)
+	c.SetDefaultClient(c.ID)
 	return nil
 }
 
-func (c *GwctlConfig) SaveState() error {
+func (c *ClientConfig) saveConfig() error {
 	jsonC, err := json.MarshalIndent(c, "", "\t")
 	if err != nil {
-		clog.Errorln("Gwctl save config File", err)
+		c.logger.Errorln("Client save config File", err)
 		return err
 	}
-	f := GwctlPath(c.Id)
-	if c.Id == "" { //get original file
-		f, _ = os.Readlink(GwctlPath(c.Id))
+	f := ClientPath(c.ID)
+	if c.ID == "" { //get original file
+		f, _ = os.Readlink(ClientPath(c.ID))
 	}
 
 	err = ioutil.WriteFile(f, jsonC, 0644) // os.ModeAppend)
 	if err != nil {
-		clog.Errorln("Gwctl save config File", err)
+		c.logger.Errorln("Saving config File", err)
 		return err
 	}
 	return nil
 }
 
-func readState(id string) (GwctlConfig, error) {
-	file := GwctlPath(id)
-	data, err := ioutil.ReadFile(file)
-	if err != nil {
-		clog.Errorln("Gwctl config File", err)
-		return GwctlConfig{}, err
-	}
-	var s GwctlConfig
-	err = json.Unmarshal(data, &s)
-	if err != nil {
-		clog.Errorln("Gwctl config File", err)
-		return GwctlConfig{}, err
-	}
-	return s, nil
-}
-
-func SetDefaultLink(id string) error {
-	file := GwctlPath(id)
-	link := GwctlPath("")
+// SetDefaultClient set the default Client the CLI will use.
+func (c *ClientConfig) SetDefaultClient(id string) error {
+	file := ClientPath(id)
+	link := ClientPath("")
 	//Check if the file exist
 	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
-		clog.Errorf("Gwctl config File with id %v is not exist\n", id)
+		c.logger.Errorf("Client config File with id %v is not exist\n", id)
 		return err
 	}
 	//Remove if the link exist
@@ -194,8 +173,31 @@ func SetDefaultLink(id string) error {
 	//Create a link
 	err := os.Symlink(file, link)
 	if err != nil {
-		clog.Errorln("Error creating symlink:", err)
+		c.logger.Errorln("Error creating symlink:", err)
 		return err
 	}
 	return nil
+}
+
+func readConfigFromFile(id string) (ClientConfig, error) {
+	file := ClientPath(id)
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return ClientConfig{}, err
+	}
+	var s ClientConfig
+	err = json.Unmarshal(data, &s)
+	if err != nil {
+		return ClientConfig{}, err
+	}
+	return s, nil
+}
+func ClientPath(id string) string {
+	cfgFile := configFile
+	if id != "" {
+		cfgFile += "_" + id
+	}
+	//set cfg file in home directory
+	usr, _ := user.Current()
+	return path.Join(usr.HomeDir, projectFolder, cfgFile)
 }

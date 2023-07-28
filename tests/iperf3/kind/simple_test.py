@@ -15,9 +15,9 @@ proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.p
 sys.path.insert(0,f'{proj_dir}')
 
 from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getMbgPorts,buildMbg,buildMbgctl,getPodIp,getPodNameIp
-from tests.iperf3.kind.connect_mbgs import connectMbgs, sendHello
+from tests.iperf3.kind.connect_mbgs import connectMbgs
 from tests.iperf3.kind.iperf3_service_create import setIperf3client, setIperf3Server
-from tests.iperf3.kind.iperf3_service_expose import exposeService,bindService
+from tests.iperf3.kind.iperf3_service_import import importService
 from tests.iperf3.kind.iperf3_service_get import getService
 from tests.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
 from tests.iperf3.kind.apply_policy import addPolicy
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     #MBG1 parameters 
     mbg1DataPort    = "30001"
     mbg1cPort       = "30443"
-    mbg1cPortLocal  = "443"
+    mbg1cPortLocal  = 443
     mbg1crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
     mbg1Name        = "mbg1"
     gwctl1Name     = "gwctl1"
@@ -53,13 +53,13 @@ if __name__ == "__main__":
     #MBG2 parameters 
     mbg2DataPort    = "30001"
     mbg2cPort       = "30443"
-    mbg2cPortLocal  = "443"
+    mbg2cPortLocal  = 443
     mbg2crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
     mbg2Name        = "mbg2"
     gwctl2Name     = "gwctl2"
     mbg2cni         = "flannel" if cni == "diff" else cni
     destSvc         = "iperf3-server"
-    destPort        = "5000"
+    destPort        = 5000
     kindDestPort    = "30001"
     
         
@@ -89,19 +89,19 @@ if __name__ == "__main__":
     mbg1Ip               = getKindIp("mbg1")
     gwctl1Pod, gwctl1Ip= getPodNameIp("gwctl")
     useKindCluster(mbg2Name)
-    mbg2Pod, mbg2Ip       = getPodNameIp("mbg")
+    mbg2Pod, _       = getPodNameIp("mbg")
+    mbg2Ip               = getKindIp("mbg2")
     gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
     destkindIp=getKindIp(mbg2Name)
 
     
     # Add MBG Peer
+    useKindCluster(mbg1Name)
+    printHeader("Add MBG1 peer to MBG2")
+    connectMbgs(mbg1Name, gwctl1Name, gwctl1Pod, mbg2Name, mbg2Ip, mbg2cPort)
     useKindCluster(mbg2Name)
     printHeader("Add MBG2 peer to MBG1")
     connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
-
-    # Send Hello
-    sendHello(gwctl2Pod, gwctl2Name)        
-
     
     # Set service iperf3-client in MBG1
     setIperf3client(mbg1Name, gwctl1Name, srcSvc)
@@ -109,20 +109,17 @@ if __name__ == "__main__":
     # Set service iperf3-server in MBG2
     setIperf3Server(mbg2Name, gwctl2Name,destSvc)
 
-    #Expose destination service
-    exposeService(mbg2Name, gwctl2Name, destSvc)
+    #Import destination service
+    importService(mbg1Name, destSvc,destPort, mbg2Name)
 
-    #bind destination service
-    bindService(mbg1Name,destSvc,destPort)
     #Get services
-    getService(mbg1Name, gwctl1Name)
+    getService(mbg1Name, destSvc)
     #Add policy
-    addPolicy(mbg1Name, gwctl1Name, command="add", action="allow", srcSvc=srcSvc,destSvc=destSvc, priority=0)
+    addPolicy(mbg1Name, gwctl1Name, command="create", action="allow", srcSvc=srcSvc,destSvc=destSvc, priority=0)
     #Testing
     printHeader("\n\nStart Iperf3 testing")
     useKindCluster(mbg2Name)
     waitPod("iperf3-server")
-    
     #Test MBG1
     directTestIperf3(mbg1Name, srcSvc, destkindIp, kindDestPort)
     testIperf3Client(mbg1Name, srcSvc, destSvc,    destPort)

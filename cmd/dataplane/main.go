@@ -30,8 +30,7 @@ func main() {
 	log.Infof("Dataplane main starterd")
 
 	//Set Dataplane
-	dp := dp.Dataplane{}
-	dp.SetStore(store.Store{Id: id, CertAuthority: ca, Cert: cert, Key: key, Dataplane: dataplane})
+	dp := dp.NewDataplane(&store.Store{Id: id, CertAuthority: ca, Cert: cert, Key: key, Dataplane: dataplane})
 	dp.StartServer(port)
 	log.Infof("Dataplane main process is finished")
 }

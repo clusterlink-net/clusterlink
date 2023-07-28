@@ -5,53 +5,94 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	api "github.ibm.com/mbg-agent/pkg/controlplane/api"
+	"github.com/spf13/pflag"
+	"github.ibm.com/mbg-agent/pkg/admin"
 )
 
-// startCmd represents the start command
-var configCmd = &cobra.Command{
-	Use:   "config",
-	Short: "config",
-	Long:  `config`,
-	Run:   emptyRun,
+// ConfigCmd contains all the config commands of the CLI.
+func ConfigCmd() *cobra.Command {
+	configCmd := &cobra.Command{
+		Use:   "config",
+		Short: "config",
+		Long:  `config`,
+	}
+
+	configCmd.AddCommand(currentContextCmd())
+	configCmd.AddCommand(useContextCmd())
+	return configCmd
 }
 
-var getContextCmd = &cobra.Command{
-	Use:   "current-context",
-	Short: "Get gwctl current context.",
-	Long:  `Get gwctl current context.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		m := api.Gwctl{}
-		s, err := m.ConfigCurrentContext()
-		if err != nil {
-			fmt.Printf("Failed to get current state :%v\n", err)
-			return
-		}
-		sJSON, _ := json.MarshalIndent(s, "", " ")
-		fmt.Println("gwctl current state\n", string(sJSON))
-	},
-}
-var useContextCmd = &cobra.Command{
-	Use:   "use-context",
-	Short: "use gwctl context.",
-	Long:  `use gwctl context.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		mId, _ := cmd.Flags().GetString("myid")
-		m := api.Gwctl{Id: mId}
-		err := m.ConfigUseContext()
-		if err != nil {
-			fmt.Printf("Failed to use context %v: %v\n", mId, err)
-		}
-		fmt.Println("Gwctl use context ", mId)
-	},
+// getContextCmd is the command line options for 'config current-context'
+type currentContextOptions struct {
 }
 
-func init() {
-	rootCmd.AddCommand(configCmd)
-	//current-context
-	configCmd.AddCommand(getContextCmd)
-	//use-context
-	configCmd.AddCommand(useContextCmd)
-	useContextCmd.Flags().String("myid", "", "Gwctl Id")
+// currentContextCmd - get the last gwctl context command to use.
+func currentContextCmd() *cobra.Command {
+	o := currentContextOptions{}
+	cmd := &cobra.Command{
 
+		Use:   "current-context",
+		Short: "Get gwctl current context.",
+		Long:  `Get gwctl current context.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return o.run()
+		},
+	}
+
+	return cmd
+}
+
+// run performs the execution of the 'config current-context' subcommand
+func (o *currentContextOptions) run() error {
+	g := admin.Client{}
+	s, err := g.ConfigCurrentContext()
+	if err != nil {
+		return err
+	}
+
+	sJSON, _ := json.MarshalIndent(s, "", " ")
+	fmt.Println("gwctl current state\n", string(sJSON))
+	return nil
+}
+
+// useContext is the command line options for 'config use-context'
+type useContextOptions struct {
+	myID string
+}
+
+// useContextCmd - set gwctl context.
+func useContextCmd() *cobra.Command {
+	o := useContextOptions{}
+	cmd := &cobra.Command{
+		Use:   "use-context",
+		Short: "use gwctl context.",
+		Long:  `use gwctl context.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return o.run()
+		},
+	}
+
+	o.addFlags(cmd.Flags())
+
+	return cmd
+}
+
+// addFlags registers flags for the CLI.
+func (o *useContextOptions) addFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
+}
+
+// run performs the execution of the 'config current-context' subcommand
+func (o *useContextOptions) run() error {
+	g, err := admin.GetClientFromID(o.myID)
+	if err != nil {
+		return err
+	}
+	err = g.ConfigUseContext()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("gwctl use context ", o.myID)
+	return nil
 }

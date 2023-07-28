@@ -15,7 +15,7 @@ def createCluster(cluster,run_in_bg, machineType="small"):
     print(f"create {cluster.name} cluster , zone {cluster.zone} , platform {cluster.platform}")
     bg_flags = " &" if run_in_bg else ""
     if cluster.platform == "gcp":
-        flags = "  --machine-type n2-standard-4" if machineType=="large" else ""
+        flags = "  --machine-type n2-standard-4" if machineType=="large" else "" #e2-medium
         cmd=f"gcloud container clusters create {cluster.name} --zone {cluster.zone} --num-nodes 1 --tags tcpall {flags} {bg_flags}"
         print(cmd)
         os.system(cmd)

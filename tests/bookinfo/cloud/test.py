@@ -94,8 +94,8 @@ if __name__ == "__main__":
     connectToCluster(mbg1)
     printHeader("Add MBG2 MBG3 to MBG1")
     gwctl1Pod =getPodName("gwctl")
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add peer --id "{mbg2.name}" --target {mbg2Ip} --port {mbgcPort}')
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add peer --id "{mbg3.name}" --target {mbg3Ip} --port {mbgcPort}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create peer --name "{mbg2.name}" --host {mbg2Ip} --port {mbgcPort}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create peer --name "{mbg3.name}" --host {mbg3Ip} --port {mbgcPort}')
 
             
     # Send Hello
@@ -112,8 +112,8 @@ if __name__ == "__main__":
     waitPod(srcSvc2)
     _ , srcSvcIp1 =getPodNameIp(srcSvc1)
     _ , srcSvcIp2 =getPodNameIp(srcSvc2)
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add service --id {srcSvc1} --target {srcSvcIp1} --description {srcSvc1}')
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add service --id {srcSvc2} --target {srcSvcIp2} --description {srcSvc2}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create export --name {srcSvc1} --host {srcSvcIp1} --description {srcSvc1}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create export --name {srcSvc2} --host {srcSvcIp2} --description {srcSvc2}')
    
     connectToCluster(mbg2)
     gwctl2Pod =getPodName("gwctl")
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     waitPod(destSvc)
     destSvcReview2Ip   = f"{getPodIp(destSvc)}"
     destSvcReview2Port = "9080"
-    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add service --id {destSvc} --target {destSvcReview2Ip} --port {destSvcReview2Port} --description v2')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl create export --name {destSvc} --host {destSvcReview2Ip} --port {destSvcReview2Port} --description v2')
     
     connectToCluster(mbg3)
     gwctl3Pod =getPodName("gwctl")
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     waitPod(destSvc)
     destSvcReview3Ip = f"{getPodIp(destSvc)}"
     destSvcReview3Port = "9080"
-    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl add service --id {destSvc} --target {destSvcReview3Ip}  --port {destSvcReview3Port} --description v3')
+    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl create export --name {destSvc} --host {destSvcReview3Ip}  --port {destSvcReview3Port} --description v3')
 
      #Expose service
     connectToCluster(mbg2)

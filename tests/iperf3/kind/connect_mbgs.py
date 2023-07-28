@@ -13,15 +13,8 @@ from tests.utils.kind.kindAux import useKindCluster, getKindIp
 # Add MBG Peer
 def connectMbgs(mbgName, gwctlName, gwctlPod, peerName, peerIp, peercPort):
     useKindCluster(mbgName)
-    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add peer  --id {peerName} --target {peerIp} --port {peercPort}')
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create peer  --name {peerName} --host {peerIp} --port {peercPort}')
     
-
-def sendHello(gwctlPod, gwctlName):
-    # Send Hello
-    printHeader("Send Hello commands")
-    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl hello')       
-
-
 ############################### MAIN ##########################
 if __name__ == "__main__":
     
@@ -47,7 +40,4 @@ if __name__ == "__main__":
     gwctl2Pod =getPodName("gwctl")
     printHeader("Add MBG2, MBG3 peer to MBG1")
     connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
-    connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg3Name, mbg3Ip, mbg3cPort)
-
-    sendHello(gwctl2Pod, gwctl2Name)
-    
+    connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg3Name, mbg3Ip, mbg3cPort)    

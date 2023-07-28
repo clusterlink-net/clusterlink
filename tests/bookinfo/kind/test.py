@@ -113,18 +113,21 @@ if __name__ == "__main__":
     waitPod(srcSvc2)
     _ , srcSvcIp1 =getPodNameIp(srcSvc1)
     _ , srcSvcIp2 =getPodNameIp(srcSvc2)
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add service --id {srcSvc1}  --description {srcSvc1}')
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add service --id {srcSvc2} --description {srcSvc2}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create export --name {srcSvc1}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create export --name {srcSvc2}')
 
     
 
-    # Add MBG Peer
-    printHeader("Add MBG2, MBG3 peer to MBG1")
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add peer --id {mbg2Name} --target {mbg2Ip} --port {mbg2cPort}')
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add peer --id {mbg3Name} --target {mbg3Ip} --port {mbg3cPort}')
-    # Send Hello
-    printHeader("Send Hello commands")
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl hello')
+    # Add GW Peers
+    printHeader("Add GW2, GW3 peer to GW1")
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create peer --name {mbg2Name} --host {mbg2Ip} --port {mbg2cPort}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create peer --name {mbg3Name} --host {mbg3Ip} --port {mbg3cPort}')
+    printHeader("Add MBG1 peer to MBG2")
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl create peer --name {mbg1Name} --host {mbg1Ip} --port {mbg1cPort}')
+    useKindCluster(mbg3Name)
+    printHeader("Add MBG3 peer to MBG1")
+    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl create peer --name {mbg1Name} --host {mbg1Ip} --port {mbg1cPort}')
+
     
     ###Set mbg2 service
     useKindCluster(mbg2Name)
@@ -136,7 +139,7 @@ if __name__ == "__main__":
     waitPod(destSvc)
     destSvcReview2Ip = f"{getPodIp(destSvc)}"
     destSvcReview2Port = f"{srcK8sSvcPort}"
-    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add service --id {destSvc} --target {destSvcReview2Ip} --port {destSvcReview2Port} --description v2')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl create export --name {destSvc} --host {destSvcReview2Ip} --port {destSvcReview2Port}')
     
 
     ###Set gwctl3
@@ -149,29 +152,22 @@ if __name__ == "__main__":
     waitPod(destSvc)
     destSvcReview3Ip = f"{getPodIp(destSvc)}"
     destSvcReview3Port = f"{srcK8sSvcPort}"
-    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl add service --id {destSvc} --target {destSvcReview3Ip} --port {destSvcReview3Port} --description v3')
+    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl create export --name {destSvc} --host {destSvcReview3Ip} --port {destSvcReview3Port}')
 
-    #Expose service
-    useKindCluster(mbg2Name)
-    printHeader(f"\n\nStart exposing svc {destSvc}")
-    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl expose --service {destSvc}')
-    useKindCluster(mbg3Name)
-    printHeader(f"\n\nStart exposing svc {destSvc}")
-    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl expose --service {destSvc}')
-
+    #Import service
+    useKindCluster(mbg1Name)
+    printHeader(f"\n\nStart import svc {destSvc}")
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create import --name {destSvc}  --host {destSvc} --port {srcK8sSvcPort} ')
+    #Import service
+    printHeader(f"\n\nStart binding svc {destSvc}")
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create binding --import {destSvc}  --peer {mbg2Name}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create binding --import {destSvc}  --peer {mbg3Name}')
+    
     #Get services
     useKindCluster(mbg1Name)
     printHeader("\n\nStart get service")
     runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl get service')
     runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl get policy')
-
-    #Create k8s service for destSvc
-    useKindCluster(mbg1Name)    
-    podMbg1= getPodName("mbg-deployment")        
-    mbg1LocalPort, mbg1ExternalPort = getMbgPorts(podMbg1, destSvc)
-    runcmd(f"kubectl delete service {destSvc}")
-    runcmd(f"kubectl create service clusterip {destSvc} --tcp={srcK8sSvcPort}:{mbg1LocalPort}")
-    runcmd(f"kubectl patch service {destSvc} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
 
     print(f"Proctpage1 url: http://{mbg1Ip}:30001/productpage")
     print(f"Proctpage2 url: http://{mbg1Ip}:30002/productpage")

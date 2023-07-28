@@ -22,7 +22,7 @@ def setIperf3client(mbgName, gwctlName,srcSvc):
     runcmd(f"kubectl create -f {folCl}/{srcSvc}.yaml")
     waitPod(srcSvc)
     gwctlPod =getPodName("gwctl")
-    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add service --id {srcSvc}')
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create export --name {srcSvc} --host {srcSvc} --port {5000}')
 
 def setIperf3Server(mbgName, gwctlName, destSvc):
     printHeader(f"Add {destSvc} (server) service in {mbgName}")
@@ -34,7 +34,7 @@ def setIperf3Server(mbgName, gwctlName, destSvc):
     destSvcPort = f"5000"
     gwctlPod =getPodName("gwctl")
     destSvcIp  = "iperf3-server"
-    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl add service --id {destSvc} --target {destSvcIp} --port {destSvcPort} --description iperf3-server')
+    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create export --name {destSvc} --host {destSvcIp} --port {destSvcPort}')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":

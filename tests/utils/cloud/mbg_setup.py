@@ -34,7 +34,7 @@ def mbgBuild(mbgcPort="443" ,mbgcPortLocal="443",externalIp=""):
   waitPod("mbg")
   waitPod("gwctl")
   #Creating loadbalancer  and wait to loadbalncer external ip
-  runcmd(f"kubectl expose deployment mbg-deployment --name=mbg-load-balancer --port={mbgcPort} --target-port={mbgcPortLocal} --type=LoadBalancer")
+  runcmd(f"kubectl expose deployment mbg-deployment --name=mbg-load-balancer --port={mbgcPort} --host-port={mbgcPortLocal} --type=LoadBalancer")
   mbgIp=""
   if externalIp !="":
     runcmd("kubectl patch svc mbg-load-balancer -p "+ "\'{\"spec\": {\"type\": \"LoadBalancer\", \"loadBalancerIP\": \""+ externalIp+ "\"}}\'")
@@ -52,9 +52,9 @@ def mbgSetup(mbg, dataplane, mbgcrtFlags,gwctlName, mbgIp ,mbgcPort="443" ,mbgcP
   mbgPod,mbgPodIp= getPodNameIp("mbg")
   gwctlPod,gwctlPodIp= getPodNameIp("gwctl")
   print("\n\nStart MBG (along with PolicyEngine)")
-  runcmdb(f'kubectl exec -i {mbgPod} -- ./controlplane start --id {mbg.name} --ip {mbgIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine {True}')
+  runcmdb(f'kubectl exec -i {mbgPod} -- ./controlplane start --name {mbg.name} --ip {mbgIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine {True}')
   destMbgIp = f"{mbgPodIp}:{mbgcPortLocal}" 
-  runcmd(f'kubectl exec -it {gwctlPod} -- ./gwctl create --id {gwctlName}  --mbgIP {destMbgIp} --dataplane {dataplane} {mbgcrtFlags}')
+  runcmd(f'kubectl exec -it {gwctlPod} -- ./gwctl init --name {gwctlName}  --gwIP {destMbgIp} --dataplane {dataplane} {mbgcrtFlags}')
 
 
 

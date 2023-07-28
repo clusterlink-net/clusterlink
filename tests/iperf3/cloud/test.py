@@ -78,7 +78,7 @@ if __name__ == "__main__":
     connectToCluster(mbg2)
     gwctl2Pod =getPodName("gwctl")
     printHeader("Add MBG1 MBG2")
-    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add peer --id {mbg1.name} --target {mbg1Ip} --port {mbgcPort}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl create peer --name {mbg1.name} --host {mbg1Ip} --port {mbgcPort}')
 
             
     # Send Hello
@@ -91,14 +91,14 @@ if __name__ == "__main__":
     runcmd(f"kubectl create -f {folMn}/iperf3-client/iperf3-client.yaml")
     waitPod(srcSvc)
     podIperf3 =getPodIp(srcSvc)
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl add service --id {srcSvc} --target {podIperf3} --description {srcSvc}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create export --name {srcSvc} --host {podIperf3} --description {srcSvc}')
     
     connectToCluster(mbg2)
     runcmd(f"kubectl create -f {folMn}/iperf3-server/iperf3.yaml")
     runcmd(f"kubectl create service nodeport iperf3-server --tcp=5000:5000 --node-port=30001")
     waitPod(destSvc)
     destSvcIp =getPodIp(destSvc)
-    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl add service --id {destSvc} --target {destSvcIp}:5000 --description {destSvc}')
+    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl create export --name {destSvc} --host {destSvcIp}:5000 --description {destSvc}')
     
     #Expose destination service
     printHeader("\n\nStart exposing connection")

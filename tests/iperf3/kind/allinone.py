@@ -8,10 +8,10 @@ import argparse
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{proj_dir}')
 
-from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getMbgPorts,buildMbg,buildMbgctl,getPodIp,getPodNameIp
-from tests.iperf3.kind.connect_mbgs import connectMbgs, sendHello
+from tests.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodNameIp
+from tests.iperf3.kind.connect_mbgs import connectMbgs
 from tests.iperf3.kind.iperf3_service_create import setIperf3client, setIperf3Server
-from tests.iperf3.kind.iperf3_service_expose import exposeService,bindService
+from tests.iperf3.kind.iperf3_service_import import importService
 from tests.iperf3.kind.iperf3_service_get import getService
 from tests.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
 from tests.iperf3.kind.apply_policy import applyPolicy
@@ -94,9 +94,9 @@ if __name__ == "__main__":
     mbg1Ip               = getKindIp("mbg1")
     gwctl1Pod, gwctl1Ip= getPodNameIp("gwctl")
     useKindCluster(mbg2Name)
-    mbg2Pod, mbg2Ip       = getPodNameIp("mbg")
+    mbg2Pod, _       = getPodNameIp("mbg")
+    mbg2Ip=getKindIp(mbg2Name)
     gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
-    destkindIp=getKindIp(mbg2Name)
     useKindCluster(mbg3Name)
     mbg3Pod, _            = getPodNameIp("mbg")
     mbg3Ip                = getKindIp("mbg3")
@@ -104,13 +104,16 @@ if __name__ == "__main__":
 
     
     # Add MBG Peer
+    useKindCluster(mbg1Name)
+    printHeader("Add MBG2 peer to MBG1")
+    connectMbgs(mbg1Name, gwctl1Name, gwctl1Pod, mbg2Name, mbg2Ip, mbg2cPort)
     useKindCluster(mbg2Name)
-    printHeader("Add MBG2, MBG3 peer to MBG1")
+    printHeader("Add MBG1, MBG3 peer to MBG2")
     connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg1Name, mbg1Ip, mbg1cPort)
     connectMbgs(mbg2Name, gwctl2Name, gwctl2Pod, mbg3Name, mbg3Ip, mbg3cPort)
-
-    # Send Hello
-    sendHello(gwctl2Pod, gwctl2Name)        
+    useKindCluster(mbg3Name)
+    printHeader("Add MBG3 peer to MBG1")
+    connectMbgs(mbg3Name, gwctl3Name, gwctl3Pod, mbg2Name,mbg2Ip , mbg2cPort)
 
     
     # Set service iperf3-client in MBG1
@@ -123,12 +126,10 @@ if __name__ == "__main__":
     setIperf3client(mbg3Name, gwctl3Name, srcSvc)
     setIperf3client(mbg3Name, gwctl3Name, srcSvc2)
     
-    #Expose destination service
-    exposeService(mbg2Name, gwctl2Name, destSvc)
+    #Import destination service
+    importService(mbg1Name, destSvc,destPort, mbg2Name)
+    importService(mbg3Name, destSvc,destPort, mbg2Name)
 
-    #bind destination service
-    bindService(mbg1Name, destSvc, destPort)
-    bindService(mbg3Name, destSvc, destPort)
     #Get services
     getService(mbg1Name, gwctl1Name)
     
@@ -138,11 +139,11 @@ if __name__ == "__main__":
     waitPod("iperf3-server")
     
     #Test MBG1
-    directTestIperf3(mbg1Name, srcSvc,destkindIp,kindDestPort)
+    directTestIperf3(mbg1Name, srcSvc,mbg2Ip,kindDestPort)
     testIperf3Client(mbg1Name,srcSvc,destSvc,destPort)
 
     #Test MBG3
-    directTestIperf3(mbg3Name, srcSvc, destkindIp, kindDestPort)
+    directTestIperf3(mbg3Name, srcSvc, mbg2Ip, kindDestPort)
     testIperf3Client(mbg3Name, srcSvc, destSvc,    destPort)
 
 
