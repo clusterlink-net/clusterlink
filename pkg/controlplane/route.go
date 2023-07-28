@@ -104,7 +104,7 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 	if err != nil {
 		log.Errorf("Unable to get App Info :%+v", err)
 	}
-	log.Infof("Receiving Outgoing connection %s(%s)->%s ", srcIP, destIP, appLabel)
+	log.Infof("Receiving Outgoing connection %s(%s)->%s ", srcIP, appLabel, destIP)
 	srcSvc, err := store.LookupLocalService(appLabel, srcIP)
 	if err != nil {
 		log.Infof("Unable to lookup local service :%v", err)
@@ -117,7 +117,7 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 	}
 	connectionId := srcSvc.Id + ":" + destSvcID + ":" + ksuid.New().String()
 	connectionStatus := eventManager.ConnectionStatusAttr{ConnectionId: connectionId,
-		SrcService:      srcSvc.Id,
+		SrcService:      appLabel,
 		DstService:      destSvcID,
 		DestinationPeer: policyResp.TargetMbg,
 		StartTstamp:     time.Now(),

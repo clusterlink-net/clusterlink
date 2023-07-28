@@ -48,6 +48,10 @@ func NewClient(cfg config.ClientConfig) (*Client, error) {
 		cfg.PolicyEngineIP = gwctl.getProtocolPrefix(cfg.Dataplane) + cfg.GwIP + "/policy"
 	}
 
+	if cfg.MetricsManagerIP == "" {
+		cfg.MetricsManagerIP = gwctl.getProtocolPrefix(cfg.Dataplane) + cfg.GwIP + "/metrics"
+	}
+
 	c, err := config.NewClientConfig(cfg)
 	gwctl.Cfg = *c
 	if err != nil {
@@ -355,6 +359,20 @@ func (g *Client) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadB
 		return make(map[string]map[string]policyEngine.PolicyLoadBalancer), err
 	}
 	return policies, nil
+}
+
+func (g *Client) GetMetrics() (map[string]event.ConnectionStatusAttr, error) {
+	var connections map[string]event.ConnectionStatusAttr
+	url := g.Cfg.GetMetricsManagerIP() + "/" + event.ConnectionStatus
+	resp, err := httputils.HttpGet(url, g.GetHTTPClient())
+	if err != nil {
+		return make(map[string]event.ConnectionStatusAttr), err
+	}
+
+	if err := json.Unmarshal(resp, &connections); err != nil {
+		return make(map[string]event.ConnectionStatusAttr), err
+	}
+	return connections, nil
 }
 
 /* Http functions */
