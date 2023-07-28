@@ -10,14 +10,15 @@ import (
 
 var elog = logrus.WithField("component", "EventManager")
 
-type MbgEventManager struct {
+type EventManager struct {
 	PolicyDispatcherTarget string      //URL for now
+	MetricsManagerTarget   string      //URL for now
 	HttpClient             http.Client `json:"-"`
 }
 
 var HttpClient http.Client
 
-func (m *MbgEventManager) RaiseNewConnectionRequestEvent(connectionAttr ConnectionRequestAttr) (ConnectionRequestResp, error) {
+func (m *EventManager) RaiseNewConnectionRequestEvent(connectionAttr ConnectionRequestAttr) (ConnectionRequestResp, error) {
 	// Send the event to PolicyDispatcher
 	url := m.PolicyDispatcherTarget + "/" + NewConnectionRequest
 	if m.PolicyDispatcherTarget != "" {
@@ -42,7 +43,25 @@ func (m *MbgEventManager) RaiseNewConnectionRequestEvent(connectionAttr Connecti
 	}
 }
 
-func (m *MbgEventManager) RaiseNewRemoteServiceEvent(remoteServiceAttr NewRemoteServiceAttr) (NewRemoteServiceResp, error) {
+func (m *EventManager) RaiseConnectionStatusEvent(connectionStatusAttr ConnectionStatusAttr) error {
+	// Send the event to Metrics Manager
+	url := m.MetricsManagerTarget + "/" + ConnectionStatus
+	if m.MetricsManagerTarget != "" {
+		elog.Infof("Sending to metrics manager : %s", url)
+		jsonReq, err := json.Marshal(connectionStatusAttr)
+		if err != nil {
+			elog.Errorf("Unable to marshal json %v", err)
+			return err
+		}
+		_, err = httputils.HttpPost(url, jsonReq, m.HttpClient)
+		return err
+	} else {
+		// No Metrics Manager assigned
+		return nil
+	}
+}
+
+func (m *EventManager) RaiseNewRemoteServiceEvent(remoteServiceAttr NewRemoteServiceAttr) (NewRemoteServiceResp, error) {
 	elog.Infof("New Remote Service Event %+v", remoteServiceAttr)
 	url := m.PolicyDispatcherTarget + "/" + NewRemoteService
 	if m.PolicyDispatcherTarget != "" {
@@ -69,7 +88,7 @@ func (m *MbgEventManager) RaiseNewRemoteServiceEvent(remoteServiceAttr NewRemote
 	}
 }
 
-func (m *MbgEventManager) RaiseExposeRequestEvent(exposeRequestAttr ExposeRequestAttr) (ExposeRequestResp, error) {
+func (m *EventManager) RaiseExposeRequestEvent(exposeRequestAttr ExposeRequestAttr) (ExposeRequestResp, error) {
 	elog.Infof("New Expose Event %+v", exposeRequestAttr)
 	url := m.PolicyDispatcherTarget + "/" + ExposeRequest
 	// Send the event to PolicyDispatcher
@@ -97,7 +116,7 @@ func (m *MbgEventManager) RaiseExposeRequestEvent(exposeRequestAttr ExposeReques
 	}
 }
 
-func (m *MbgEventManager) RaiseAddPeerEvent(addPeerAttr AddPeerAttr) (AddPeerResp, error) {
+func (m *EventManager) RaiseAddPeerEvent(addPeerAttr AddPeerAttr) (AddPeerResp, error) {
 	elog.Infof("Add Peer MBG Event %+v", addPeerAttr)
 	url := m.PolicyDispatcherTarget + "/" + AddPeerRequest
 	// Send the event to PolicyDispatcher
@@ -126,7 +145,7 @@ func (m *MbgEventManager) RaiseAddPeerEvent(addPeerAttr AddPeerAttr) (AddPeerRes
 	}
 }
 
-func (m *MbgEventManager) RaiseRemovePeerEvent(removePeerAttr RemovePeerAttr) error {
+func (m *EventManager) RaiseRemovePeerEvent(removePeerAttr RemovePeerAttr) error {
 	elog.Infof("Remove Peer MBG Event %+v", removePeerAttr)
 	url := m.PolicyDispatcherTarget + "/" + RemovePeerRequest
 	// Send the event to PolicyDispatcher
@@ -148,7 +167,7 @@ func (m *MbgEventManager) RaiseRemovePeerEvent(removePeerAttr RemovePeerAttr) er
 	}
 }
 
-func (m *MbgEventManager) RaiseRemoveRemoteServiceEvent(removeRemoteServiceAttr RemoveRemoteServiceAttr) error {
+func (m *EventManager) RaiseRemoveRemoteServiceEvent(removeRemoteServiceAttr RemoveRemoteServiceAttr) error {
 	elog.Infof("Remove Remote service Event %+v", removeRemoteServiceAttr)
 	url := m.PolicyDispatcherTarget + "/" + RemoveRemoteService
 	// Send the event to PolicyDispatcher
@@ -170,18 +189,24 @@ func (m *MbgEventManager) RaiseRemoveRemoteServiceEvent(removeRemoteServiceAttr 
 		return nil
 	}
 }
-func (m *MbgEventManager) RaiseServiceListRequestEvent(serviceListRequestAttr ServiceListRequestAttr) (ServiceListRequestResp, error) {
+func (m *EventManager) RaiseServiceListRequestEvent(serviceListRequestAttr ServiceListRequestAttr) (ServiceListRequestResp, error) {
 	elog.Infof("Service List Event %+v", serviceListRequestAttr)
 	return ServiceListRequestResp{Action: Allow, Services: nil}, nil
 }
 
-func (m *MbgEventManager) RaiseServiceRequestEvent(serviceRequestAttr ServiceRequestAttr) (ServiceRequestResp, error) {
+func (m *EventManager) RaiseServiceRequestEvent(serviceRequestAttr ServiceRequestAttr) (ServiceRequestResp, error) {
 	elog.Infof("Service Request Event %+v", serviceRequestAttr)
 	return ServiceRequestResp{Action: Allow}, nil
 }
 
-func (m *MbgEventManager) AssignPolicyDispatcher(targetUrl string, httpClient http.Client) {
+func (m *EventManager) AssignPolicyDispatcher(targetUrl string, httpClient http.Client) {
 	m.PolicyDispatcherTarget = targetUrl
 	m.HttpClient = httpClient
 	elog.Infof("PolicyDispatcher Target = %+v, httpclient=%+v", m.PolicyDispatcherTarget, HttpClient)
+}
+
+func (m *EventManager) AssignMetricsManager(targetUrl string, httpClient http.Client) {
+	m.MetricsManagerTarget = targetUrl
+	m.HttpClient = httpClient
+	elog.Infof("MetricsManager Target = %+v, httpclient=%+v", m.MetricsManagerTarget, HttpClient)
 }

@@ -28,6 +28,7 @@ var startCmd = &cobra.Command{
 		keyFile, _ := cmd.Flags().GetString("key")
 		dataplane, _ := cmd.Flags().GetString("dataplane")
 		startPolicyEngine, _ := cmd.Flags().GetBool("startPolicyEngine")
+		observe, _ := cmd.Flags().GetBool("observe")
 		policyEngineTarget, _ := cmd.Flags().GetString("policyEngineIp")
 		zeroTrust, _ := cmd.Flags().GetBool("zeroTrust")
 		restore, _ := cmd.Flags().GetBool("restore")
@@ -58,7 +59,11 @@ var startCmd = &cobra.Command{
 		}
 
 		if startPolicyEngine {
-			m.AddPolicyEngine("localhost:"+cportLocal, true, zeroTrust)
+			m.AddPolicyEngine("localhost:"+cportLocal+"/policy", true, zeroTrust)
+		}
+
+		if observe {
+			m.AddMetricsManager("localhost:" + cportLocal + "/metrics")
 		}
 
 		store.PrintState()
@@ -80,6 +85,7 @@ func init() {
 	startCmd.Flags().String("key", "", "Path to the Key File (.pem)")
 	startCmd.Flags().String("dataplane", "mtls", "tcp/mtls based data-plane proxies")
 	startCmd.Flags().Bool("startPolicyEngine", true, "Start policy engine in port")
+	startCmd.Flags().Bool("observe", true, "Start metrics manager in port")
 	startCmd.Flags().String("policyEngineIp", "", "Set the policy engine ip")
 	startCmd.Flags().Bool("zeroTrust", false, "deny (true)/allow(false) by default all incoming traffic")
 	startCmd.Flags().Bool("restore", false, "Restore existing stored MBG states")

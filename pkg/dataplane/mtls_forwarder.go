@@ -23,13 +23,18 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 )
 
 type MTLSForwarder struct {
-	Name           string
-	Connection     net.Conn
-	MTLSConnection net.Conn
-	ChiRouter      *chi.Mux
+	Name            string
+	connectionToken string
+	Connection      net.Conn
+	MTLSConnection  net.Conn
+	ChiRouter       *chi.Mux
+	incomingBytes   int
+	outgoingBytes   int
+	startTstamp     time.Time
 }
 
 const (
@@ -47,11 +52,11 @@ func (cd connDialer) Dial(network, addr string) (net.Conn, error) {
 // Start MTLS Forwarder on a specific MTLS target
 // targetIPPort in the format of <ip:port>
 // connect is set to true on a client side
-func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, certificate, key, ServerName string, endpointConn net.Conn) {
+func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, certificate, key, ServerName string, endpointConn net.Conn) (int, int, time.Time, time.Time, error) {
 	clog.Infof("Starting to initialize MTLS Forwarder for MBG Dataplane at %s", ConnectionUrl+m.Name)
-
+	m.startTstamp = time.Now()
 	connectMbg := "https://" + targetIPPort + ConnectionUrl + name
-
+	m.connectionToken = name
 	m.Connection = endpointConn
 	m.Name = name
 
@@ -61,7 +66,7 @@ func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, cer
 	if err != nil {
 		clog.Infof("Error in connecting.. %+v", err)
 		m.CloseConnection()
-		return
+		return 0, 0, m.startTstamp, time.Now(), err
 	}
 
 	//clog.Debugln("mTLS Debug Check:", m.certDebg(targetIPPort, name, tlsConfig))
@@ -76,31 +81,31 @@ func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, cer
 	if err != nil {
 		clog.Infof("Failed to create new request %v", err)
 		m.CloseConnection()
-		return
+		return 0, 0, m.startTstamp, time.Now(), err
 	}
 	resp, err := TlsConnectClient.Do(req)
 	if err != nil {
 		clog.Infof("Error in Tls Connection %v", err)
 		m.CloseConnection()
-		return
+		return 0, 0, m.startTstamp, time.Now(), err
 	}
 
 	m.MTLSConnection = MTLS_conn
 	clog.Infof("mtlS Connection Established Resp:%s(%d) to Target: %s", resp.Status, resp.StatusCode, connectMbg)
-
-	//From forwarder to other MBG
-	go m.MTLSDispatch()
-	//From source to forwarder
-	go m.dispatch()
 	clog.Infof("Starting mTLS Forwarder client for MBG Dataplane at %s  to target %s with certs(%s,%s)", ConnectionUrl+m.Name, targetIPPort, certificate, key)
+	//From forwarder to other MBG
+	go m.MTLSDispatch(event.Outgoing)
+	//From source to forwarder
+	m.dispatch(event.Incoming)
 
+	return m.incomingBytes, m.outgoingBytes, m.startTstamp, time.Now(), nil
 }
 
-// Start MTLS Forwarder server on a specific MTLS target
+// Start mtls Forwarder server on a specific mtls target
 // Register handling function (for hijack the connection) and start dispatch to destination
-func (m *MTLSForwarder) StartMTLSForwarderServer(targetIPPort, name, certca, certificate, key string, endpointConn net.Conn) {
+func (m *MTLSForwarder) StartMTLSForwarderServer(targetIPPort, name, certca, certificate, key string, endpointConn net.Conn) (int, int, time.Time, time.Time, error) {
 	clog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at %s", ConnectionUrl+m.Name)
-
+	m.startTstamp = time.Now()
 	// Register function for handling the dataplane traffic
 	clog.Infof("Register new handle func to address =%s", ConnectionUrl+name)
 	m.ChiRouter.Get(ConnectionUrl+name, m.ConnectHandler)
@@ -111,8 +116,9 @@ func (m *MTLSForwarder) StartMTLSForwarderServer(targetIPPort, name, certca, cer
 	m.Connection = endpointConn
 	m.Name = name
 
-	go m.dispatch()
+	m.dispatch(event.Outgoing)
 	clog.Infof("Starting mTLS Forwarder server for MBG Dataplane at /connectionData/%s  to target %s with certs(%s,%s)", m.Name, targetIPPort, certificate, key)
+	return m.incomingBytes, m.outgoingBytes, m.startTstamp, time.Now(), nil
 
 }
 
@@ -138,11 +144,11 @@ func (m *MTLSForwarder) ConnectHandler(w http.ResponseWriter, r *http.Request) {
 
 	m.MTLSConnection = conn
 	clog.Infof("Starting to dispatch MTLS Connection")
-	go m.MTLSDispatch()
+	go m.MTLSDispatch(event.Incoming)
 }
 
 // Dispatch from server to client side
-func (m *MTLSForwarder) MTLSDispatch() error {
+func (m *MTLSForwarder) MTLSDispatch(direction event.Direction) error {
 	bufData := make([]byte, maxDataBufferSize)
 	var err error
 	for {
@@ -156,6 +162,11 @@ func (m *MTLSForwarder) MTLSDispatch() error {
 			break
 		}
 		m.Connection.Write(bufData[:numBytes])
+		if direction == event.Incoming {
+			m.incomingBytes += numBytes
+		} else {
+			m.outgoingBytes += numBytes
+		}
 	}
 	clog.Infof("Initiating end of MTLS connection(%s)", m.Name)
 	m.CloseConnection()
@@ -167,7 +178,7 @@ func (m *MTLSForwarder) MTLSDispatch() error {
 }
 
 // Dispatch from client to server side
-func (m *MTLSForwarder) dispatch() error {
+func (m *MTLSForwarder) dispatch(direction event.Direction) error {
 	bufData := make([]byte, maxDataBufferSize)
 	var err error
 	for {
@@ -194,6 +205,11 @@ func (m *MTLSForwarder) dispatch() error {
 			clog.Errorf("Dispatch: Write error %v  connection: (local:%s Remote:%s)->,(local: %s Remote%s) ", err,
 				m.Connection.LocalAddr(), m.Connection.RemoteAddr(), m.MTLSConnection.LocalAddr(), m.MTLSConnection.RemoteAddr())
 			break
+		}
+		if direction == event.Incoming {
+			m.incomingBytes += numBytes
+		} else {
+			m.outgoingBytes += numBytes
 		}
 	}
 	clog.Infof("Initiating end of connection(%s)", m.Name)

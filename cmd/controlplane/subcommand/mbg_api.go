@@ -9,6 +9,7 @@ import (
 	"github.ibm.com/mbg-agent/pkg/controlplane/health"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
+	metrics "github.ibm.com/mbg-agent/pkg/metrics"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 
 	"github.ibm.com/mbg-agent/pkg/utils/logutils"
@@ -24,7 +25,7 @@ type Mbg struct {
 }
 
 func (m *Mbg) AddPolicyEngine(policyEngineTarget string, start bool, zeroTrust bool) {
-	store.GetEventManager().AssignPolicyDispatcher(store.GetAddrStart()+policyEngineTarget+"/policy", store.GetHttpClient())
+	store.GetEventManager().AssignPolicyDispatcher(store.GetAddrStart()+policyEngineTarget, store.GetHttpClient())
 	// TODO : Handle different MBG IDs
 	store.SaveState()
 	defaultRule := event.AllowAll
@@ -34,6 +35,12 @@ func (m *Mbg) AddPolicyEngine(policyEngineTarget string, start bool, zeroTrust b
 	if start {
 		policyEngine.StartPolicyDispatcher(store.GetChiRouter(), defaultRule)
 	}
+}
+
+func (m *Mbg) AddMetricsManager(metricsManagerTarget string) {
+	store.GetEventManager().AssignMetricsManager(store.GetAddrStart()+metricsManagerTarget, store.GetHttpClient())
+	store.SaveState()
+	metrics.StartMetricsManager(store.GetChiRouter())
 }
 
 func (m *Mbg) StartMbg() {

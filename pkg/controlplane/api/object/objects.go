@@ -1,5 +1,11 @@
 package apiObject
 
+import (
+	"time"
+
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+)
+
 // ImportReply return dataplane information (port) about new import endpoint
 type ImportReply struct {
 	Id   string
@@ -37,6 +43,7 @@ type NewImportConnParmaReply struct {
 	Action string
 	Target string
 	SrcId  string
+	ConnId string
 }
 
 // New connection to export service struct request
@@ -51,4 +58,17 @@ type NewExportConnParmaReply struct {
 	Action          string
 	SrcGwEndpoint   string
 	DestSvcEndpoint string
+	ConnId          string
+}
+
+// Connection Status
+type ConnectionStatus struct {
+	ConnectionId  string
+	GlobalId      string // To be used to trace a flow across gateways
+	IncomingBytes int
+	OutgoingBytes int
+	StartTstamp   time.Time
+	LastTstamp    time.Time
+	Direction     eventManager.Direction
+	State         eventManager.ConnectionState
 }

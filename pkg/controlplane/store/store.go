@@ -19,6 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 )
 
 var log = logrus.WithField("component", s.MyInfo.Id)
@@ -37,7 +38,7 @@ type mbgState struct {
 	LocalServiceEndpoints map[string]string
 	LocalPortMap          map[int]bool
 	RemoteServiceMap      map[string][]string
-	MyEventManager        eventManager.MbgEventManager
+	MyEventManager        event.EventManager
 }
 
 type MbgInfo struct {
@@ -87,7 +88,7 @@ var s = mbgState{MyInfo: MbgInfo{},
 	LocalPortMap:     make(map[int]bool),
 	Connections:      make(map[string]string),
 	RemoteServiceMap: make(map[string][]string),
-	MyEventManager:   eventManager.MbgEventManager{},
+	MyEventManager:   event.EventManager{},
 }
 var stopCh = make(map[string]chan bool)
 
@@ -150,7 +151,7 @@ func GetRemoteServicesArr() map[string][]RemoteService {
 	return s.RemoteServices
 }
 
-func GetEventManager() *eventManager.MbgEventManager {
+func GetEventManager() *event.EventManager {
 	return &s.MyEventManager
 }
 
