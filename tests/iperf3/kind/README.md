@@ -91,6 +91,9 @@ Initialize gwctl CLI:
 
     gwctl init --id "gwctl1" --gwIP $MBG1IP:30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils//mtls/mbg1.crt --key $PROJECT_FOLDER/tests/utils/mtls/mbg1.key
 
+Note : If you are using macOS to run the kind cluster, instead of running gwctl in the macOS, it's better to run it within the individual kind cluster in the following way. The subsequent gwctl commands need to be called from the respective KIND cluster.
+
+    kubectl exec -i $MBG1_CP -- ./gwctl init --id "gwctl1" --gwIP $MBG1IP:30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils//mtls/mbg1.crt --key $PROJECT_FOLDER/tests/utils/mtls/mbg1.key
 Start the Gateway in Cluster 2:
 
     kubectl config use-context kind-cluster2
@@ -111,19 +114,20 @@ In this step, we add the peer for each  gateway using the gwctl:
     gwctl create peer --myid gwctl2 --name mbg1 --host $MBG1IP --port 30443
 
 ### <ins> Step 5: Add services <ins>
-In this step, we add the iperf3 server/client in the respective cluster gateways.  
+In this step, we add the iperf3 server in the respective cluster gateways.  
 Add the iperf3-server service to the Cluster 2 gateway:
 
     gwctl create export --myid gwctl2 --name iperf3-server --host iperf3-server --port 5000
 
+Note: iperf3-client doesnt need to be added since it is not exported.
 ### <ins> Step 6: import iperf3 server service from Cluster 2 <ins>
 In this step, we import the iperf3-server service from Cluster 2 gateway to Cluster 1 gateway
 First, we specify which service we want to import:
 
-    gwctl --myid gwctl1 create import --name iperf3-server --host iperf3-server --port 5000
+    gwctl create import --myid gwctl1 --name iperf3-server --host iperf3-server --port 5000
 Second, we specify the peer we want to import the service:
 
-    gwctl --myid gwctl1 create binding --import iperf3-server --peer mbg2
+    gwctl create binding --myid gwctl1 --import iperf3-server --peer mbg2
 
 ### <ins> Final Step : Test Service connectivity <ins>
 Start the iperf3 test from cluster 1:
@@ -138,6 +142,7 @@ To see the control-plane state of the cluster:
 To see the control-plane log of the cluster:
 
     kubectl exec -i $MBG1_CP -- ./controlplane get log
+
 ### <ins> Cleanup <ins>
 Delete all Kind clusters:
 
@@ -145,7 +150,7 @@ Delete all Kind clusters:
     kind delete cluster --name=cluster2
 
 ### <ins> Automated Tests <ins>
-To run the above tests as part of an automated script.
+To run the above tests as part of an automated script with three clusters.
 
     ./allinone.py
 ## Running the packaged Demo
