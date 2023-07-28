@@ -63,7 +63,7 @@ var startCmd = &cobra.Command{
 		}
 
 		if observe {
-			m.AddMetricsManager("localhost:"+cportLocal+"/metrics", true)
+			m.AddMetricsManager("localhost:" + cportLocal + "/metrics")
 		}
 
 		store.PrintState()

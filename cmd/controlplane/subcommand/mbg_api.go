@@ -37,12 +37,10 @@ func (m *Mbg) AddPolicyEngine(policyEngineTarget string, start bool, zeroTrust b
 	}
 }
 
-func (m *Mbg) AddMetricsManager(metricsManagerTarget string, start bool) {
+func (m *Mbg) AddMetricsManager(metricsManagerTarget string) {
 	store.GetEventManager().AssignMetricsManager(store.GetAddrStart()+metricsManagerTarget, store.GetHttpClient())
 	store.SaveState()
-	if start {
-		metrics.StartMetricsManager(store.GetChiRouter())
-	}
+	metrics.StartMetricsManager(store.GetChiRouter())
 }
 
 func (m *Mbg) StartMbg() {

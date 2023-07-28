@@ -18,14 +18,15 @@ const (
 
 // ClientConfig contain all Client configuration to send requests to the GW
 type ClientConfig struct {
-	GwIP           string        `json:"gwIP"`
-	ID             string        `json:"ID"`
-	CaFile         string        `json:"CaFile"`
-	CertFile       string        `json:"CertFile"`
-	KeyFile        string        `json:"KeyFile"`
-	Dataplane      string        `json:"Dataplane"`
-	PolicyEngineIP string        `json:"PolicyEngineIP"`
-	logger         *logrus.Entry `json:"-"`
+	GwIP             string        `json:"gwIP"`
+	ID               string        `json:"ID"`
+	CaFile           string        `json:"CaFile"`
+	CertFile         string        `json:"CertFile"`
+	KeyFile          string        `json:"KeyFile"`
+	Dataplane        string        `json:"Dataplane"`
+	PolicyEngineIP   string        `json:"PolicyEngineIP"`
+	MetricsManagerIP string        `json:"MetricsManagerIP"`
+	logger           *logrus.Entry `json:"-"`
 	ClientConfigInterface
 }
 
@@ -38,20 +39,22 @@ type ClientConfigInterface interface {
 	GetCaFile() string
 	GetKeyFile() string
 	GetPolicyEngineIP() string
+	GetMetricsManagerIP() string
 	NewConfig(id, GwIP, caFile, certificateFile, keyFile, dataplane string)
 }
 
 // NewClientConfig create config file with all the configuration of the Client
 func NewClientConfig(cfg ClientConfig) (*ClientConfig, error) {
 	c := ClientConfig{
-		ID:             cfg.ID,
-		GwIP:           cfg.GwIP,
-		Dataplane:      cfg.Dataplane,
-		CertFile:       cfg.CertFile,
-		KeyFile:        cfg.KeyFile,
-		CaFile:         cfg.CaFile,
-		PolicyEngineIP: cfg.PolicyEngineIP,
-		logger:         logrus.WithField("component", "gwctl/config"),
+		ID:               cfg.ID,
+		GwIP:             cfg.GwIP,
+		Dataplane:        cfg.Dataplane,
+		CertFile:         cfg.CertFile,
+		KeyFile:          cfg.KeyFile,
+		CaFile:           cfg.CaFile,
+		PolicyEngineIP:   cfg.PolicyEngineIP,
+		MetricsManagerIP: cfg.MetricsManagerIP,
+		logger:           logrus.WithField("component", "gwctl/config"),
 	}
 
 	_, err := c.createProjectfolder()
@@ -104,6 +107,11 @@ func (c *ClientConfig) GetKeyFile() string {
 // GetPolicyEngineIP return the policy server address
 func (c *ClientConfig) GetPolicyEngineIP() string {
 	return c.PolicyEngineIP
+}
+
+// GetPolicyEngineIP return the metrics manager address
+func (c *ClientConfig) GetMetricsManagerIP() string {
+	return c.MetricsManagerIP
 }
 
 /********************************/
