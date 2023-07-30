@@ -6,6 +6,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/bbolt"
+
+	"github.ibm.com/mbg-agent/pkg/store/kv"
 )
 
 const (
@@ -19,12 +21,38 @@ type Store struct {
 	logger *logrus.Entry
 }
 
-// Put an item to store.
-func (s *Store) Put(key, value []byte) error {
-	s.logger.Debugf("Putting key: %v.", key)
+// Create a (key, value) in the store.
+func (s *Store) Create(key, value []byte) error {
+	s.logger.Debugf("Creating key: %v.", key)
 
 	return s.db.Update(func(tx *bbolt.Tx) error {
-		return tx.Bucket([]byte(bucketName)).Put(key, value)
+		bucket := tx.Bucket([]byte(bucketName))
+		if bucket.Get(key) != nil {
+			return &kv.KeyExistsError{}
+		}
+		return bucket.Put(key, value)
+	})
+}
+
+// Update a (key, value) in the store.
+func (s *Store) Update(key []byte, mutator func([]byte) ([]byte, error)) error {
+	s.logger.Debugf("Updating key: %v.", key)
+
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(bucketName))
+
+		value := bucket.Get(key)
+		if value == nil {
+			return &kv.KeyNotFoundError{}
+		}
+
+		// update value
+		updated, err := mutator(value)
+		if err != nil {
+			return err
+		}
+
+		return bucket.Put(key, updated)
 	})
 }
 
