@@ -109,7 +109,7 @@ func (c *ClientConfig) GetPolicyEngineIP() string {
 	return c.PolicyEngineIP
 }
 
-// GetPolicyEngineIP return the metrics manager address
+// GetMetricsManagerIP return the metrics manager address
 func (c *ClientConfig) GetMetricsManagerIP() string {
 	return c.MetricsManagerIP
 }
@@ -200,6 +200,8 @@ func readConfigFromFile(id string) (ClientConfig, error) {
 	}
 	return s, nil
 }
+
+// ClientPath get CLI config file from id
 func ClientPath(id string) string {
 	cfgFile := configFile
 	if id != "" {

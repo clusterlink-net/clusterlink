@@ -13,7 +13,7 @@ type metricsGetOptions struct {
 	myID string
 }
 
-// MetricsGet - get a policy command
+// MetricsGetCmd - get a policy command
 func MetricsGetCmd() *cobra.Command {
 	o := metricsGetOptions{}
 	cmd := &cobra.Command{

@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	LogFileName = "dataplane.log"
+	logFileName = "dataplane.log"
 )
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 	// Parse command-line flags
 	flag.Parse()
 	//Set log file
-	logutils.SetLog(logLevel, true, LogFileName)
+	logutils.SetLog(logLevel, true, logFileName)
 	log.Infof("Dataplane main starterd")
 
 	//Set Dataplane

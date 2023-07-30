@@ -9,16 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func emptyRun(*cobra.Command, []string) {}
-
-var getCmd = &cobra.Command{
-	Use:   "get",
-	Short: "Get",
-	Long:  `Get`,
-	Run:   emptyRun,
-}
-
-var logGetCmd = &cobra.Command{
+// LogGetCmd prints out the controlplane log
+var LogGetCmd = &cobra.Command{
 	Use:   "log",
 	Short: "Get mbg log file",
 	Long:  `Get mbg log file`,
@@ -27,7 +19,8 @@ var logGetCmd = &cobra.Command{
 	},
 }
 
-var stateGetCmd = &cobra.Command{
+// StateGetCmd prints out the controlplane state
+var StateGetCmd = &cobra.Command{
 	Use:   "state",
 	Short: "Get mbg state",
 	Long:  `Get mbg state`,
@@ -36,14 +29,7 @@ var stateGetCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(getCmd)
-	// Get Log
-	getCmd.AddCommand(logGetCmd)
-	// Get mbg state
-	getCmd.AddCommand(stateGetCmd)
-}
-
+// RunCmd executes os cmd and print the output
 func RunCmd(c string) { //Execute command and print in the end the result
 	argSplit := strings.Split(c, " ")
 	//fmt.Println(argSplit[0], argSplit[1:])
