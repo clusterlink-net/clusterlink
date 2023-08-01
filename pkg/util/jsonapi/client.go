@@ -35,6 +35,11 @@ func (c *Client) Post(path string, body []byte) (*Response, error) {
 	return c.do(http.MethodPost, path, body)
 }
 
+// Put sends an HTTP PUT request.
+func (c *Client) Put(path string, body []byte) (*Response, error) {
+	return c.do(http.MethodPut, path, body)
+}
+
 // Delete sends an HTTP DELETE request.
 func (c *Client) Delete(path string, body []byte) (*Response, error) {
 	return c.do(http.MethodDelete, path, body)
