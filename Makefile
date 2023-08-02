@@ -33,7 +33,7 @@ tidy-go: ; $(info $(M) tidying up go.mod...)
 	@go mod tidy
 
 format-go: tidy-go vet-go ; $(info $(M) formatting code...)
-	@go fmt ./...
+	@goimports -l -w .
 
 vet-go: ; $(info $(M) vetting code...)
 	@go vet ./...
