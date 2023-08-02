@@ -29,6 +29,9 @@ format: fmt
 fmt: format-go tidy-go vet-go
 vet: vet-go
 
+lint:  ; $(info $(M) running linters...)
+	@golangci-lint run
+
 tidy-go: ; $(info $(M) tidying up go.mod...)
 	@go mod tidy
 
