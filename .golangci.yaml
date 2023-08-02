@@ -1,0 +1,20 @@
+run:
+  timeout: 30m
+
+linters:
+  disable-all: false
+  enable:
+    - ginkgolinter
+    - gocritic
+    - govet
+    - ineffassign
+    - staticcheck
+    - stylecheck
+    - unused
+
+linters-settings:
+  gocritic:
+  staticcheck:
+    checks:
+      - "all"
+  stylecheck:
