@@ -2,7 +2,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.ibm.com/mbg-agent/cmd/cl-dataplane/app"
@@ -11,7 +10,6 @@ import (
 func main() {
 	command := app.NewCLDataplaneCommand()
 	if err := command.Execute(); err != nil {
-		fmt.Printf("Error: %v.\n", err)
 		os.Exit(1)
 	}
 }
