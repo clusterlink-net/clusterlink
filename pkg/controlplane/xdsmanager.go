@@ -8,6 +8,7 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	tcpproxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
+	getaddrinfo "github.com/envoyproxy/go-control-plane/envoy/extensions/network/dns_resolver/getaddrinfo/v3"
 	tls "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
@@ -41,7 +42,10 @@ func (m *xdsManager) AddPeer(peer *store.Peer) error {
 
 	clusterName := cpapi.RemotePeerClusterName(peer.Name)
 	dataplaneSNI := dpapi.DataplaneSNI(peer.Name)
-	c := makeEndpointsCluster(clusterName, peer.Gateways, dataplaneSNI)
+	c, err := makeEndpointsCluster(clusterName, peer.Gateways, dataplaneSNI)
+	if err != nil {
+		return err
+	}
 
 	tlsConfig := &tls.UpstreamTlsContext{
 		Sni: dataplaneSNI,
@@ -83,8 +87,11 @@ func (m *xdsManager) AddExport(export *store.Export) error {
 	m.logger.Infof("Adding export '%s'.", export.Name)
 
 	clusterName := cpapi.ExportClusterName(export.Name)
-	c := makeAddressCluster(
+	c, err := makeAddressCluster(
 		clusterName, export.Service.Host, export.Service.Port, "")
+	if err != nil {
+		return err
+	}
 
 	return m.clusters.UpdateResource(clusterName, c)
 }
@@ -160,11 +167,11 @@ func (m *xdsManager) DeleteImport(name string) error {
 	return m.listeners.DeleteResource(listenerName)
 }
 
-func makeAddressCluster(name, addr string, port uint16, hostname string) *cluster.Cluster {
+func makeAddressCluster(name, addr string, port uint16, hostname string) (*cluster.Cluster, error) {
 	return makeEndpointsCluster(name, []api.Endpoint{{Host: addr, Port: port}}, hostname)
 }
 
-func makeEndpointsCluster(name string, endpoints []api.Endpoint, hostname string) *cluster.Cluster {
+func makeEndpointsCluster(name string, endpoints []api.Endpoint, hostname string) (*cluster.Cluster, error) {
 	var lbEndpoints []*endpoint.LbEndpoint
 
 	for _, ep := range endpoints {
@@ -188,9 +195,21 @@ func makeEndpointsCluster(name string, endpoints []api.Endpoint, hostname string
 		lbEndpoints = append(lbEndpoints, lbep)
 	}
 
+	pb, err := anypb.New(&getaddrinfo.GetAddrInfoDnsResolverConfig{})
+	if err != nil {
+		return nil, err
+	}
+
 	c := &cluster.Cluster{
 		Name:           name,
 		ConnectTimeout: durationpb.New(time.Second),
+		ClusterDiscoveryType: &cluster.Cluster_Type{
+			Type: cluster.Cluster_LOGICAL_DNS,
+		},
+		TypedDnsResolverConfig: &core.TypedExtensionConfig{
+			Name:        "envoy.network.dns_resolver.getaddrinfo",
+			TypedConfig: pb,
+		},
 		LoadAssignment: &endpoint.ClusterLoadAssignment{
 			ClusterName: name,
 			Endpoints: []*endpoint.LocalityLbEndpoints{{
@@ -199,14 +218,7 @@ func makeEndpointsCluster(name string, endpoints []api.Endpoint, hostname string
 		},
 	}
 
-	if hostname != "" {
-		// this is needed for AutoHostRewrite
-		c.ClusterDiscoveryType = &cluster.Cluster_Type{
-			Type: cluster.Cluster_LOGICAL_DNS,
-		}
-	}
-
-	return c
+	return c, nil
 }
 
 func makeTCPProxyFilter(clusterName, statPrefix string,

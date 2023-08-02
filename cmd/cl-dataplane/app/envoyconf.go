@@ -47,7 +47,12 @@ static_resources:
         filename: {{.caFile}}
   clusters:
   - name: {{.controlplaneGRPCCluster}}
+    type: LOGICAL_DNS
     connect_timeout: 1s
+    typed_dns_resolver_config:
+      name: envoy.network.dns_resolver.getaddrinfo
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.network.dns_resolver.getaddrinfo.v3.GetAddrInfoDnsResolverConfig
     typed_extension_protocol_options:
       envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
         "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
@@ -73,7 +78,12 @@ static_resources:
           validation_context_sds_secret_config:
             name: {{.validationSecret}}
   - name: {{.controlplaneInternalHTTPCluster}}
+    type: LOGICAL_DNS
     connect_timeout: 1s
+    typed_dns_resolver_config:
+      name: envoy.network.dns_resolver.getaddrinfo
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.network.dns_resolver.getaddrinfo.v3.GetAddrInfoDnsResolverConfig
     load_assignment:
       cluster_name: {{.controlplaneInternalHTTPCluster}}
       endpoints:
@@ -95,7 +105,12 @@ static_resources:
           validation_context_sds_secret_config:
             name: {{.validationSecret}}
   - name: {{.controlplaneExternalHTTPCluster}}
+    type: LOGICAL_DNS
     connect_timeout: 1s
+    typed_dns_resolver_config:
+      name: envoy.network.dns_resolver.getaddrinfo
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.network.dns_resolver.getaddrinfo.v3.GetAddrInfoDnsResolverConfig
     load_assignment:
       cluster_name: {{.controlplaneInternalHTTPCluster}}
       endpoints:
