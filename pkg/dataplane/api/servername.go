@@ -12,9 +12,14 @@ const (
 	ListenPort = 443
 )
 
+// DataplaneServerName returns the dataplane server name for a specific peer.
+func DataplaneServerName(peer string) string {
+	return fmt.Sprintf("%s.%s", serverPrefix, peer)
+}
+
 // DataplaneSNI returns the dataplane SNI for a specific peer.
 func DataplaneSNI(peer string) string {
-	return fmt.Sprintf("%s.%s:%d", serverPrefix, peer, ListenPort)
+	return fmt.Sprintf("%s:%d", DataplaneServerName(peer), ListenPort)
 }
 
 // StripServerPrefix strips the dataplane server prefix from the dataplane server name, yielding the peer name.
