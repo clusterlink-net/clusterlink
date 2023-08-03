@@ -172,10 +172,10 @@ func makeAddressCluster(name, addr string, port uint16, hostname string) (*clust
 }
 
 func makeEndpointsCluster(name string, endpoints []api.Endpoint, hostname string) (*cluster.Cluster, error) {
-	var lbEndpoints []*endpoint.LbEndpoint
+	lbEndpoints := make([]*endpoint.LbEndpoint, len(endpoints))
 
-	for _, ep := range endpoints {
-		lbep := &endpoint.LbEndpoint{
+	for i, ep := range endpoints {
+		lbEndpoints[i] = &endpoint.LbEndpoint{
 			HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 				Endpoint: &endpoint.Endpoint{
 					Address: &core.Address{
@@ -192,7 +192,6 @@ func makeEndpointsCluster(name string, endpoints []api.Endpoint, hostname string
 				},
 			},
 		}
-		lbEndpoints = append(lbEndpoints, lbep)
 	}
 
 	pb, err := anypb.New(&getaddrinfo.GetAddrInfoDnsResolverConfig{})

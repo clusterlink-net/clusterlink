@@ -17,7 +17,6 @@ import (
 // Server for handling REST-JSON requests.
 type Server struct {
 	utilhttp.Server
-	spec *ServerObjectSpec
 
 	logger *logrus.Entry
 }

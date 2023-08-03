@@ -80,13 +80,7 @@ func (s *ObjectStore) Update(name string, mutator func(any) any) error {
 // Delete an object identified by the given name.
 func (s *ObjectStore) Delete(name string) error {
 	s.logger.Infof("Deleting: '%s'.", name)
-
-	// delete from store
-	if err := s.store.Delete(s.kvKey(name)); err != nil {
-		return err
-	}
-
-	return nil
+	return s.store.Delete(s.kvKey(name))
 }
 
 // GetAll returns all of the objects in the store.

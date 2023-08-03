@@ -13,8 +13,7 @@ import (
 type Server struct {
 	tcp.Listener
 
-	initCallback func(server *grpc.Server)
-	server       *grpc.Server
+	server *grpc.Server
 }
 
 // GetGRPCServer returns the underlying gRPC server instance.

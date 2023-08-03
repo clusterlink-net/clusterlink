@@ -56,6 +56,7 @@ type ParsedCertData struct {
 // ServerConfig return a TLS configuration for a server.
 func (c *ParsedCertData) ServerConfig() *tls.Config {
 	return &tls.Config{
+		MinVersion:   tls.VersionTLS12,
 		Certificates: []tls.Certificate{c.certificate},
 		ClientCAs:    c.ca,
 		ClientAuth:   tls.RequireAndVerifyClientCert,
@@ -65,6 +66,7 @@ func (c *ParsedCertData) ServerConfig() *tls.Config {
 // ClientConfig return a TLS configuration for a client.
 func (c *ParsedCertData) ClientConfig(sni string) *tls.Config {
 	return &tls.Config{
+		MinVersion:   tls.VersionTLS12,
 		Certificates: []tls.Certificate{c.certificate},
 		RootCAs:      c.ca,
 		ServerName:   sni,

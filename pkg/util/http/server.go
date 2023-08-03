@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -77,9 +78,10 @@ func NewServer(name string, tlsConfig *tls.Config) Server {
 		name:     name,
 		router:   router,
 		server: &http.Server{
-			Handler:   router,
-			TLSConfig: tlsConfig,
-			ErrorLog:  log.New(logWriter, "", 0),
+			Handler:           router,
+			TLSConfig:         tlsConfig,
+			ErrorLog:          log.New(logWriter, "", 0),
+			ReadHeaderTimeout: time.Second,
 		},
 		logger:    logger,
 		logWriter: logWriter,

@@ -38,6 +38,7 @@ func (m *portManager) getRandomFreePort() uint16 {
 	// try to generate a random port number and checking if it's free
 	var port uint16
 	for i := 0; i < maxRandomTries; i++ {
+		//#nosec G404 -- port numbers do not need secure random
 		port := startPort + uint16(rand.Intn(int(endPort-startPort)))
 
 		if _, ok := m.leasedPorts[port]; !ok {
