@@ -217,11 +217,11 @@ func createImportK8sService(i api.Import) error {
 		return err
 	}
 	mlog.Infof("Creating service end point at %s:%d:%d in namespace %s for service %s", i.Name, i.Spec.Service.Port, targetPort, dataplanePod.Namespace, i.Name)
-	return kubernetes.Data.CreateServiceEndpoint(i.Spec.Service.Host, int(i.Spec.Service.Port), targetPort, dataplanePod.Namespace, K8sSvcApp)
+	return kubernetes.Data.CreateService(i.Spec.Service.Host, int(i.Spec.Service.Port), targetPort, dataplanePod.Namespace, K8sSvcApp)
 }
 
 // Delete local service endpoint after import a service
 func deleteImportK8sService(svcID string) error {
 	mlog.Infof("Deleting service end point at %s", svcID)
-	return kubernetes.Data.DeleteServiceEndpoint(svcID)
+	return kubernetes.Data.DeleteService(svcID)
 }

@@ -2,6 +2,8 @@ package subcommand
 
 import (
 	"fmt"
+	"net"
+	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -12,10 +14,11 @@ import (
 
 // exportCreateOptions is the command line options for 'create export'
 type exportCreateOptions struct {
-	myID string
-	name string
-	host string
-	port uint16
+	myID     string
+	name     string
+	host     string
+	port     uint16
+	external string
 }
 
 // ExportCreateCmd - Create an exported service.
@@ -41,13 +44,36 @@ func (o *exportCreateOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "Exported service name")
 	fs.StringVar(&o.host, "host", "", "Exported service endpoint hostname (IP/DNS), if unspecified, uses the service name")
 	fs.Uint16Var(&o.port, "port", 0, "Exported service port")
+	fs.StringVar(&o.external, "external", "", "External endpoint <host>:<port, which the exported service will be connected")
 }
 
 // run performs the execution of the 'create export' subcommand
 func (o *exportCreateOptions) run() error {
+	var exEndpoint api.Endpoint
 	g, err := admin.GetClientFromID(o.myID)
 	if err != nil {
 		return err
+	}
+
+	if o.external != "" {
+		exHost, exPort, err := net.SplitHostPort(o.external)
+		if err != nil {
+			return err
+		}
+
+		if exHost == "" {
+			return fmt.Errorf("missing host in address")
+		}
+
+		exPortInt, err := strconv.Atoi(exPort)
+		if err != nil {
+			return err
+		}
+
+		exEndpoint = api.Endpoint{
+			Host: exHost,
+			Port: uint16(exPortInt),
+		}
 	}
 
 	err = g.CreateExportService(api.Export{
@@ -56,6 +82,7 @@ func (o *exportCreateOptions) run() error {
 			Service: api.Endpoint{
 				Host: o.host,
 				Port: o.port},
+			ExternalService: exEndpoint,
 		},
 	})
 	if err != nil {

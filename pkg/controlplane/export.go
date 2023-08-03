@@ -11,6 +11,7 @@ import (
 
 	"github.ibm.com/mbg-agent/pkg/api"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
+	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
 )
 
 var slog = logrus.WithField("component", "mbgControlPlane/export")
@@ -27,8 +28,11 @@ func AddExportServiceHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.Infof("AddExportServiceHandler for service: %v", e)
 	// AddService control plane logic
-	addExportService(e)
-
+	err = addExportService(e)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	// Response
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write([]byte("Add Service to MBG succeed"))
@@ -38,9 +42,40 @@ func AddExportServiceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Add local service - control plane logic
-func addExportService(e api.Export) {
+func addExportService(e api.Export) error {
 	store.UpdateState()
 	store.AddLocalService(e.Name, e.Spec.Service.Host, e.Spec.Service.Port)
+	if e.Spec.ExternalService.Host != "" && e.Spec.ExternalService.Port != 0 {
+		err := createK8sExternalEndpoint(e)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createK8sExternalEndpoint(e api.Export) error {
+	dataplanePod, err := kubernetes.Data.GetInfoApp(K8sSvcApp)
+	if err != nil {
+		return err
+	}
+	namespace := dataplanePod.Namespace
+	mlog.Infof("Creating K8s endPoint at %s:%d in namespace %s that connected to external IP: %s:%d", e.Spec.Service.Host, e.Spec.Service.Port, namespace, e.Spec.ExternalService.Host, e.Spec.ExternalService.Port)
+	err = kubernetes.Data.CreateEndpoint(e.Spec.Service.Host, namespace, e.Spec.ExternalService.Host, int(e.Spec.ExternalService.Port))
+	if err != nil {
+		return err
+	}
+
+	mlog.Infof("Creating k8s service at %s:%d in namespace %s that connected to endpoint %s", e.Name, e.Spec.Service.Port, namespace, e.Spec.Service.Host)
+	err = kubernetes.Data.CreateService(e.Spec.Service.Host, int(e.Spec.Service.Port), int(e.Spec.Service.Port), namespace, "")
+	if err != nil {
+		mlog.Infoln("Error in creating k8s service:", err)
+		mlog.Infof("Deleting K8s endPoint at %s:%d in namespace %s that connected to external IP: %s:%d", e.Spec.Service.Host, e.Spec.Service.Port, namespace, e.Spec.ExternalService.Host, e.Spec.ExternalService.Port)
+		kubernetes.Data.DeleteEndpoint(e.Spec.Service.Host)
+		return err
+	}
+
+	return nil
 }
 
 // GetExportServiceHandler - HTTP handler for get local service
@@ -103,18 +138,21 @@ func DelExportServiceHandler(w http.ResponseWriter, r *http.Request) {
 	svcID := chi.URLParam(r, "id")
 
 	// AddService control plane logic
-	delExportService(svcID)
-
+	err := delExportService(svcID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	// Response
 	w.WriteHeader(http.StatusOK)
-	_, err := w.Write([]byte("Service deleted successfully"))
+	_, err = w.Write([]byte("Service deleted successfully"))
 	if err != nil {
 		slog.Println(err)
 	}
 }
 
 // Delete local service - control plane logic
-func delExportService(svcID string) {
+func delExportService(svcID string) error {
 	store.UpdateState()
 	var svcArr []store.LocalService
 	if svcID == "*" { //remove all services
@@ -125,5 +163,13 @@ func delExportService(svcID string) {
 
 	for _, svc := range svcArr {
 		store.DelLocalService(svc.Id)
+		if kubernetes.Data.CheckEndpointExist(svc.Id) {
+			kubernetes.Data.DeleteEndpoint(svc.Id)
+		}
+		if kubernetes.Data.CheckServiceExist(svc.Id) {
+			kubernetes.Data.DeleteService(svc.Id)
+		}
 	}
+	return nil
+
 }

@@ -122,6 +122,8 @@ if __name__ == "__main__":
     printHeader("\n\nStart Iperf3 testing")
     useKindCluster(mbg2Name)
     waitPod("iperf3-server")
-    #Test MBG1
+    # Test MBG1
     directTestIperf3(mbg1Name, srcSvc, mbg2Ip, kindDestPort)
     testIperf3Client(mbg1Name, srcSvc, destSvc,    destPort)
+
+

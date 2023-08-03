@@ -15,6 +15,7 @@ from tests.iperf3.kind.iperf3_service_import import importService
 from tests.iperf3.kind.iperf3_service_get import getService
 from tests.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
 from tests.iperf3.kind.apply_policy import applyPolicy
+from tests.iperf3.kind.iperf3_external_service import exportExternalService
 
 from tests.utils.kind.kindAux import useKindCluster, startGwctl, getKindIp,startKindClusterMbg
 
@@ -148,6 +149,12 @@ if __name__ == "__main__":
     directTestIperf3(mbg3Name, srcSvc, mbg2Ip, kindDestPort)
     testIperf3Client(mbg3Name, srcSvc, destSvc,    destPort)
 
+    # Test external
+    printHeader("\n\nTest external service")
+    externalName ="iperf3-external" 
+    exportExternalService(gwctl2Name,externalName, destSvc,destPort,mbg2Ip,kindDestPort )
+    importService(mbg1Name, gwctl1Name, externalName,destPort, mbg2Name)
+    testIperf3Client(mbg1Name, srcSvc, externalName,    destPort)
 
     #Block Traffic in MBG3
     printHeader("Start Block Traffic in MBG3")

@@ -21,28 +21,35 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var Data kubeDataInterface = &KubeData{}
+// Data contain the kube informer datat should be part of the control plane
+var Data kubeDataInterface = &kubeData{}
 
 const (
 	kubeConfigEnvVariable = "KUBECONFIG"
 	syncTime              = 1 * time.Minute
-	IndexIP               = "byIP"
+	indexIP               = "byIP"
 	typePod               = "Pod"
 	typeService           = "Service"
-	AppLabel              = "app"
+	// AppLabel default pod label kubeinformer use
+	AppLabel = "app"
 )
 
 type kubeDataInterface interface {
-	GetInfoIp(string) (*Info, error)
+	GetInfoIP(string) (*Info, error)
 	GetInfoApp(string) (*Info, error)
 	GetLabel(string, string) (string, error)
 	GetIpFromLabel(string) ([]string, error)
 	InitFromConfig(string) error
-	CreateServiceEndpoint(string, int, int, string, string) error
-	DeleteServiceEndpoint(string) error
+	CreateService(string, int, int, string, string) error
+	CreateEndpoint(string, string, string, int) error
+	DeleteService(string) error
+	DeleteEndpoint(string) error
+	CheckServiceExist(string) bool
+	CheckEndpointExist(string) bool
 }
 
-type KubeData struct {
+// kubeData contain all k8s information of the cluster/namespace
+type kubeData struct {
 	kubeDataInterface
 	// pods and services cache the different object types as *Info pointers
 	pods     cache.SharedIndexInformer
@@ -51,10 +58,11 @@ type KubeData struct {
 	replicaSets cache.SharedIndexInformer
 	kubeClient  *kubernetes.Clientset
 	serviceMap  map[string]string
+	endpointMap map[string]string
 	stopChan    chan struct{}
 }
 
-type Owner struct {
+type owner struct {
 	Type string
 	Name string
 }
@@ -68,19 +76,19 @@ type Info struct {
 	// Informers need that internal object is an ObjectMeta instance
 	metav1.ObjectMeta
 	Type   string
-	Owner  Owner
+	Owner  owner
 	HostIP string
 	ips    []string
 }
 
 var commonIndexers = map[string]cache.IndexFunc{
-	IndexIP: func(obj interface{}) ([]string, error) {
+	indexIP: func(obj interface{}) ([]string, error) {
 		return obj.(*Info).ips, nil
 	},
 }
 
-// Return pod information according to the pod Ip
-func (k *KubeData) GetInfoIp(ip string) (*Info, error) {
+// GetInfoIP Return the pod information according to the pod Ip
+func (k *kubeData) GetInfoIP(ip string) (*Info, error) {
 	if info, ok := k.fetchInformers(ip); ok {
 		// Owner data might be discovered after the owned, so we fetch it
 		// at the last moment
@@ -94,7 +102,7 @@ func (k *KubeData) GetInfoIp(ip string) (*Info, error) {
 }
 
 // Return pod information according to the application name
-func (k *KubeData) GetInfoApp(app string) (*Info, error) {
+func (k *kubeData) GetInfoApp(app string) (*Info, error) {
 	podLister := k.pods.GetIndexer()
 	// Define the label selector
 	labelSelector := labels.SelectorFromSet(labels.Set{"app": app})
@@ -111,7 +119,7 @@ func (k *KubeData) GetInfoApp(app string) (*Info, error) {
 }
 
 // Get Ip and key(prefix of label) and return pod label
-func (k *KubeData) GetLabel(ip string, key string) (string, error) {
+func (k *kubeData) GetLabel(ip string, key string) (string, error) {
 	if info, ok := k.fetchInformers(ip); ok {
 		// Owner data might be discovered after the owned, so we fetch it
 		// at the last moment
@@ -124,8 +132,8 @@ func (k *KubeData) GetLabel(ip string, key string) (string, error) {
 	return "", fmt.Errorf("informers can't find IP %s", ip)
 }
 
-// Get label(prefix of label) and return pod ip
-func (k *KubeData) GetIpFromLabel(label string) ([]string, error) {
+// GetIPFromLabel Get label(prefix of label) and return pod ip
+func (k *kubeData) GetIPFromLabel(label string) ([]string, error) {
 	namespace := "default"
 	label = AppLabel + "=" + label
 
@@ -152,7 +160,7 @@ func (k *KubeData) GetIpFromLabel(label string) ([]string, error) {
 	return podIPs, nil
 }
 
-func (k *KubeData) fetchInformers(ip string) (*Info, bool) {
+func (k *kubeData) fetchInformers(ip string) (*Info, bool) {
 	if info, ok := infoForIP(k.pods.GetIndexer(), ip); ok {
 		return info, true
 	}
@@ -163,7 +171,7 @@ func (k *KubeData) fetchInformers(ip string) (*Info, bool) {
 }
 
 func infoForIP(idx cache.Indexer, ip string) (*Info, bool) {
-	objs, err := idx.ByIndex(IndexIP, ip)
+	objs, err := idx.ByIndex(indexIP, ip)
 	if err != nil {
 		log.WithError(err).WithField("ip", ip).Debug("error accessing index. Ignoring")
 		return nil, false
@@ -174,11 +182,11 @@ func infoForIP(idx cache.Indexer, ip string) (*Info, bool) {
 	return objs[0].(*Info), true
 }
 
-func (k *KubeData) getOwner(info *Info) Owner {
+func (k *kubeData) getOwner(info *Info) owner {
 	if len(info.OwnerReferences) != 0 {
 		ownerReference := info.OwnerReferences[0]
 		if ownerReference.Kind != "ReplicaSet" {
-			return Owner{
+			return owner{
 				Name: ownerReference.Name,
 				Type: ownerReference.Kind,
 			}
@@ -191,7 +199,7 @@ func (k *KubeData) getOwner(info *Info) Owner {
 		} else if ok {
 			rsInfo := item.(*metav1.ObjectMeta)
 			if len(rsInfo.OwnerReferences) > 0 {
-				return Owner{
+				return owner{
 					Name: rsInfo.OwnerReferences[0].Name,
 					Type: rsInfo.OwnerReferences[0].Kind,
 				}
@@ -199,13 +207,13 @@ func (k *KubeData) getOwner(info *Info) Owner {
 		}
 	}
 	// If no owner references found, return itself as owner
-	return Owner{
+	return owner{
 		Name: info.Name,
 		Type: info.Type,
 	}
 }
 
-func (k *KubeData) initPodInformer(informerFactory informers.SharedInformerFactory) error {
+func (k *kubeData) initPodInformer(informerFactory informers.SharedInformerFactory) error {
 	pods := informerFactory.Core().V1().Pods().Informer()
 	// Transform any *v1.Pod instance into a *Info instance to save space
 	// in the informer's cache
@@ -236,14 +244,14 @@ func (k *KubeData) initPodInformer(informerFactory informers.SharedInformerFacto
 		return fmt.Errorf("can't set pods transform: %w", err)
 	}
 	if err := pods.AddIndexers(commonIndexers); err != nil {
-		return fmt.Errorf("can't add %s indexer to Pods informer: %w", IndexIP, err)
+		return fmt.Errorf("can't add %s indexer to Pods informer: %w", indexIP, err)
 	}
 
 	k.pods = pods
 	return nil
 }
 
-func (k *KubeData) initServiceInformer(informerFactory informers.SharedInformerFactory) error {
+func (k *kubeData) initServiceInformer(informerFactory informers.SharedInformerFactory) error {
 	services := informerFactory.Core().V1().Services().Informer()
 	// Transform any *v1.Service instance into a *Info instance to save space
 	// in the informer's cache
@@ -268,14 +276,14 @@ func (k *KubeData) initServiceInformer(informerFactory informers.SharedInformerF
 		return fmt.Errorf("can't set services transform: %w", err)
 	}
 	if err := services.AddIndexers(commonIndexers); err != nil {
-		return fmt.Errorf("can't add %s indexer to Pods informer: %w", IndexIP, err)
+		return fmt.Errorf("can't add %s indexer to Pods informer: %w", indexIP, err)
 	}
 
 	k.services = services
 	return nil
 }
 
-func (k *KubeData) initReplicaSetInformer(informerFactory informers.SharedInformerFactory) error {
+func (k *kubeData) initReplicaSetInformer(informerFactory informers.SharedInformerFactory) error {
 	k.replicaSets = informerFactory.Apps().V1().ReplicaSets().Informer()
 	// To save space, instead of storing a complete *appvs1.Replicaset instance, the
 	// informer's cache will store a *metav1.ObjectMeta with the minimal required fields
@@ -295,11 +303,11 @@ func (k *KubeData) initReplicaSetInformer(informerFactory informers.SharedInform
 	return nil
 }
 
-func (k *KubeData) InitFromConfig(kubeConfigPath string) error {
+func (k *kubeData) InitFromConfig(kubeConfigPath string) error {
 	// Initialization variables
 	k.stopChan = make(chan struct{})
 
-	config, err := LoadConfig(kubeConfigPath)
+	config, err := loadConfig(kubeConfigPath)
 	if err != nil {
 		return err
 	}
@@ -317,7 +325,7 @@ func (k *KubeData) InitFromConfig(kubeConfigPath string) error {
 	return nil
 }
 
-func LoadConfig(kubeConfigPath string) (*rest.Config, error) {
+func loadConfig(kubeConfigPath string) (*rest.Config, error) {
 	// if no config path is provided, load it from the env variable
 	if kubeConfigPath == "" {
 		kubeConfigPath = os.Getenv(kubeConfigEnvVariable)
@@ -344,7 +352,7 @@ func LoadConfig(kubeConfigPath string) (*rest.Config, error) {
 	return config, nil
 }
 
-func (k *KubeData) initInformers(client kubernetes.Interface) error {
+func (k *kubeData) initInformers(client kubernetes.Interface) error {
 	informerFactory := informers.NewSharedInformerFactory(client, syncTime)
 
 	err := k.initPodInformer(informerFactory)
@@ -363,13 +371,19 @@ func (k *KubeData) initInformers(client kubernetes.Interface) error {
 	log.Infof("Starting kubernetes informers, waiting for syncronization")
 	informerFactory.Start(k.stopChan)
 	informerFactory.WaitForCacheSync(k.stopChan)
+	k.serviceMap = make(map[string]string)
+	k.endpointMap = make(map[string]string)
 	log.Infof("Kubernetes informers started")
 
 	return nil
 }
 
-// Add support to create a service/Nodeport for a target port
-func (k *KubeData) CreateServiceEndpoint(serviceName string, port int, targetPort int, namespace, mbgAppName string) error {
+// CreateService Add support to create a service/NodePort for a target port
+func (k *kubeData) CreateService(serviceName string, port int, targetPort int, namespace, mbgAppName string) error {
+	var selectorMap map[string]string
+	if mbgAppName != "" {
+		selectorMap = map[string]string{"app": mbgAppName}
+	}
 	serviceSpec := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: serviceName},
 		Spec: v1.ServiceSpec{
@@ -381,22 +395,80 @@ func (k *KubeData) CreateServiceEndpoint(serviceName string, port int, targetPor
 				},
 			},
 			Type:     v1.ServiceTypeClusterIP,
-			Selector: map[string]string{"app": mbgAppName},
+			Selector: selectorMap,
 		},
 	}
+
 	_, err := k.kubeClient.CoreV1().Services(namespace).Create(context.TODO(), serviceSpec, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
-	if k.serviceMap == nil {
-		k.serviceMap = make(map[string]string)
-	}
+
 	k.serviceMap[serviceName] = namespace
 
 	return nil
 }
 
-func (k *KubeData) DeleteServiceEndpoint(serviceName string) error {
-	namespace := k.serviceMap[serviceName]
-	return k.kubeClient.CoreV1().Services(namespace).Delete(context.TODO(), serviceName, metav1.DeleteOptions{})
+// CreateEndpoint create k8s endpoint
+func (k *kubeData) CreateEndpoint(epName, namespace, targetIP string, targetPort int) error {
+	endpoint := &v1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      epName,
+			Namespace: namespace,
+		},
+		Subsets: []v1.EndpointSubset{
+			{
+				Addresses: []v1.EndpointAddress{
+					{
+						IP: targetIP, // Replace with the desired IP address of the endpoint.
+					},
+				},
+				Ports: []v1.EndpointPort{
+					{
+						Port: int32(targetPort),
+					},
+				},
+			},
+		},
+	}
+
+	_, err := k.kubeClient.CoreV1().Endpoints(namespace).Create(context.TODO(), endpoint, metav1.CreateOptions{})
+	if err != nil {
+		log.Errorf("Error creating endpoint: %s", err)
+		return err
+
+	}
+	k.serviceMap[epName] = namespace
+
+	return nil
+}
+
+// checkServiceExist check if k8s service that was create by the gw exist
+func (k *kubeData) checkServiceExist(serviceName string) bool {
+	_, ok := k.serviceMap[serviceName]
+	return ok
+}
+
+// checkEndpointExist check if k8s endpoint that was create by the gw exist
+func (k *kubeData) checkEndpointExist(epName string) bool {
+	_, ok := k.endpointMap[epName]
+	return ok
+}
+
+// DeleteService delete k8s service
+func (k *kubeData) DeleteService(serviceName string) error {
+	if namespace, ok := k.serviceMap[serviceName]; ok {
+		return k.kubeClient.CoreV1().Services(namespace).Delete(context.TODO(), serviceName, metav1.DeleteOptions{})
+	}
+
+	return fmt.Errorf("serviceName: %s is not exists", serviceName)
+}
+
+// DeleteEndpoint delete k8s endpoint
+func (k *kubeData) DeleteEndpoint(epName string) error {
+	if namespace, ok := k.endpointMap[epName]; ok {
+		return k.kubeClient.CoreV1().Endpoints(namespace).Delete(context.TODO(), epName, metav1.DeleteOptions{})
+	}
+
+	return fmt.Errorf("epName: %s is not exists", epName)
 }
