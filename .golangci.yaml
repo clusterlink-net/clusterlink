@@ -4,12 +4,21 @@ run:
 linters:
   disable-all: false
   enable:
+    - bodyclose
+    - errcheck
+    - exportloopref
+    - gosec
+    - gosimple
     - ginkgolinter
     - gocritic
     - govet
     - ineffassign
+    - prealloc
+    - revive
     - staticcheck
     - stylecheck
+    - unconvert
+    - unparam
     - unused
 
 linters-settings:
