@@ -18,7 +18,8 @@ Build MBG docker image:
     
     make docker-build
 
-Install local control (gwctl) for the gateway: 
+Install local control (gwctl) for the gateway:
+    
     make build
     sudo make install
 
