@@ -15,21 +15,32 @@ import (
 
 // Client for accessing a remote peer.
 type Client struct {
+	// jsonapi clients for connecting to the remote peer (one per each gateway)
 	clients []*jsonapi.Client
 
 	logger *logrus.Entry
 }
 
+// remoteServerAuthorizationResponse represents an authorization response received from a remote controlplane server.
+type remoteServerAuthorizationResponse struct {
+	// ServiceExists is true if the requested service exists.
+	ServiceExists bool
+	// Allowed is true if the request is allowed.
+	Allowed bool
+	// AccessToken is a token that allows accessing the requested service.
+	AccessToken string
+}
+
 // Authorize a request for accessing a peer exported service, yielding an access token.
-func (c *Client) Authorize(req *api.AuthorizationRequest) (string, error) {
+func (c *Client) Authorize(req *api.AuthorizationRequest) (*remoteServerAuthorizationResponse, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
-		return "", fmt.Errorf("unable to serialize authorization request: %v", err)
+		return nil, fmt.Errorf("unable to serialize authorization request: %v", err)
 	}
 
-	var resp *jsonapi.Response
+	var serverResp *jsonapi.Response
 	for _, client := range c.clients {
-		resp, err = client.Post(api.RemotePeerAuthorizationPath, body)
+		serverResp, err = client.Post(api.RemotePeerAuthorizationPath, body)
 		if err == nil {
 			break
 		}
@@ -39,20 +50,32 @@ func (c *Client) Authorize(req *api.AuthorizationRequest) (string, error) {
 	}
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	if resp.Status != http.StatusOK {
-		return "", fmt.Errorf("unable to authorize connection (%d), server returned: %s",
-			resp.Status, resp.Body)
+	resp := &remoteServerAuthorizationResponse{}
+	if serverResp.Status == http.StatusNotFound {
+		return resp, nil
+	}
+
+	resp.ServiceExists = true
+	if serverResp.Status == http.StatusUnauthorized {
+		return resp, nil
+	}
+
+	if serverResp.Status != http.StatusOK {
+		return nil, fmt.Errorf("unable to authorize connection (%d), server returned: %s",
+			serverResp.Status, serverResp.Body)
 	}
 
 	var authResp api.AuthorizationResponse
-	if err := json.Unmarshal(resp.Body, &authResp); err != nil {
-		return "", fmt.Errorf("unable to parse server response: %v", err)
+	if err := json.Unmarshal(serverResp.Body, &authResp); err != nil {
+		return nil, fmt.Errorf("unable to parse server response: %v", err)
 	}
 
-	return authResp.AccessToken, nil
+	resp.Allowed = true
+	resp.AccessToken = authResp.AccessToken
+	return resp, nil
 }
 
 // NewClient returns a new Peer API client.
