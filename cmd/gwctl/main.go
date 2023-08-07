@@ -22,6 +22,8 @@ func main() {
 	rootCmd.AddCommand(deleteCmd())
 	rootCmd.AddCommand(subcommand.ConfigCmd())
 
+	logrus.SetLevel(logrus.WarnLevel)
+
 	// Execute runs the cobra command of the gwctl
 	err := rootCmd.Execute()
 	if err != nil {
