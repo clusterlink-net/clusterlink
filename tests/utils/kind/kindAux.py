@@ -32,7 +32,7 @@ def getKindIp(name):
     return ip
 
 def startGwctl(gwctlName, mbgIP, mbgcPort, dataplane, gwctlcrt):
-    runcmd(f'gwctl init --id {gwctlName} --gwIP {mbgIP}:{mbgcPort}  --dataplane {dataplane} {gwctlcrt} ')
+    runcmd(f'gwctl init --id {gwctlName} --gwIP {mbgIP} --gwPort {mbgcPort}  --dataplane {dataplane} {gwctlcrt} ')
 
 def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane, mbgcrtFlags, gwctlLocal=True, runInfg=False, cni="default", logFile=True,zeroTrust=False):
     os.system(f"kind delete cluster --name={mbgName}")
@@ -41,8 +41,6 @@ def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort
     mbgKindIp           = BuildKindCluster(mbgName,cni)
     podMbg, podMbgIp    = buildMbg(mbgName)
     podDataPlane, _= getPodNameIp("dataplane")
-
-    destMbgIp          = f"{podMbgIp}:{mbgcPortLocal}"
 
     runcmd(f"kubectl create service nodeport dataplane --tcp={mbgcPortLocal}:{mbgcPortLocal} --node-port={mbgcPort}")
     
@@ -59,5 +57,5 @@ def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort
 
     if gwctlLocal:
         gwctlPod, gwctlIp = buildMbgctl(gwctlName)
-        runcmdb(f'kubectl exec -i {gwctlPod} -- ./gwctl init --id {gwctlName} --gwIP {destMbgIp}  --dataplane {dataplane} {mbgcrtFlags} ')
+        runcmdb(f'kubectl exec -i {gwctlPod} -- ./gwctl init --id {gwctlName} --gwIP {podMbgIp} --gwPort {mbgcPortLocal} --dataplane {dataplane} {mbgcrtFlags} ')
 

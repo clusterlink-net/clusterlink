@@ -132,7 +132,7 @@ Start MBG1: (the MBG creates an HTTP server, so it is better to run this command
 
 Initialize gwctl (mbg control):
 
-    kubectl exec -i $MBGCTL1 -- ./gwctl start --name "gwctl1" --ip $MBGCTL1IP --gwIP $MBG1PODIP:443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key
+    kubectl exec -i $MBGCTL1 -- ./gwctl start --name "gwctl1" --ip $MBGCTL1IP --gwIP $MBG1PODIP --gwPort 443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key
 
 Create K8s service nodeport to connect MBG cport to the MBG localcport.
 
@@ -145,7 +145,7 @@ Start MBG2: (the MBG creates an HTTP server, so it is better to run this command
 
 Initialize gwctl (mbg control):
 
-    kubectl exec -i $MBGCTL2 -- ./gwctl start --name "gwctl2" --ip $MBGCTL2IP --gwIP $MBG2PODIP:443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key
+    kubectl exec -i $MBGCTL2 -- ./gwctl start --name "gwctl2" --ip $MBGCTL2IP --gwIP $MBG2PODIP --gwPort 443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key
 
 Create K8s service nodeport to connect MBG cport to the MBG localcport.
 
@@ -158,7 +158,7 @@ Start MBG3: (the MBG creates an HTTP server, so it is better to run this command
 
 Initialize gwctl (mbg control):
 
-    kubectl exec -i $MBGCTL3 -- ./gwctl start --name "gwctl3" --ip $MBGCTL3IP --gwIP $MBG3PODIP:443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg3.crt --key ./mtls/mbg3.key
+    kubectl exec -i $MBGCTL3 -- ./gwctl start --name "gwctl3" --ip $MBGCTL3IP --gwIP $MBG3PODIP --gwPort 443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg3.crt --key ./mtls/mbg3.key
 
 Create K8s service nodeport to connect MBG cport to the MBG localcport.
 

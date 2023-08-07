@@ -90,11 +90,11 @@ Start the Gateway in Cluster 1:
 
 Initialize gwctl CLI:
 
-    gwctl init --id "gwctl1" --gwIP $MBG1IP:30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils//mtls/mbg1.crt --key $PROJECT_FOLDER/tests/utils/mtls/mbg1.key
+    gwctl init --id "gwctl1" --gwIP $MBG1IP --gwPort 30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils//mtls/mbg1.crt --key $PROJECT_FOLDER/tests/utils/mtls/mbg1.key
 
 Note : If you are using macOS to run the kind cluster, instead of running gwctl in the macOS, it's better to run it within the individual kind cluster in the following way. The subsequent gwctl commands need to be called from the respective KIND cluster.
 
-    kubectl exec -i $MBG1_CP -- ./gwctl init --id "gwctl1" --gwIP $MBG1IP:30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils//mtls/mbg1.crt --key $PROJECT_FOLDER/tests/utils/mtls/mbg1.key
+    kubectl exec -i $MBG1_CP -- ./gwctl init --id "gwctl1" --gwIP $MBG1IP --gwPort 30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils//mtls/mbg1.crt --key $PROJECT_FOLDER/tests/utils/mtls/mbg1.key
 Start the Gateway in Cluster 2:
 
     kubectl config use-context kind-cluster2
@@ -103,7 +103,7 @@ Start the Gateway in Cluster 2:
 
 Initialize gwctl CLI:
 
-    gwctl init --id gwctl2 --gwIP $MBG2IP:30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils/mtls/mbg2.crt --key $PROJECT_FOLDER/tests/utils/mtls/mbg2.key
+    gwctl init --id gwctl2 --gwIP $MBG2IP --gwPort 30443 --dataplane mtls --certca $PROJECT_FOLDER/tests/utils/mtls/ca.crt --cert $PROJECT_FOLDER/tests/utils/mtls/mbg2.crt --key $PROJECT_FOLDER/tests/utils/mtls/mbg2.key
 
 
 Note: The gateway certificate and key files are located in $PROJECT_FOLDER/tests/aux/mtls. The files are loaded to the gateway image (in step 1) and can be replaced.

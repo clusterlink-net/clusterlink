@@ -15,6 +15,7 @@ import (
 type initOptions struct {
 	id             string
 	gwIP           string
+	gwPort         uint16
 	certCa         string
 	cert           string
 	key            string
@@ -36,7 +37,7 @@ func InitCmd() *cobra.Command {
 	}
 
 	o.addFlags(cmd.Flags())
-	cmdutil.MarkFlagsRequired(cmd, []string{"id", "gwIP", "certca", "cert", "key"})
+	cmdutil.MarkFlagsRequired(cmd, []string{"id", "gwIP", "gwPort", "certca", "cert", "key"})
 	return cmd
 }
 
@@ -44,6 +45,7 @@ func InitCmd() *cobra.Command {
 func (o *initOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.id, "id", "", "gwctl ID")
 	fs.StringVar(&o.gwIP, "gwIP", "", "IP address of the gateway (that the gwctl is connected)")
+	fs.Uint16Var(&o.gwPort, "gwPort", 0, "Port of the gateway (that the gwctl is connected)")
 	fs.StringVar(&o.certCa, "certca", "", "Path to the Root Certificate Auth File (.pem)")
 	fs.StringVar(&o.cert, "cert", "", "Path to the Certificate File (.pem)")
 	fs.StringVar(&o.key, "key", "", "Path to the Key File (.pem)")
@@ -56,6 +58,7 @@ func (o *initOptions) run() error {
 	_, err := admin.NewClient(config.ClientConfig{
 		ID:             o.id,
 		GwIP:           o.gwIP,
+		GwPort:         o.gwPort,
 		CaFile:         o.certCa,
 		CertFile:       o.cert,
 		KeyFile:        o.key,

@@ -19,6 +19,7 @@ const (
 // ClientConfig contain all Client configuration to send requests to the GW
 type ClientConfig struct {
 	GwIP             string        `json:"gwIP"`
+	GwPort           uint16        `json:"gwPort"`
 	ID               string        `json:"ID"`
 	CaFile           string        `json:"CaFile"`
 	CertFile         string        `json:"CertFile"`
@@ -33,6 +34,7 @@ type ClientConfig struct {
 // ClientConfigInterface contain all the method of Client
 type ClientConfigInterface interface {
 	GetGwIP() string
+	GetGwPort() uint16
 	GetID() string
 	GetDataplane() string
 	GetCert() string
@@ -48,6 +50,7 @@ func NewClientConfig(cfg ClientConfig) (*ClientConfig, error) {
 	c := ClientConfig{
 		ID:               cfg.ID,
 		GwIP:             cfg.GwIP,
+		GwPort:           cfg.GwPort,
 		Dataplane:        cfg.Dataplane,
 		CertFile:         cfg.CertFile,
 		KeyFile:          cfg.KeyFile,
@@ -77,6 +80,11 @@ func GetConfigFromID(id string) (*ClientConfig, error) {
 // GetGwIP return the gw IP that the Client is connected
 func (c *ClientConfig) GetGwIP() string {
 	return c.GwIP
+}
+
+// GetGwPort return the gw port that the Client is connected
+func (c *ClientConfig) GetGwPort() uint16 {
+	return c.GwPort
 }
 
 // GetID return the Client ID
