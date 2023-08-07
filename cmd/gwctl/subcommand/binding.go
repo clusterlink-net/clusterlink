@@ -5,8 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	"github.ibm.com/mbg-agent/cmd/gwctl/config"
 	cmdutil "github.ibm.com/mbg-agent/cmd/util"
-	"github.ibm.com/mbg-agent/pkg/admin"
 	"github.ibm.com/mbg-agent/pkg/api"
 )
 
@@ -44,12 +45,12 @@ func (o *bindingCreateOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of 'create binding' subcommand
 func (o *bindingCreateOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
-	err = g.CreateBinding(api.Binding{
+	err = g.Bindings.Create(&api.Binding{
 		Spec: api.BindingSpec{
 			Import: o.importID,
 			Peer:   o.peer},
@@ -96,12 +97,12 @@ func (o *bindingDeleteOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'delete binding' subcommand
 func (o *bindingDeleteOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
-	err = g.DeleteBinding(api.Binding{
+	err = g.Bindings.Delete(&api.Binding{
 		Spec: api.BindingSpec{
 			Import: o.importID,
 			Peer:   o.peer},
@@ -146,18 +147,18 @@ func (o *bindingGetOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'get binding' subcommand
 func (o *bindingGetOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
-	bArr, err := g.GetBinding(o.importID)
+	bArr, err := g.Bindings.Get(o.importID)
 	if err != nil {
 		return err
 	}
 
 	fmt.Printf("Binding of the imported service %s:\n", o.importID)
-	for i, b := range bArr {
+	for i, b := range *bArr.(*[]api.Binding) {
 		fmt.Printf("%d. Peer : %s \n", i+1, b.Spec.Peer)
 	}
 	return nil

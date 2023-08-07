@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.ibm.com/mbg-agent/cmd/gwctl/config"
 	cmdutil "github.ibm.com/mbg-agent/cmd/util"
-	"github.ibm.com/mbg-agent/pkg/admin"
+	"github.ibm.com/mbg-agent/pkg/util"
 )
 
 // initOptions is the command line options for 'init'
@@ -55,7 +55,11 @@ func (o *initOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'init' subcommand
 func (o *initOptions) run() error {
-	_, err := admin.NewClient(config.ClientConfig{
+	if _, err := util.ParseTLSFiles(o.certCa, o.cert, o.key); err != nil {
+		return err
+	}
+
+	_, err := config.NewClientConfig(config.ClientConfig{
 		ID:             o.id,
 		GwIP:           o.gwIP,
 		GwPort:         o.gwPort,
@@ -64,6 +68,7 @@ func (o *initOptions) run() error {
 		KeyFile:        o.key,
 		Dataplane:      o.dataplane,
 		PolicyEngineIP: o.policyEngineIP})
+
 	return err
 }
 

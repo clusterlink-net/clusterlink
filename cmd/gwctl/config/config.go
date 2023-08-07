@@ -9,6 +9,9 @@ import (
 	"path"
 
 	"github.com/sirupsen/logrus"
+
+	"github.ibm.com/mbg-agent/pkg/client"
+	"github.ibm.com/mbg-agent/pkg/util"
 )
 
 const (
@@ -28,21 +31,6 @@ type ClientConfig struct {
 	PolicyEngineIP   string        `json:"PolicyEngineIP"`
 	MetricsManagerIP string        `json:"MetricsManagerIP"`
 	logger           *logrus.Entry `json:"-"`
-	ClientConfigInterface
-}
-
-// ClientConfigInterface contain all the method of Client
-type ClientConfigInterface interface {
-	GetGwIP() string
-	GetGwPort() uint16
-	GetID() string
-	GetDataplane() string
-	GetCert() string
-	GetCaFile() string
-	GetKeyFile() string
-	GetPolicyEngineIP() string
-	GetMetricsManagerIP() string
-	NewConfig(id, GwIP, caFile, certificateFile, keyFile, dataplane string)
 }
 
 // NewClientConfig create config file with all the configuration of the Client
@@ -207,6 +195,21 @@ func readConfigFromFile(id string) (ClientConfig, error) {
 		return ClientConfig{}, err
 	}
 	return s, nil
+}
+
+// GetClientFromID loads Client from file according to the id.
+func GetClientFromID(id string) (*client.Client, error) {
+	c, err := GetConfigFromID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedCertData, err := util.ParseTLSFiles(c.CaFile, c.CertFile, c.KeyFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.New(c.GwIP, c.GwPort, parsedCertData.ClientConfig(id)), nil
 }
 
 // ClientPath get CLI config file from id

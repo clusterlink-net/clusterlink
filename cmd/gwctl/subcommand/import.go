@@ -5,8 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	"github.ibm.com/mbg-agent/cmd/gwctl/config"
 	cmdutil "github.ibm.com/mbg-agent/cmd/util"
-	"github.ibm.com/mbg-agent/pkg/admin"
 	"github.ibm.com/mbg-agent/pkg/api"
 )
 
@@ -45,12 +46,12 @@ func (o *importCreateOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'create import' subcommand
 func (o *importCreateOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
-	err = g.CreateImportService(api.Import{
+	err = g.Imports.Create(&api.Import{
 		Name: o.name,
 		Spec: api.ImportSpec{
 			Service: api.Endpoint{
@@ -98,12 +99,12 @@ func (o *importDeleteOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'delete import' subcommand
 func (o *importDeleteOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
-	err = g.DeleteImportService(api.Import{Name: o.name})
+	err = g.Imports.Delete(o.name)
 	if err != nil {
 		return err
 	}
@@ -142,25 +143,26 @@ func (o *importGetOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'get import' subcommand
 func (o *importGetOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
 	if o.name == "" {
-		sArr, err := g.GetImportServices()
+		sArr, err := g.Imports.List()
 		if err != nil {
 			return err
 		}
 		fmt.Printf("Imported services:\n")
-		for i, s := range sArr {
+		for i, s := range *sArr.(*[]api.Import) {
 			fmt.Printf("%d. Imported Name: %s. Endpoint %v\n", i+1, s.Name, s.Spec.Service)
 		}
 	} else {
-		iSvc, err := g.GetImportService(api.Import{Name: o.name})
+		imp, err := g.Imports.Get(o.name)
 		if err != nil {
 			return err
 		}
+		iSvc := imp.(*api.Import)
 		fmt.Printf("Imported Name: %s. Endpoint %v\n", iSvc.Name, iSvc.Spec.Service)
 	}
 

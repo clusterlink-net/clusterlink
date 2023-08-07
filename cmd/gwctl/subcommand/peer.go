@@ -5,8 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	"github.ibm.com/mbg-agent/cmd/gwctl/config"
 	cmdutil "github.ibm.com/mbg-agent/cmd/util"
-	"github.ibm.com/mbg-agent/pkg/admin"
 	"github.ibm.com/mbg-agent/pkg/api"
 )
 
@@ -46,13 +47,12 @@ func (o *peerCreateOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'create peer' subcommand
 func (o *peerCreateOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
-	err = g.CreatePeer(
-		api.Peer{
+	err = g.Peers.Create(&api.Peer{
 			Name: o.name,
 			Spec: api.PeerSpec{
 				Gateways: []api.Endpoint{{
@@ -60,8 +60,7 @@ func (o *peerCreateOptions) run() error {
 					Port: o.port,
 				}},
 			},
-		},
-	)
+	})
 	if err != nil {
 		return err
 	}
@@ -101,12 +100,12 @@ func (o *peerDeleteOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'delete peer' subcommand
 func (o *peerDeleteOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
-	err = g.DeletePeer(api.Peer{Name: o.name})
+	err = g.Peers.Delete(o.name)
 	if err != nil {
 		return err
 	}
@@ -146,26 +145,26 @@ func (o *peerGetOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'get peer' subcommand
 func (o *peerGetOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
 	if o.name == "" {
-		pArr, err := g.GetPeers()
+		pArr, err := g.Peers.List()
 		if err != nil {
 			return err
 		}
 		fmt.Printf("Peers:\n")
-		for i, p := range pArr {
+		for i, p := range *pArr.(*[]api.Peer) {
 			fmt.Printf("%d. Peer: %v\n", i+1, p)
 		}
 	} else {
-		peer, err := g.GetPeer(api.Peer{Name: o.name})
+		peer, err := g.Peers.Get(o.name)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Peer: %+v\n", peer)
+		fmt.Printf("Peer: %+v\n", peer.(*api.Peer))
 	}
 
 	return nil

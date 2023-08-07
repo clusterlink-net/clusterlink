@@ -5,8 +5,10 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	"github.ibm.com/mbg-agent/cmd/gwctl/config"
 	cmdutil "github.ibm.com/mbg-agent/cmd/util"
-	"github.ibm.com/mbg-agent/pkg/admin"
+	"github.ibm.com/mbg-agent/pkg/client"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
 )
@@ -59,15 +61,15 @@ func (o *policyCreateOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'create policy' subcommand
 func (o *policyCreateOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 	switch o.pType {
 	case acl:
-		return g.SendACLPolicy(o.serviceSrc, o.serviceDst, o.gwDest, o.priority, event.Action(o.action), admin.Add)
+		return g.SendACLPolicy(o.serviceSrc, o.serviceDst, o.gwDest, o.priority, event.Action(o.action), client.Add)
 	case lb:
-		return g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyEngine.PolicyLoadBalancer(o.policy), o.gwDest, admin.Add)
+		return g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyEngine.PolicyLoadBalancer(o.policy), o.gwDest, client.Add)
 
 	default:
 		return fmt.Errorf("Unknown policy type")
@@ -115,15 +117,15 @@ func (o *policyDeleteOptions) addFlags(fs *pflag.FlagSet) {
 func (o *policyDeleteOptions) run() error {
 	priority := 0 //Doesn't matter when deleting a rule
 	action := 0   //Doesn't matter when deleting a rule
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 	switch o.pType {
 	case acl:
-		err = g.SendACLPolicy(o.serviceSrc, o.serviceDst, o.gwDest, priority, event.Action(action), admin.Del)
+		err = g.SendACLPolicy(o.serviceSrc, o.serviceDst, o.gwDest, priority, event.Action(action), client.Del)
 	case lb:
-		err = g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyEngine.PolicyLoadBalancer(o.policy), o.gwDest, admin.Del)
+		err = g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyEngine.PolicyLoadBalancer(o.policy), o.gwDest, client.Del)
 	default:
 		return fmt.Errorf("Unknown policy type")
 	}
@@ -158,7 +160,7 @@ func (o *policyGetOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'delete policy' subcommand
 func (o *policyGetOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}

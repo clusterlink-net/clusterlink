@@ -7,8 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	"github.ibm.com/mbg-agent/cmd/gwctl/config"
 	cmdutil "github.ibm.com/mbg-agent/cmd/util"
-	"github.ibm.com/mbg-agent/pkg/admin"
 	"github.ibm.com/mbg-agent/pkg/api"
 )
 
@@ -50,7 +51,7 @@ func (o *exportCreateOptions) addFlags(fs *pflag.FlagSet) {
 // run performs the execution of the 'create export' subcommand
 func (o *exportCreateOptions) run() error {
 	var exEndpoint api.Endpoint
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
@@ -76,7 +77,7 @@ func (o *exportCreateOptions) run() error {
 		}
 	}
 
-	err = g.CreateExportService(api.Export{
+	err = g.Exports.Create(&api.Export{
 		Name: o.name,
 		Spec: api.ExportSpec{
 			Service: api.Endpoint{
@@ -125,12 +126,12 @@ func (o *exportDeleteOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'delete export' subcommand
 func (o *exportDeleteOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
-	err = g.DeleteExportService(api.Export{Name: o.name})
+	err = g.Exports.Delete(&api.Export{Name: o.name})
 	if err != nil {
 		return err
 	}
@@ -170,27 +171,27 @@ func (o *exportGetOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'get export' subcommand
 func (o *exportGetOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
 	if o.name == "" {
-		sArr, err := g.GetExportServices()
+		sArr, err := g.Exports.List()
 		if err != nil {
 			return err
 		}
 		fmt.Printf("Exported services:\n")
-		for i, s := range sArr {
+		for i, s := range *sArr.(*[]api.Export) {
 			fmt.Printf("%d. Service Name: %s. Endpoint: %v\n", i+1, s.Name, s.Spec.Service)
 			i++
 		}
 	} else {
-		s, err := g.GetExportService(api.Export{Name: o.name})
+		s, err := g.Exports.Get(o.name)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Exported service :%+v\n", s)
+		fmt.Printf("Exported service :%+v\n", s.(*api.Export))
 	}
 
 	return nil

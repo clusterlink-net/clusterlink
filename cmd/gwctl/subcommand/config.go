@@ -6,7 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.ibm.com/mbg-agent/pkg/admin"
+
+	"github.ibm.com/mbg-agent/cmd/gwctl/config"
 )
 
 // ConfigCmd contains all the config commands of the CLI.
@@ -44,8 +45,7 @@ func currentContextCmd() *cobra.Command {
 
 // run performs the execution of the 'config current-context' subcommand
 func (o *currentContextOptions) run() error {
-	g := admin.Client{}
-	s, err := g.ConfigCurrentContext()
+	s, err := config.GetConfigFromID("")
 	if err != nil {
 		return err
 	}
@@ -84,11 +84,12 @@ func (o *useContextOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'config current-context' subcommand
 func (o *useContextOptions) run() error {
-	g, err := admin.GetClientFromID(o.myID)
+	c, err := config.GetConfigFromID(o.myID)
 	if err != nil {
 		return err
 	}
-	err = g.ConfigUseContext()
+
+	err = c.SetDefaultClient(o.myID)
 	if err != nil {
 		return err
 	}

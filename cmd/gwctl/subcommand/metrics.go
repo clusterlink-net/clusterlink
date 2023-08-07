@@ -5,7 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.ibm.com/mbg-agent/pkg/admin"
+
+	"github.ibm.com/mbg-agent/cmd/gwctl/config"
 )
 
 // MetricsGetOptions is the command line options for 'get metrics'
@@ -36,7 +37,7 @@ func (o *metricsGetOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'delete policy' subcommand
 func (o *metricsGetOptions) run() error {
-	m, err := admin.GetClientFromID(o.myID)
+	m, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
