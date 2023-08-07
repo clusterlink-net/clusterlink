@@ -53,13 +53,13 @@ func (o *peerCreateOptions) run() error {
 	}
 
 	err = g.Peers.Create(&api.Peer{
-			Name: o.name,
-			Spec: api.PeerSpec{
-				Gateways: []api.Endpoint{{
-					Host: o.host,
-					Port: o.port,
-				}},
-			},
+		Name: o.name,
+		Spec: api.PeerSpec{
+			Gateways: []api.Endpoint{{
+				Host: o.host,
+				Port: o.port,
+			}},
+		},
 	})
 	if err != nil {
 		return err
