@@ -34,7 +34,7 @@ func AddExportServiceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Response
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte("Add Service to MBG succeed"))
 	if err != nil {
 		slog.Println(err)
@@ -144,7 +144,7 @@ func DelExportServiceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Response
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 	_, err = w.Write([]byte("Service deleted successfully"))
 	if err != nil {
 		slog.Println(err)

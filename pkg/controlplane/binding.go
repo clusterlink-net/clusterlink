@@ -31,7 +31,7 @@ func CreateBindingHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Response
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte("Add Remote Service to MBG succeed"))
 	if err != nil {
 		blog.Println(err)
@@ -67,7 +67,7 @@ func DelBindingHandler(w http.ResponseWriter, r *http.Request) {
 	delBinding(s.Spec.Import, s.Spec.Peer)
 
 	// Response
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 	_, err = w.Write([]byte("Service deleted successfully"))
 	if err != nil {
 		blog.Println(err)

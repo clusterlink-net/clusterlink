@@ -30,7 +30,7 @@ func AddPeerHandler(w http.ResponseWriter, r *http.Request) {
 	addPeer(p)
 
 	// Response
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte("Add Peer succeeded"))
 	if err != nil {
 		plog.Println(err)
@@ -133,7 +133,7 @@ func RemovePeerHandler(w http.ResponseWriter, r *http.Request) {
 	removePeer(p)
 
 	// Response
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 	_, err = w.Write([]byte("Remove Peer succeed"))
 	if err != nil {
 		plog.Println(err)

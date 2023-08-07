@@ -41,7 +41,7 @@ func AddImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Response
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte("Add Import Service to MBG succeed"))
 	if err != nil {
 		mlog.Println(err)
@@ -169,7 +169,7 @@ func DelImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 	deleteImportK8sService(svcID)
 
 	// Response
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 	_, err = w.Write([]byte("Service deleted successfully"))
 	if err != nil {
 		mlog.Println(err)
