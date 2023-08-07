@@ -3,8 +3,8 @@ package api
 import "fmt"
 
 const (
-	// ListenPort is the external port the controlplane listens on.
-	ListenPort = 8443
+	// ListenPort is the port used by the dataplane to access the controlplane.
+	ListenPort = 444
 
 	// gRPCServerNamePrefix is the prefix such that <gRPCServerNamePrefix>.<peer name> is the gRPC server name.
 	gRPCServerNamePrefix = "grpc"
