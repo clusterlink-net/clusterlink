@@ -1,6 +1,7 @@
 package subcommand
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -162,8 +163,13 @@ func (o *importGetOptions) run() error {
 		if err != nil {
 			return err
 		}
-		iSvc := imp.(*api.Import)
-		fmt.Printf("Imported Name: %s. Endpoint %v\n", iSvc.Name, iSvc.Spec.Service)
+
+		impJSON, err := json.MarshalIndent(imp, "", "  ")
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("%s\n", string(impJSON))
 	}
 
 	return nil
