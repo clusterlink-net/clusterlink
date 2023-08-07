@@ -29,9 +29,11 @@ dynamic_resources:
         cluster_name: {{.controlplaneGRPCCluster}}
   lds_config:
     resource_api_version: V3
+    initial_fetch_timeout: 1s
     ads: {}
   cds_config:
     resource_api_version: V3
+    initial_fetch_timeout: 1s
     ads: {}
 static_resources:
   secrets:
@@ -48,6 +50,7 @@ static_resources:
   clusters:
   - name: {{.controlplaneGRPCCluster}}
     type: LOGICAL_DNS
+    dns_refresh_rate: 1s
     connect_timeout: 1s
     typed_dns_resolver_config:
       name: envoy.network.dns_resolver.getaddrinfo
@@ -79,6 +82,7 @@ static_resources:
             name: {{.validationSecret}}
   - name: {{.controlplaneInternalHTTPCluster}}
     type: LOGICAL_DNS
+    dns_refresh_rate: 1s
     connect_timeout: 1s
     typed_dns_resolver_config:
       name: envoy.network.dns_resolver.getaddrinfo
@@ -106,6 +110,7 @@ static_resources:
             name: {{.validationSecret}}
   - name: {{.controlplaneExternalHTTPCluster}}
     type: LOGICAL_DNS
+    dns_refresh_rate: 1s
     connect_timeout: 1s
     typed_dns_resolver_config:
       name: envoy.network.dns_resolver.getaddrinfo

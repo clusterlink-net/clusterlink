@@ -202,6 +202,7 @@ func makeEndpointsCluster(name string, endpoints []api.Endpoint, hostname string
 	c := &cluster.Cluster{
 		Name:           name,
 		ConnectTimeout: durationpb.New(time.Second),
+		DnsRefreshRate: durationpb.New(time.Second),
 		ClusterDiscoveryType: &cluster.Cluster_Type{
 			Type: cluster.Cluster_LOGICAL_DNS,
 		},
