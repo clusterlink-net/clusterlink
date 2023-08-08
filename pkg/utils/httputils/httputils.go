@@ -20,6 +20,9 @@ const (
 // HttpGet is a convenience function to issue a GET request
 func HttpGet(url string, cl http.Client) ([]byte, error) {
 	resp, err := cl.Get(url)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return []byte(RESPFAIL), err
 	}
@@ -37,6 +40,9 @@ func HttpPost(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 	resp, err := cl.Post(url, "application/json",
 		bytes.NewBuffer(jsonData))
 
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return []byte(RESPFAIL), err
 	}
@@ -59,6 +65,9 @@ func HttpDelete(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
 	resp, err := cl.Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 
 	if err != nil {
 		return []byte(RESPFAIL), err
@@ -88,6 +97,9 @@ func HttpConnect(address, url string, jsonData string) (net.Conn, error) {
 	}
 
 	resp, err := client.Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		log.Errorln(err)
 		return nil, err

@@ -84,6 +84,9 @@ func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, cer
 		return 0, 0, m.startTstamp, time.Now(), err
 	}
 	resp, err := TlsConnectClient.Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		clog.Infof("Error in Tls Connection %v", err)
 		m.CloseConnection()
