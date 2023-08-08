@@ -49,6 +49,8 @@ build:
 	go build -o ./bin/gwctl ./cmd/gwctl/main.go
 	go build -o ./bin/controlplane ./cmd/controlplane/main.go
 	go build -o ./bin/dataplane ./cmd/dataplane/main.go
+	CGO_ENABLED=0 go build -o ./bin/cl-controlplane ./cmd/cl-controlplane
+	CGO_ENABLED=0 go build -o ./bin/cl-dataplane ./cmd/cl-dataplane
 
 
 docker-build: 
