@@ -3,7 +3,7 @@ package httputils
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 
@@ -17,14 +17,14 @@ const (
 	RESPFAIL string = "Fail"
 )
 
-// Helper gunction for get response
+// HttpGet is a convenience function to issue a GET request
 func HttpGet(url string, cl http.Client) ([]byte, error) {
 	resp, err := cl.Get(url)
 	if err != nil {
 		return []byte(RESPFAIL), err
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return []byte(RESPFAIL), err
 	}
@@ -32,8 +32,8 @@ func HttpGet(url string, cl http.Client) ([]byte, error) {
 	return body, nil
 }
 
+// HttpPOST is a convenience function to issue a POST request
 func HttpPost(url string, jsonData []byte, cl http.Client) ([]byte, error) {
-
 	resp, err := cl.Post(url, "application/json",
 		bytes.NewBuffer(jsonData))
 
@@ -42,7 +42,7 @@ func HttpPost(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 	}
 
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return []byte(RESPFAIL), err
 	}
@@ -50,9 +50,12 @@ func HttpPost(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 	return body, nil
 }
 
+// HttpDelete is a convenience function to issue a DELETE request
 func HttpDelete(url string, jsonData []byte, cl http.Client) ([]byte, error) {
-
 	req, err := http.NewRequest(http.MethodDelete, url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return []byte(RESPFAIL), err
+	}
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
 	resp, err := cl.Do(req)
@@ -62,7 +65,7 @@ func HttpDelete(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 	}
 
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return []byte(RESPFAIL), err
 	}
@@ -70,24 +73,30 @@ func HttpDelete(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 	return body, nil
 }
 
+// HttpConnect is a convenience function to issue a CONNECT request
 func HttpConnect(address, url string, jsonData string) (net.Conn, error) {
 	c, err := dial(address)
-	//defer c.Close()
+	if err != nil {
+		return nil, err
+	}
 
 	log.Infof("Send Connect request to url: %v", url)
 	client := http.Client{Transport: &http.Transport{Dial: connDialer{c}.Dial}}
 	req, err := http.NewRequest(http.MethodConnect, url, bytes.NewBuffer([]byte(jsonData)))
+	if err != nil {
+		return nil, err
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Errorln(err)
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Connect resp: %v", resp.StatusCode)
+		return nil, fmt.Errorf("connect response code: %v", resp.StatusCode)
 	} else {
 		return c, nil
 	}
-
 }
 
 func dial(addr string) (net.Conn, error) {
@@ -106,6 +115,7 @@ type connDialer struct {
 	c net.Conn
 }
 
+// Dial fakes a connect to an existing connection
 func (cd connDialer) Dial(network, addr string) (net.Conn, error) {
 	return cd.c, nil
 }

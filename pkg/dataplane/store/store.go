@@ -5,9 +5,9 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"os"
 	"os/user"
 	"path"
 	"strconv"
@@ -156,7 +156,7 @@ func (s *Store) GetRemoteHttpClient() http.Client {
 // Create HTTP client for mTLS or TCP connection
 func (s *Store) getHttpClient(timeout time.Duration) http.Client {
 	if s.Dataplane == "mtls" {
-		cert, err := ioutil.ReadFile(s.CertAuthority)
+		cert, err := os.ReadFile(s.CertAuthority)
 		if err != nil {
 			log.Fatalf("could not open certificate file: %v", err)
 		}
@@ -207,6 +207,6 @@ func (s *Store) SaveState() {
 		s.dataMutex.Unlock()
 		return
 	}
-	ioutil.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
+	os.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
 	s.dataMutex.Unlock()
 }

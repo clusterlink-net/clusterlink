@@ -15,9 +15,9 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 
 	"strings"
 	"time"
@@ -250,7 +250,7 @@ func (m *MTLSForwarder) CreateTlsConfig(certca, certificate, key, ServerName str
 	}
 
 	// Create a CA certificate pool and add ca to it
-	caCert, err := ioutil.ReadFile(certca)
+	caCert, err := os.ReadFile(certca)
 	if err != nil {
 		clog.Fatalf("ReadFile certificate %v :%v", certca, err)
 	}

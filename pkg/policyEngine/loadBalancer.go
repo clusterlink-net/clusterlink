@@ -20,8 +20,8 @@ type PolicyLoadBalancer string
 
 const (
 	Random PolicyLoadBalancer = "random"
-	Ecmp                      = "ecmp"
-	Static                    = "static"
+	ECMP   PolicyLoadBalancer = "ecmp"
+	Static PolicyLoadBalancer = "static"
 )
 
 type LoadBalancerRule struct {
@@ -216,7 +216,7 @@ func (lB *LoadBalancer) LookupWith(serviceSrc, serviceDst string, mbgs []string)
 	switch policy {
 	case Random:
 		return lB.LookupRandom(serviceDst, mbgs)
-	case Ecmp:
+	case ECMP:
 		return lB.LookupECMP(serviceDst, mbgs)
 	case Static:
 		return lB.LookupStatic(serviceSrc, serviceDst, mbgs)

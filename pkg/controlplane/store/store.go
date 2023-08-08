@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/user"
@@ -554,7 +553,7 @@ func GetAddrStart() string {
 
 func GetHttpClient() http.Client {
 	if s.MyInfo.Dataplane == "mtls" {
-		cert, err := ioutil.ReadFile(s.MyInfo.CaFile)
+		cert, err := os.ReadFile(s.MyInfo.CaFile)
 		if err != nil {
 			log.Fatalf("could not open certificate file: %v", err)
 		}
@@ -635,13 +634,13 @@ func SaveState() {
 		dataMutex.Unlock()
 		return
 	}
-	ioutil.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
+	os.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
 	dataMutex.Unlock()
 }
 
 func readState() mbgState {
 	dataMutex.Lock()
-	data, _ := ioutil.ReadFile(configPath())
+	data, _ := os.ReadFile(configPath())
 	var state mbgState
 	json.Unmarshal(data, &state)
 	//Don't change part of the Fields

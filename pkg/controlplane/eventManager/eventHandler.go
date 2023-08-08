@@ -29,6 +29,10 @@ func (m *EventManager) RaiseNewConnectionRequestEvent(connectionAttr ConnectionR
 			return ConnectionRequestResp{Action: Allow, TargetMbg: "", BitRate: 0}, err
 		}
 		resp, err := httputils.HttpPost(url, jsonReq, m.HttpClient)
+		if err != nil {
+			elog.Errorf("unable to POST request %v", err)
+			return ConnectionRequestResp{Action: Allow, TargetMbg: "", BitRate: 0}, err
+		}
 
 		var r ConnectionRequestResp
 		err = json.Unmarshal(resp, &r)

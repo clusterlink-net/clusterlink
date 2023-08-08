@@ -8,9 +8,9 @@ package netutils
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -49,7 +49,7 @@ func StartHTTPServer(ip string, handler http.Handler) {
 
 func StartMTLSServer(ip, certca, certificate, key string, handler http.Handler) {
 	// Create the TLS Config with the CA pool and enable Client certificate validation
-	caCert, err := ioutil.ReadFile(certca)
+	caCert, err := os.ReadFile(certca)
 	if err != nil {
 		log.Fatal("certca reed:", err)
 	}

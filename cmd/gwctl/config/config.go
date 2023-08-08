@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path"
@@ -132,10 +131,10 @@ func (c *ClientConfig) createConfigFile() error {
 		return err
 	}
 	f := ClientPath(c.ID)
-	err = ioutil.WriteFile(f, jsonC, 0644) // os.ModeAppend)
+	err = os.WriteFile(f, jsonC, 0644) // os.ModeAppend)
 	c.logger.Println("Create Client config File:", f)
 	if err != nil {
-		c.logger.Errorln("Creating clinent config File", err)
+		c.logger.Errorln("Creating client config File", err)
 		return err
 	}
 	c.SetDefaultClient(c.ID)
@@ -153,7 +152,7 @@ func (c *ClientConfig) saveConfig() error {
 		f, _ = os.Readlink(ClientPath(c.ID))
 	}
 
-	err = ioutil.WriteFile(f, jsonC, 0644) // os.ModeAppend)
+	err = os.WriteFile(f, jsonC, 0644) // os.ModeAppend)
 	if err != nil {
 		c.logger.Errorln("Saving config File", err)
 		return err
@@ -185,7 +184,7 @@ func (c *ClientConfig) SetDefaultClient(id string) error {
 
 func readConfigFromFile(id string) (ClientConfig, error) {
 	file := ClientPath(id)
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return ClientConfig{}, err
 	}
