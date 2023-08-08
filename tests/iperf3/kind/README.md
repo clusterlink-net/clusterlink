@@ -109,21 +109,21 @@ Initialize gwctl CLI:
 Note: The gateway certificate and key files are located in $PROJECT_FOLDER/tests/aux/mtls. The files are loaded to the gateway image (in step 1) and can be replaced.
 
 ### <ins> Step 4: Peers communication <ins>
-In this step, we add the peer for each  gateway using the gwctl:
+In this step, we add a peer for each gateway using the gwctl:
 
     gwctl create peer --myid gwctl1 --name mbg2 --host $MBG2IP --port 30443
     gwctl create peer --myid gwctl2 --name mbg1 --host $MBG1IP --port 30443
 
-### <ins> Step 5: Add services <ins>
-In this step, we add the iperf3 server in the respective cluster gateways.  
-Add the iperf3-server service to the Cluster 2 gateway:
+### <ins> Step 5: Export a service <ins>
+In this step, we add the iperf3 server to the cluster as an exported service that can be accessed from remote peers.  
+Export the iperf3-server service to the Cluster 2 gateway:
 
     gwctl create export --myid gwctl2 --name iperf3-server --host iperf3-server --port 5000
 
 Note: iperf3-client doesnt need to be added since it is not exported.
 ### <ins> Step 6: import iperf3 server service from Cluster 2 <ins>
 In this step, we import the iperf3-server service from Cluster 2 gateway to Cluster 1 gateway
-First, we specify which service we want to import:
+First, we specify which service we want to import and specify the local k8s endpoint (host:port) that will create for this service:
 
     gwctl create import --myid gwctl1 --name iperf3-server --host iperf3-server --port 5000
 Second, we specify the peer we want to import the service:
