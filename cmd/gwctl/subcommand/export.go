@@ -184,7 +184,6 @@ func (o *exportGetOptions) run() error {
 		fmt.Printf("Exported services:\n")
 		for i, s := range *sArr.(*[]api.Export) {
 			fmt.Printf("%d. Service Name: %s. Endpoint: %v\n", i+1, s.Name, s.Spec.Service)
-			i++
 		}
 	} else {
 		s, err := g.Exports.Get(o.name)

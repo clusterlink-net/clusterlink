@@ -154,16 +154,16 @@ func (m *MTLSForwarder) ConnectHandler(w http.ResponseWriter, r *http.Request) {
 func (m *MTLSForwarder) MTLSDispatch(direction event.Direction) error {
 	bufData := make([]byte, maxDataBufferSize)
 	var err error
+
 	for {
 		numBytes, err := m.MTLSConnection.Read(bufData)
 		if err != nil {
-			if err == io.EOF {
-				err = nil //Ignore EOF error
-			} else {
+			if err != io.EOF { // don't log EOF
 				clog.Infof("MTLSDispatch: Read error %v\n", err)
 			}
 			break
 		}
+
 		m.Connection.Write(bufData[:numBytes])
 		if direction == event.Incoming {
 			m.incomingBytes += numBytes
@@ -171,6 +171,7 @@ func (m *MTLSForwarder) MTLSDispatch(direction event.Direction) error {
 			m.outgoingBytes += numBytes
 		}
 	}
+
 	clog.Infof("Initiating end of MTLS connection(%s)", m.Name)
 	m.CloseConnection()
 	if err == io.EOF {
@@ -184,18 +185,19 @@ func (m *MTLSForwarder) MTLSDispatch(direction event.Direction) error {
 func (m *MTLSForwarder) dispatch(direction event.Direction) error {
 	bufData := make([]byte, maxDataBufferSize)
 	var err error
+
 	for {
 		numBytes, err := m.Connection.Read(bufData)
+
 		if err != nil {
-			if err == io.EOF {
-				err = nil //Ignore EOF error
-			} else {
+			if err != io.EOF {
 				clog.Errorf("Dispatch: Read error %v  connection: (local:%s Remote:%s)->,(local: %s Remote%s) ", err,
 					m.Connection.LocalAddr(), m.Connection.RemoteAddr(), m.MTLSConnection.LocalAddr(), m.MTLSConnection.RemoteAddr())
 
 			}
 			break
 		}
+
 		if m.MTLSConnection == nil {
 			clog.Info("Start Waiting for MTLSConnection") //start infinite loop
 			for m.MTLSConnection == nil {
@@ -203,11 +205,13 @@ func (m *MTLSForwarder) dispatch(direction event.Direction) error {
 			}
 			clog.Info("Finish Waiting for MTLSConnection ") //Finish infinite loop
 		}
+
 		_, err = m.MTLSConnection.Write(bufData[:numBytes])
 		if err != nil {
 			clog.Errorf("Dispatch: Write error %v  connection: (local:%s Remote:%s)->,(local: %s Remote%s) ", err,
 				m.Connection.LocalAddr(), m.Connection.RemoteAddr(), m.MTLSConnection.LocalAddr(), m.MTLSConnection.RemoteAddr())
 			break
+
 		}
 		if direction == event.Incoming {
 			m.incomingBytes += numBytes
@@ -215,6 +219,7 @@ func (m *MTLSForwarder) dispatch(direction event.Direction) error {
 			m.outgoingBytes += numBytes
 		}
 	}
+
 	clog.Infof("Initiating end of connection(%s)", m.Name)
 	m.CloseConnection()
 	if err == io.EOF {
