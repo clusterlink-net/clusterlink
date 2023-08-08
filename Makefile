@@ -46,7 +46,7 @@ vet-go: ; $(info $(M) vetting code...)
 #------------------------------------------------------
 build:
 	@echo "Start go build phase"
-	go build -o ./bin/gwctl ./cmd/gwctl/main.go
+	CGO_ENABLED=0 go build -o ./bin/gwctl ./cmd/gwctl/main.go
 	go build -o ./bin/controlplane ./cmd/controlplane/main.go
 	go build -o ./bin/dataplane ./cmd/dataplane/main.go
 	CGO_ENABLED=0 go build -o ./bin/cl-controlplane ./cmd/cl-controlplane
@@ -55,6 +55,9 @@ build:
 
 docker-build: 
 	docker build --progress=plain --rm --tag mbg .
+	docker build --progress=plain --rm --tag cl-controlplane -f ./cmd/cl-controlplane/Dockerfile .
+	docker build --progress=plain --rm --tag cl-dataplane -f ./cmd/cl-dataplane/Dockerfile .
+	docker build --progress=plain --rm --tag gwctl -f ./cmd/gwctl/Dockerfile .
 
 build-image:
 	docker build --build-arg SW_VERSION="$(SW_VERSION)" -t ${IMG} .
