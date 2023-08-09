@@ -127,7 +127,9 @@ func (c *TCPForwarder) clientToServer(wg *sync.WaitGroup, cl, server net.Conn, d
 	bufData := make([]byte, maxDataBufferSize)
 
 	for {
-		numBytes, err := cl.Read(bufData)
+		var numBytes int
+
+		numBytes, err = cl.Read(bufData)
 		if err != nil {
 			if err == io.EOF {
 				err = nil //Ignore EOF error
@@ -165,7 +167,9 @@ func (c *TCPForwarder) serverToClient(wg *sync.WaitGroup, cl, server net.Conn, d
 	bufData := make([]byte, maxDataBufferSize)
 	var err error
 	for {
-		numBytes, err := server.Read(bufData)
+		var numBytes int
+
+		numBytes, err = server.Read(bufData)
 		if err != nil {
 			if err == io.EOF {
 				err = nil //Ignore EOF error

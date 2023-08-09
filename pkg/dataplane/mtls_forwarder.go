@@ -187,8 +187,9 @@ func (m *MTLSForwarder) dispatch(direction event.Direction) error {
 	var err error
 
 	for {
-		numBytes, err := m.Connection.Read(bufData)
+		var numBytes int
 
+		numBytes, err = m.Connection.Read(bufData)
 		if err != nil {
 			if err != io.EOF {
 				clog.Errorf("Dispatch: Read error %v  connection: (local:%s Remote:%s)->,(local: %s Remote%s) ", err,
@@ -213,6 +214,7 @@ func (m *MTLSForwarder) dispatch(direction event.Direction) error {
 			break
 
 		}
+
 		if direction == event.Incoming {
 			m.incomingBytes += numBytes
 		} else {
