@@ -48,30 +48,27 @@ func StartCmd() *cobra.Command {
 			restore, _ := cmd.Flags().GetBool("restore")
 			logFile, _ := cmd.Flags().GetBool("logFile")
 			logLevel, _ := cmd.Flags().GetString("logLevel")
+
 			if ip == "" || id == "" || cport == "" {
 				fmt.Println("Error: please insert all flag arguments for Mbg start command")
 				os.Exit(1)
 			}
-			var err error
+
 			if restore {
 				if !startPolicyEngine && policyEngineTarget == "" {
 					fmt.Println("Error: Please specify policyEngineTarget")
 					os.Exit(1)
 				}
-				RestoreMbg(id, policyEngineTarget, logLevel, logFile, startPolicyEngine, zeroTrust)
+				restoreMbg(logLevel, logFile, startPolicyEngine, zeroTrust)
 				log.Infof("Restoring MBG")
 				store.PrintState()
 				startKubeInformer()
 				startHelathMonitor()
+				return
 			}
 
-			err = createMbg(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, dataplane,
-				caFile, certificateFile, keyFile, logLevel, logFile, restore)
-			if err != nil {
-				fmt.Println("Error: Unable to create MBG: ", err)
-				os.Exit(1)
-			}
-
+			createMbg(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, dataplane,
+				caFile, certificateFile, keyFile, logLevel, logFile)
 			if startPolicyEngine {
 				addPolicyEngine("localhost:"+cportLocal+"/policy", true, zeroTrust)
 			}
@@ -139,7 +136,7 @@ func addPolicyEngine(policyEngineTarget string, start bool, zeroTrust bool) {
 
 // createMbg create mbg control plane process
 func createMbg(ID, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, dataplane,
-	caFile, certificateFile, keyFile, logLevel string, logFile, restore bool) error {
+	caFile, certificateFile, keyFile, logLevel string, logFile bool) {
 
 	logutils.SetLog(logLevel, logFile, logFileName)
 	store.SetState(ID, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
@@ -153,13 +150,10 @@ func createMbg(ID, ip, cportLocal, cportExtern, localDataPortRange, externalData
 	} else {
 		go netutils.StartHTTPServer(":"+cportLocal, r)
 	}
-
-	return nil
 }
 
-// RestoreMbg restore the mbg after a failure in the control plane
-func RestoreMbg(ID string, policyEngineTarget, logLevel string, logFile, startPolicyEngine bool, zeroTrust bool) error {
-
+// restoreMbg restore the mbg after a failure in the control plane
+func restoreMbg(logLevel string, logFile, startPolicyEngine bool, zeroTrust bool) {
 	store.UpdateState()
 	logutils.SetLog(logLevel, logFile, logFileName)
 	if startPolicyEngine {
@@ -178,9 +172,6 @@ func RestoreMbg(ID string, policyEngineTarget, logLevel string, logFile, startPo
 	time.Sleep(health.Interval)
 	store.RestoreMbg()
 	cp.RestoreImportServices()
-
-	return nil
-
 }
 
 func addMetricsManager(metricsManagerTarget string, start bool) {

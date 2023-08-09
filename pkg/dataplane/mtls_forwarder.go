@@ -181,8 +181,11 @@ func (m *MTLSForwarder) MTLSDispatch(direction event.Direction) error {
 func (m *MTLSForwarder) dispatch(direction event.Direction) error {
 	bufData := make([]byte, maxDataBufferSize)
 	var err error
+
 	for {
-		numBytes, err := m.Connection.Read(bufData)
+		var numBytes int
+
+		numBytes, err = m.Connection.Read(bufData)
 		if err != nil {
 			if err == io.EOF {
 				err = nil //Ignore EOF error
@@ -193,6 +196,7 @@ func (m *MTLSForwarder) dispatch(direction event.Direction) error {
 			}
 			break
 		}
+
 		if m.MTLSConnection == nil {
 			clog.Info("Start Waiting for MTLSConnection") //start infinite loop
 			for m.MTLSConnection == nil {
@@ -200,18 +204,21 @@ func (m *MTLSForwarder) dispatch(direction event.Direction) error {
 			}
 			clog.Info("Finish Waiting for MTLSConnection ") //Finish infinite loop
 		}
+
 		_, err = m.MTLSConnection.Write(bufData[:numBytes])
 		if err != nil {
 			clog.Errorf("Dispatch: Write error %v  connection: (local:%s Remote:%s)->,(local: %s Remote%s) ", err,
 				m.Connection.LocalAddr(), m.Connection.RemoteAddr(), m.MTLSConnection.LocalAddr(), m.MTLSConnection.RemoteAddr())
 			break
 		}
+
 		if direction == event.Incoming {
 			m.incomingBytes += numBytes
 		} else {
 			m.outgoingBytes += numBytes
 		}
 	}
+
 	clog.Infof("Initiating end of connection(%s)", m.Name)
 	m.CloseConnection()
 	if err == io.EOF {

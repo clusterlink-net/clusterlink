@@ -164,10 +164,14 @@ func delExportService(svcID string) error {
 	for _, svc := range svcArr {
 		store.DelLocalService(svc.Id)
 		if kubernetes.Data.CheckEndpointExist(svc.Id) {
-			kubernetes.Data.DeleteEndpoint(svc.Id)
+			if err := kubernetes.Data.DeleteEndpoint(svc.Id); err != nil {
+				return err
+			}
 		}
 		if kubernetes.Data.CheckServiceExist(svc.Id) {
-			kubernetes.Data.DeleteService(svc.Id)
+			if err := kubernetes.Data.DeleteService(svc.Id); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
