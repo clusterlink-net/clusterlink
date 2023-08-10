@@ -208,7 +208,7 @@ func GetClientFromID(id string) (*client.Client, error) {
 		return nil, err
 	}
 
-	return client.New(c.GwIP, c.GwPort, parsedCertData.ClientConfig(id)), nil
+	return client.New(c.GwIP, c.GwPort, parsedCertData.ClientConfig(c.ID)), nil
 }
 
 // ClientPath get CLI config file from id
