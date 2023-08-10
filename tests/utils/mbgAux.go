@@ -86,8 +86,8 @@ func PodIsReady(labelSelector string) (bool, error) {
 	}
 
 	// check if any pods are ready
-	for _, pod := range pods.Items {
-		if !IsPodReadyByName(&pod) {
+	for i := range pods.Items {
+		if !IsPodReadyByName(&pods.Items[i]) {
 			return false, nil
 		}
 	}
@@ -199,7 +199,10 @@ func CreateK8sSvc(name, port string) {
 /*******************************************************/
 /*   Execute commands in go                            */
 /*******************************************************/
-func RunCmdNoPipe(c string) { //Execute command and print in the end the result
+// RunCmdNoPipe executes command and print in the end the result
+//
+//nolint:gosec // Ignore G204: Subprocess launched with a potential tainted input or cmd arguments
+func RunCmdNoPipe(c string) {
 	log.Println(ColorYellow + c + ColorReset)
 	argSplit := strings.Split(c, " ")
 	//fmt.Println(argSplit[0], argSplit[1:])
@@ -214,7 +217,10 @@ func RunCmdNoPipe(c string) { //Execute command and print in the end the result
 	fmt.Println(string(stdout))
 }
 
-func RunCmd(c string) { //Execute command with interactive prints
+// RunCmd executes command with interactive printing
+//
+//nolint:gosec // Ignore G204: Subprocess launched with a potential tainted input or cmd arguments
+func RunCmd(c string) {
 	log.Println(ColorYellow + c + ColorReset)
 	argSplit := strings.Split(c, " ")
 	cmd := exec.Command(argSplit[0], argSplit[1:]...)
