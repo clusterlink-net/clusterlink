@@ -15,7 +15,7 @@ var LogGetCmd = &cobra.Command{
 	Short: "Get mbg log file",
 	Long:  `Get mbg log file`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunCmd("cat /root/.gw/gw.log")
+		runCmd("cat /root/.gw/gw.log")
 	},
 }
 
@@ -25,15 +25,14 @@ var StateGetCmd = &cobra.Command{
 	Short: "Get mbg state",
 	Long:  `Get mbg state`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunCmd("cat /root/.gw/gwApp")
+		runCmd("cat /root/.gw/gwApp")
 	},
 }
 
 // RunCmd executes os cmd and print the output
-func RunCmd(c string) { //Execute command and print in the end the result
+func runCmd(c string) {
 	argSplit := strings.Split(c, " ")
-	//fmt.Println(argSplit[0], argSplit[1:])
-	cmd := exec.Command(argSplit[0], argSplit[1:]...)
+	cmd := exec.Command(argSplit[0], argSplit[1:]...) //nolint:gosec // G204: Subprocess launched by package local calls only
 	stdout, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Println(err.Error())

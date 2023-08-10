@@ -19,6 +19,7 @@ import (
 
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/utils/netutils"
 )
 
 var log = logrus.WithField("component", s.MyInfo.Id)
@@ -565,14 +566,15 @@ func GetHttpClient() http.Client {
 			log.Fatalf("could not load certificate: %v", err)
 		}
 
+		tlsConfig := netutils.ConfigureSafeTLSConfig()
+		tlsConfig.RootCAs = caCertPool
+		tlsConfig.Certificates = []tls.Certificate{certificate}
+		tlsConfig.ServerName = s.MyInfo.Id
+
 		client := http.Client{
-			Timeout: time.Minute * 3,
+			Timeout: 3 * time.Minute,
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs:      caCertPool,
-					Certificates: []tls.Certificate{certificate},
-					ServerName:   s.MyInfo.Id,
-				},
+				TLSClientConfig: tlsConfig,
 			},
 		}
 		return client
@@ -634,7 +636,7 @@ func SaveState() {
 		dataMutex.Unlock()
 		return
 	}
-	os.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
+	os.WriteFile(configPath(), jsonC, 0600) // RW by owner only
 	dataMutex.Unlock()
 }
 

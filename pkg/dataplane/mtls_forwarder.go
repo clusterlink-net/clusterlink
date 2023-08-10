@@ -10,7 +10,6 @@
 package dataplane
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -24,6 +23,7 @@ import (
 
 	"github.com/go-chi/chi"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/utils/netutils"
 )
 
 type MTLSForwarder struct {
@@ -240,15 +240,6 @@ func (m *MTLSForwarder) CloseConnection() {
 
 }
 
-// Close MTLS server
-func CloseMTLSServer(ip string) {
-	// Create a Server instance to listen on port 443 with the TLS config
-	server := &http.Server{
-		Addr: ip,
-	}
-	server.Shutdown(context.Background())
-}
-
 // Get certca, certificate, key  and create tls config
 func (m *MTLSForwarder) CreateTlsConfig(certca, certificate, key, ServerName string) *tls.Config {
 	// Read the key pair to create certificate
@@ -265,12 +256,11 @@ func (m *MTLSForwarder) CreateTlsConfig(certca, certificate, key, ServerName str
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
-	TLSConfig := &tls.Config{
-		RootCAs:      caCertPool,
-		Certificates: []tls.Certificate{cert},
-		ServerName:   ServerName,
-	}
-	return TLSConfig
+	tlsConfig := netutils.ConfigureSafeTLSConfig()
+	tlsConfig.RootCAs = caCertPool
+	tlsConfig.Certificates = []tls.Certificate{cert}
+	tlsConfig.ServerName = ServerName
+	return tlsConfig
 }
 
 // method for debug only -use to debug MTLS connection
