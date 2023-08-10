@@ -27,8 +27,8 @@ ClusterLink can be set up and run on different environments: local environment (
 ### <ins> Run ClusterLink in local environment (Kind) <ins>
 ClusterLink can run in any K8s environment, such as Kind.
 To run the ClusterLink in a Kind environment, follow one of the examples:
-1) Performance example - Run iPerf3 test between iPerf3 client and server using ClusterLink components. This example is used for performance measuring. Instructions can be found [Here](tests/iperf3/kind/README.md).
-1) Application example - Run the BookInfo application in different clusters using ClusterLink components. This example demonstrates communication distributed applications (in different clusters) with different policies.Instructions can be found [Here](tests/bookinfo/kind/README.md).
+1) Performance example - Run iPerf3 test between iPerf3 client and server using ClusterLink components. This example is used for performance measuring. Instructions can be found [Here](demos/iperf3/kind/README.md).
+1) Application example - Run the BookInfo application in different clusters using ClusterLink components. This example demonstrates communication distributed applications (in different clusters) with different policies.Instructions can be found [Here](demos/bookinfo/kind/README.md).
 
 ### <ins>Run ClusterLink in Bare-metal environment with 2 hosts<ins> 
 TBD
