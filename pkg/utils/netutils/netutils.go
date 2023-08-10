@@ -60,7 +60,12 @@ func StartMTLSServer(ip, certca, certificate, key string, handler http.Handler) 
 	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 
 	// Create a Server instance to listen on port 443 with the TLS config
-	server := CreateResilientHTTPServer(ip, handler, tlsConfig, 0, 0, 0, 0)
+	//server := CreateResilientHTTPServer(ip, handler, tlsConfig, 0, 0, 0, 0)
+	server := &http.Server{
+		Addr:      ip,
+		TLSConfig: tlsConfig,
+		Handler:   handler,
+	}
 	log.Fatal(server.ListenAndServeTLS(certificate, key))
 }
 
