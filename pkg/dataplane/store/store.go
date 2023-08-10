@@ -103,8 +103,7 @@ func (s *Store) GetFreePorts(connectionID string) (string, error) {
 		case <-timeout:
 			return "", fmt.Errorf("all ports taken up, Try again after sometime")
 		default:
-			random := rand.Intn(MaxPort - MinPort) //nolint:gosec
-			// gosec G404: Use of weak random is fine for random port selection
+			random := rand.Intn(MaxPort - MinPort) //nolint:gosec // G404: Use of weak random is fine for random port selection
 			port := MinPort + random
 			if !s.PortMap[port] {
 				s.PortMap[port] = true
