@@ -42,8 +42,10 @@ func GetConnIp(c net.Conn) (string, string) {
 
 // Start HTTP server
 func StartHTTPServer(ip string, handler http.Handler) {
-	s := CreateDefaultResilientHTTPServer(ip, handler)
-	log.Fatal(s.ListenAndServe())
+	// s := CreateDefaultResilientHTTPServer(ip, handler)
+	// log.Fatal(s.ListenAndServe())
+	// Commenting the Resilient server until we identify the issue & fix it
+	log.Fatal(http.ListenAndServe(ip, handler))
 }
 
 func StartMTLSServer(ip, certca, certificate, key string, handler http.Handler) {
