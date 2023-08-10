@@ -42,8 +42,10 @@ func GetConnIp(c net.Conn) (string, string) {
 
 // Start HTTP server
 func StartHTTPServer(ip string, handler http.Handler) {
-	s := CreateDefaultResilientHTTPServer(ip, handler)
-	log.Fatal(s.ListenAndServe())
+	// s := CreateDefaultResilientHTTPServer(ip, handler)
+	// log.Fatal(s.ListenAndServe())
+	// Commenting the Resilient server until we identify the issue & fix it
+	log.Fatal(http.ListenAndServe(ip, handler))
 }
 
 func StartMTLSServer(ip, certca, certificate, key string, handler http.Handler) {
@@ -60,7 +62,12 @@ func StartMTLSServer(ip, certca, certificate, key string, handler http.Handler) 
 	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 
 	// Create a Server instance to listen on port 443 with the TLS config
-	server := CreateResilientHTTPServer(ip, handler, tlsConfig, 0, 0, 0, 0)
+	//server := CreateResilientHTTPServer(ip, handler, tlsConfig, 0, 0, 0, 0)
+	server := &http.Server{
+		Addr:      ip,
+		TLSConfig: tlsConfig,
+		Handler:   handler,
+	}
 	log.Fatal(server.ListenAndServeTLS(certificate, key))
 }
 
