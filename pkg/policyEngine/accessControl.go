@@ -99,7 +99,7 @@ func (A *AccessControl) RemoveDestService(serviceDst, mbg string) {
 	if mbg != "" {
 		str = str + mbg
 	}
-	for key, _ := range A.ACLRules {
+	for key := range A.ACLRules {
 		if strings.Contains(key, str) {
 			delete(A.ACLRules, key)
 		}

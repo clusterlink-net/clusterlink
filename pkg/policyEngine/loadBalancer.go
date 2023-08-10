@@ -108,7 +108,7 @@ func (lB *LoadBalancer) AddToServiceMap(serviceDst string, mbg string) {
 }
 
 func (lB *LoadBalancer) RemoveMbgFromServiceMap(mbg string) {
-	for svc, _ := range lB.ServiceMap {
+	for svc := range lB.ServiceMap {
 		lB.RemoveMbgFromService(svc, mbg)
 	}
 }
@@ -161,9 +161,7 @@ func (lB *LoadBalancer) RemoveDestService(serviceDst, mbg string) {
 	if mbg != "" {
 		lB.RemoveMbgFromService(serviceDst, mbg)
 	} else {
-		if _, ok := lB.ServiceMap[serviceDst]; ok {
-			delete(lB.ServiceMap, serviceDst)
-		}
+		delete(lB.ServiceMap, serviceDst)
 	}
 }
 func (lB *LoadBalancer) updateState(serviceSrc, serviceDst string) {

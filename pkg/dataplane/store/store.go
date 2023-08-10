@@ -118,7 +118,7 @@ func (s *Store) GetFreePorts(connectionID string) (string, error) {
 // Frees up used ports by a connection
 func (s *Store) FreeUpPorts(connectionID string) {
 	log.Infof("Start to FreeUpPorts for service: %s", connectionID)
-	port, _ := s.Connections[connectionID]
+	port := s.Connections[connectionID]
 	lval, _ := strconv.Atoi(port[1:])
 	stopCh[connectionID] <- true
 	delete(s.PortMap, lval)

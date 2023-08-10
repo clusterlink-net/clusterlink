@@ -118,7 +118,7 @@ func GetMbgList() []string {
 	// Copied list is returned to avoid the caller iterate on the original map
 	// due to potential panic when iteration and map update happen simulataneously
 	mbgArrMutex.RLock()
-	for m, _ := range s.MbgArr {
+	for m := range s.MbgArr {
 		mList = append(mList, m)
 	}
 	mbgArrMutex.RUnlock()
@@ -390,7 +390,7 @@ func RemoveMbgNbr(id string) {
 // Frees up used ports by a connection
 func FreeUpPorts(connectionID string) {
 	log.Infof("Start to FreeUpPorts for service: %s", connectionID)
-	port, _ := s.Connections[connectionID]
+	port := s.Connections[connectionID]
 	lval, _ := strconv.Atoi(port[1:])
 	stopCh[connectionID] <- true
 	delete(s.LocalPortMap, lval)

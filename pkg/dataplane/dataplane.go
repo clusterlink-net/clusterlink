@@ -76,7 +76,7 @@ func (d *Dataplane) TCPexportServiceEndpointHandler(w http.ResponseWriter, r *ht
 	allow, _, _ := d.startListenerToExportServiceEndpoint(c, mbgIP, w)
 
 	// Write response for error
-	if allow != true {
+	if !allow {
 		w.WriteHeader(http.StatusForbidden)
 	}
 }
@@ -334,7 +334,7 @@ func (d *Dataplane) mTLSConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (s
 		clog.Error(err)
 		return "", "", err
 	}
-	if r.Connect == true {
+	if r.Connect {
 		clog.Infof("Successfully Connected : Using Connection:Port - %s:%s", r.ConnectType, r.ConnectDest)
 		return r.ConnectType, r.ConnectDest, nil
 	}
