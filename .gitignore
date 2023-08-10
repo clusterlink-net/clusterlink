@@ -16,6 +16,6 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-# Binaries foloder
+# Binaries folder
 bin/
 graphs/
