@@ -125,7 +125,7 @@ func startHelathMonitor() {
 
 // addPolicyEngine add policy engine server
 func addPolicyEngine(policyEngineTarget string, start bool, zeroTrust bool) {
-	store.GetEventManager().AssignPolicyDispatcher(store.GetAddrStart()+policyEngineTarget+"/policy", store.GetHttpClient())
+	store.GetEventManager().AssignPolicyDispatcher(store.GetAddrStart()+policyEngineTarget, store.GetHttpClient())
 	// TODO : Handle different MBG IDs
 	store.SaveState()
 	defaultRule := event.AllowAll
