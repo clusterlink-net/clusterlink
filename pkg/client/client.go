@@ -79,7 +79,7 @@ const (
 
 // SendACLPolicy sends an ACL request to the GW.
 func (c *Client) SendACLPolicy(serviceSrc string, serviceDst string, gwDest string, priority int, action event.Action, command int) error {
-	path := "/" + acl
+	path := "/policy/" + acl
 	switch command {
 	case Add:
 		path += "/add"
@@ -99,7 +99,7 @@ func (c *Client) SendACLPolicy(serviceSrc string, serviceDst string, gwDest stri
 
 // SendLBPolicy sends an LB request to the GW.
 func (c *Client) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.PolicyLoadBalancer, gwDest string, command int) error {
-	path := "/" + lb
+	path := "/policy/" + lb
 	switch command {
 	case Add:
 		path += "/add"
@@ -119,7 +119,7 @@ func (c *Client) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine
 // GetACLPolicies sends an ACL get request to the GW.
 func (c *Client) GetACLPolicies() (policyEngine.ACL, error) {
 	var rules policyEngine.ACL
-	path := "/" + acl
+	path := "/policy/" + acl
 	resp, err := c.client.Get(path)
 	if err != nil {
 		return make(policyEngine.ACL), err
@@ -135,7 +135,7 @@ func (c *Client) GetACLPolicies() (policyEngine.ACL, error) {
 // GetLBPolicies sends an LB get request to the GW.
 func (c *Client) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBalancer, error) {
 	var policies map[string]map[string]policyEngine.PolicyLoadBalancer
-	path := "/" + lb
+	path := "/policy/" + lb
 	resp, err := c.client.Get(path)
 	if err != nil {
 		return make(map[string]map[string]policyEngine.PolicyLoadBalancer), err
@@ -149,7 +149,7 @@ func (c *Client) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadB
 
 func (c *Client) GetMetrics() (map[string]event.ConnectionStatusAttr, error) {
 	var connections map[string]event.ConnectionStatusAttr
-	path := "/" + event.ConnectionStatus
+	path := "/metrics/" + event.ConnectionStatus
 	resp, err := c.client.Get(path)
 	if err != nil {
 		return make(map[string]event.ConnectionStatusAttr), err
