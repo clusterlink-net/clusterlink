@@ -636,7 +636,7 @@ func SaveState() {
 		dataMutex.Unlock()
 		return
 	}
-	os.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
+	os.WriteFile(configPath(), jsonC, 0600) // RW by owner only
 	dataMutex.Unlock()
 }
 

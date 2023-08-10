@@ -131,7 +131,7 @@ func (c *ClientConfig) createConfigFile() error {
 		return err
 	}
 	f := ClientPath(c.ID)
-	err = os.WriteFile(f, jsonC, 0644) // os.ModeAppend)
+	err = os.WriteFile(f, jsonC, 0600) // RW by owner only
 	c.logger.Println("Create Client config File:", f)
 	if err != nil {
 		c.logger.Errorln("Creating client config File", err)
@@ -152,7 +152,7 @@ func (c *ClientConfig) saveConfig() error {
 		f, _ = os.Readlink(ClientPath(c.ID))
 	}
 
-	err = os.WriteFile(f, jsonC, 0644) // os.ModeAppend)
+	err = os.WriteFile(f, jsonC, 0600) // RW by owner only
 	if err != nil {
 		c.logger.Errorln("Saving config File", err)
 		return err
