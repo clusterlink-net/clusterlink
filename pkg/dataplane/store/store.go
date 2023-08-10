@@ -15,6 +15,8 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+
+	"github.ibm.com/mbg-agent/pkg/utils/netutils"
 )
 
 type Store struct {
@@ -168,14 +170,15 @@ func (s *Store) getHttpClient(timeout time.Duration) http.Client {
 			log.Fatalf("could not load certificate: %v", err)
 		}
 
+		tlsConfig := netutils.ConfigureSafeTLSConfig()
+		tlsConfig.RootCAs = caCertPool
+		tlsConfig.Certificates = []tls.Certificate{certificate}
+		tlsConfig.ServerName = s.Id
+
 		client := http.Client{
 			Timeout: timeout,
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs:      caCertPool,
-					Certificates: []tls.Certificate{certificate},
-					ServerName:   s.Id,
-				},
+				TLSClientConfig: tlsConfig,
 			},
 		}
 		return client
