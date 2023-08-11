@@ -48,6 +48,7 @@ func StartCmd() *cobra.Command {
 			restore, _ := cmd.Flags().GetBool("restore")
 			logFile, _ := cmd.Flags().GetBool("logFile")
 			logLevel, _ := cmd.Flags().GetString("logLevel")
+			deployment, _ := cmd.Flags().GetString("deployment")
 			if ip == "" || id == "" || cport == "" {
 				fmt.Println("Error: please insert all flag arguments for Mbg start command")
 				os.Exit(1)
@@ -61,12 +62,14 @@ func StartCmd() *cobra.Command {
 				RestoreMbg(id, policyEngineTarget, logLevel, logFile, startPolicyEngine, zeroTrust)
 				log.Infof("Restoring MBG")
 				store.PrintState()
-				startKubeInformer()
+				if store.IsDeploymentK8s() {
+					startKubeInformer()
+				}
 				startHealthMonitor()
 			}
 
 			err = createMbg(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, dataplane,
-				caFile, certificateFile, keyFile, logLevel, logFile, restore)
+				caFile, certificateFile, keyFile, logLevel, deployment, logFile, restore)
 			if err != nil {
 				fmt.Println("Error: Unable to create MBG: ", err)
 				os.Exit(1)
@@ -79,8 +82,9 @@ func StartCmd() *cobra.Command {
 				addMetricsManager("localhost:"+cportLocal+"/metrics", true)
 			}
 			store.PrintState()
-
-			startKubeInformer()
+			if store.IsDeploymentK8s() {
+				startKubeInformer()
+			}
 			startHealthMonitor()
 		},
 	}
@@ -106,6 +110,7 @@ func addStartFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("restore", false, "Restore existing stored MBG states")
 	cmd.Flags().Bool("logFile", true, "Save the outputs to file")
 	cmd.Flags().String("logLevel", "info", "Log level: debug, info, warning, error")
+	cmd.Flags().String("deployment", "k8s", "Tpe of deployment environment: k8s, vm")
 }
 
 // startKubeInformer start kube informer for k8s cluster
@@ -139,10 +144,10 @@ func addPolicyEngine(policyEngineTarget string, start bool, zeroTrust bool) {
 
 // createMbg create mbg control plane process
 func createMbg(ID, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, dataplane,
-	caFile, certificateFile, keyFile, logLevel string, logFile, restore bool) error {
+	caFile, certificateFile, keyFile, logLevel, deployment string, logFile, restore bool) error {
 
 	logutils.SetLog(logLevel, logFile, logFileName)
-	store.SetState(ID, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
+	store.SetState(ID, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane, deployment)
 
 	//Set chi router
 	r := store.GetChiRouter()

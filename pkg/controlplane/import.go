@@ -56,10 +56,12 @@ func addImportService(e api.Import) error {
 		mlog.Error("addImportService", err)
 		return err
 	}
-	err = createImportK8sService(e)
-	if err != nil {
-		mlog.Error("createImportK8sService", err)
-		return err
+	if store.IsDeploymentK8s() {
+		err = createImportK8sService(e)
+		if err != nil {
+			mlog.Error("createImportK8sService", err)
+			return err
+		}
 	}
 	return nil
 }

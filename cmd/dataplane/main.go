@@ -14,7 +14,7 @@ const (
 )
 
 func main() {
-	var id, port, ca, cert, key, logLevel, dataplane string
+	var id, port, ca, cert, key, logLevel, dataplane, controlplane string
 	// Initialize the variable with the flag
 	flag.StringVar(&id, "id", "", "Data plane gateway id")
 	flag.StringVar(&port, "port", "443", "Default port data-plane start to listen")
@@ -22,6 +22,7 @@ func main() {
 	flag.StringVar(&cert, "cert", "", "Path to the Certificate File (.pem)")
 	flag.StringVar(&key, "key", "", "Path to the Key File (.pem)")
 	flag.StringVar(&dataplane, "dataplane", "mtls", "tcp/mtls based data-plane proxies")
+	flag.StringVar(&controlplane, "controlplane", "controlplane:443", "Target(ip:port) of the controlplane")
 	flag.StringVar(&logLevel, "logLevel", "info", "Log level: debug, info, warning, error")
 	// Parse command-line flags
 	flag.Parse()
@@ -30,7 +31,7 @@ func main() {
 	log.Infof("Dataplane main starterd")
 
 	//Set Dataplane
-	dp := dp.NewDataplane(&store.Store{Id: id, CertAuthority: ca, Cert: cert, Key: key, Dataplane: dataplane})
+	dp := dp.NewDataplane(&store.Store{Id: id, CertAuthority: ca, Cert: cert, Key: key, Dataplane: dataplane}, controlplane)
 	dp.StartServer(port)
 	log.Infof("Dataplane main process is finished")
 }

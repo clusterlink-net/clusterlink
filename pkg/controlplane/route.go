@@ -100,9 +100,13 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 
 	// Ideally do a control plane connect API, Policy checks, and then create a mTLS forwarder
 	// ImportEndPoint has to be in the connect Request/Response
-	appLabel, err := kubernetes.Data.GetLabel(strings.Split(srcIP, ":")[0], kubernetes.AppLabel)
-	if err != nil {
-		log.Errorf("Unable to get App Info :%+v", err)
+	var appLabel = ""
+	var err error
+	if store.IsDeploymentK8s() {
+		appLabel, err = kubernetes.Data.GetLabel(strings.Split(srcIP, ":")[0], kubernetes.AppLabel)
+		if err != nil {
+			log.Errorf("Unable to get App Info :%+v", err)
+		}
 	}
 	log.Infof("Receiving Outgoing connection %s(%s)->%s ", srcIP, appLabel, destIP)
 	srcSvc, err := store.LookupLocalService(appLabel, srcIP)
