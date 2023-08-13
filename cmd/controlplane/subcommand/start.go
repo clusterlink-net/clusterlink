@@ -62,7 +62,7 @@ func StartCmd() *cobra.Command {
 				log.Infof("Restoring MBG")
 				store.PrintState()
 				startKubeInformer()
-				startHelathMonitor()
+				startHealthMonitor()
 			}
 
 			err = createMbg(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, dataplane,
@@ -81,7 +81,7 @@ func StartCmd() *cobra.Command {
 			store.PrintState()
 
 			startKubeInformer()
-			startHelathMonitor()
+			startHealthMonitor()
 		},
 	}
 	addStartFlags(cmd)
@@ -117,7 +117,7 @@ func startKubeInformer() {
 }
 
 // startHelathMonitor starts health monitor bit
-func startHelathMonitor() {
+func startHealthMonitor() {
 	go health.SendHeartBeats()
 
 	health.MonitorHeartBeats()
