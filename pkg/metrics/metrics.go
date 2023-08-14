@@ -41,7 +41,6 @@ func (m *Metrics) GetConnectionMetrics(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(m.ConnectionFlow); err != nil {
 		mlog.Errorf("Error happened in JSON encode. Err: %s", err)
-		return
 	}
 }
 
@@ -54,8 +53,6 @@ func (m *Metrics) PostConnectionMetrics(w http.ResponseWriter, r *http.Request) 
 	}
 	// Aggregate Metrics
 	m.aggregateMetrics(connectionStatus)
-
-	return
 }
 
 func (m *Metrics) aggregateMetrics(connectionStatus event.ConnectionStatusAttr) {

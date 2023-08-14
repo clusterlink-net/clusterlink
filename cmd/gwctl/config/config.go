@@ -131,32 +131,13 @@ func (c *ClientConfig) createConfigFile() error {
 		return err
 	}
 	f := ClientPath(c.ID)
-	err = os.WriteFile(f, jsonC, 0644) // os.ModeAppend)
+	err = os.WriteFile(f, jsonC, 0600) // RW by owner only
 	c.logger.Println("Create Client config File:", f)
 	if err != nil {
 		c.logger.Errorln("Creating client config File", err)
 		return err
 	}
 	c.SetDefaultClient(c.ID)
-	return nil
-}
-
-func (c *ClientConfig) saveConfig() error {
-	jsonC, err := json.MarshalIndent(c, "", "\t")
-	if err != nil {
-		c.logger.Errorln("Client save config File", err)
-		return err
-	}
-	f := ClientPath(c.ID)
-	if c.ID == "" { //get original file
-		f, _ = os.Readlink(ClientPath(c.ID))
-	}
-
-	err = os.WriteFile(f, jsonC, 0644) // os.ModeAppend)
-	if err != nil {
-		c.logger.Errorln("Saving config File", err)
-		return err
-	}
 	return nil
 }
 
@@ -208,7 +189,7 @@ func GetClientFromID(id string) (*client.Client, error) {
 		return nil, err
 	}
 
-	return client.New(c.GwIP, c.GwPort, parsedCertData.ClientConfig(id)), nil
+	return client.New(c.GwIP, c.GwPort, parsedCertData.ClientConfig(c.ID)), nil
 }
 
 // ClientPath get CLI config file from id

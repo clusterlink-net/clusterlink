@@ -14,8 +14,6 @@ import (
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 )
 
-const defaultAction = event.Allow
-
 type ACL map[string]rule
 
 type AclRule struct {
@@ -99,7 +97,7 @@ func (A *AccessControl) RemoveDestService(serviceDst, mbg string) {
 	if mbg != "" {
 		str = str + mbg
 	}
-	for key, _ := range A.ACLRules {
+	for key := range A.ACLRules {
 		if strings.Contains(key, str) {
 			delete(A.ACLRules, key)
 		}

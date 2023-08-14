@@ -209,14 +209,6 @@ func (c *TCPForwarder) CloseConnection() {
 
 }
 
-// Function that wait for close connection signal
-func (c *TCPForwarder) waitToCloseSignal(wg *sync.WaitGroup) {
-	defer wg.Done()
-	<-c.CloseConn
-	c.CloseConnection()
-	clog.Infof("[%v] close all connection\n", c.Name)
-}
-
 // Trigger close connection signal
 func (c *TCPForwarder) CloseConnectionSignal() {
 	c.CloseConn <- true

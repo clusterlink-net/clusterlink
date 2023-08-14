@@ -15,6 +15,8 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+
+	"github.ibm.com/mbg-agent/pkg/utils/netutils"
 )
 
 type Store struct {
@@ -101,7 +103,7 @@ func (s *Store) GetFreePorts(connectionID string) (string, error) {
 		case <-timeout:
 			return "", fmt.Errorf("all ports taken up, Try again after sometime")
 		default:
-			random := rand.Intn(MaxPort - MinPort)
+			random := rand.Intn(MaxPort - MinPort) //nolint:gosec // G404: Use of weak random is fine for random port selection
 			port := MinPort + random
 			if !s.PortMap[port] {
 				s.PortMap[port] = true
@@ -118,7 +120,7 @@ func (s *Store) GetFreePorts(connectionID string) (string, error) {
 // Frees up used ports by a connection
 func (s *Store) FreeUpPorts(connectionID string) {
 	log.Infof("Start to FreeUpPorts for service: %s", connectionID)
-	port, _ := s.Connections[connectionID]
+	port := s.Connections[connectionID]
 	lval, _ := strconv.Atoi(port[1:])
 	stopCh[connectionID] <- true
 	delete(s.PortMap, lval)
@@ -168,14 +170,15 @@ func (s *Store) getHttpClient(timeout time.Duration) http.Client {
 			log.Fatalf("could not load certificate: %v", err)
 		}
 
+		tlsConfig := netutils.ConfigureSafeTLSConfig()
+		tlsConfig.RootCAs = caCertPool
+		tlsConfig.Certificates = []tls.Certificate{certificate}
+		tlsConfig.ServerName = s.Id
+
 		client := http.Client{
 			Timeout: timeout,
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs:      caCertPool,
-					Certificates: []tls.Certificate{certificate},
-					ServerName:   s.Id,
-				},
+				TLSClientConfig: tlsConfig,
 			},
 		}
 		return client
@@ -207,6 +210,6 @@ func (s *Store) SaveState() {
 		s.dataMutex.Unlock()
 		return
 	}
-	os.WriteFile(configPath(), jsonC, 0644) // os.ModeAppend)
+	os.WriteFile(configPath(), jsonC, 0600) // RW by owner only
 	s.dataMutex.Unlock()
 }

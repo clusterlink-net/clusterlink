@@ -10,7 +10,6 @@
 package dataplane
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -19,11 +18,11 @@ import (
 	"net/http"
 	"os"
 
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/utils/netutils"
 )
 
 type MTLSForwarder struct {
@@ -68,8 +67,6 @@ func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, cer
 		m.CloseConnection()
 		return 0, 0, m.startTstamp, time.Now(), err
 	}
-
-	//clog.Debugln("mTLS Debug Check:", m.certDebg(targetIPPort, name, tlsConfig))
 
 	TlsConnectClient := &http.Client{
 		Transport: &http.Transport{
@@ -242,15 +239,6 @@ func (m *MTLSForwarder) CloseConnection() {
 
 }
 
-// Close MTLS server
-func CloseMTLSServer(ip string) {
-	// Create a Server instance to listen on port 443 with the TLS config
-	server := &http.Server{
-		Addr: ip,
-	}
-	server.Shutdown(context.Background())
-}
-
 // Get certca, certificate, key  and create tls config
 func (m *MTLSForwarder) CreateTlsConfig(certca, certificate, key, ServerName string) *tls.Config {
 	// Read the key pair to create certificate
@@ -267,28 +255,9 @@ func (m *MTLSForwarder) CreateTlsConfig(certca, certificate, key, ServerName str
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
-	TLSConfig := &tls.Config{
-		RootCAs:      caCertPool,
-		Certificates: []tls.Certificate{cert},
-		ServerName:   ServerName,
-	}
-	return TLSConfig
-}
-
-// method for debug only -use to debug MTLS connection
-func (m *MTLSForwarder) certDebg(target, name string, tlsConfig *tls.Config) string {
-	clog.Infof("Starting tls debug to addr %v name %v", target, name)
-	conn, err := tls.Dial("tcp", target, tlsConfig)
-	if err != nil {
-		panic("Server doesn't support SSL certificate err: " + err.Error())
-	}
-	ip := strings.Split(target, ":")[0]
-	err = conn.VerifyHostname(ip)
-	if err != nil {
-		panic("Hostname doesn't match with certificate: " + err.Error())
-	}
-	expiry := conn.ConnectionState().PeerCertificates[0].NotAfter
-	clog.Infof("Issuer: %s\nExpiry: %v\n", conn.ConnectionState().PeerCertificates[0].Issuer, expiry.Format(time.RFC850))
-	conn.Close()
-	return "Debug succeed"
+	tlsConfig := netutils.ConfigureSafeTLSConfig()
+	tlsConfig.RootCAs = caCertPool
+	tlsConfig.Certificates = []tls.Certificate{cert}
+	tlsConfig.ServerName = ServerName
+	return tlsConfig
 }

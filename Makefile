@@ -80,10 +80,10 @@ run-dataplane:
 	@./bin/dataplane
 
 run-kind-iperf3:
-	python3 tests/iperf3/kind/allinone.py -d mtls
+	python3 demos/iperf3/kind/simple_test.py -d mtls
 
 run-kind-bookinfo:
-	python3 tests/bookinfo/kind/test.py -d mtls
+	python3 demos/bookinfo/kind/test.py -d mtls
 
 #------------------------------------------------------
 # Clean targets

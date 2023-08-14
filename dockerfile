@@ -24,7 +24,7 @@ WORKDIR /
 COPY --from=0  /gw/bin/controlplane /controlplane
 COPY --from=0  /gw/bin/dataplane /dataplane
 COPY --from=0  /gw/bin/gwctl /gwctl
-COPY ./tests/utils/mtls /mtls
+COPY ./demos/utils/mtls /mtls
 # Create the .mbg folder
 RUN mkdir -p /root/.gw/
 RUN apk update && apk add --no-cache iputils curl tcpdump busybox-extras
