@@ -443,18 +443,6 @@ func (k *kubeData) CreateEndpoint(epName, namespace, targetIP string, targetPort
 	return nil
 }
 
-// checkServiceExist check if k8s service that was create by the gw exist
-func (k *kubeData) checkServiceExist(serviceName string) bool {
-	_, ok := k.serviceMap[serviceName]
-	return ok
-}
-
-// checkEndpointExist check if k8s endpoint that was create by the gw exist
-func (k *kubeData) checkEndpointExist(epName string) bool {
-	_, ok := k.endpointMap[epName]
-	return ok
-}
-
 // DeleteService delete k8s service
 func (k *kubeData) DeleteService(serviceName string) error {
 	if namespace, ok := k.serviceMap[serviceName]; ok {

@@ -12,25 +12,9 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 )
-
-var (
-	tcpReadTimeoutMs = uint(0)
-)
-
-// Read function with timeout
-func setReadTimeout(connRead net.Conn) error {
-	if tcpReadTimeoutMs == 0 {
-		return nil
-	}
-
-	tcpReadDeadline := time.Duration(tcpReadTimeoutMs) * time.Millisecond
-	deadline := time.Now().Add(tcpReadDeadline)
-	return connRead.SetReadDeadline(deadline)
-}
 
 // Return connection IP and port
 func GetConnIp(c net.Conn) (string, string) {
