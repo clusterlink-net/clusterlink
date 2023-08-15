@@ -80,14 +80,3 @@ func getCmd() *cobra.Command {
 	getCmd.AddCommand(subcommand.MetricsGetCmd())
 	return getCmd
 }
-
-func setLog() {
-	logrus.SetFormatter(&logrus.TextFormatter{
-		ForceColors:     true,
-		FullTimestamp:   true,
-		TimestampFormat: "2006-01-02 15:04:05",
-		PadLevelText:    true,
-		DisableQuote:    true,
-	},
-	)
-}

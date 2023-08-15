@@ -141,25 +141,6 @@ func (c *ClientConfig) createConfigFile() error {
 	return nil
 }
 
-func (c *ClientConfig) saveConfig() error {
-	jsonC, err := json.MarshalIndent(c, "", "\t")
-	if err != nil {
-		c.logger.Errorln("Client save config File", err)
-		return err
-	}
-	f := ClientPath(c.ID)
-	if c.ID == "" { //get original file
-		f, _ = os.Readlink(ClientPath(c.ID))
-	}
-
-	err = os.WriteFile(f, jsonC, 0600) // RW by owner only
-	if err != nil {
-		c.logger.Errorln("Saving config File", err)
-		return err
-	}
-	return nil
-}
-
 // SetDefaultClient set the default Client the CLI will use.
 func (c *ClientConfig) SetDefaultClient(id string) error {
 	file := ClientPath(id)

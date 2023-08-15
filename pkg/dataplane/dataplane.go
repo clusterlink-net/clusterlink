@@ -84,7 +84,7 @@ func (d *Dataplane) TCPexportServiceEndpointHandler(w http.ResponseWriter, r *ht
 // ConnectExportServiceEndpoint waiting for connection from host and do two things:
 // 1. Create tcp connection to destination (Not Secure)- TODO support also secure connection
 // 2. Register new handle function and hijack the connection
-func (d *Dataplane) startListenerToExportServiceEndpoint(c apiObject.ConnectRequest, targetMbgIP string, w http.ResponseWriter) (bool, string, string) {
+func (d *Dataplane) startListenerToExportServiceEndpoint(c apiObject.ConnectRequest, _ /*targetMbgIP*/ string, w http.ResponseWriter) (bool, string, string) {
 	clog.Infof("Received Incoming Connect request from service: %v to service: %v", c.Id, c.IdDest)
 	connectionID := createConnId(c.Id, c.IdDest)
 	endpoint := connectionID + ksuid.New().String()
@@ -164,7 +164,7 @@ func (d *Dataplane) startMTLSListenerService(mbgIP, connectDest, rootCA, certifi
 
 // Run server for Data connection - we have one server and client that we can add some network functions e.g: TCP-split
 // By default we just forward the data
-func (d *Dataplane) startTCPListenerService(svcListenPort, svcIp, policy, connId string, serverConn, clientConn net.Conn, direction eventManager.Direction) {
+func (d *Dataplane) startTCPListenerService(svcListenPort, svcIp, _ /*policy*/, connId string, serverConn, clientConn net.Conn, direction eventManager.Direction) {
 
 	srcIp := svcListenPort
 	destIp := svcIp

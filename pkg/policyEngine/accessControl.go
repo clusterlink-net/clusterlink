@@ -14,8 +14,6 @@ import (
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 )
 
-const defaultAction = event.Allow
-
 type ACL map[string]rule
 
 type AclRule struct {
