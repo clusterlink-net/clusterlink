@@ -55,6 +55,7 @@ func StartCmd() *cobra.Command {
 				fmt.Println("Error: please insert all flag arguments for Mbg start command")
 				os.Exit(1)
 			}
+
 			if profilePort != 0 {
 				go func() {
 					log.Info("Starting PProf HTTP listener at ", profilePort)

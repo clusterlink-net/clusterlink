@@ -32,10 +32,11 @@ func main() {
 	flag.Parse()
 	//Set log file
 	logutils.SetLog(logLevel, true, logFileName)
-	log.Infof("Dataplane main starterd")
+	log.Infof("Dataplane main started")
+
 	if profilePort != 0 {
 		go func() {
-			log.Info("starting PProf HTTP listener at ", profilePort)
+			log.Info("Starting PProf HTTP listener at ", profilePort)
 			log.WithError(http.ListenAndServe(fmt.Sprintf("localhost:%d", profilePort), nil)).
 				Error("PProf HTTP listener stopped working")
 		}()
