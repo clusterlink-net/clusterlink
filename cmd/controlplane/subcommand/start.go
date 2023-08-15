@@ -48,7 +48,7 @@ func StartCmd() *cobra.Command {
 			restore, _ := cmd.Flags().GetBool("restore")
 			logFile, _ := cmd.Flags().GetBool("logFile")
 			logLevel, _ := cmd.Flags().GetString("logLevel")
-			deployment, _ := cmd.Flags().GetString("deployment")
+			rtenv, _ := cmd.Flags().GetString("rtenv")
 			if ip == "" || id == "" || cport == "" {
 				fmt.Println("Error: please insert all flag arguments for Mbg start command")
 				os.Exit(1)
@@ -62,14 +62,12 @@ func StartCmd() *cobra.Command {
 				RestoreMbg(id, policyEngineTarget, logLevel, logFile, startPolicyEngine, zeroTrust)
 				log.Infof("Restoring MBG")
 				store.PrintState()
-				if store.IsDeploymentK8s() {
-					startKubeInformer()
-				}
+				initializeRuntimeEnv(rtenv)
 				startHealthMonitor()
 			}
 
 			err = createMbg(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, dataplane,
-				caFile, certificateFile, keyFile, logLevel, deployment, logFile, restore)
+				caFile, certificateFile, keyFile, logLevel, logFile, restore)
 			if err != nil {
 				fmt.Println("Error: Unable to create MBG: ", err)
 				os.Exit(1)
@@ -82,9 +80,7 @@ func StartCmd() *cobra.Command {
 				addMetricsManager("localhost:"+cportLocal+"/metrics", true)
 			}
 			store.PrintState()
-			if store.IsDeploymentK8s() {
-				startKubeInformer()
-			}
+			initializeRuntimeEnv(rtenv)
 			startHealthMonitor()
 		},
 	}
@@ -110,14 +106,18 @@ func addStartFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("restore", false, "Restore existing stored MBG states")
 	cmd.Flags().Bool("logFile", true, "Save the outputs to file")
 	cmd.Flags().String("logLevel", "info", "Log level: debug, info, warning, error")
-	cmd.Flags().String("deployment", "k8s", "Tpe of deployment environment: k8s, vm")
+	cmd.Flags().String("rtenv", "k8s", "Runtime environment of the gateway: k8s, vm")
 }
 
 // startKubeInformer start kube informer for k8s cluster
-func startKubeInformer() {
-	err := kubernetes.InitializeKubeDeployment("")
-	if err != nil {
-		log.Errorf("Failed to initialize kube deployment: %+v", err)
+func initializeRuntimeEnv(rtenv string) {
+	cp.MyRunTimeEnv.SetRuntimeEnv(rtenv)
+
+	if cp.MyRunTimeEnv.IsRuntimeEnvK8s() {
+		err := kubernetes.InitializeKubeDeployment("")
+		if err != nil {
+			log.Errorf("Failed to initialize kube deployment: %+v", err)
+		}
 	}
 }
 
@@ -144,10 +144,10 @@ func addPolicyEngine(policyEngineTarget string, start bool, zeroTrust bool) {
 
 // createMbg create mbg control plane process
 func createMbg(ID, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, dataplane,
-	caFile, certificateFile, keyFile, logLevel, deployment string, logFile, restore bool) error {
+	caFile, certificateFile, keyFile, logLevel string, logFile, restore bool) error {
 
 	logutils.SetLog(logLevel, logFile, logFileName)
-	store.SetState(ID, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane, deployment)
+	store.SetState(ID, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
 
 	//Set chi router
 	r := store.GetChiRouter()

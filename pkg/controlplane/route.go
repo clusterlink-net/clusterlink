@@ -102,7 +102,7 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 	// ImportEndPoint has to be in the connect Request/Response
 	var appLabel = ""
 	var err error
-	if store.IsDeploymentK8s() {
+	if MyRunTimeEnv.IsRuntimeEnvK8s() {
 		appLabel, err = kubernetes.Data.GetLabel(strings.Split(srcIP, ":")[0], kubernetes.AppLabel)
 		if err != nil {
 			log.Errorf("Unable to get App Info :%+v", err)

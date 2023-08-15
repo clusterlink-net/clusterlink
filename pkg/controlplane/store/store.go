@@ -52,7 +52,6 @@ type MbgInfo struct {
 	KeyFile           string
 	Dataplane         string
 	DataplaneEndpoint string
-	Deployment        string
 }
 
 type Mbgctl struct {
@@ -157,11 +156,8 @@ func GetRemoteServicesArr() map[string][]RemoteService {
 func GetEventManager() *event.EventManager {
 	return &s.MyEventManager
 }
-func IsDeploymentK8s() bool {
-	return (s.MyInfo.Deployment == k8s)
-}
 
-func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, caFile, certificate, key, dataplane, deployment string) {
+func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, caFile, certificate, key, dataplane string) {
 	s.MyInfo.Id = id
 	s.MyInfo.Ip = ip
 	s.MyInfo.Cport.Local = ":" + cportLocal
@@ -174,7 +170,6 @@ func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDat
 	s.MyInfo.KeyFile = key
 	s.MyInfo.Dataplane = dataplane
 	s.MyInfo.DataplaneEndpoint = "dataplane:443"
-	s.MyInfo.Deployment = deployment
 	log = logrus.WithField("component", s.MyInfo.Id)
 	CreateProjectfolder()
 	SaveState()
