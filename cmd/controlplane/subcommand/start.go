@@ -2,6 +2,8 @@ package subcommand
 
 import (
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
 
@@ -48,12 +50,18 @@ func StartCmd() *cobra.Command {
 			restore, _ := cmd.Flags().GetBool("restore")
 			logFile, _ := cmd.Flags().GetBool("logFile")
 			logLevel, _ := cmd.Flags().GetString("logLevel")
-
+			profilePort, _ := cmd.Flags().GetInt("profilePort")
 			if ip == "" || id == "" || cport == "" {
 				fmt.Println("Error: please insert all flag arguments for Mbg start command")
 				os.Exit(1)
 			}
-
+			if profilePort != 0 {
+				go func() {
+					log.Info("Starting PProf HTTP listener at ", profilePort)
+					log.WithError(http.ListenAndServe(fmt.Sprintf("localhost:%d", profilePort), nil)).
+						Error("PProf HTTP listener stopped working")
+				}()
+			}
 			if restore {
 				if !startPolicyEngine && policyEngineTarget == "" {
 					fmt.Println("Error: Please specify policyEngineTarget")
