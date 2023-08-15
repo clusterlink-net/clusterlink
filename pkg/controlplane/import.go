@@ -168,7 +168,9 @@ func DelImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	// AddService control plane logic
 	delImportService(svcID)
-	deleteImportK8sService(svcID)
+	if MyRunTimeEnv.IsRuntimeEnvK8s() {
+		deleteImportK8sService(svcID)
+	}
 
 	// Response
 	w.WriteHeader(http.StatusNoContent)
