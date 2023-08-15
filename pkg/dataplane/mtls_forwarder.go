@@ -124,7 +124,7 @@ func (m *MTLSForwarder) StartMTLSForwarderServer(targetIPPort, name, certca, cer
 
 // Hijack the http connection and use it as TCP connection
 func (m *MTLSForwarder) ConnectHandler(w http.ResponseWriter, r *http.Request) {
-	clog.Infof("Received Connect (%s) from %s", m.Name, r.RemoteAddr)
+	clog.Infof("Received Connect (%s) from %s\n", m.Name, r.RemoteAddr)
 
 	hj, ok := w.(http.Hijacker)
 	if !ok {
@@ -134,9 +134,15 @@ func (m *MTLSForwarder) ConnectHandler(w http.ResponseWriter, r *http.Request) {
 	//Hijack the connection
 	conn, _, err := hj.Hijack()
 	if err != nil {
-		clog.Infof("Hijacking failed %v", err)
+		clog.Infof("Hijacking failed %v\n", err)
 		return
 	}
+
+	if err = conn.SetDeadline(time.Time{}); err != nil {
+		clog.Infof("failed to clear deadlines on connection: %v", err)
+		return
+	}
+
 	conn.Write([]byte{})
 	fmt.Fprintf(conn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n")
 

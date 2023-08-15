@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -26,10 +27,8 @@ func GetConnIp(c net.Conn) (string, string) {
 
 // Start HTTP server
 func StartHTTPServer(ip string, handler http.Handler) {
-	// s := CreateDefaultResilientHTTPServer(ip, handler)
-	// log.Fatal(s.ListenAndServe())
-	// Commenting the Resilient server until we identify the issue & fix it
-	log.Fatal(http.ListenAndServe(ip, handler))
+	s := CreateDefaultResilientHTTPServer(ip, handler)
+	log.Fatal(s.ListenAndServe())
 }
 
 func StartMTLSServer(ip, certca, certificate, key string, handler http.Handler) {
@@ -46,12 +45,7 @@ func StartMTLSServer(ip, certca, certificate, key string, handler http.Handler) 
 	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 
 	// Create a Server instance to listen on port 443 with the TLS config
-	//server := CreateResilientHTTPServer(ip, handler, tlsConfig, 0, 0, 0, 0)
-	server := &http.Server{
-		Addr:      ip,
-		TLSConfig: tlsConfig,
-		Handler:   handler,
-	}
+	server := CreateResilientHTTPServer(ip, handler, tlsConfig, nil, nil, nil)
 	log.Fatal(server.ListenAndServeTLS(certificate, key))
 }
 
@@ -65,44 +59,38 @@ func ConfigureSafeTLSConfig() *tls.Config {
 
 // CreateDefaultResilientHTTPServer returns an http.Server configured with default configuration
 func CreateDefaultResilientHTTPServer(addr string, mux http.Handler) *http.Server {
-	return CreateResilientHTTPServer(addr, mux, ConfigureSafeTLSConfig(), 0, 0, 0, 0)
+	return CreateResilientHTTPServer(addr, mux, ConfigureSafeTLSConfig(), nil, nil, nil)
 }
 
 // CreateResilientHTTPServer returns an http.Server configured with the timeouts provided
 func CreateResilientHTTPServer(addr string, mux http.Handler, tlsConfig *tls.Config,
-	readTimeout, writeTimeout, idleTimeout, requestTimeout time.Duration) *http.Server {
+	headerReadTimeout, writeTimeout, idleTimeout *time.Duration) *http.Server {
 
 	const (
-		defaultReadTimeout       = 2 * time.Second
-		defaultReadHeaderTimeout = 1 * time.Second
+		defaultReadHeaderTimeout = 2 * time.Second
 		defaultWriteTimeout      = 2 * time.Second
 		defaultIdleTimeout       = 120 * time.Second
-		defaultRequestTimeout    = 1 * time.Second
 		defaultMaxHeaderBytes    = 10 * 1024
 	)
 
-	if requestTimeout <= 0 {
-		requestTimeout = defaultRequestTimeout
-	}
-
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           http.TimeoutHandler(mux, requestTimeout, "request timeout\n"),
+		Handler:           mux,
 		ReadHeaderTimeout: defaultReadHeaderTimeout,
-		ReadTimeout:       defaultReadTimeout,
+		ReadTimeout:       time.Duration(0), // use header timeout only
 		WriteTimeout:      defaultWriteTimeout,
 		IdleTimeout:       defaultIdleTimeout,
 		MaxHeaderBytes:    defaultMaxHeaderBytes,
 	}
 
-	if readTimeout != 0 {
-		srv.ReadTimeout = readTimeout
+	if headerReadTimeout != nil {
+		srv.ReadHeaderTimeout = *headerReadTimeout
 	}
-	if writeTimeout != 0 {
-		srv.WriteTimeout = writeTimeout
+	if writeTimeout != nil {
+		srv.WriteTimeout = *writeTimeout
 	}
-	if idleTimeout != 0 {
-		srv.IdleTimeout = idleTimeout
+	if idleTimeout != nil {
+		srv.IdleTimeout = *idleTimeout
 	}
 	if tlsConfig != nil {
 		srv.TLSConfig = tlsConfig
