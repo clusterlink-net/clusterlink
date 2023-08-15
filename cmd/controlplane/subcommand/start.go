@@ -63,7 +63,7 @@ func StartCmd() *cobra.Command {
 				log.Infof("Restoring MBG")
 				store.PrintState()
 				startKubeInformer()
-				startHelathMonitor()
+				startHealthMonitor()
 				return
 			}
 
