@@ -17,8 +17,8 @@ import (
 var klog = logrus.WithField("component", "controlPlane/health")
 
 const (
-	timeout  = 5 //seconds
 	Interval = 1 * time.Second
+	timeout  = 5 * Interval
 )
 
 var mbgLastSeenMutex sync.RWMutex
@@ -67,12 +67,13 @@ func SendHeartBeats() error {
 		klog.Error(err)
 		return fmt.Errorf("unable to marshal json for heartbeat")
 	}
+	head := store.GetAddrStart()
+	httpclient := store.GetHttpClient()
 	for {
 		mList := store.GetMbgList()
 		for _, m := range mList {
-			url := store.GetAddrStart() + store.GetMbgTarget(m) + "/hb"
-			_, err := httputils.HttpPost(url, j, store.GetHttpClient())
-
+			url := head + store.GetMbgTarget(m) + "/hb"
+			_, err := httputils.HttpPost(url, j, httpclient)
 			if err != nil {
 				klog.Errorf("Unable to send heartbeat to %s, Error: %v", url, err.Error())
 				continue
@@ -86,6 +87,7 @@ func SendHeartBeats() error {
 // Send HB to peer http handler
 func HandleHB(w http.ResponseWriter, r *http.Request) {
 	var h apiObject.HeartBeat
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&h)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -104,7 +106,7 @@ func RecvHeartbeat(mbgID string) {
 
 func MonitorHeartBeats() {
 	for {
-		time.Sleep(Interval)
+		time.Sleep(timeout)
 		store.UpdateState()
 		mList := store.GetMbgList()
 		for _, m := range mList {
@@ -114,7 +116,7 @@ func MonitorHeartBeats() {
 				continue
 			}
 			diff := t.Sub(lastSeen)
-			if diff.Seconds() > timeout {
+			if diff.Seconds() > timeout.Seconds() {
 				klog.Errorf("Heartbeat Timeout reached, Inactivating MBG %s(LastSeen:%v)", m, lastSeen)
 				err := store.GetEventManager().RaiseRemovePeerEvent(eventManager.RemovePeerAttr{PeerMbg: m})
 				if err != nil {

@@ -28,6 +28,7 @@ func AddImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse add service struct from request
 	var e api.Import
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&e)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -158,6 +159,7 @@ func DelImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 	svcID := chi.URLParam(r, "id")
 	// Parse add service struct from request
 	var s api.Import
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&s)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

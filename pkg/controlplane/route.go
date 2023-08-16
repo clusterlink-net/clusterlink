@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/segmentio/ksuid"
 	log "github.com/sirupsen/logrus"
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
@@ -22,6 +23,8 @@ type MbgHandler struct{}
 // Routes create all the sub routes for the CP server
 func (m MbgHandler) Routes() chi.Router {
 	r := store.GetChiRouter()
+
+	r.Use(middleware.Recoverer)
 
 	r.Get("/", m.controlplaneWelcome)
 
@@ -145,6 +148,7 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 func setupNewExportConnHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse struct from request
 	var c apiObject.NewExportConnParmaReq
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&c)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -194,6 +198,7 @@ func setupNewExportConn(srcSvcID, srcGwID, destSvcID string) apiObject.NewExport
 func connStatusHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse expose struct from request
 	var c apiObject.ConnectionStatus
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&c)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

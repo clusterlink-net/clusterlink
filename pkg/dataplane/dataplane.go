@@ -38,6 +38,7 @@ func NewDataplane(s *store.Store) *Dataplane {
 func (d *Dataplane) MTLSexportServiceEndpointHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse struct from request
 	var c apiObject.ConnectRequest
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&c)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -64,6 +65,7 @@ func (d *Dataplane) MTLSexportServiceEndpointHandler(w http.ResponseWriter, r *h
 func (d *Dataplane) TCPexportServiceEndpointHandler(w http.ResponseWriter, r *http.Request) {
 	//Parse struct from request
 	var c apiObject.ConnectRequest
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&c)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -188,6 +190,7 @@ func (d *Dataplane) AddImportServiceEndpointHandler(w http.ResponseWriter, r *ht
 
 	// Parse add service struct from request
 	var e api.Import
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&e)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

@@ -124,6 +124,7 @@ func RemovePeerHandler(w http.ResponseWriter, r *http.Request) {
 
 	//Parse add peer struct from request
 	var p api.Peer
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

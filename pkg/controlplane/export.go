@@ -21,6 +21,7 @@ func AddExportServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse add service struct from request
 	var e api.Export
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&e)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
