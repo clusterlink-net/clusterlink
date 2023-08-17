@@ -53,7 +53,7 @@ func StartCmd() *cobra.Command {
 			rtenv, _ := cmd.Flags().GetString("rtenv")
 			profilePort, _ := cmd.Flags().GetInt("profilePort")
 
-      if ip == "" || id == "" || cport == "" {
+ 		        if ip == "" || id == "" || cport == "" {
 				fmt.Println("Error: please insert all flag arguments for Mbg start command")
 				os.Exit(1)
 			}
@@ -188,7 +188,7 @@ func restoreMbg(logLevel string, logFile, startPolicyEngine bool, zeroTrust bool
 		go netutils.StartHTTPServer(store.GetMyCport().Local, r)
 	}
 
-	time.Sleep(health.Interval)
+	time.Sleep(1 * time.Second)
 	store.RestoreMbg()
 	cp.RestoreImportServices()
 }
