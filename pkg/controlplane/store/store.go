@@ -71,7 +71,7 @@ type LocalService struct {
 	Ip           string
 	Port         string
 	Description  string
-	PeersExposed []string //ToDo not uniqe
+	PeersExposed []string // TODO: not unique
 }
 
 type ServicePort struct {
@@ -313,8 +313,9 @@ func LookupLocalServiceFromIP(network string) (LocalService, error) {
 	// If the local app/service is not defined, we send the name as a "wildcard"
 	return LocalService{Id: "*", Ip: "", Description: ""}, errors.New("unable to find local service")
 }
-func GetServiceMbgIp(Ip string) string {
-	svcIp := strings.Split(Ip, ":")[0]
+
+func GetServiceMbgIp(ip string) string {
+	svcIp := strings.Split(ip, ":")[0]
 	mbgArrMutex.RLock()
 	for _, m := range s.MbgArr {
 		if m.Ip == svcIp {
@@ -323,7 +324,7 @@ func GetServiceMbgIp(Ip string) string {
 		}
 	}
 	mbgArrMutex.RUnlock()
-	log.Errorf("Service %v is not defined", Ip)
+	log.Errorf("Service %v is not defined", ip)
 	PrintState()
 	return ""
 }
@@ -401,7 +402,7 @@ func FreeUpPorts(connectionID string) {
 
 func AddLocalService(id, ip string, port uint16) {
 	if _, ok := s.MyServices[id]; ok {
-		log.Infof("Local Service already added %s", id) //Allow overwrite service
+		log.Infof("Local Service already added %s", id) // Allow overwrite service
 	}
 	s.MyServices[id] = LocalService{Id: id, Ip: ip, Port: strconv.Itoa(int(port))}
 	log.Infof("Adding local service: %s", id)
@@ -470,16 +471,16 @@ func CreateImportService(importId string) {
 	SaveState()
 }
 
-func AddRemoteService(id, ip, description, MbgId string) {
-	svc := RemoteService{Id: id, MbgId: MbgId, MbgIp: ip, Description: description}
+func AddRemoteService(id, ip, description, mbgId string) {
+	svc := RemoteService{Id: id, MbgId: mbgId, MbgIp: ip, Description: description}
 	if mbgs, ok := s.RemoteServiceMap[id]; ok {
-		_, exist := exists(mbgs, MbgId)
+		_, exist := exists(mbgs, mbgId)
 		if !exist {
-			s.RemoteServiceMap[id] = append(mbgs, MbgId)
+			s.RemoteServiceMap[id] = append(mbgs, mbgId)
 			s.RemoteServices[id] = append(s.RemoteServices[id], svc)
 		}
 	} else {
-		s.RemoteServiceMap[id] = []string{MbgId}
+		s.RemoteServiceMap[id] = []string{mbgId}
 		s.RemoteServices[id] = []RemoteService{svc}
 	}
 	log.Infof("Adding remote service: [%v]", s.RemoteServiceMap[id])
@@ -489,7 +490,7 @@ func AddRemoteService(id, ip, description, MbgId string) {
 
 func DelRemoteService(id, mbg string) {
 	if _, ok := s.RemoteServices[id]; ok {
-		if mbg == "" { //delete service for all MBgs
+		if mbg == "" { // delete service for all MBgs
 			delete(s.RemoteServices, id)
 			delete(s.RemoteServiceMap, id)
 			FreeUpPorts(id)
@@ -512,14 +513,14 @@ func RemoveMbgFromServiceMap(mbg string) {
 }
 
 func RemoveMbgFromService(svcId, mbg string, mbgs []string) {
-	//Remove from service map
+	// Remove from service map
 	index, exist := exists(mbgs, mbg)
 	if !exist {
 		return
 	}
 	s.RemoteServiceMap[svcId] = append((mbgs)[:index], (mbgs)[index+1:]...)
 	log.Infof("MBG removed from remote service %v->[%+v]", svcId, s.RemoteServiceMap[svcId])
-	//Remove from service array
+	// Remove from service array
 	for idx, reSvc := range s.RemoteServices[svcId] {
 		if reSvc.MbgId == mbg {
 			s.RemoteServices[svcId] = append((s.RemoteServices[svcId])[:idx], (s.RemoteServices[svcId])[idx+1:]...)
@@ -531,15 +532,15 @@ func RemoveMbgFromService(svcId, mbg string, mbgs []string) {
 		delete(s.RemoteServices, svcId)
 		delete(s.RemoteServiceMap, svcId)
 		FreeUpPorts(svcId)
-		GetEventManager().RaiseRemoveRemoteServiceEvent(eventManager.RemoveRemoteServiceAttr{Service: svcId, Mbg: ""}) //remove the service
-	} else { //remove specific mbg from the mbg
+		GetEventManager().RaiseRemoveRemoteServiceEvent(eventManager.RemoveRemoteServiceAttr{Service: svcId, Mbg: ""}) // remove the service
+	} else { // remove specific mbg from the mbg
 		GetEventManager().RaiseRemoveRemoteServiceEvent(eventManager.RemoveRemoteServiceAttr{Service: svcId, Mbg: mbg})
 	}
 	SaveState()
 }
 
 func (s *LocalService) GetIpAndPort() string {
-	//Support only DNS target
+	// Support only DNS target
 	target := s.Ip + ":" + s.Port
 	return target
 }
@@ -612,7 +613,7 @@ func PrintState() {
 func CreateProjectfolder() string {
 	usr, _ := user.Current()
 	fol := path.Join(usr.HomeDir, ProjectFolder)
-	//Create folder
+	// Create folder
 	err := os.MkdirAll(fol, 0755)
 	if err != nil {
 		log.Println(err)
@@ -622,7 +623,7 @@ func CreateProjectfolder() string {
 
 /** Database **/
 func configPath() string {
-	//set cfg file in home directory
+	// set cfg file in home directory
 	usr, _ := user.Current()
 	return path.Join(usr.HomeDir, ProjectFolder, DBFile)
 
@@ -645,7 +646,7 @@ func readState() mbgState {
 	data, _ := os.ReadFile(configPath())
 	var state mbgState
 	json.Unmarshal(data, &state)
-	//Don't change part of the Fields
+	// Don't change part of the Fields
 	state.MyEventManager.HttpClient = s.MyEventManager.HttpClient
 	dataMutex.Unlock()
 	return state

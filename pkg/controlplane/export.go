@@ -104,9 +104,7 @@ func getExportService(svcID string) api.Export {
 
 // GetAllExportServicesHandler - HTTP handler for Get all export services
 func GetAllExportServicesHandler(w http.ResponseWriter, r *http.Request) {
-
-	// GetService control plane logic
-	sArr := getAllExportServices()
+	sArr := getAllExportServices() // GetService control plane logic
 
 	// Set response
 	w.Header().Set("Content-Type", "application/json")
@@ -134,7 +132,6 @@ func getAllExportServices() map[string]api.Export {
 
 // DelExportServiceHandler - HTTP handler for delete local service -
 func DelExportServiceHandler(w http.ResponseWriter, r *http.Request) {
-
 	// Parse del service struct from request
 	svcID := chi.URLParam(r, "id")
 
@@ -156,7 +153,7 @@ func DelExportServiceHandler(w http.ResponseWriter, r *http.Request) {
 func delExportService(svcID string) error {
 	store.UpdateState()
 	var svcArr []store.LocalService
-	if svcID == "*" { //remove all services
+	if svcID == "*" { // remove all services
 		svcArr = append(svcArr, maps.Values(store.GetLocalServicesArr())...)
 	} else {
 		svcArr = append(svcArr, store.GetLocalService(svcID))

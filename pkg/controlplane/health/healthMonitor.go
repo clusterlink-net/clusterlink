@@ -17,8 +17,8 @@ import (
 var klog = logrus.WithField("component", "controlPlane/health")
 
 const (
-	Interval = 1 * time.Second
-	timeout  = 5 * Interval
+	interval = 1 * time.Second
+	timeout  = 5 * time.Second
 )
 
 var mbgLastSeenMutex sync.RWMutex
@@ -54,7 +54,7 @@ func validateMBGs(mbgId string) {
 		if store.IsMbgInactivePeer(mbgId) {
 			store.ActivateMbg(mbgId)
 		}
-		//}
+		// }
 	}
 }
 
@@ -80,7 +80,7 @@ func SendHeartBeats() error {
 			}
 			updateLastSeen(m)
 		}
-		time.Sleep(Interval)
+		time.Sleep(interval)
 	}
 }
 
@@ -96,9 +96,10 @@ func HandleHB(w http.ResponseWriter, r *http.Request) {
 
 	RecvHeartbeat(h.Id)
 
-	//Response
+	// Response
 	w.WriteHeader(http.StatusOK)
 }
+
 func RecvHeartbeat(mbgID string) {
 	updateLastSeen(mbgID)
 	validateMBGs(mbgID)
@@ -115,8 +116,8 @@ func MonitorHeartBeats() {
 			if !ok {
 				continue
 			}
-			diff := t.Sub(lastSeen)
-			if diff.Seconds() > timeout.Seconds() {
+			elapsed := t.Sub(lastSeen)
+			if elapsed > timeout {
 				klog.Errorf("Heartbeat Timeout reached, Inactivating MBG %s(LastSeen:%v)", m, lastSeen)
 				err := store.GetEventManager().RaiseRemovePeerEvent(eventManager.RemovePeerAttr{PeerMbg: m})
 				if err != nil {

@@ -144,13 +144,13 @@ func addPolicyEngine(policyEngineTarget string, start bool, zeroTrust bool) {
 }
 
 // createMbg create mbg control plane process
-func createMbg(ID, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, dataplane,
+func createMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, dataplane,
 	caFile, certificateFile, keyFile, logLevel string, logFile bool) {
 
 	logutils.SetLog(logLevel, logFile, logFileName)
-	store.SetState(ID, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
+	store.SetState(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
 
-	//Set chi router
+	// Set chi router
 	r := store.GetChiRouter()
 	r.Mount("/", cp.MbgHandler{}.Routes())
 
@@ -169,7 +169,7 @@ func restoreMbg(logLevel string, logFile, startPolicyEngine bool, zeroTrust bool
 		go addPolicyEngine("localhost"+store.GetMyCport().Local, true, zeroTrust)
 	}
 
-	//Set chi router
+	// Set chi router
 	r := store.GetChiRouter()
 	r.Mount("/", cp.MbgHandler{}.Routes())
 	if store.GetDataplane() == "mtls" {

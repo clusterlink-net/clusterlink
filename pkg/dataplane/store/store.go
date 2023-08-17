@@ -87,7 +87,7 @@ func (s *Store) GetSvcPort(id string) string {
 // Gets an available free port to use per connection
 func (s *Store) GetFreePorts(connectionID string) (string, error) {
 	if port, ok := s.Connections[connectionID]; ok {
-		if _, okStop := stopCh[connectionID]; !okStop { //Create stop channel for case is not exist link in MBG restore
+		if _, okStop := stopCh[connectionID]; !okStop { // Create stop channel for case is not exist link in MBG restore
 			stopCh[connectionID] = make(chan bool)
 		}
 		return port, fmt.Errorf(ConnExist)
@@ -125,7 +125,7 @@ func (s *Store) FreeUpPorts(connectionID string) {
 	stopCh[connectionID] <- true
 	delete(s.PortMap, lval)
 	delete(s.Connections, connectionID)
-	//SaveState()
+	// SaveState()
 }
 
 // Send stop channel signal to stop import service listener
@@ -195,8 +195,7 @@ const (
 
 // Get folder to save all files
 func configPath() string {
-	//set cfg file in home directory
-	usr, _ := user.Current()
+	usr, _ := user.Current() // set cfg file in home directory
 	return path.Join(usr.HomeDir, ProjectFolder, DBFile)
 
 }

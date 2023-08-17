@@ -51,7 +51,7 @@ func (cd connDialer) Dial(network, addr string) (net.Conn, error) {
 // Start MTLS Forwarder on a specific MTLS target
 // targetIPPort in the format of <ip:port>
 // connect is set to true on a client side
-func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, certificate, key, ServerName string, endpointConn net.Conn) (int, int, time.Time, time.Time, error) {
+func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, certificate, key, serverName string, endpointConn net.Conn) (int, int, time.Time, time.Time, error) {
 	clog.Infof("Starting to initialize MTLS Forwarder for MBG Dataplane at %s", ConnectionUrl+m.Name)
 	m.startTstamp = time.Now()
 	connectMbg := "https://" + targetIPPort + ConnectionUrl + name
@@ -59,8 +59,8 @@ func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, cer
 	m.Connection = endpointConn
 	m.Name = name
 
-	//Create TCP connection with TLS handshake
-	TLSClientConfig := m.CreateTlsConfig(certca, certificate, key, ServerName)
+	// Create TCP connection with TLS handshake
+	TLSClientConfig := m.CreateTlsConfig(certca, certificate, key, serverName)
 	MTLS_conn, err := tls.Dial("tcp", targetIPPort, TLSClientConfig)
 	if err != nil {
 		clog.Infof("Error in connecting.. %+v", err)
@@ -93,9 +93,9 @@ func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, cer
 	m.MTLSConnection = MTLS_conn
 	clog.Infof("mtlS Connection Established Resp:%s(%d) to Target: %s", resp.Status, resp.StatusCode, connectMbg)
 	clog.Infof("Starting mTLS Forwarder client for MBG Dataplane at %s  to target %s with certs(%s,%s)", ConnectionUrl+m.Name, targetIPPort, certificate, key)
-	//From forwarder to other MBG
+	// From forwarder to other MBG
 	go m.MTLSDispatch(event.Outgoing)
-	//From source to forwarder
+	// From source to forwarder
 	m.dispatch(event.Incoming)
 
 	return m.incomingBytes, m.outgoingBytes, m.startTstamp, time.Now(), nil
@@ -131,7 +131,7 @@ func (m *MTLSForwarder) ConnectHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "server doesn't support hijacking", http.StatusInternalServerError)
 		return
 	}
-	//Hijack the connection
+	// Hijack the connection
 	conn, _, err := hj.Hijack()
 	if err != nil {
 		clog.Infof("Hijacking failed %v\n", err)
@@ -203,11 +203,11 @@ func (m *MTLSForwarder) dispatch(direction event.Direction) error {
 		}
 
 		if m.MTLSConnection == nil {
-			clog.Info("Start Waiting for MTLSConnection") //start infinite loop
+			clog.Info("Start Waiting for MTLSConnection") // start infinite loop
 			for m.MTLSConnection == nil {
 				time.Sleep(time.Microsecond)
 			}
-			clog.Info("Finish Waiting for MTLSConnection ") //Finish infinite loop
+			clog.Info("Finish Waiting for MTLSConnection ") // Finish infinite loop
 		}
 
 		_, err = m.MTLSConnection.Write(bufData[:numBytes])
@@ -246,7 +246,7 @@ func (m *MTLSForwarder) CloseConnection() {
 }
 
 // Get certca, certificate, key  and create tls config
-func (m *MTLSForwarder) CreateTlsConfig(certca, certificate, key, ServerName string) *tls.Config {
+func (m *MTLSForwarder) CreateTlsConfig(certca, certificate, key, serverName string) *tls.Config {
 	// Read the key pair to create certificate
 	cert, err := tls.LoadX509KeyPair(certificate, key)
 	if err != nil {
@@ -264,6 +264,6 @@ func (m *MTLSForwarder) CreateTlsConfig(certca, certificate, key, ServerName str
 	tlsConfig := netutils.ConfigureSafeTLSConfig()
 	tlsConfig.RootCAs = caCertPool
 	tlsConfig.Certificates = []tls.Certificate{cert}
-	tlsConfig.ServerName = ServerName
+	tlsConfig.ServerName = serverName
 	return tlsConfig
 }

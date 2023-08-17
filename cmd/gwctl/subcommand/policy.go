@@ -115,8 +115,8 @@ func (o *policyDeleteOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'delete policy' subcommand
 func (o *policyDeleteOptions) run() error {
-	priority := 0 //Doesn't matter when deleting a rule
-	action := 0   //Doesn't matter when deleting a rule
+	priority := 0 // Doesn't matter when deleting a rule
+	action := 0   // Doesn't matter when deleting a rule
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err

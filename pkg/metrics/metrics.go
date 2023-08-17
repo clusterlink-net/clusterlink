@@ -63,7 +63,7 @@ func (m *Metrics) aggregateMetrics(connectionStatus event.ConnectionStatusAttr) 
 		flow.OutgoingBytes += connectionStatus.OutgoingBytes
 		flow.LastTstamp = connectionStatus.LastTstamp
 		flow.State = connectionStatus.State
-		//m.ConnectionFlow[connectionStatus.ConnectionId] = flow
+		// m.ConnectionFlow[connectionStatus.ConnectionId] = flow
 		return
 	} else {
 		m.ConnectionFlow[connectionStatus.ConnectionId] = &connectionStatus

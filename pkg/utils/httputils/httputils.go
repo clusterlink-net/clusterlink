@@ -26,12 +26,12 @@ func HttpGet(url string, cl http.Client) ([]byte, error) {
 	if err != nil {
 		return []byte(RESPFAIL), err
 	}
-	//We Read the response body on the line below.
+	// We Read the response body on the line below.
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return []byte(RESPFAIL), err
 	}
-	//Convert the body to type string
+	// Convert the body to type string
 	return body, nil
 }
 
@@ -47,7 +47,7 @@ func HttpPost(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 		return []byte(RESPFAIL), err
 	}
 
-	//We Read the response body on the line below.
+	// We Read the response body on the line below.
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return []byte(RESPFAIL), err
@@ -73,7 +73,7 @@ func HttpDelete(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 		return []byte(RESPFAIL), err
 	}
 
-	//We Read the response body on the line below.
+	// We Read the response body on the line below.
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return []byte(RESPFAIL), err

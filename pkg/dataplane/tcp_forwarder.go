@@ -21,8 +21,8 @@ type TCPForwarder struct {
 	Listener      string
 	Target        string
 	Name          string
-	SeverConn     net.Conn //getting server handle incase of http connect
-	ClientConn    net.Conn //getting client handle incase of http connect
+	SeverConn     net.Conn // getting server handle in case of http connect
+	ClientConn    net.Conn // getting client handle in case of http connect
 	CloseConn     chan bool
 	incomingBytes int
 	outgoingBytes int
@@ -37,11 +37,12 @@ func (c *TCPForwarder) Init(listener, target, name string) {
 	c.Name = name
 }
 
-func (c *TCPForwarder) SetServerConnection(SeverConn net.Conn) {
-	c.SeverConn = SeverConn
+func (c *TCPForwarder) SetServerConnection(server net.Conn) {
+	c.SeverConn = server
 }
-func (c *TCPForwarder) SetClientConnection(ClientConn net.Conn) {
-	c.ClientConn = ClientConn
+
+func (c *TCPForwarder) SetClientConnection(client net.Conn) {
+	c.ClientConn = client
 	c.direction = eventManager.Incoming
 }
 
@@ -132,7 +133,7 @@ func (c *TCPForwarder) clientToServer(wg *sync.WaitGroup, cl, server net.Conn, d
 		numBytes, err = cl.Read(bufData)
 		if err != nil {
 			if err == io.EOF {
-				err = nil //Ignore EOF error
+				err = nil // Ignore EOF error
 			} else {
 				clog.Infof("[clientToServer]: Read error %v\n", err)
 			}
@@ -172,7 +173,7 @@ func (c *TCPForwarder) serverToClient(wg *sync.WaitGroup, cl, server net.Conn, d
 		numBytes, err = server.Read(bufData)
 		if err != nil {
 			if err == io.EOF {
-				err = nil //Ignore EOF error
+				err = nil // Ignore EOF error
 			} else {
 				clog.Infof("[serverToClient]: Read error %v\n", err)
 			}

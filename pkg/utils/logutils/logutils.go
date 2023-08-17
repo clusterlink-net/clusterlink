@@ -13,17 +13,17 @@ import (
 )
 
 const (
-	ProjectFolder            = "/.gw/"
+	projectFolder            = "/.gw/"
 	logrusStackJump          = 4
 	logrusFieldlessStackJump = 6
 )
 
-func SetLog(logLevel string, logfile bool, LogFileName string) {
+func SetLog(logLevel string, logfile bool, logFileName string) {
 	usr, _ := user.Current()
-	logFileFullPath := path.Join(usr.HomeDir, ProjectFolder, LogFileName)
+	logFileFullPath := path.Join(usr.HomeDir, projectFolder, logFileName)
 	CreateProjectfolder(logFileFullPath)
 	if logfile {
-		f, err := os.OpenFile(logFileFullPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+		f, err := os.OpenFile(logFileFullPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0600)
 		fmt.Printf("Creating log file: %v\n", logFileFullPath)
 		if err != nil {
 			fmt.Printf("Error opening log file: %v", err.Error())
@@ -32,7 +32,7 @@ func SetLog(logLevel string, logfile bool, LogFileName string) {
 		// assign it to the standard logger
 		logrus.SetOutput(f)
 	}
-	//Set logrus
+	// Set logrus
 	ll, err := logrus.ParseLevel(logLevel)
 	if err != nil {
 		ll = logrus.ErrorLevel

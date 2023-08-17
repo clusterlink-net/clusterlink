@@ -86,7 +86,7 @@ func delBinding(svcID, gwID string) {
 func GetBindingHandler(w http.ResponseWriter, r *http.Request) {
 
 	importID := chi.URLParam(r, "id")
-	//GetService control plane logic
+	// GetService control plane logic
 	blog.Infof("Received get binding command to service: %v", importID)
 	bArr := getBinding(importID)
 

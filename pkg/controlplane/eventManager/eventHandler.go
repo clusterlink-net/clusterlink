@@ -11,8 +11,8 @@ import (
 var elog = logrus.WithField("component", "EventManager")
 
 type EventManager struct {
-	PolicyDispatcherTarget string      //URL for now
-	MetricsManagerTarget   string      //URL for now
+	PolicyDispatcherTarget string      // URL for now
+	MetricsManagerTarget   string      // URL for now
 	HttpClient             http.Client `json:"-"`
 }
 

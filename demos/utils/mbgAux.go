@@ -121,13 +121,12 @@ func GetPodNameIp(name string) (string, string) {
 	}
 	pods, _ := clientset.CoreV1().Pods(namespace).List(context.Background(), listOptions)
 
-	//pod, err := clientset.CoreV1().Pods(namespace).Get(context.Background(), name+"-*", v1.GetOptions{})
 	if err != nil {
 		log.Infof("Error retrieving pod: %v\n", err)
 		return "", ""
 	}
-	// Print the name of the first pod in the list
 
+	// Print the name of the first pod in the list
 	if len(pods.Items) > 0 {
 		log.Info("Pod name:", pods.Items[0].GetName())
 	} else {
@@ -151,8 +150,6 @@ func GetPodNameIp(name string) (string, string) {
 	// retrieve the pod's IP address
 	podIP := pod.Status.PodIP
 	log.Infof("Pod %s in namespace %s is ready and has IP address %s\n", name, namespace, podIP)
-
-	// Print the name of the first pod in the list
 
 	return pod.GetName(), podIP
 }
@@ -205,7 +202,6 @@ func CreateK8sSvc(name, port string) {
 func RunCmdNoPipe(c string) {
 	log.Println(ColorYellow + c + ColorReset)
 	argSplit := strings.Split(c, " ")
-	//fmt.Println(argSplit[0], argSplit[1:])
 	cmd := exec.Command(argSplit[0], argSplit[1:]...)
 	stdout, err := cmd.CombinedOutput()
 	if err != nil {

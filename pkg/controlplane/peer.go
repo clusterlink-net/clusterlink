@@ -72,7 +72,7 @@ func GetAllPeersHandler(w http.ResponseWriter, r *http.Request) {
 
 // Get all peers control plane logic
 func getAllPeers() []api.Peer {
-	//Update MBG state
+	// Update MBG state
 	store.UpdateState()
 	pArr := []api.Peer{}
 
@@ -87,13 +87,12 @@ func getAllPeers() []api.Peer {
 
 // GetPeerHandler - Get peer HTTP handler
 func GetPeerHandler(w http.ResponseWriter, r *http.Request) {
-
 	peerID := chi.URLParam(r, "id")
 
-	//AddPeer control plane logic
+	// AddPeer control plane logic
 	p := getPeer(peerID)
 
-	//Response
+	// Response
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(p); err != nil {
@@ -105,7 +104,7 @@ func GetPeerHandler(w http.ResponseWriter, r *http.Request) {
 // Get peer control plane logic
 func getPeer(peerID string) api.Peer {
 	peer := api.Peer{}
-	//Update MBG state
+	// Update MBG state
 	store.UpdateState()
 	ok := store.IsMbgPeer(peerID)
 	if ok {
@@ -121,8 +120,7 @@ func getPeer(peerID string) api.Peer {
 
 // RemovePeerHandler - Remove peer HTTP handler
 func RemovePeerHandler(w http.ResponseWriter, r *http.Request) {
-
-	//Parse add peer struct from request
+	// Parse add peer struct from request
 	var p api.Peer
 	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&p)
@@ -143,7 +141,7 @@ func RemovePeerHandler(w http.ResponseWriter, r *http.Request) {
 
 // Remove peer control plane logic
 func removePeer(p api.Peer) {
-	//Update MBG state
+	// Update MBG state
 	store.UpdateState()
 
 	err := store.GetEventManager().RaiseRemovePeerEvent(eventManager.RemovePeerAttr{PeerMbg: p.Name})

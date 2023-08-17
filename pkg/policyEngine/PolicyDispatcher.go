@@ -129,7 +129,8 @@ func (pH PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Requ
 				// Truncate mbgs from mbgList based on the policy
 				var mbgValidList []string
 				for _, mbg := range mbgList {
-					act, _ := pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, mbg, pH.accessControl.DefaultRule) //For new outgoing connections, the default is set up in the init state
+					// For new outgoing connections, the default is set up in the init state
+					act, _ := pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, mbg, pH.accessControl.DefaultRule)
 					if act != event.Deny {
 						mbgValidList = append(mbgValidList, mbg)
 					}
@@ -163,7 +164,7 @@ func (pH PolicyHandler) addPeerRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	plog.Infof("Add Peer reqest : %+v -> %+v", requestAttr, pH.SubscriptionMap[event.AddPeerRequest])
-	//TODO : Convert this into standard interfaces. This requires formalizing Policy I/O
+	// TODO : Convert this into standard interfaces. This requires formalizing Policy I/O
 	var action event.Action
 
 	for _, agent := range pH.SubscriptionMap[event.AddPeerRequest] {
@@ -186,7 +187,6 @@ func (pH PolicyHandler) addPeerRequest(w http.ResponseWriter, r *http.Request) {
 	if action != event.Deny {
 		pH.addPeer(requestAttr.PeerMbg)
 	}
-
 }
 
 func (pH PolicyHandler) removePeerRequest(w http.ResponseWriter, r *http.Request) {
@@ -200,7 +200,6 @@ func (pH PolicyHandler) removePeerRequest(w http.ResponseWriter, r *http.Request
 	pH.removePeer(requestAttr.PeerMbg)
 	pH.loadBalancer.RemoveMbgFromServiceMap(requestAttr.PeerMbg)
 	w.WriteHeader(http.StatusOK)
-
 }
 
 func (pH PolicyHandler) newRemoteService(w http.ResponseWriter, r *http.Request) {
@@ -211,7 +210,7 @@ func (pH PolicyHandler) newRemoteService(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	plog.Infof("New Remote Service request : %+v -> %+v", requestAttr, pH.SubscriptionMap[event.NewRemoteService])
-	//TODO : Convert this into standard interfaces. This requires formalizing Policy I/O
+	// TODO : Convert this into standard interfaces. This requires formalizing Policy I/O
 	var action event.Action
 
 	for _, agent := range pH.SubscriptionMap[event.NewRemoteService] {
@@ -244,7 +243,6 @@ func (pH PolicyHandler) removeRemoteServiceRequest(w http.ResponseWriter, r *htt
 	plog.Infof("Remove remote service request : %+v ", requestAttr)
 	pH.loadBalancer.RemoveDestService(requestAttr.Service, requestAttr.Mbg)
 	w.WriteHeader(http.StatusOK)
-
 }
 
 func (pH PolicyHandler) exposeRequest(w http.ResponseWriter, r *http.Request) {
@@ -255,7 +253,7 @@ func (pH PolicyHandler) exposeRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	plog.Infof("New Expose request : %+v -> %+v", requestAttr, pH.SubscriptionMap[event.ExposeRequest])
-	//TODO : Convert this into standard interfaces. This requires formalizing Policy I/O
+	// TODO : Convert this into standard interfaces. This requires formalizing Policy I/O
 	action := event.AllowAll
 	var mbgPeers []string
 
@@ -275,7 +273,6 @@ func (pH PolicyHandler) exposeRequest(w http.ResponseWriter, r *http.Request) {
 		plog.Errorf("Error happened in JSON encode. Err: %s", err)
 		return
 	}
-
 }
 
 func (pH PolicyHandler) policyWelcome(w http.ResponseWriter, r *http.Request) {
@@ -284,6 +281,7 @@ func (pH PolicyHandler) policyWelcome(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 }
+
 func (pH PolicyHandler) init(router *chi.Mux, defaultRule event.Action) {
 	pH.SubscriptionMap = make(map[string][]string)
 	pH.mbgState.mbgPeers = &([]string{})
@@ -303,13 +301,10 @@ func (pH PolicyHandler) init(router *chi.Mux, defaultRule event.Action) {
 	plog.Infof("Subscription Map - %+v", pH.SubscriptionMap)
 
 	routes := pH.Routes(router)
-
 	router.Mount("/policy", routes)
-
 }
 
 func StartPolicyDispatcher(router *chi.Mux, defaultRule event.Action) {
 	plog.Infof("Policy Engine started")
 	MyPolicyHandler.init(router, defaultRule)
-
 }

@@ -11,7 +11,7 @@ func UseKindCluster(name string) {
 	mbgAux.RunCmd("kubectl config use-context kind-" + name)
 }
 
-func CreateKindMbg(name, dataplane string, logfile bool) { //use Python script -TODO change to go
+func CreateKindMbg(name, dataplane string, logfile bool) { // use Python script -TODO change to go
 	script := mbgAux.ProjDir + "/demos/iperf3/kind/start_cluster_mbg.py"
 	cmd := script
 	cmd += " -m " + name + " -d " + dataplane

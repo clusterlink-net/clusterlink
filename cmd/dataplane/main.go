@@ -30,7 +30,7 @@ func main() {
 	flag.IntVar(&profilePort, "profilePort", 0, "Port to enable profiling")
 	// Parse command-line flags
 	flag.Parse()
-	//Set log file
+	// Set log file
 	logutils.SetLog(logLevel, true, logFileName)
 	log.Infof("Dataplane main started")
 
@@ -41,7 +41,8 @@ func main() {
 				Error("PProf HTTP listener stopped working")
 		}()
 	}
-	//Set Dataplane
+
+  // Set Dataplane
 	dp := dp.NewDataplane(&store.Store{Id: id, CertAuthority: ca, Cert: cert, Key: key, Dataplane: dataplane})
 	dp.StartServer(port)
 	log.Infof("Dataplane main process is finished")

@@ -96,7 +96,7 @@ func GetImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	svcID := chi.URLParam(r, "id")
 
-	//GetService control plane logic
+	// GetService control plane logic
 	mlog.Infof("Received get local service command to service: %v", svcID)
 	s := getImportService(svcID)
 
