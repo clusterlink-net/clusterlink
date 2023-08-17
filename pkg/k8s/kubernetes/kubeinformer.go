@@ -149,8 +149,7 @@ func (k *kubeData) GetIPFromLabel(label string) ([]string, error) {
 		return nil, fmt.Errorf("no pods found for label selector %q", label)
 	}
 
-	var podIPs []string
-
+	podIPs := make([]string, 0, len(podList.Items))
 	// We assume that the first matching pod is the correct one
 	for _, p := range podList.Items {
 		podIPs = append(podIPs, p.Status.PodIP)
