@@ -21,6 +21,7 @@ func AddExportServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse add service struct from request
 	var e api.Export
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&e)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -71,8 +72,7 @@ func createK8sExternalEndpoint(e api.Export) error {
 	if err != nil {
 		mlog.Infoln("Error in creating k8s service:", err)
 		mlog.Infof("Deleting K8s endPoint at %s:%d in namespace %s that connected to external IP: %s:%d", e.Spec.Service.Host, e.Spec.Service.Port, namespace, e.Spec.ExternalService.Host, e.Spec.ExternalService.Port)
-		kubernetes.Data.DeleteEndpoint(e.Spec.Service.Host)
-		return err
+		return kubernetes.Data.DeleteEndpoint(e.Spec.Service.Host)
 	}
 
 	return nil
@@ -103,9 +103,7 @@ func getExportService(svcID string) api.Export {
 
 // GetAllExportServicesHandler - HTTP handler for Get all export services
 func GetAllExportServicesHandler(w http.ResponseWriter, r *http.Request) {
-
-	// GetService control plane logic
-	sArr := getAllExportServices()
+	sArr := getAllExportServices() // GetService control plane logic
 
 	// Set response
 	w.Header().Set("Content-Type", "application/json")
@@ -133,7 +131,6 @@ func getAllExportServices() map[string]api.Export {
 
 // DelExportServiceHandler - HTTP handler for delete local service -
 func DelExportServiceHandler(w http.ResponseWriter, r *http.Request) {
-
 	// Parse del service struct from request
 	svcID := chi.URLParam(r, "id")
 
@@ -155,7 +152,7 @@ func DelExportServiceHandler(w http.ResponseWriter, r *http.Request) {
 func delExportService(svcID string) error {
 	store.UpdateState()
 	var svcArr []store.LocalService
-	if svcID == "*" { //remove all services
+	if svcID == "*" { // remove all services
 		svcArr = append(svcArr, maps.Values(store.GetLocalServicesArr())...)
 	} else {
 		svcArr = append(svcArr, store.GetLocalService(svcID))

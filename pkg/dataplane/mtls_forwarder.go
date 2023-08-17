@@ -51,7 +51,7 @@ func (cd connDialer) Dial(network, addr string) (net.Conn, error) {
 // Start MTLS Forwarder on a specific MTLS target
 // targetIPPort in the format of <ip:port>
 // connect is set to true on a client side
-func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, certificate, key, ServerName string, endpointConn net.Conn) (int, int, time.Time, time.Time, error) {
+func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, certificate, key, serverName string, endpointConn net.Conn) (int, int, time.Time, time.Time, error) {
 	clog.Infof("Starting to initialize MTLS Forwarder for MBG Dataplane at %s", ConnectionUrl+m.Name)
 	m.startTstamp = time.Now()
 	connectMbg := "https://" + targetIPPort + ConnectionUrl + name
@@ -59,8 +59,8 @@ func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, cer
 	m.Connection = endpointConn
 	m.Name = name
 
-	//Create TCP connection with TLS handshake
-	TLSClientConfig := m.CreateTlsConfig(certca, certificate, key, ServerName)
+	// Create TCP connection with TLS handshake
+	TLSClientConfig := m.CreateTlsConfig(certca, certificate, key, serverName)
 	MTLS_conn, err := tls.Dial("tcp", targetIPPort, TLSClientConfig)
 	if err != nil {
 		clog.Infof("Error in connecting.. %+v", err)
@@ -93,12 +93,16 @@ func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, cer
 	m.MTLSConnection = MTLS_conn
 	clog.Infof("mtlS Connection Established Resp:%s(%d) to Target: %s", resp.Status, resp.StatusCode, connectMbg)
 	clog.Infof("Starting mTLS Forwarder client for MBG Dataplane at %s  to target %s with certs(%s,%s)", ConnectionUrl+m.Name, targetIPPort, certificate, key)
-	//From forwarder to other MBG
-	go m.MTLSDispatch(event.Outgoing)
-	//From source to forwarder
-	m.dispatch(event.Incoming)
 
-	return m.incomingBytes, m.outgoingBytes, m.startTstamp, time.Now(), nil
+	go func() { // From forwarder to other MBG
+		err = m.MTLSDispatch(event.Outgoing)
+		clog.Infof("failed to dispatch outgoing connection: %v", err)
+	}()
+
+	if err = m.dispatch(event.Incoming); err != nil { // From source to forwarder
+		clog.Infof("failed to dispatch incoming connection: %v", err)
+	}
+	return m.incomingBytes, m.outgoingBytes, m.startTstamp, time.Now(), err
 }
 
 // Start mtls Forwarder server on a specific mtls target
@@ -116,10 +120,13 @@ func (m *MTLSForwarder) StartMTLSForwarderServer(targetIPPort, name, certca, cer
 	m.Connection = endpointConn
 	m.Name = name
 
-	m.dispatch(event.Outgoing)
-	clog.Infof("Starting mTLS Forwarder server for MBG Dataplane at /connectionData/%s  to target %s with certs(%s,%s)", m.Name, targetIPPort, certificate, key)
-	return m.incomingBytes, m.outgoingBytes, m.startTstamp, time.Now(), nil
+	if err := m.dispatch(event.Outgoing); err != nil {
+		clog.Infof("failed to dispatch outgoing connection: %+v", err)
+		return m.incomingBytes, m.outgoingBytes, m.startTstamp, time.Now(), err
+	}
 
+	clog.Infof("Starting mTLS forwarder server at /connectionData/%s to target %s with certs(%s,%s)", m.Name, targetIPPort, certificate, key)
+	return m.incomingBytes, m.outgoingBytes, m.startTstamp, time.Now(), nil
 }
 
 // Hijack the http connection and use it as TCP connection
@@ -131,7 +138,7 @@ func (m *MTLSForwarder) ConnectHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "server doesn't support hijacking", http.StatusInternalServerError)
 		return
 	}
-	//Hijack the connection
+	// Hijack the connection
 	conn, _, err := hj.Hijack()
 	if err != nil {
 		clog.Infof("Hijacking failed %v\n", err)
@@ -143,14 +150,22 @@ func (m *MTLSForwarder) ConnectHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	conn.Write([]byte{})
-	fmt.Fprintf(conn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n")
+	if _, err := conn.Write([]byte{}); err != nil {
+		clog.Infof("failed to write on connection: %v", err)
+		_ = conn.Close() // close the connection ignoring errors
+		return
+	}
 
+	fmt.Fprintf(conn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n")
 	clog.Infof("Connection Hijacked  %v->%v", conn.RemoteAddr().String(), conn.LocalAddr().String())
 
 	m.MTLSConnection = conn
 	clog.Infof("Starting to dispatch MTLS Connection")
-	go m.MTLSDispatch(event.Incoming)
+	go func() {
+		if err := m.MTLSDispatch(event.Incoming); err != nil {
+			clog.Infof("failed to dispatch incoming connection: %v", err)
+		}
+	}()
 }
 
 // Dispatch from server to client side
@@ -167,7 +182,14 @@ func (m *MTLSForwarder) MTLSDispatch(direction event.Direction) error {
 			break
 		}
 
-		m.Connection.Write(bufData[:numBytes])
+		_, err = m.Connection.Write(bufData[:numBytes]) // TODO: track actually written byte count?
+		if err != nil {
+			if err != io.EOF { // don't log EOF
+				clog.Infof("MTLSDispatch: Write error %v\n", err)
+			}
+			break
+		}
+
 		if direction == event.Incoming {
 			m.incomingBytes += numBytes
 		} else {
@@ -197,17 +219,16 @@ func (m *MTLSForwarder) dispatch(direction event.Direction) error {
 			if err != io.EOF {
 				clog.Errorf("Dispatch: Read error %v  connection: (local:%s Remote:%s)->,(local: %s Remote%s) ", err,
 					m.Connection.LocalAddr(), m.Connection.RemoteAddr(), m.MTLSConnection.LocalAddr(), m.MTLSConnection.RemoteAddr())
-
 			}
 			break
 		}
 
 		if m.MTLSConnection == nil {
-			clog.Info("Start Waiting for MTLSConnection") //start infinite loop
+			clog.Info("Start Waiting for MTLSConnection") // start infinite loop
 			for m.MTLSConnection == nil {
 				time.Sleep(time.Microsecond)
 			}
-			clog.Info("Finish Waiting for MTLSConnection ") //Finish infinite loop
+			clog.Info("Finish Waiting for MTLSConnection ") // Finish infinite loop
 		}
 
 		_, err = m.MTLSConnection.Write(bufData[:numBytes])
@@ -215,7 +236,6 @@ func (m *MTLSForwarder) dispatch(direction event.Direction) error {
 			clog.Errorf("Dispatch: Write error %v  connection: (local:%s Remote:%s)->,(local: %s Remote%s) ", err,
 				m.Connection.LocalAddr(), m.Connection.RemoteAddr(), m.MTLSConnection.LocalAddr(), m.MTLSConnection.RemoteAddr())
 			break
-
 		}
 
 		if direction == event.Incoming {
@@ -242,11 +262,10 @@ func (m *MTLSForwarder) CloseConnection() {
 	if m.MTLSConnection != nil {
 		m.MTLSConnection.Close()
 	}
-
 }
 
 // Get certca, certificate, key  and create tls config
-func (m *MTLSForwarder) CreateTlsConfig(certca, certificate, key, ServerName string) *tls.Config {
+func (m *MTLSForwarder) CreateTlsConfig(certca, certificate, key, serverName string) *tls.Config {
 	// Read the key pair to create certificate
 	cert, err := tls.LoadX509KeyPair(certificate, key)
 	if err != nil {
@@ -264,6 +283,6 @@ func (m *MTLSForwarder) CreateTlsConfig(certca, certificate, key, ServerName str
 	tlsConfig := netutils.ConfigureSafeTLSConfig()
 	tlsConfig.RootCAs = caCertPool
 	tlsConfig.Certificates = []tls.Certificate{cert}
-	tlsConfig.ServerName = ServerName
+	tlsConfig.ServerName = serverName
 	return tlsConfig
 }

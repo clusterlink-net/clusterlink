@@ -14,15 +14,15 @@ import (
 	"github.ibm.com/mbg-agent/pkg/util"
 
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/mbg-agent/pkg/api"
-	"github.ibm.com/mbg-agent/pkg/client"
 	mbgAux "github.ibm.com/mbg-agent/demos/utils"
 	kindAux "github.ibm.com/mbg-agent/demos/utils/kind"
+	"github.ibm.com/mbg-agent/pkg/api"
+	"github.ibm.com/mbg-agent/pkg/client"
 )
 
 const (
 	mbgCaCrt = "./mtls/ca.crt"
-	//MBG1 parameters
+	// MBG1 parameters
 	mbg1DataPort   = "30001"
 	mbg1cPort      = uint16(30443)
 	mbg1cPortLocal = "443"
@@ -33,7 +33,7 @@ const (
 	mbg1cni        = "default"
 	srcSvc         = "iperf3-client"
 
-	//MBG2 parameters
+	// MBG2 parameters
 	mbg2DataPort   = "30001"
 	mbg2cPort      = uint16(30443)
 	mbg2cPortLocal = "443"
@@ -59,8 +59,8 @@ func main() {
 	nologfile := false
 	mbgAux.SetLog()
 	log.Println("Working directory", mbgAux.ProjDir)
-	//exec.chdir(proj_dir)
-	//clean
+	// exec.chdir(proj_dir)
+	// clean
 	log.Print("Clean old kinds")
 	mbgAux.RunCmd("make clean-kind")
 
@@ -70,11 +70,11 @@ func main() {
 	kindAux.CreateKindMbg(mbg1Name, dataplane, nologfile)
 	kindAux.CreateKindMbg(mbg2Name, dataplane, nologfile)
 
-	// //get parameters
+	// get parameters
 	mbg1Ip, _ := kindAux.GetKindIp(mbg1Name)
 	mbg2Ip, _ := kindAux.GetKindIp(mbg2Name)
 
-	//set gwctl
+	// set gwctl
 	parsedCertData, err := util.ParseTLSFiles(mtlsFolder+mbgCaCrt, mtlsFolder+mbg1crt, mtlsFolder+mbg1key)
 	if err != nil {
 		log.Error(err)
@@ -89,38 +89,54 @@ func main() {
 	}
 	gwctl2 := client.New(mbg1Ip, mbg2cPort, parsedCertData.ClientConfig(mbg2Name))
 
-	//Add Peer
+	// Add Peer
 	mbgAux.PrintHeader("Add peers and send hello")
-	gwctl1.Peers.Create(&api.Peer{Name: mbg2Name, Spec: api.PeerSpec{Gateways: []api.Endpoint{{Host: mbg2Ip, Port: mbg2cPort}}}})
+	err = gwctl1.Peers.Create(&api.Peer{Name: mbg2Name, Spec: api.PeerSpec{Gateways: []api.Endpoint{{Host: mbg2Ip, Port: mbg2cPort}}}})
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
 
-	//Set iperf3 client
+	// Set iperf3 client
 	mbgAux.PrintHeader("Add iperf3 client")
 	kindAux.CreateServiceInKind(mbg1Name, srcSvc, "mlabbe/iperf3", folCl+"/"+srcSvc+".yaml")
 	srcSvcPod, _ := mbgAux.GetPodNameIp(srcSvc)
-	//gwctl1.AddService(srcSvc, "", "", "iperf3 client") //Allow to use all by default
+	// gwctl1.AddService(srcSvc, "", "", "iperf3 client") //Allow to use all by default
 
-	//Set iperf3 server
+	// Set iperf3 server
 	mbgAux.PrintHeader("Add iperf3 server")
 	kindAux.CreateServiceInKind(mbg2Name, destSvc, "mlabbe/iperf3", folSv+"/iperf3.yaml")
 	destSvcPod, destSvcIP := mbgAux.GetPodNameIp(destSvc)
 
-	gwctl2.Exports.Create(&api.Export{Name: destSvc, Spec: api.ExportSpec{Service: api.Endpoint{Host: destSvcIP, Port: destPort}}})
+	err = gwctl2.Exports.Create(&api.Export{Name: destSvc, Spec: api.ExportSpec{Service: api.Endpoint{Host: destSvcIP, Port: destPort}}})
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
 	log.Println(srcSvcPod, destSvcPod)
 
-	//Expose service
+	// Expose service
 	mbgAux.PrintHeader("Start expose")
 	kindAux.UseKindCluster(mbg2Name)
-	gwctl2.Imports.Create(&api.Import{Name: destSvc, Spec: api.ImportSpec{Service: api.Endpoint{Host: destSvc, Port: destPort}}})
+	err = gwctl2.Imports.Create(&api.Import{Name: destSvc, Spec: api.ImportSpec{Service: api.Endpoint{Host: destSvc, Port: destPort}}})
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
 
-	//bindK8sSvc()
+	// bindK8sSvc()
 	mbgAux.PrintHeader("Bind a service")
 	kindAux.UseKindCluster(mbg1Name)
-	gwctl1.Bindings.Create(&api.Binding{Spec: api.BindingSpec{Import: destSvc, Peer: mbg2Name}})
+	err = gwctl1.Bindings.Create(&api.Binding{Spec: api.BindingSpec{Import: destSvc, Peer: mbg2Name}})
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+
 	time.Sleep(5 * time.Second)
 
-	//iperf3test
+	// iperf3test
 	mbgAux.RunCmdNoPipe("kubectl exec -i " + srcSvcPod + " -- iperf3 -c " + destSvc + " -p " + strconv.Itoa(int(destPort)))
-
 }
 
 // ############################### MAIN ##########################

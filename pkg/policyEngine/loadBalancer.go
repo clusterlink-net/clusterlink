@@ -47,7 +47,7 @@ func (lB *LoadBalancer) Init() {
 	lB.ServiceStateMap = make(map[string](map[string]*ServiceState))
 	lB.ServiceStateMap[event.Wildcard] = make(map[string]*ServiceState)
 	lB.Policy[event.Wildcard] = make(map[string]PolicyLoadBalancer)
-	lB.Policy[event.Wildcard][event.Wildcard] = Random //default policy
+	lB.Policy[event.Wildcard][event.Wildcard] = Random // default policy
 }
 
 /*********************  HTTP functions ***************************************************/
@@ -130,15 +130,16 @@ func (lB *LoadBalancer) SetPolicy(serviceSrc, serviceDst string, policy PolicyLo
 		defaultMbg = ""
 	}
 
-	if _, ok := lB.Policy[serviceDst]; !ok { //Create default service if destination service is not exist
+	if _, ok := lB.Policy[serviceDst]; !ok { // Create default service if destination service is not exist
 		lB.Policy[serviceDst] = make(map[string]PolicyLoadBalancer)
 	}
-	//start to update policy
+	// start to update policy
 	lB.Policy[serviceDst][serviceSrc] = policy
-	if serviceDst != event.Wildcard { //ServiceStateMap[dst][*] is created only when the remote service is exposed
+	if serviceDst != event.Wildcard { // ServiceStateMap[dst][*] is created only when the remote service is exposed
 		lB.ServiceStateMap[serviceDst][serviceSrc] = &ServiceState{totalConnections: 0, defaultMbg: defaultMbg}
 	}
-	if serviceDst != event.Wildcard && serviceSrc == event.Wildcard { //for [dst][*] update only defaultMbg
+
+	if serviceDst != event.Wildcard && serviceSrc == event.Wildcard { // for [dst][*] update only defaultMbg
 		lB.ServiceStateMap[serviceDst][serviceSrc].defaultMbg = defaultMbg
 	}
 }
@@ -152,7 +153,7 @@ func (lB *LoadBalancer) deletePolicy(serviceSrc, serviceDst string, policy Polic
 		}
 	}
 
-	if serviceDst != event.Wildcard && serviceSrc != event.Wildcard { //ServiceStateMap apply only we set policy for specific serviceSrc and serviceDst
+	if serviceDst != event.Wildcard && serviceSrc != event.Wildcard { // ServiceStateMap apply only we set policy for specific serviceSrc and serviceDst
 		delete(lB.ServiceStateMap[serviceDst], serviceSrc)
 	}
 }
@@ -166,12 +167,12 @@ func (lB *LoadBalancer) RemoveDestService(serviceDst, mbg string) {
 }
 func (lB *LoadBalancer) updateState(serviceSrc, serviceDst string) {
 	if _, ok := lB.Policy[serviceDst][serviceSrc]; ok {
-		lB.ServiceStateMap[serviceDst][serviceSrc].totalConnections = lB.ServiceStateMap[serviceDst][serviceSrc].totalConnections + 1
+		lB.ServiceStateMap[serviceDst][serviceSrc].totalConnections += 1
 	}
 	if _, ok := lB.Policy[event.Wildcard][serviceSrc]; ok && serviceDst == event.Wildcard {
-		lB.ServiceStateMap[event.Wildcard][serviceSrc].totalConnections = lB.ServiceStateMap[event.Wildcard][serviceSrc].totalConnections + 1
+		lB.ServiceStateMap[event.Wildcard][serviceSrc].totalConnections += 1
 	}
-	lB.ServiceStateMap[serviceDst][event.Wildcard].totalConnections = lB.ServiceStateMap[serviceDst][event.Wildcard].totalConnections + 1 //always exist
+	lB.ServiceStateMap[serviceDst][event.Wildcard].totalConnections += 1 // always exist
 }
 
 /*********************  Policy functions ***************************************************/

@@ -23,6 +23,7 @@ func (d *Dataplane) StartServer(port string) {
 		netutils.StartHTTPServer(":"+port, d.Router)
 	}
 }
+
 func (d *Dataplane) routes() {
 	d.Router.Get("/", d.welcome)
 
@@ -105,7 +106,6 @@ func (d *Dataplane) welcome(w http.ResponseWriter, r *http.Request) {
 
 // Forwarding request to control-plane
 func (d *Dataplane) controlPlaneForwardingHandler(w http.ResponseWriter, r *http.Request) {
-
 	forwardingURL := d.Store.GetControlPlaneAddr() + r.URL.Path
 	// Create a new request to the forwarding URL
 	forwardingReq, err := http.NewRequest(r.Method, forwardingURL, r.Body)
@@ -136,5 +136,7 @@ func (d *Dataplane) controlPlaneForwardingHandler(w http.ResponseWriter, r *http
 	w.WriteHeader(resp.StatusCode)
 
 	// Copy the response body from the forwarding response
-	io.Copy(w, resp.Body)
+	if _, err = io.Copy(w, resp.Body); err != nil && err != io.EOF {
+		clog.Warnf("failed to copy response body in forwarding: %+v", err)
+	}
 }

@@ -28,6 +28,7 @@ func AddImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse add service struct from request
 	var e api.Import
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&e)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -97,7 +98,7 @@ func GetImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	svcID := chi.URLParam(r, "id")
 
-	//GetService control plane logic
+	// GetService control plane logic
 	mlog.Infof("Received get local service command to service: %v", svcID)
 	s := getImportService(svcID)
 
@@ -160,6 +161,7 @@ func DelImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 	svcID := chi.URLParam(r, "id")
 	// Parse add service struct from request
 	var s api.Import
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&s)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -169,7 +171,11 @@ func DelImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 	// AddService control plane logic
 	delImportService(svcID)
 	if MyRunTimeEnv.IsRuntimeEnvK8s() {
-		deleteImportK8sService(svcID)
+		if err = deleteImportK8sService(svcID); err != nil {
+		  http.Error(w, err.Error(), http.StatusInternalServerError)
+		  mlog.Println(err)
+		  return
+    }
 	}
 
 	// Response
@@ -193,7 +199,7 @@ func RestoreImportServices() {
 		for _, svc := range svcArr {
 			policyResp, err := store.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: svc.Id, Mbg: svc.MbgId})
 			if err != nil {
-				mlog.Error("unable to raise connection request event", store.GetMyId())
+				mlog.Error("unable to raise remote service event", store.GetMyId())
 				continue
 			}
 			if policyResp.Action == eventManager.Deny {
@@ -203,7 +209,9 @@ func RestoreImportServices() {
 		}
 		// Create service endpoint only if the service from at least one MBG is allowed as per policy
 		if allow {
-			createImportServiceEndpoint(api.Import{Name: svcID})
+			if err := createImportServiceEndpoint(api.Import{Name: svcID}); err != nil {
+				mlog.Error("unable to create import endpoint", svcID)
+			}
 		}
 	}
 }

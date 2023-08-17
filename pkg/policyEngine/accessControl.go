@@ -35,11 +35,11 @@ type AccessControl struct {
 	DefaultRule event.Action
 }
 
-func (A *AccessControl) Init() {
-	A.ACLRules = make(ACL)
+func (acl *AccessControl) Init() {
+	acl.ACLRules = make(ACL)
 }
 
-func (A *AccessControl) AddRuleReq(w http.ResponseWriter, r *http.Request) {
+func (acl *AccessControl) AddRuleReq(w http.ResponseWriter, r *http.Request) {
 	var requestAttr AclRule
 	err := json.NewDecoder(r.Body).Decode(&requestAttr)
 	if err != nil {
@@ -48,13 +48,13 @@ func (A *AccessControl) AddRuleReq(w http.ResponseWriter, r *http.Request) {
 	}
 	plog.Infof("Add Rule request : %+v", requestAttr)
 
-	A.AddRule(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.MbgDest, requestAttr.Priority, requestAttr.Action)
+	acl.AddRule(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.MbgDest, requestAttr.Priority, requestAttr.Action)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
 
-func (A *AccessControl) DelRuleReq(w http.ResponseWriter, r *http.Request) {
+func (acl *AccessControl) DelRuleReq(w http.ResponseWriter, r *http.Request) {
 	var requestAttr AclRule
 	err := json.NewDecoder(r.Body).Decode(&requestAttr)
 	if err != nil {
@@ -63,63 +63,63 @@ func (A *AccessControl) DelRuleReq(w http.ResponseWriter, r *http.Request) {
 	}
 	plog.Infof("Delete Rule request : %+v", requestAttr)
 
-	A.DeleteRule(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.MbgDest)
+	acl.DeleteRule(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.MbgDest)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
 
-func (A *AccessControl) GetRuleReq(w http.ResponseWriter, r *http.Request) {
+func (acl *AccessControl) GetRuleReq(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(A.ACLRules); err != nil {
+	if err := json.NewEncoder(w).Encode(acl.ACLRules); err != nil {
 		plog.Errorf("Error happened in JSON encode. Err: %s", err)
 		return
 	}
 
-	A.displayRules()
+	acl.displayRules()
 }
 
-func (A *AccessControl) AddRule(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action) {
-	if A.ACLRules == nil {
-		A.ACLRules = make(ACL)
+func (acl *AccessControl) AddRule(serviceSrc string, serviceDst string, mbgDest string, priority int, action event.Action) {
+	if acl.ACLRules == nil {
+		acl.ACLRules = make(ACL)
 	}
-	A.ACLRules[getKey(serviceSrc, serviceDst, mbgDest)] = rule{Priority: priority, Action: action}
-	plog.Infof("Rule added %+v-> %+v ", getKey(serviceSrc, serviceDst, mbgDest), A.ACLRules[getKey(serviceSrc, serviceDst, mbgDest)])
+	acl.ACLRules[getKey(serviceSrc, serviceDst, mbgDest)] = rule{Priority: priority, Action: action}
+	plog.Infof("Rule added %+v-> %+v ", getKey(serviceSrc, serviceDst, mbgDest), acl.ACLRules[getKey(serviceSrc, serviceDst, mbgDest)])
 }
 
-func (A *AccessControl) DeleteRule(serviceSrc string, serviceDst string, mbgDest string) {
-	delete(A.ACLRules, getKey(serviceSrc, serviceDst, mbgDest))
+func (acl *AccessControl) DeleteRule(serviceSrc string, serviceDst string, mbgDest string) {
+	delete(acl.ACLRules, getKey(serviceSrc, serviceDst, mbgDest))
 }
 
-func (A *AccessControl) RemoveDestService(serviceDst, mbg string) {
+func (acl *AccessControl) RemoveDestService(serviceDst, mbg string) {
 	str := "-" + serviceDst + "-"
 	if mbg != "" {
-		str = str + mbg
+		str += mbg
 	}
-	for key := range A.ACLRules {
+	for key := range acl.ACLRules {
 		if strings.Contains(key, str) {
-			delete(A.ACLRules, key)
+			delete(acl.ACLRules, key)
 		}
 	}
 }
-func (A *AccessControl) RulesLookup(serviceSrc string, serviceDst string, mbgDst string) (int, event.Action, int) {
+func (acl *AccessControl) RulesLookup(serviceSrc string, serviceDst string, mbgDst string) (int, event.Action, int) {
 	resultAction := event.Allow
 	priority := math.MaxInt
 	bitrate := 0
-	if myRule, ok := A.ACLRules[getKey(serviceSrc, serviceDst, mbgDst)]; ok {
+	if myRule, ok := acl.ACLRules[getKey(serviceSrc, serviceDst, mbgDst)]; ok {
 		if myRule.Priority < priority {
 			priority = myRule.Priority
 			resultAction = myRule.Action
 			bitrate = myRule.Bitrate
 		}
-		//plog.Infof("Rules Matched.. action=%d", myRule.Action)
+		// plog.Infof("Rules Matched.. action=%d", myRule.Action)
 	}
 	return priority, resultAction, bitrate
 }
 
 // TODO : Parallelize lookups
-func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst string, defaultAction event.Action) (event.Action, int) {
+func (acl *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst string, defaultAction event.Action) (event.Action, int) {
 	resultAction := defaultAction
 	priority := math.MaxInt
 	bitrate := 0
@@ -129,7 +129,7 @@ func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst stri
 	// return the match with the highest priority (0 is high priority, MaxInt is low priority)
 
 	// 111
-	prio, action, rate := A.RulesLookup(serviceSrc, serviceDst, mbgDst)
+	prio, action, rate := acl.RulesLookup(serviceSrc, serviceDst, mbgDst)
 	if prio == 0 {
 		return action, rate
 	}
@@ -138,7 +138,7 @@ func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst stri
 		bitrate = rate
 	}
 	// 110
-	prio, action, rate = A.RulesLookup(serviceSrc, serviceDst, event.Wildcard)
+	prio, action, rate = acl.RulesLookup(serviceSrc, serviceDst, event.Wildcard)
 	if prio == 0 {
 		return action, rate
 	}
@@ -149,7 +149,7 @@ func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst stri
 	}
 
 	// 101
-	prio, action, rate = A.RulesLookup(serviceSrc, event.Wildcard, mbgDst)
+	prio, action, rate = acl.RulesLookup(serviceSrc, event.Wildcard, mbgDst)
 	if prio == 0 {
 		return action, rate
 	}
@@ -160,7 +160,7 @@ func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst stri
 	}
 
 	// 011
-	prio, action, rate = A.RulesLookup(event.Wildcard, serviceDst, mbgDst)
+	prio, action, rate = acl.RulesLookup(event.Wildcard, serviceDst, mbgDst)
 	if prio == 0 {
 		return action, rate
 	}
@@ -171,7 +171,7 @@ func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst stri
 	}
 
 	// 100
-	prio, action, rate = A.RulesLookup(serviceSrc, event.Wildcard, event.Wildcard)
+	prio, action, rate = acl.RulesLookup(serviceSrc, event.Wildcard, event.Wildcard)
 	if prio == 0 {
 		return action, rate
 	}
@@ -181,7 +181,7 @@ func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst stri
 		bitrate = rate
 	}
 	// 010
-	prio, action, rate = A.RulesLookup(event.Wildcard, serviceDst, event.Wildcard)
+	prio, action, rate = acl.RulesLookup(event.Wildcard, serviceDst, event.Wildcard)
 	if prio == 0 {
 		return action, rate
 	}
@@ -192,7 +192,7 @@ func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst stri
 	}
 
 	// 001
-	prio, action, rate = A.RulesLookup(event.Wildcard, event.Wildcard, mbgDst)
+	prio, action, rate = acl.RulesLookup(event.Wildcard, event.Wildcard, mbgDst)
 	if prio < priority {
 		resultAction = action
 		bitrate = rate
@@ -201,12 +201,12 @@ func (A *AccessControl) Lookup(serviceSrc string, serviceDst string, mbgDst stri
 	return resultAction, bitrate
 }
 
-func (A *AccessControl) LookupTarget(service string, peerMbgs *[]string) (event.Action, []string) {
+func (acl *AccessControl) LookupTarget(service string, peerMbgs *[]string) (event.Action, []string) {
 	myAction := event.AllowAll
 	mbgList := []string{}
 	for _, mbg := range *peerMbgs {
 		plog.Infof("Checking %s to expose", mbg)
-		action, _ := A.Lookup(event.Wildcard, service, mbg, event.Allow)
+		action, _ := acl.Lookup(event.Wildcard, service, mbg, event.Allow)
 		if action == event.Allow {
 			mbgList = append(mbgList, mbg)
 		} else {
@@ -219,11 +219,10 @@ func (A *AccessControl) LookupTarget(service string, peerMbgs *[]string) (event.
 	return myAction, mbgList
 }
 
-func (A *AccessControl) displayRules() {
-	for key, rule := range A.ACLRules {
+func (acl *AccessControl) displayRules() {
+	for key, rule := range acl.ACLRules {
 		plog.Infof("%s -> %+v", key, rule)
 	}
-
 }
 
 func getKey(serviceSrc string, serviceDst string, mbgDst string) string {

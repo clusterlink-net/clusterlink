@@ -19,6 +19,7 @@ func CreateBindingHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse add service struct from request
 	var b api.Binding
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&b)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -57,6 +58,7 @@ func createBinding(b api.Binding) error {
 func DelBindingHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse add service struct from request
 	var s api.Binding
+	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&s)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -84,7 +86,7 @@ func delBinding(svcID, gwID string) {
 func GetBindingHandler(w http.ResponseWriter, r *http.Request) {
 
 	importID := chi.URLParam(r, "id")
-	//GetService control plane logic
+	// GetService control plane logic
 	blog.Infof("Received get binding command to service: %v", importID)
 	bArr := getBinding(importID)
 

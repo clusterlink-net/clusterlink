@@ -2,6 +2,8 @@ package subcommand
 
 import (
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
 
@@ -49,12 +51,20 @@ func StartCmd() *cobra.Command {
 			logFile, _ := cmd.Flags().GetBool("logFile")
 			logLevel, _ := cmd.Flags().GetString("logLevel")
 			rtenv, _ := cmd.Flags().GetString("rtenv")
+			profilePort, _ := cmd.Flags().GetInt("profilePort")
 
-			if ip == "" || id == "" || cport == "" {
+      if ip == "" || id == "" || cport == "" {
 				fmt.Println("Error: please insert all flag arguments for Mbg start command")
 				os.Exit(1)
 			}
 
+			if profilePort != 0 {
+				go func() {
+					log.Info("Starting PProf HTTP listener at ", profilePort)
+					log.WithError(http.ListenAndServe(fmt.Sprintf("localhost:%d", profilePort), nil)).
+						Error("PProf HTTP listener stopped working")
+				}()
+			}
 			if restore {
 				if !startPolicyEngine && policyEngineTarget == "" {
 					fmt.Println("Error: Please specify policyEngineTarget")
@@ -118,9 +128,13 @@ func initializeRuntimeEnv(rtenv string) {
 	}
 }
 
-// startHelathMonitor starts health monitor bit
+// startHealthMonitor starts health monitor bit
 func startHealthMonitor() {
-	go health.SendHeartBeats()
+	go func() {
+		if err := health.SendHeartBeats(); err != nil {
+			log.Errorf("unable to start sending heartbeats: %+v", err)
+		}
+	}()
 
 	health.MonitorHeartBeats()
 }
@@ -140,13 +154,13 @@ func addPolicyEngine(policyEngineTarget string, start bool, zeroTrust bool) {
 }
 
 // createMbg create mbg control plane process
-func createMbg(ID, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, dataplane,
+func createMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, dataplane,
 	caFile, certificateFile, keyFile, logLevel string, logFile bool) {
 
 	logutils.SetLog(logLevel, logFile, logFileName)
-	store.SetState(ID, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
+	store.SetState(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
 
-	//Set chi router
+	// Set chi router
 	r := store.GetChiRouter()
 	r.Mount("/", cp.MbgHandler{}.Routes())
 
@@ -165,7 +179,7 @@ func restoreMbg(logLevel string, logFile, startPolicyEngine bool, zeroTrust bool
 		go addPolicyEngine("localhost"+store.GetMyCport().Local, true, zeroTrust)
 	}
 
-	//Set chi router
+	// Set chi router
 	r := store.GetChiRouter()
 	r.Mount("/", cp.MbgHandler{}.Routes())
 	if store.GetDataplane() == "mtls" {
