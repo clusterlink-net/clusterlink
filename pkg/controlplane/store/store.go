@@ -17,7 +17,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/utils/netutils"
 )
@@ -192,12 +191,12 @@ func UpdateState() {
 }
 
 func restorePeer(id string) {
-	peerResp, err := s.MyEventManager.RaiseAddPeerEvent(eventManager.AddPeerAttr{PeerMbg: id})
+	peerResp, err := s.MyEventManager.RaiseAddPeerEvent(event.AddPeerAttr{PeerMbg: id})
 	if err != nil {
 		log.Errorf("Unable to raise connection request event")
 		return
 	}
-	if peerResp.Action == eventManager.Deny {
+	if peerResp.Action == event.Deny {
 		log.Infof("Denying add peer(%s) due to policy", id)
 		RemoveMbgNbr(id)
 		return
@@ -234,12 +233,12 @@ func RemoveMbg(mbg string) {
 
 func ActivateMbg(mbgId string) {
 	log.Infof("Activating MBG %s", mbgId)
-	peerResp, err := s.MyEventManager.RaiseAddPeerEvent(eventManager.AddPeerAttr{PeerMbg: mbgId})
+	peerResp, err := s.MyEventManager.RaiseAddPeerEvent(event.AddPeerAttr{PeerMbg: mbgId})
 	if err != nil {
 		log.Errorf("Unable to raise connection request event")
 		return
 	}
-	if peerResp.Action == eventManager.Deny {
+	if peerResp.Action == event.Deny {
 		log.Infof("Denying add peer(%s) due to policy", mbgId)
 		return
 	}
@@ -495,7 +494,13 @@ func DelRemoteService(id, mbg string) {
 			delete(s.RemoteServiceMap, id)
 			FreeUpPorts(id)
 			log.Infof("Delete Remote service: %s", id)
-			GetEventManager().RaiseRemoveRemoteServiceEvent(eventManager.RemoveRemoteServiceAttr{Service: id, Mbg: mbg})
+			if err := GetEventManager().RaiseRemoveRemoteServiceEvent(
+				event.RemoveRemoteServiceAttr{
+					Service: id,
+					Mbg:     mbg,
+				}); err != nil {
+				log.Errorf("failed to raise remote service removal event for %s: %+v", id, err)
+			}
 
 			PrintState()
 		} else {
@@ -527,14 +532,16 @@ func RemoveMbgFromService(svcId, mbg string, mbgs []string) {
 			break
 		}
 	}
-	log.Infof("MBG service %v len %v", svcId, len(s.RemoteServiceMap[svcId]))
+	log.Infof("MBG service %v provided by %d peers", svcId, len(s.RemoteServiceMap[svcId]))
 	if len(s.RemoteServiceMap[svcId]) == 0 {
 		delete(s.RemoteServices, svcId)
 		delete(s.RemoteServiceMap, svcId)
 		FreeUpPorts(svcId)
-		GetEventManager().RaiseRemoveRemoteServiceEvent(eventManager.RemoveRemoteServiceAttr{Service: svcId, Mbg: ""}) // remove the service
-	} else { // remove specific mbg from the mbg
-		GetEventManager().RaiseRemoveRemoteServiceEvent(eventManager.RemoveRemoteServiceAttr{Service: svcId, Mbg: mbg})
+		// TODO: handle the error?
+		_ = GetEventManager().RaiseRemoveRemoteServiceEvent(event.RemoveRemoteServiceAttr{Service: svcId, Mbg: ""}) //remove the service
+	} else { //remove specific mbg from the mbg
+		// TODO: handle the error?
+		_ = GetEventManager().RaiseRemoveRemoteServiceEvent(event.RemoveRemoteServiceAttr{Service: svcId, Mbg: mbg})
 	}
 	SaveState()
 }
@@ -631,23 +638,31 @@ func configPath() string {
 
 func SaveState() {
 	dataMutex.Lock()
+	defer dataMutex.Unlock()
 	jsonC, err := json.MarshalIndent(s, "", "\t")
 	if err != nil {
 		log.Errorf("Unable to write json file Error: %v", err)
-		dataMutex.Unlock()
 		return
 	}
-	os.WriteFile(configPath(), jsonC, 0600) // RW by owner only
-	dataMutex.Unlock()
+	if err = os.WriteFile(configPath(), jsonC, 0600); err != nil {
+		log.Errorf("unable to write config file %s: %v", configPath(), err)
+	}
 }
 
 func readState() mbgState {
 	dataMutex.Lock()
-	data, _ := os.ReadFile(configPath())
+	defer dataMutex.Unlock()
+
+	data, err := os.ReadFile(configPath())
+	if err != nil {
+		return mbgState{}
+	}
+
 	var state mbgState
-	json.Unmarshal(data, &state)
+	if err = json.Unmarshal(data, &state); err != nil {
+		return mbgState{}
+	}
 	// Don't change part of the Fields
 	state.MyEventManager.HttpClient = s.MyEventManager.HttpClient
-	dataMutex.Unlock()
 	return state
 }

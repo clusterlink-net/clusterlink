@@ -72,8 +72,7 @@ func createK8sExternalEndpoint(e api.Export) error {
 	if err != nil {
 		mlog.Infoln("Error in creating k8s service:", err)
 		mlog.Infof("Deleting K8s endPoint at %s:%d in namespace %s that connected to external IP: %s:%d", e.Spec.Service.Host, e.Spec.Service.Port, namespace, e.Spec.ExternalService.Host, e.Spec.ExternalService.Port)
-		kubernetes.Data.DeleteEndpoint(e.Spec.Service.Host)
-		return err
+		return kubernetes.Data.DeleteEndpoint(e.Spec.Service.Host)
 	}
 
 	return nil

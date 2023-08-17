@@ -118,13 +118,17 @@ func addStartFlags(cmd *cobra.Command) {
 func startKubeInformer() {
 	err := kubernetes.InitializeKubeDeployment("")
 	if err != nil {
-		log.Errorf("Failed to initialize kube deployment: %+v", err)
+		log.Errorf("failed to initialize kube deployment: %+v", err)
 	}
 }
 
-// startHelathMonitor starts health monitor bit
+// startHealthMonitor starts health monitor bit
 func startHealthMonitor() {
-	go health.SendHeartBeats()
+	go func() {
+		if err := health.SendHeartBeats(); err != nil {
+			log.Errorf("unable to start sending heartbeats: %+v", err)
+		}
+	}()
 
 	health.MonitorHeartBeats()
 }

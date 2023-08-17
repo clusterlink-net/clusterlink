@@ -91,7 +91,11 @@ func main() {
 
 	// Add Peer
 	mbgAux.PrintHeader("Add peers and send hello")
-	gwctl1.Peers.Create(&api.Peer{Name: mbg2Name, Spec: api.PeerSpec{Gateways: []api.Endpoint{{Host: mbg2Ip, Port: mbg2cPort}}}})
+	err = gwctl1.Peers.Create(&api.Peer{Name: mbg2Name, Spec: api.PeerSpec{Gateways: []api.Endpoint{{Host: mbg2Ip, Port: mbg2cPort}}}})
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
 
 	// Set iperf3 client
 	mbgAux.PrintHeader("Add iperf3 client")
@@ -104,18 +108,31 @@ func main() {
 	kindAux.CreateServiceInKind(mbg2Name, destSvc, "mlabbe/iperf3", folSv+"/iperf3.yaml")
 	destSvcPod, destSvcIP := mbgAux.GetPodNameIp(destSvc)
 
-	gwctl2.Exports.Create(&api.Export{Name: destSvc, Spec: api.ExportSpec{Service: api.Endpoint{Host: destSvcIP, Port: destPort}}})
+	err = gwctl2.Exports.Create(&api.Export{Name: destSvc, Spec: api.ExportSpec{Service: api.Endpoint{Host: destSvcIP, Port: destPort}}})
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
 	log.Println(srcSvcPod, destSvcPod)
 
 	// Expose service
 	mbgAux.PrintHeader("Start expose")
 	kindAux.UseKindCluster(mbg2Name)
-	gwctl2.Imports.Create(&api.Import{Name: destSvc, Spec: api.ImportSpec{Service: api.Endpoint{Host: destSvc, Port: destPort}}})
+	err = gwctl2.Imports.Create(&api.Import{Name: destSvc, Spec: api.ImportSpec{Service: api.Endpoint{Host: destSvc, Port: destPort}}})
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
 
 	// bindK8sSvc()
 	mbgAux.PrintHeader("Bind a service")
 	kindAux.UseKindCluster(mbg1Name)
-	gwctl1.Bindings.Create(&api.Binding{Spec: api.BindingSpec{Import: destSvc, Peer: mbg2Name}})
+	err = gwctl1.Bindings.Create(&api.Binding{Spec: api.BindingSpec{Import: destSvc, Peer: mbg2Name}})
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+
 	time.Sleep(5 * time.Second)
 
 	// iperf3test

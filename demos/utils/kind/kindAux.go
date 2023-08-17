@@ -25,7 +25,8 @@ func CreateServiceInKind(mbgName, svcName, svcImage, svcYaml string) {
 	UseKindCluster(mbgName)
 	mbgAux.RunCmd("kind load docker-image " + svcImage + " --name=" + mbgName)
 	mbgAux.RunCmd("kubectl create -f " + svcYaml)
-	mbgAux.PodIsReady(svcName)
+
+	_, _ = mbgAux.PodIsReady(svcName) // intentionally ignoring errors on demo files
 	time.Sleep(2 * time.Second)
 }
 

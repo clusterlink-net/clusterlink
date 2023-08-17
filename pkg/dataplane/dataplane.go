@@ -116,7 +116,10 @@ func (d *Dataplane) startListenerToExportServiceEndpoint(c apiObject.ConnectRequ
 		clog.Infof("Starting a Receiver service for %s Using serviceEndpoint : %s/%s",
 			rep.DestSvcEndpoint, rep.SrcGwEndpoint, endpoint)
 
-		go d.StartMTLSListenerToExportServiceEndpoint(rep.DestSvcEndpoint, rep.SrcGwEndpoint, endpoint, rep.ConnId)
+		go func() {
+			err := d.StartMTLSListenerToExportServiceEndpoint(rep.DestSvcEndpoint, rep.SrcGwEndpoint, endpoint, rep.ConnId)
+			clog.Errorf("failed to start MTLS receiver: %+v", err)
+		}()
 		return true, dataplane, endpoint
 	default:
 		return false, "", ""
@@ -151,9 +154,7 @@ func (d *Dataplane) StartMTLSListenerToExportServiceEndpoint(exportServicePort, 
 	clog.Infof("Received new Connection at %s, %s", conn.LocalAddr().String(), importEndPoint)
 	MTLSForward := MTLSForwarder{ChiRouter: d.Router}
 	incomingBytes, outgoingBytes, startTstamp, endTstamp, _ := MTLSForward.StartMTLSForwarderServer(targetMbgIPPort, importEndPoint, "", "", "", conn)
-	d.SendToControlPlaneConnStatus(connId, incomingBytes, outgoingBytes, startTstamp, endTstamp, eventManager.Incoming, eventManager.Complete)
-
-	return nil
+	return d.SendToControlPlaneConnStatus(connId, incomingBytes, outgoingBytes, startTstamp, endTstamp, eventManager.Incoming, eventManager.Complete)
 }
 
 func (d *Dataplane) startMTLSListenerService(mbgIP, connectDest, rootCA, certificate, key, serverName string, ac net.Conn, connId string) {
@@ -161,7 +162,9 @@ func (d *Dataplane) startMTLSListenerService(mbgIP, connectDest, rootCA, certifi
 
 	incomingBytes, outgoingBytes, startTstamp, endTstamp, _ := MTLSForward.StartMTLSForwarderClient(mbgIP, connectDest, rootCA, certificate, key, serverName, ac)
 
-	d.SendToControlPlaneConnStatus(connId, incomingBytes, outgoingBytes, startTstamp, endTstamp, eventManager.Outgoing, eventManager.Complete)
+	if err := d.SendToControlPlaneConnStatus(connId, incomingBytes, outgoingBytes, startTstamp, endTstamp, eventManager.Outgoing, eventManager.Complete); err != nil {
+		clog.Infof("failed to send connection %s status: %+v", connId, err) // TODO: better error handling
+	}
 }
 
 // Run server for Data connection - we have one server and client that we can add some network functions e.g: TCP-split
@@ -182,7 +185,9 @@ func (d *Dataplane) startTCPListenerService(svcListenPort, svcIp, _ /*policy*/, 
 	}
 
 	incomingBytes, outgoingBytes, startTstamp, endTstamp, _ := forward.RunTcpForwarder(direction)
-	d.SendToControlPlaneConnStatus(connId, incomingBytes, outgoingBytes, startTstamp, endTstamp, direction, eventManager.Complete)
+	if err := d.SendToControlPlaneConnStatus(connId, incomingBytes, outgoingBytes, startTstamp, endTstamp, direction, eventManager.Complete); err != nil {
+		clog.Infof("failed to send connection %s status: %+v", connId, err) // TODO: better error handling
+	}
 }
 
 // Add import service - HTTP handler
@@ -241,11 +246,15 @@ func (d *Dataplane) CreateListenerToImportServiceEndpoint(serviceId, servicePort
 	clog.Infof("Starting an service endpoint for Export service %s at port %s ", serviceId, servicePort)
 	acceptor, err := net.Listen("tcp", servicePort) // TODO: need to support secure endpoint
 	if err != nil {
-		clog.Infof("Error Listen: to port  %v", err)
+		clog.Infof("Error Listen to port %v", err)
 	}
 	clog.Infof("Accept a connection service endpoint for import service %s at port %s ", serviceId, servicePort)
 
-	go d.StartListenerToImportServiceEndpoint(serviceId, acceptor, servicePort, certca, certificate, key)
+	go func() {
+		if err = d.StartListenerToImportServiceEndpoint(serviceId, acceptor, servicePort, certca, certificate, key); err != nil {
+			clog.Infof("failed to start listener on port %s: %+v", servicePort, err)
+		}
+	}()
 	d.Store.WaitServiceStopCh(serviceId, servicePort)
 	acceptor.Close()
 }
@@ -288,7 +297,10 @@ func (d *Dataplane) StartListenerToImportServiceEndpoint(destId string, acceptor
 			if err != nil {
 				clog.Infof("Unable to connect(tcp): %v ", err.Error())
 				ac.Close()
-				d.SendToControlPlaneConnStatus(r.ConnId, 0, 0, time.Now(), time.Now(), eventManager.Outgoing, eventManager.PeerDenied)
+				err = d.SendToControlPlaneConnStatus(r.ConnId, 0, 0, time.Now(), time.Now(), eventManager.Outgoing, eventManager.PeerDenied)
+				if err != nil {
+					clog.Infof("failed to send connection %s status: %+v ", r.ConnId, err)
+				}
 				continue
 			}
 			connectDest := "Use open connect socket" // not needed ehr we use connect - destSvc.Service.Ip + ":" + connectDest
@@ -302,14 +314,17 @@ func (d *Dataplane) StartListenerToImportServiceEndpoint(destId string, acceptor
 			if err != nil {
 				clog.Infof("Unable to connect(MTLS): %v ", err.Error())
 				ac.Close()
-				d.SendToControlPlaneConnStatus(r.ConnId, 0, 0, time.Now(), time.Now(), eventManager.Outgoing, eventManager.PeerDenied)
+				err = d.SendToControlPlaneConnStatus(r.ConnId, 0, 0, time.Now(), time.Now(), eventManager.Outgoing, eventManager.PeerDenied)
+				if err != nil {
+					clog.Infof("failed to send connection %s status: %+v ", r.ConnId, err)
+				}
 				continue
 			}
 			clog.Infof("Using %s for  %s/%s to connect to Service-%v", connectType, r.Target, connectDest, destId)
 			serverName := d.Store.GetMyId()
 			go d.startMTLSListenerService(r.Target, connectDest, certca, certificate, key, serverName, ac, r.ConnId)
 		default:
-			clog.Errorf("%v -Not supported", dataplane)
+			clog.Errorf("%v dataplane type is not supported", dataplane)
 
 		}
 	}
@@ -362,7 +377,7 @@ func (d *Dataplane) TCPConnectReq(svcId, svcIdDest, svcPolicy, mbgIp string) (ne
 		return c, nil
 	}
 
-	return nil, fmt.Errorf("Connect Request Failed")
+	return nil, fmt.Errorf("connect Request Failed")
 }
 
 // Hijack the HTTP connection and use the TCP session

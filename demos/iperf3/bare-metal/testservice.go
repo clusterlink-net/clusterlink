@@ -44,7 +44,13 @@ func testsendServiceData(clusterIn string, data []byte) {
 	fmt.Printf("Connected to %s:%s \n", nodeConn.LocalAddr().String(), nodeConn.RemoteAddr().String())
 	go recvServiceData(nodeConn, false)
 	for {
-		nodeConn.Write(data)
+		nbytes, err := nodeConn.Write(data)
+		if err != nil || nbytes != len(data) {
+			if err == io.EOF {
+				break
+			}
+			fmt.Printf("failed to write data: %+v (%d bytes written)", err, nbytes)
+		}
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -63,7 +69,14 @@ func recvServiceData(conn net.Conn, write bool) {
 		}
 		log.Printf("Received \"%s\" in Socket Connection", bufData[:numBytes])
 		if write {
-			conn.Write([]byte("Success from server"))
+			_, err = conn.Write([]byte("Success from server"))
+			if err != nil {
+				if err == io.EOF {
+					err = nil //Ignore EOF error
+				} else {
+					log.Fatalf("Read error %v\n", err)
+				}
+			}
 		}
 	}
 }

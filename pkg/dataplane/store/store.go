@@ -203,12 +203,12 @@ func configPath() string {
 // Save dataplane store for debug use
 func (s *Store) SaveState() {
 	s.dataMutex.Lock()
+	defer s.dataMutex.Unlock()
+
 	jsonC, err := json.MarshalIndent(s, "", "\t")
 	if err != nil {
 		log.Errorf("Unable to write json file Error: %v", err)
-		s.dataMutex.Unlock()
-		return
+	} else if err = os.WriteFile(configPath(), jsonC, 0600); err != nil {
+		log.Errorf("failed to write configuration file %s: %v", configPath(), err)
 	}
-	os.WriteFile(configPath(), jsonC, 0600) // RW by owner only
-	s.dataMutex.Unlock()
 }

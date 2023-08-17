@@ -137,8 +137,7 @@ func (c *ClientConfig) createConfigFile() error {
 		c.logger.Errorln("Creating client config File", err)
 		return err
 	}
-	c.SetDefaultClient(c.ID)
-	return nil
+	return c.SetDefaultClient(c.ID)
 }
 
 // SetDefaultClient set the default Client the CLI will use.

@@ -59,7 +59,9 @@ func (c *TCPForwarder) RunTcpForwarder(direction eventManager.Direction) (int, i
 // Start listen loop and pass data to destination according to controlFrame
 func (c *TCPForwarder) acceptLoop(direction eventManager.Direction) error {
 	if c.SeverConn != nil {
-		c.dispatch(c.SeverConn, direction)
+		if err := c.dispatch(c.SeverConn, direction); err != nil {
+			clog.Errorln("failed to dispatch server connection:", err) // TODO: close connection
+		}
 	} else {
 		// open listener
 		acceptor, err := net.Listen("tcp", c.Listener)
@@ -70,12 +72,14 @@ func (c *TCPForwarder) acceptLoop(direction eventManager.Direction) error {
 		// loop until signalled to stop
 		for {
 			ac, err := acceptor.Accept()
-			clog.Info("[", c.Name, "]: accept connetion", ac.LocalAddr().String(), "->", ac.RemoteAddr().String())
+			clog.Info("[", c.Name, "]: accept connection", ac.LocalAddr().String(), "->", ac.RemoteAddr().String())
 			if err != nil {
 				clog.Errorln("Error:", err)
 				return err
 			}
-			c.dispatch(ac, direction)
+			if err = c.dispatch(ac, direction); err != nil {
+				clog.Errorln("failed to dispatch:", err)
+			}
 		}
 	}
 	return nil
@@ -108,12 +112,13 @@ func (c *TCPForwarder) ioLoop(cl, server net.Conn, direction eventManager.Direct
 	done := &sync.WaitGroup{}
 	done.Add(2)
 
+	// TODO: handle errors in connection dispatch/handling
 	if direction == eventManager.Incoming {
-		go c.clientToServer(done, cl, server, eventManager.Incoming)
-		go c.serverToClient(done, cl, server, eventManager.Outgoing)
+		go func() { _ = c.clientToServer(done, cl, server, eventManager.Incoming) }()
+		go func() { _ = c.serverToClient(done, cl, server, eventManager.Outgoing) }()
 	} else {
-		go c.clientToServer(done, cl, server, eventManager.Outgoing)
-		go c.serverToClient(done, cl, server, eventManager.Incoming)
+		go func() { _ = c.clientToServer(done, cl, server, eventManager.Outgoing) }()
+		go func() { _ = c.serverToClient(done, cl, server, eventManager.Incoming) }()
 	}
 
 	done.Wait()
@@ -153,12 +158,12 @@ func (c *TCPForwarder) clientToServer(wg *sync.WaitGroup, cl, server net.Conn, d
 		}
 	}
 	c.CloseConnection()
+
 	if err == io.EOF {
 		return nil
 	} else {
 		return err
 	}
-
 }
 
 // Copy data from server to client

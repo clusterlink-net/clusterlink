@@ -168,7 +168,11 @@ func DelImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	// AddService control plane logic
 	delImportService(svcID)
-	deleteImportK8sService(svcID)
+	if err = deleteImportK8sService(svcID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		mlog.Println(err)
+		return
+	}
 
 	// Response
 	w.WriteHeader(http.StatusNoContent)
@@ -191,7 +195,7 @@ func RestoreImportServices() {
 		for _, svc := range svcArr {
 			policyResp, err := store.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: svc.Id, Mbg: svc.MbgId})
 			if err != nil {
-				mlog.Error("unable to raise connection request event", store.GetMyId())
+				mlog.Error("unable to raise remote service event", store.GetMyId())
 				continue
 			}
 			if policyResp.Action == eventManager.Deny {
@@ -201,7 +205,9 @@ func RestoreImportServices() {
 		}
 		// Create service endpoint only if the service from at least one MBG is allowed as per policy
 		if allow {
-			createImportServiceEndpoint(api.Import{Name: svcID})
+			if err := createImportServiceEndpoint(api.Import{Name: svcID}); err != nil {
+				mlog.Error("unable to create import endpoint", svcID)
+			}
 		}
 	}
 }
