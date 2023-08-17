@@ -29,8 +29,8 @@ type Dataplane struct {
 }
 
 // Set the data-plane store according the bootstrap
-func NewDataplane(s *store.Store) *Dataplane {
-	return &Dataplane{Store: store.NewStore(s)}
+func NewDataplane(s *store.Store, controlplane string) *Dataplane {
+	return &Dataplane{Store: store.NewStore(s, controlplane)}
 
 }
 

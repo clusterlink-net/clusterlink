@@ -57,10 +57,12 @@ func addImportService(e api.Import) error {
 		mlog.Error("addImportService", err)
 		return err
 	}
-	err = createImportK8sService(e)
-	if err != nil {
-		mlog.Error("createImportK8sService", err)
-		return err
+	if MyRunTimeEnv.IsRuntimeEnvK8s() {
+		err = createImportK8sService(e)
+		if err != nil {
+			mlog.Error("createImportK8sService", err)
+			return err
+		}
 	}
 	return nil
 }
@@ -168,10 +170,12 @@ func DelImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	// AddService control plane logic
 	delImportService(svcID)
-	if err = deleteImportK8sService(svcID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		mlog.Println(err)
-		return
+	if MyRunTimeEnv.IsRuntimeEnvK8s() {
+		if err = deleteImportK8sService(svcID); err != nil {
+		  http.Error(w, err.Error(), http.StatusInternalServerError)
+		  mlog.Println(err)
+		  return
+    }
 	}
 
 	// Response

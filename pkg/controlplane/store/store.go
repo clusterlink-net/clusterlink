@@ -95,6 +95,8 @@ const (
 	ProjectFolder = "/.gw/"
 	LogFile       = "gw.log"
 	DBFile        = "gwApp"
+	k8s           = "k8s"
+	vm            = "vm"
 )
 
 func GetMyIp() string {

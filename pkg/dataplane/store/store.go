@@ -41,7 +41,7 @@ const (
 )
 
 // Set store parameters
-func NewStore(s *Store) *Store {
+func NewStore(s *Store, controlplane string) *Store {
 	sObj := &Store{
 		Id:               s.Id,
 		CertAuthority:    s.CertAuthority,
@@ -49,7 +49,7 @@ func NewStore(s *Store) *Store {
 		Key:              s.Key,
 		Dataplane:        s.Dataplane,
 		DataPortRange:    s.DataPortRange,
-		ControlPlaneAddr: s.GetProtocolPrefix() + "controlplane:443",
+		ControlPlaneAddr: s.GetProtocolPrefix() + controlplane,
 		Connections:      make(map[string]string),
 		PortMap:          make(map[int]bool),
 		dataMutex:        sync.Mutex{},

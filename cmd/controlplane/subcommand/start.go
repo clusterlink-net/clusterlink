@@ -50,8 +50,10 @@ func StartCmd() *cobra.Command {
 			restore, _ := cmd.Flags().GetBool("restore")
 			logFile, _ := cmd.Flags().GetBool("logFile")
 			logLevel, _ := cmd.Flags().GetString("logLevel")
+			rtenv, _ := cmd.Flags().GetString("rtenv")
 			profilePort, _ := cmd.Flags().GetInt("profilePort")
-			if ip == "" || id == "" || cport == "" {
+
+ 		        if ip == "" || id == "" || cport == "" {
 				fmt.Println("Error: please insert all flag arguments for Mbg start command")
 				os.Exit(1)
 			}
@@ -71,7 +73,7 @@ func StartCmd() *cobra.Command {
 				restoreMbg(logLevel, logFile, startPolicyEngine, zeroTrust)
 				log.Infof("Restoring MBG")
 				store.PrintState()
-				startKubeInformer()
+				initializeRuntimeEnv(rtenv)
 				startHealthMonitor()
 				return
 			}
@@ -85,8 +87,7 @@ func StartCmd() *cobra.Command {
 				addMetricsManager("localhost:"+cportLocal+"/metrics", true)
 			}
 			store.PrintState()
-
-			startKubeInformer()
+			initializeRuntimeEnv(rtenv)
 			startHealthMonitor()
 		},
 	}
@@ -112,13 +113,18 @@ func addStartFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("restore", false, "Restore existing stored MBG states")
 	cmd.Flags().Bool("logFile", true, "Save the outputs to file")
 	cmd.Flags().String("logLevel", "info", "Log level: debug, info, warning, error")
+	cmd.Flags().String("rtenv", "k8s", "Runtime environment of the gateway: k8s, vm")
 }
 
 // startKubeInformer start kube informer for k8s cluster
-func startKubeInformer() {
-	err := kubernetes.InitializeKubeDeployment("")
-	if err != nil {
-		log.Errorf("failed to initialize kube deployment: %+v", err)
+func initializeRuntimeEnv(rtenv string) {
+	cp.MyRunTimeEnv.SetRuntimeEnv(rtenv)
+
+	if cp.MyRunTimeEnv.IsRuntimeEnvK8s() {
+		err := kubernetes.InitializeKubeDeployment("")
+		if err != nil {
+			log.Errorf("Failed to initialize kube deployment: %+v", err)
+		}
 	}
 }
 
@@ -182,7 +188,7 @@ func restoreMbg(logLevel string, logFile, startPolicyEngine bool, zeroTrust bool
 		go netutils.StartHTTPServer(store.GetMyCport().Local, r)
 	}
 
-	time.Sleep(health.Interval)
+	time.Sleep(1 * time.Second)
 	store.RestoreMbg()
 	cp.RestoreImportServices()
 }
