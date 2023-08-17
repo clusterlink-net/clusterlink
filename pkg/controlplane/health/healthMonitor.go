@@ -17,7 +17,7 @@ import (
 var klog = logrus.WithField("component", "controlPlane/health")
 
 const (
-	interval = 1 * time.Second
+	Interval = 1 * time.Second // Interval for sending liveness/health checks
 	timeout  = 5 * time.Second
 )
 
@@ -80,7 +80,7 @@ func SendHeartBeats() error {
 			}
 			updateLastSeen(m)
 		}
-		time.Sleep(interval)
+		time.Sleep(Interval)
 	}
 }
 
