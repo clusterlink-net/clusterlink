@@ -4,7 +4,7 @@
 // Workflow of mTLS forwarder usage
 // After Expose of a service at MBG 1 run the following APIs :
 //    1) StartLocalService for the exported service at other remote application (for e.g. App 2)
-//    2) When LocalService receives an accepted connection from APP 2, Do an Connect API to APP 1
+//    2) When LocalService receives an accepted connection from APP 2, Do a Connect API to APP 1
 //    3) MBG1 starts a StartReceiverService with the necessary details such as endpoint, and sends it as Connect Response
 
 package dataplane
