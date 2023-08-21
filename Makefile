@@ -44,13 +44,17 @@ vet-go: ; $(info $(M) vetting code...)
 #------------------------------------------------------
 # Build targets
 #------------------------------------------------------
+GO ?= CGO_ENABLED=0 go
+# Allow setting of go build flags from the command line.
+GOFLAGS := 
+
 build:
 	@echo "Start go build phase"
-	CGO_ENABLED=0 go build -o ./bin/gwctl ./cmd/gwctl/main.go
-	go build -o ./bin/controlplane ./cmd/controlplane/main.go
-	go build -o ./bin/dataplane ./cmd/dataplane/main.go
-	CGO_ENABLED=0 go build -o ./bin/cl-controlplane ./cmd/cl-controlplane
-	CGO_ENABLED=0 go build -o ./bin/cl-dataplane ./cmd/cl-dataplane
+	$(GO) build -o ./bin/gwctl ./cmd/gwctl/main.go
+	$(GO) build -o ./bin/controlplane ./cmd/controlplane/main.go
+	$(GO) build -o ./bin/dataplane ./cmd/dataplane/main.go
+	$(GO) build -o ./bin/cl-controlplane ./cmd/cl-controlplane
+	$(GO) build -o ./bin/cl-dataplane ./cmd/cl-dataplane
 
 
 docker-build: 
