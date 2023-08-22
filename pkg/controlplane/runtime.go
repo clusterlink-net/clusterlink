@@ -13,11 +13,11 @@ type runtimeEnv struct {
 }
 
 // IsRuntimeEnvK8s returns if the runtime environment of the controlplane is Kubernetes based
-func (r runtimeEnv) IsRuntimeEnvK8s() bool {
+func (r *runtimeEnv) IsRuntimeEnvK8s() bool {
 	return (r.rtenvType == k8s)
 }
 
 // SetRuntimeEnv sets the runtime environment of the controlplane
-func (r runtimeEnv) SetRuntimeEnv(rtenv string) {
+func (r *runtimeEnv) SetRuntimeEnv(rtenv string) {
 	r.rtenvType = rtenv
 }
