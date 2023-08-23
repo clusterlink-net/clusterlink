@@ -60,9 +60,7 @@ func recvServiceData(conn net.Conn, write bool) {
 	for {
 		numBytes, err := conn.Read(bufData)
 		if err != nil {
-			if err == io.EOF {
-				err = nil // Ignore EOF error
-			} else {
+			if err != io.EOF {
 				log.Fatalf("Read error %v\n", err)
 			}
 			break

@@ -96,7 +96,7 @@ func (s *Peers) GetAll() []*Peer {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	var peers []*Peer
+	peers := make([]*Peer, 0, len(s.cache))
 	for _, peer := range s.cache {
 		peers = append(peers, peer)
 	}

@@ -96,7 +96,7 @@ func (s *Imports) GetAll() []*Import {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	var imports []*Import
+	imports := make([]*Import, 0, len(s.cache))
 	for _, imp := range s.cache {
 		imports = append(imports, imp)
 	}

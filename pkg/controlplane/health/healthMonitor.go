@@ -17,7 +17,7 @@ import (
 var klog = logrus.WithField("component", "controlPlane/health")
 
 const (
-	interval = 1 * time.Second
+	interval = 1 * time.Second // Interval for sending liveness/health checks
 	timeout  = 5 * time.Second
 )
 
