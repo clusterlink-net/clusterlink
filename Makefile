@@ -71,6 +71,12 @@ push-image:
 install:
 	cp ./bin/gwctl /usr/local/bin/
 	cp ./bin/dataplane /usr/local/bin/
+
+tests-e2e: 
+	# making the local agent image available to kind in two ways, so it will work in different
+	# environments: (1) as image tagged in the local repository (2) as image archive.
+	#docker build . -t localhost/clusterlink:test
+	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/connectivity/basic_test.go
 #------------------------------------------------------
 # Run Targets
 #------------------------------------------------------
