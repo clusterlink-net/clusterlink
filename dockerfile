@@ -27,4 +27,6 @@ COPY --from=0  /gw/bin/gwctl /gwctl
 COPY ./demos/utils/mtls /mtls
 # Create the .mbg folder
 RUN mkdir -p /root/.gw/
+RUN chgrp -R 0 /root/.gw && \
+    chmod -R g=u /root/.gw
 RUN apk update && apk add --no-cache iputils curl tcpdump busybox-extras
