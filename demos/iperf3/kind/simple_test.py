@@ -21,6 +21,7 @@ from demos.iperf3.kind.iperf3_service_import import importService
 from demos.iperf3.kind.iperf3_service_get import getService
 from demos.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
 from demos.iperf3.kind.apply_policy import addPolicy
+from demos.iperf3.kind.apply_access_policy import applyAccessPolicy
 
 from demos.utils.kind.kindAux import useKindCluster, getKindIp,startKindClusterMbg,startGwctl
 
@@ -69,6 +70,9 @@ if __name__ == "__main__":
     #folders
     folCl=f"{proj_dir}/demos/iperf3/manifests/iperf3-client"
     folSv=f"{proj_dir}/demos/iperf3/manifests/iperf3-server"
+
+    #files
+    allowAllPolicy=f"{proj_dir}/pkg/policyEngine/policytypes/examples/allowAll.json"
     
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
@@ -118,6 +122,7 @@ if __name__ == "__main__":
     getService(gwctl1Name, destSvc)
     #Add policy
     addPolicy(mbg1Name, gwctl1Name, command="create", action="allow", srcSvc=srcSvc,destSvc=destSvc, priority=0)
+    applyAccessPolicy(mbg2Name, gwctl2Name, allowAllPolicy)
     #Testing
     printHeader("\n\nStart Iperf3 testing")
     useKindCluster(mbg2Name)

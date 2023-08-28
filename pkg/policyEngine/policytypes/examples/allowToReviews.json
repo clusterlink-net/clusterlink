@@ -1,0 +1,19 @@
+{
+    "name": "allow-to-reviews",
+    "privileged": false,
+    "action": "allow",
+    "from": [
+        {
+            "workloadSelector": {}
+        }
+    ],
+    "to": [
+        {
+            "workloadSelector": {
+                "matchLabels": {
+                    "clusterlink/metadata.serviceName": "reviews"
+                }
+            }
+        }
+    ]
+}
