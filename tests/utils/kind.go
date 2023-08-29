@@ -221,6 +221,7 @@ func createCluster(name string) (string, error) {
 	return ip, err
 }
 
+// DeleteCluster deletes a kind cluster
 func DeleteCluster(name string) {
 	runCmd("kind delete cluster --name=" + name)
 }
