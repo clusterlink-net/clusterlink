@@ -33,12 +33,12 @@ func createClientset() (*kubernetes.Clientset, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 
 	if err != nil {
-		log.Errorf("failed to create Kubernetes API client: %v\n", err)
+		log.Errorf("failed to create Kubernetes API client: %v", err)
 		return nil, fmt.Errorf("failed to create Kubernetes API client: %v", err)
 	}
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Errorf("failed to create Kubernetes API client: %v\n", err)
+		log.Errorf("failed to create Kubernetes API client: %v", err)
 		return nil, fmt.Errorf("failed to create Kubernetes API client: %v", err)
 	}
 	return clientset, nil
@@ -60,7 +60,7 @@ func isPodReady(name string) error {
 		pods, _ := clientset.CoreV1().Pods(namespace).List(context.Background(), listOptions)
 
 		if err != nil {
-			log.Infof("Error retrieving pod: %v\n", err)
+			log.Infof("Error retrieving pod: %v", err)
 			return err
 		}
 		// wait until  pods are ready
@@ -103,7 +103,7 @@ func GetPodNameIP(name string) (string, string) {
 	pods, _ := clientset.CoreV1().Pods(namespace).List(context.Background(), listOptions)
 
 	if err != nil {
-		log.Infof("Error retrieving pod: %v\n", err)
+		log.Infof("Error retrieving pod: %v", err)
 		return "", ""
 	}
 
@@ -124,13 +124,13 @@ func GetPodNameIP(name string) (string, string) {
 		}
 	}
 	if !isReady {
-		log.Infof("Pod %s in namespace %s is not ready\n", name, namespace)
+		log.Infof("Pod %s in namespace %s is not ready", name, namespace)
 		return "", ""
 	}
 
 	// retrieve the pod's IP address
 	podIP := pod.Status.PodIP
-	log.Infof("Pod %s in namespace %s is ready and has IP address %s\n", name, namespace, podIP)
+	log.Infof("Pod %s in namespace %s is ready and has IP address %s", name, namespace, podIP)
 
 	return pod.GetName(), podIP
 }
