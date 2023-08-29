@@ -16,11 +16,11 @@ Following are the steps to run the iperf3 connectivity scenario (or you could al
 ### <ins> Step 1: Build docker image <ins>
 Build MBG docker image:
     
+    make build
     make docker-build
 
 Install local control (gwctl) for the gateway:
     
-    make build
     sudo make install
 
 ### <ins> Step 2: Create kind clusters with the gateway <ins>
@@ -71,15 +71,15 @@ In this step, start to run the MBG and gwctl.
 First, Initialize the parameters of the test (pods' names and IPs):
     
     kubectl config use-context kind-cluster1
-    export MBG1_CP=`kubectl get pods -l app=mbg -o custom-columns=:metadata.name`
-    export MBG1_DP=`kubectl get pods -l app=dataplane -o custom-columns=:metadata.name`
-    export MBG1IP=`kubectl get nodes -o jsonpath={.items[0].status.addresses[0].address}`
-    export IPERF3CLIENT=`kubectl get pods -l app=iperf3-client -o custom-columns=:metadata.name`
+    export MBG1_CP=`kubectl get pods -l app=mbg -o custom-columns=:metadata.name --no-headers`
+    export MBG1_DP=`kubectl get pods -l app=dataplane -o custom-columns=:metadata.name --no-headers`
+    export MBG1IP=`kubectl get nodes -o "jsonpath={.items[0].status.addresses[0].address}"`
+    export IPERF3CLIENT=`kubectl get pods -l app=iperf3-client -o custom-columns=:metadata.name --no-headers`
 
     kubectl config use-context kind-cluster2
-    export MBG2_CP=`kubectl get pods -l app=mbg -o custom-columns=:metadata.name`
-    export MBG2_DP=`kubectl get pods -l app=dataplane -o custom-columns=:metadata.name`
-    export MBG2IP=`kubectl get nodes -o jsonpath={.items[0].status.addresses[0].address}`
+    export MBG2_CP=`kubectl get pods -l app=mbg -o custom-columns=:metadata.name --no-headers`
+    export MBG2_DP=`kubectl get pods -l app=dataplane -o custom-columns=:metadata.name --no-headers`
+    export MBG2IP=`kubectl get nodes -o "jsonpath={.items[0].status.addresses[0].address}"`
 
 Start the Gateway in Cluster 1:
 
