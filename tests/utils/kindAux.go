@@ -28,6 +28,10 @@ func CreateServiceInKind(mbgName, svcName, svcImage, svcYaml string) {
 	time.Sleep(2 * time.Second)
 }
 
+func CreateK8sService(name, port, targetPort string) {
+	RunCmd("kubectl create service nodeport " + name + " --tcp=" + port + ":" + port + " --node-port=" + targetPort)
+}
+
 func GetKindIP(name string) (string, error) {
 	UseKindCluster(name)
 	output, err := exec.Command("kubectl", "get", "nodes", "-o", "jsonpath={.items[0].status.addresses[?(@.type=='InternalIP')].address}").Output()

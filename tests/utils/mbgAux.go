@@ -256,3 +256,17 @@ func readOutput(pipe io.Reader) {
 		}
 	}
 }
+
+func GetOutput(c string) (string, error) {
+	log.Println(ColorYellow + c + ColorReset)
+	argSplit := strings.Split(c, " ")
+	cmd := exec.Command(argSplit[0], argSplit[1:]...)
+	stdout, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Println(err.Error())
+		return "", err
+	}
+
+	// Print the output
+	return string(stdout), nil
+}

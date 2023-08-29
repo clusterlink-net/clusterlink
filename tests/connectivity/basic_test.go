@@ -4,10 +4,12 @@
 package connectivity
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.ibm.com/mbg-agent/pkg/api"
 	"github.ibm.com/mbg-agent/pkg/client"
@@ -23,15 +25,13 @@ const (
 
 var (
 	mtlsFolder string = utils.ProjDir + "/demos/utils/"
-	folCl      string = utils.ProjDir + "/demos/iperf3/manifests/iperf3-client"
-	folSv      string = utils.ProjDir + "/demos/iperf3/manifests/iperf3-server"
+	manifests  string = utils.ProjDir + "/tests/manifests"
 	gwctl1     *client.Client
 	gwctl2     *client.Client
 )
 
 func TestConnectivity(t *testing.T) {
-	t.Logf("Start testing connectivity")
-	t.Run("Testing Connectivity", func(t *testing.T) {
+	t.Run("Starting Cluster Setup", func(t *testing.T) {
 		err := StartClusterSetup()
 		if err != nil {
 			t.Fatalf("Failed to setup cluster")
@@ -54,28 +54,37 @@ func TestConnectivity(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, peers)
 	})
-	t.Run("Testing Exports", func(t *testing.T) {
-		_, destSvcIP := utils.GetPodNameIp(destSvc)
-		err := gwctl2.Exports.Create(&api.Export{Name: destSvc, Spec: api.ExportSpec{Service: api.Endpoint{Host: destSvcIP, Port: destPort}}})
+	t.Run("Testing Export service", func(t *testing.T) {
+		_, destSvcIP := utils.GetPodNameIp(pingerService)
+		err := gwctl2.Exports.Create(&api.Export{Name: pingerService, Spec: api.ExportSpec{Service: api.Endpoint{Host: destSvcIP, Port: pingerPort}}})
 		require.NoError(t, err)
 	})
-	t.Run("Testing Imports", func(t *testing.T) {
-		utils.PrintHeader("Start importing")
-		utils.UseKindCluster(mbg2Name)
-		err := gwctl2.Imports.Create(&api.Import{Name: destSvc, Spec: api.ImportSpec{Service: api.Endpoint{Host: destSvc, Port: destPort}}})
+	t.Run("Testing Import service", func(t *testing.T) {
+		err := gwctl1.Imports.Create(&api.Import{Name: pingerService, Spec: api.ImportSpec{Service: api.Endpoint{Host: pingerService, Port: pingerPort}}})
 		require.NoError(t, err)
 
-		utils.PrintHeader("Bind a service")
-		utils.UseKindCluster(mbg1Name)
-		err = gwctl1.Bindings.Create(&api.Binding{Spec: api.BindingSpec{Import: destSvc, Peer: mbg2Name}})
+		err = gwctl1.Bindings.Create(&api.Binding{Spec: api.BindingSpec{Import: pingerService, Peer: mbg2Name}})
 		require.NoError(t, err)
+		imp, err := gwctl1.Imports.Get(pingerService)
+		require.NoError(t, err)
+		impSvc, _ := imp.(*api.Import)
+		assert.Equal(t, impSvc.Name, pingerService)
+	})
+
+	t.Run("Testing Service Connectivity", func(t *testing.T) {
+		utils.UseKindCluster(mbg1Name)
+		curlClient, _ := utils.GetPodNameIp(curlClient)
+		output, err := utils.GetOutput("kubectl exec -i " + curlClient + " -- curl -s http://pinger-server:3000/ping")
+		require.NoError(t, err)
+		log.Printf("Got %s", output)
+		expected := strings.Split(output, " ")
+		assert.Equal(t, "pong", strings.TrimSuffix(expected[1], "\n"))
 	})
 }
 
 const (
 	mbgCaCrt = "./mtls/ca.crt"
 	// MBG1 parameters
-	mbg1DataPort   = "30001"
 	mbg1cPort      = uint16(30443)
 	mbg1cPortLocal = "443"
 	mbg1crt        = "./mtls/mbg1.crt"
@@ -84,9 +93,9 @@ const (
 	gwctl1Name     = "gwctl1"
 	mbg1cni        = "default"
 	srcSvc         = "iperf3-client"
+	curlClient     = "curl-client"
 
 	// MBG2 parameters
-	mbg2DataPort   = "30001"
 	mbg2cPort      = uint16(30443)
 	mbg2cPortLocal = "443"
 	mbg2crt        = "./mtls/mbg2.crt"
@@ -97,6 +106,9 @@ const (
 	destSvc        = "iperf3-server"
 	destPort       = uint16(5000)
 	kindDestPort   = "30001"
+	kindDestPort2  = "30002"
+	pingerService  = "pinger-server"
+	pingerPort     = uint16(3000)
 )
 
 func StartClusterSetup() error {
@@ -132,14 +144,15 @@ func StartClusterSetup() error {
 	}
 	gwctl2 = client.New(mbg2IP, mbg2cPort, parsedCertData.ClientConfig(mbg2Name))
 
-	startServices()
+	startTestServices()
 	return nil
 }
 
-func startServices() {
-	utils.PrintHeader("Add iperf3 client")
-	utils.CreateServiceInKind(mbg1Name, srcSvc, "mlabbe/iperf3", folCl+"/"+srcSvc+".yaml")
+func startTestServices() {
+	utils.PrintHeader("Add curl client")
+	utils.CreateServiceInKind(mbg1Name, curlClient, "curlimages/curl", manifests+"/"+curlClient+".yaml")
 
-	utils.PrintHeader("Add iperf3 server")
-	utils.CreateServiceInKind(mbg2Name, destSvc, "mlabbe/iperf3", folSv+"/iperf3.yaml")
+	utils.PrintHeader("Add pinger service")
+	utils.CreateServiceInKind(mbg2Name, pingerService, "subfuzion/pinger", manifests+"/"+pingerService+".yaml")
+	utils.CreateK8sService(pingerService, "3000", kindDestPort2)
 }
