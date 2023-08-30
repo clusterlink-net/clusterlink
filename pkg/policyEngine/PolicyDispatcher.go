@@ -135,6 +135,14 @@ func getServiceAttrs(serviceName, mbg string) policytypes.WorkloadAttrs {
 	return ret
 }
 
+func getServiceAttrsForMultipleMbgs(serviceName string, mbgs []string) []policytypes.WorkloadAttrs {
+	res := []policytypes.WorkloadAttrs{}
+	for _, mbg := range mbgs {
+		res = append(res, getServiceAttrs(serviceName, mbg))
+	}
+	return res
+}
+
 func (pH *PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Request) {
 	var requestAttr event.ConnectionRequestAttr
 	err := json.NewDecoder(r.Body).Decode(&requestAttr)
@@ -184,19 +192,33 @@ func (pH *PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Req
 				if err != nil {
 					action = event.Deny
 					break
-				} else {
-					action = event.Allow
 				}
+
+				src := getServiceAttrs(requestAttr.SrcService, "")
+				dsts := getServiceAttrsForMultipleMbgs(requestAttr.DstService, mbgList)
+				decisions, err := pH.connectivityPDP.Decide(src, dsts)
+				if err != nil {
+					action = event.Deny
+					break
+				}
+				allowedMbgs := []string{}
+				for _, decision := range decisions {
+					if decision.Decision == policytypes.PolicyDecisionAllow {
+						allowedMbgs = append(allowedMbgs, decision.Destination[MbgNameLabel])
+					}
+				}
+
+				action = event.Allow
 				// Truncate mbgs from mbgList based on the policy
 				var mbgValidList []string
-				for _, mbg := range mbgList {
+				for _, mbg := range allowedMbgs {
 					// For new outgoing connections, the default is set up in the init state
 					act, _ := pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, mbg, pH.accessControl.DefaultRule)
 					if act != event.Deny {
 						mbgValidList = append(mbgValidList, mbg)
 					}
 				}
-				// Perform loadbancing using the truncated mbgList
+				// Perform load-balancing using the truncated mbgList
 				targetMbg, err = pH.loadBalancer.LookupWith(requestAttr.SrcService, requestAttr.DstService, mbgValidList)
 				if err != nil {
 					action = event.Deny
@@ -336,7 +358,7 @@ func (pH *PolicyHandler) exposeRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (pH *PolicyHandler) getConnPoliciesReq(w http.ResponseWriter, r *http.Request) {
+func (pH *PolicyHandler) getConnPoliciesReq(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
@@ -390,7 +412,7 @@ func (pH *PolicyHandler) delConnPolicyReq(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusOK)
 }
 
-func (pH *PolicyHandler) policyWelcome(w http.ResponseWriter, r *http.Request) {
+func (pH *PolicyHandler) policyWelcome(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte("Welcome to Policy Engine"))
 	if err != nil {
 		log.Println(err)
