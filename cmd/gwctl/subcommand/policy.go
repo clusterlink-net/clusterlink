@@ -1,21 +1,19 @@
 package subcommand
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	"github.ibm.com/mbg-agent/cmd/gwctl/config"
 	cmdutil "github.ibm.com/mbg-agent/cmd/util"
+	"github.ibm.com/mbg-agent/pkg/api"
 	"github.ibm.com/mbg-agent/pkg/client"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 	"github.ibm.com/mbg-agent/pkg/policyEngine"
-)
-
-const (
-	acl = "acl"
-	lb  = "lb"
 )
 
 // PolicyCreateOptions is the command line options for 'create policy'
@@ -28,6 +26,7 @@ type policyCreateOptions struct {
 	priority   int
 	action     int
 	policy     string
+	policyFile string
 }
 
 // PolicyCreateCmd - create a new policy - TODO update this command after integration.
@@ -50,13 +49,14 @@ func PolicyCreateCmd() *cobra.Command {
 // addFlags registers flags for the CLI.
 func (o *policyCreateOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
-	fs.StringVar(&o.pType, "type", "", "Policy agent command (For now, acl,lb)")
+	fs.StringVar(&o.pType, "type", "", "Policy agent command (For now: acl, lb, access)")
 	fs.StringVar(&o.serviceSrc, "serviceSrc", "*", "Name of Source Service (* for wildcard)")
 	fs.StringVar(&o.serviceDst, "serviceDst", "*", "Name of Dest Service (* for wildcard)")
 	fs.StringVar(&o.gwDest, "gwDest", "*", "Name of gateway the dest service belongs to (* for wildcard)")
 	fs.IntVar(&o.priority, "priority", 0, "Priority of the acl rule (0 -> highest)")
 	fs.IntVar(&o.action, "action", 0, "acl 0 -> allow, 1 -> deny")
 	fs.StringVar(&o.policy, "policy", "random", "lb policy: random, ecmp, static")
+	fs.StringVar(&o.policyFile, "policyFile", "", "File to load access policy from")
 }
 
 // run performs the execution of the 'create policy' subcommand
@@ -66,14 +66,34 @@ func (o *policyCreateOptions) run() error {
 		return err
 	}
 	switch o.pType {
-	case acl:
+	case policyEngine.AclType:
 		return g.SendACLPolicy(o.serviceSrc, o.serviceDst, o.gwDest, o.priority, event.Action(o.action), client.Add)
-	case lb:
+	case policyEngine.LbType:
 		return g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyEngine.PolicyLoadBalancer(o.policy), o.gwDest, client.Add)
+	case policyEngine.AccessType:
+		policy, err := policyFromFile(o.policyFile)
+		if err != nil {
+			return err
+		}
+		return g.SendAccessPolicy(policy, client.Add)
 
 	default:
-		return fmt.Errorf("Unknown policy type")
+		return fmt.Errorf("unknown policy type")
 	}
+}
+
+func policyFromFile(filename string) (api.Policy, error) {
+	fileBuf, err := os.ReadFile(filename)
+	if err != nil {
+		return api.Policy{}, fmt.Errorf("error reading policy file: %w", err)
+	}
+	var policy api.Policy
+	err = json.Unmarshal(fileBuf, &policy)
+	if err != nil {
+		return api.Policy{}, fmt.Errorf("error parsing Json in policy file: %w", err)
+	}
+	policy.Spec.Blob = fileBuf
+	return policy, nil
 }
 
 // PolicyDeleteOptions is the command line options for 'delete policy'
@@ -84,6 +104,7 @@ type policyDeleteOptions struct {
 	serviceDst string
 	gwDest     string
 	policy     string
+	policyFile string
 }
 
 // PolicyDeleteCmd - delete a policy command - TODO change after the policy integration.
@@ -106,11 +127,12 @@ func PolicyDeleteCmd() *cobra.Command {
 // addFlags registers flags for the CLI.I.
 func (o *policyDeleteOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
-	fs.StringVar(&o.pType, "type", "", "Policy agent command (For now, acl,lb)")
+	fs.StringVar(&o.pType, "type", "", "Policy agent command (For now: acl, lb, access)")
 	fs.StringVar(&o.serviceSrc, "serviceSrc", "*", "Name of Source Service (* for wildcard)")
 	fs.StringVar(&o.serviceDst, "serviceDst", "*", "Name of Dest Service (* for wildcard)")
 	fs.StringVar(&o.gwDest, "gwDest", "*", "Name of gateway the dest service belongs to (* for wildcard)")
 	fs.StringVar(&o.policy, "policy", "random", "lb policy: random, ecmp, static")
+	fs.StringVar(&o.policyFile, "policyFile", "", "File to load access policy from")
 }
 
 // run performs the execution of the 'delete policy' subcommand
@@ -122,12 +144,18 @@ func (o *policyDeleteOptions) run() error {
 		return err
 	}
 	switch o.pType {
-	case acl:
+	case policyEngine.AclType:
 		err = g.SendACLPolicy(o.serviceSrc, o.serviceDst, o.gwDest, priority, event.Action(action), client.Del)
-	case lb:
+	case policyEngine.LbType:
 		err = g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyEngine.PolicyLoadBalancer(o.policy), o.gwDest, client.Del)
+	case policyEngine.AccessType:
+		policy, err := policyFromFile(o.policyFile)
+		if err != nil {
+			return err
+		}
+		return g.SendAccessPolicy(policy, client.Del)
 	default:
-		return fmt.Errorf("Unknown policy type")
+		return fmt.Errorf("unknown policy type")
 	}
 	return err
 }
@@ -187,5 +215,14 @@ func (o *policyGetOptions) run() error {
 		}
 	}
 
+	accessPolicies, err := g.GetAccessPolicies()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Access policies\n")
+	for d := range accessPolicies {
+		fmt.Printf("Access policy %d: %v\n", d, accessPolicies[d])
+	}
 	return nil
 }
