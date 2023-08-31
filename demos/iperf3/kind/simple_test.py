@@ -121,7 +121,7 @@ if __name__ == "__main__":
     #Get services
     getService(gwctl1Name, destSvc)
     #Add policy
-    addPolicy(mbg1Name, gwctl1Name, command="create", action="allow", srcSvc=srcSvc,destSvc=destSvc, priority=0)
+    applyAccessPolicy(mbg1Name, gwctl1Name, allowAllPolicy)
     applyAccessPolicy(mbg2Name, gwctl2Name, allowAllPolicy)
     #Testing
     printHeader("\n\nStart Iperf3 testing")
