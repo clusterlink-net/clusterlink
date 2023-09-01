@@ -1,0 +1,15 @@
+{
+    "name": "allow-all",
+    "privileged": false,
+    "action": "allow",
+    "from": [
+        {
+            "workloadSelector": {}
+        }
+    ],
+    "to": [
+        {
+            "workloadSelector": {}
+        }
+    ]
+}
