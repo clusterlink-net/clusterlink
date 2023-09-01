@@ -4,7 +4,6 @@
 package connectivity
 
 import (
-	"strconv"
 	"strings"
 	"testing"
 
@@ -13,40 +12,37 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.ibm.com/mbg-agent/pkg/api"
 	"github.ibm.com/mbg-agent/pkg/client"
-	"github.ibm.com/mbg-agent/pkg/util"
 	"github.ibm.com/mbg-agent/tests/utils"
 )
 
 const (
-	gw1crt  = "mbg1.crt"
-	gw1key  = "mbg1.key"
-	gw1Name = "mbg1"
-	gw2crt  = "mbg2.crt"
-	gw2key  = "mbg2.key"
-	gw2Name = "mbg2"
-
-	caCrt         = "ca.crt"
 	cPortUint     = uint16(30443)
-	cPort         = "30443"
-	cPortLocal    = "443"
-	kindDestPort  = "30001"
+	gw1Name       = "mbg1"
+	gw2Name       = "mbg2"
 	curlClient    = "curl-client"
 	pingerService = "pinger-server"
 	pingerPort    = uint16(3000)
 )
 
 var (
-	mtlsFolder string = utils.ProjDir + "/tests/utils/mtls/"
-	manifests  string = utils.ProjDir + "/tests/utils/manifests/"
-	gwctl1     *client.Client
-	gwctl2     *client.Client
+	allowAllPolicyFile = utils.ProjDir + "/tests/utils/policy/allowAll.json"
+	gwctl1             *client.Client
+	gwctl2             *client.Client
 )
 
 func TestConnectivity(t *testing.T) {
 	t.Run("Starting Cluster Setup", func(t *testing.T) {
-		err := startClusterSetup()
+		err := utils.StartClusterSetup()
 		if err != nil {
 			t.Fatalf("Failed to setup cluster")
+		}
+		gwctl1, err = utils.GetClient(gw1Name)
+		if err != nil {
+			t.Fatalf("Failed to get Client")
+		}
+		gwctl2, err = utils.GetClient(gw2Name)
+		if err != nil {
+			t.Fatalf("Failed to get Client")
 		}
 	})
 
@@ -83,6 +79,13 @@ func TestConnectivity(t *testing.T) {
 		assert.Equal(t, impSvc.Name, pingerService)
 	})
 	t.Run("Testing Service Connectivity", func(t *testing.T) {
+		policy, err := utils.GetPolicyFromFile(allowAllPolicyFile)
+		require.NoError(t, err)
+		err = gwctl1.SendAccessPolicy(policy, client.Add)
+		require.NoError(t, err)
+		err = gwctl2.SendAccessPolicy(policy, client.Add)
+		require.NoError(t, err)
+
 		utils.UseKindCluster(gw1Name)
 		curlClient, _ := utils.GetPodNameIP(curlClient)
 		output, err := utils.GetOutput("kubectl exec -i " + curlClient + " -- curl -s http://pinger-server:3000/ping")
@@ -91,54 +94,5 @@ func TestConnectivity(t *testing.T) {
 		expected := strings.Split(output, " ")
 		assert.Equal(t, "pong", strings.TrimSuffix(expected[1], "\n"))
 	})
-	cleanup()
-}
-
-func startClusterSetup() error {
-	utils.StartClusterLink(gw1Name, cPortLocal, cPort, manifests)
-	utils.StartClusterLink(gw2Name, cPortLocal, cPort, manifests)
-	gw1IP, err := utils.GetKindIP(gw1Name)
-	if err != nil {
-		return err
-	}
-	gw2IP, err := utils.GetKindIP(gw2Name)
-	if err != nil {
-		return err
-	}
-	parsedCertData, err := util.ParseTLSFiles(mtlsFolder+caCrt, mtlsFolder+gw1crt, mtlsFolder+gw1key)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	gwctl1 = client.New(gw1IP, cPortUint, parsedCertData.ClientConfig(gw1Name))
-
-	parsedCertData, err = util.ParseTLSFiles(mtlsFolder+caCrt, mtlsFolder+gw2crt, mtlsFolder+gw2key)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	gwctl2 = client.New(gw2IP, cPortUint, parsedCertData.ClientConfig(gw2Name))
-
-	return startTestPods()
-}
-
-func cleanup() {
-	utils.DeleteCluster(gw1Name)
-	utils.DeleteCluster(gw2Name)
-}
-
-func startTestPods() error {
-	err := utils.LaunchApp(gw1Name, curlClient, "curlimages/curl", manifests+curlClient+".yaml")
-	if err != nil {
-		return err
-	}
-	err = utils.LaunchApp(gw2Name, pingerService, "subfuzion/pinger", manifests+pingerService+".yaml")
-	if err != nil {
-		return err
-	}
-	err = utils.CreateK8sService(pingerService, strconv.Itoa(int(pingerPort)), kindDestPort)
-	if err != nil {
-		return err
-	}
-	return nil
+	//cleanup()
 }
