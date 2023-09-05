@@ -115,17 +115,16 @@ func GetAllExportServicesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Get all local services - control plane logic
-func getAllExportServices() map[string]api.Export {
+func getAllExportServices() []api.Export {
 	store.UpdateState()
-	sArr := make(map[string]api.Export)
+	sArr := []api.Export{}
 
 	for _, s := range store.GetLocalServicesArr() {
 		sPort := store.GetConnectionArr()[s.Id]
 		sIP := store.GetMyIp()
 		port, _ := strconv.Atoi(sPort)
-		sArr[s.Id] = api.Export{Name: s.Id, Spec: api.ExportSpec{Service: api.Endpoint{Host: sIP, Port: uint16(port)}}}
+		sArr = append(sArr, api.Export{Name: s.Id, Spec: api.ExportSpec{Service: api.Endpoint{Host: sIP, Port: uint16(port)}}})
 	}
-
 	return sArr
 }
 
