@@ -66,9 +66,9 @@ func (d *Dataplane) routes() {
 	})
 
 	d.Router.Route("/bindings", func(r chi.Router) {
-		r.Post("/", d.controlPlaneForwardingHandler)       // Post   /bindings   - Bind remote service to local port
-		r.Get("/{id}", d.controlPlaneForwardingHandler)    // Get    /bindings   - Bind remote service to local port
-		r.Delete("/{id}", d.controlPlaneForwardingHandler) // Delete /bindings - Remove Binding of remote service to local port
+		r.Post("/", d.controlPlaneForwardingHandler)    // Post   /bindings   - Bind remote service to local port
+		r.Get("/{id}", d.controlPlaneForwardingHandler) // Get    /bindings   - Bind remote service to local port
+		r.Delete("/", d.controlPlaneForwardingHandler)  // Delete /bindings - Remove Binding of remote service to local port
 	})
 
 	d.Router.Route("/newRemoteConnection", func(r chi.Router) {
@@ -97,11 +97,11 @@ func (d *Dataplane) routes() {
 		r.Post(policyEngine.DelRoute, d.controlPlaneForwardingHandler) // Delete Access Policy
 	})
 
-        d.Router.Route("/policy/conn", func(r chi.Router) {
-                r.Get("/", d.controlPlaneForwardingHandler)
-                r.Post("/add", d.controlPlaneForwardingHandler)    // Add LB Policy
-                r.Post("/delete", d.controlPlaneForwardingHandler) // Delete LB Policy
-        })
+	d.Router.Route("/policy/conn", func(r chi.Router) {
+		r.Get("/", d.controlPlaneForwardingHandler)
+		r.Post("/add", d.controlPlaneForwardingHandler)    // Add LB Policy
+		r.Post("/delete", d.controlPlaneForwardingHandler) // Delete LB Policy
+	})
 
 	d.Router.Route("/metrics", func(r chi.Router) {
 		r.Get("/ConnectionStatus", d.controlPlaneForwardingHandler)

@@ -66,6 +66,7 @@ func DelBindingHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// AddService control plane logic
+	blog.Infof("Received delete binding command to import: %v", s.Spec.Import)
 	delBinding(s.Spec.Import, s.Spec.Peer)
 
 	// Response

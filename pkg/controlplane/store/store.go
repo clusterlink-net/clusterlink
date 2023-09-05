@@ -89,7 +89,6 @@ var s = mbgState{MyInfo: MbgInfo{},
 	RemoteServiceMap: make(map[string][]string),
 	MyEventManager:   event.EventManager{},
 }
-var stopCh = make(map[string]chan bool)
 
 const (
 	ProjectFolder = "/.gw/"
@@ -393,10 +392,6 @@ func RemoveMbgNbr(id string) {
 // Frees up used ports by a connection
 func FreeUpPorts(connectionID string) {
 	log.Infof("Start to FreeUpPorts for service: %s", connectionID)
-	port := s.Connections[connectionID]
-	lval, _ := strconv.Atoi(port[1:])
-	stopCh[connectionID] <- true
-	delete(s.LocalPortMap, lval)
 	delete(s.Connections, connectionID)
 	SaveState()
 }
