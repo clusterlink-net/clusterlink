@@ -71,6 +71,13 @@ push-image:
 install:
 	cp ./bin/gwctl /usr/local/bin/
 	cp ./bin/dataplane /usr/local/bin/
+
+clean-tests:
+	kind delete cluster --name=mbg1
+	kind delete cluster --name=mbg2
+
+tests-e2e: clean-tests 	docker-build 
+	$(GO) test -p 1 -timeout 30m -v -tags e2e ./e2e/...
 #------------------------------------------------------
 # Run Targets
 #------------------------------------------------------

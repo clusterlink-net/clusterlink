@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dataplane
+  labels:
+    app: dataplane
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dataplane
+  template:
+    metadata:
+      labels:
+        app: dataplane
+    spec:
+      containers:
+      - name: dataplane
+        image: mbg
+        imagePullPolicy: IfNotPresent
+        command: [ "sleep" ]
+        args: [ "infinity" ]        
+        ports:
+        - containerPort: 443
