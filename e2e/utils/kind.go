@@ -3,12 +3,8 @@ package utils
 import (
 	"context"
 	"fmt"
-	"io"
 	"os/exec"
-	"path"
 	"path/filepath"
-	"runtime"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -18,14 +14,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
-
-// ProjDir is the current directory of the project
-var ProjDir string = getProjFolder()
-
-func getProjFolder() string {
-	_, filename, _, _ := runtime.Caller(1)
-	return path.Dir(path.Dir(path.Dir(filename)))
-}
 
 // Use to get k8s client api
 func createClientset() (*kubernetes.Clientset, error) {
@@ -71,7 +59,6 @@ func isPodReady(name string) error {
 		}
 		time.Sleep(time.Second)
 	}
-	return nil
 }
 
 // Check if pod is ready by the full name of the pod
@@ -133,74 +120,6 @@ func GetPodNameIP(name string) (string, string) {
 	log.Infof("Pod %s in namespace %s is ready and has IP address %s", name, namespace, podIP)
 
 	return pod.GetName(), podIP
-}
-
-func runCmdB(c string) error {
-	log.Println(c)
-	argSplit := strings.Split(c, " ")
-	cmd := exec.Command(argSplit[0], argSplit[1:]...)
-	if err := cmd.Start(); err != nil {
-		log.Error("Error starting command:", err)
-		return err
-	}
-	time.Sleep(time.Second)
-	return nil
-}
-
-//nolint:gosec // Ignore G204: Subprocess launched with a potential tainted input or cmd arguments
-func runCmd(c string) error {
-	log.Println(c)
-	argSplit := strings.Split(c, " ")
-	cmd := exec.Command(argSplit[0], argSplit[1:]...)
-	stdout, _ := cmd.StdoutPipe()
-	stderr, _ := cmd.StderrPipe()
-
-	// Start command execution
-	if err := cmd.Start(); err != nil {
-		log.Error("Error starting command:", err)
-		return err
-	}
-
-	// Set up goroutines to read output pipes
-	go readOutput(stdout)
-	go readOutput(stderr)
-
-	// Wait for command to complete
-	if err := cmd.Wait(); err != nil {
-		log.Error("Command returned error:", err)
-		return err
-	}
-	return nil
-}
-
-func readOutput(pipe io.Reader) {
-	buf := make([]byte, 1024)
-	for {
-		n, err := pipe.Read(buf)
-		if n > 0 {
-			fmt.Print(string(buf[:n]))
-		}
-
-		if err != nil {
-			if err != io.EOF && err != io.ErrClosedPipe && !strings.Contains(err.Error(), "file already closed") {
-				log.Error("Error reading output:", err, err.Error())
-			}
-			break
-		}
-	}
-}
-
-// GetOutput returns the output of a specified command
-func GetOutput(c string) (string, error) {
-	log.Println(c)
-	argSplit := strings.Split(c, " ")
-	cmd := exec.Command(argSplit[0], argSplit[1:]...)
-	stdout, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Println(err.Error())
-		return "", err
-	}
-	return string(stdout), nil
 }
 
 // UseKindCluster switches the context to the specified cluster

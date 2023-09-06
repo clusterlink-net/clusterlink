@@ -10,9 +10,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.ibm.com/mbg-agent/e2e/utils"
 	"github.ibm.com/mbg-agent/pkg/api"
 	"github.ibm.com/mbg-agent/pkg/client"
-	"github.ibm.com/mbg-agent/tests/utils"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 )
 
 var (
-	allowAllPolicyFile = utils.ProjDir + "/tests/utils/policy/allowAll.json"
+	allowAllPolicyFile = utils.ProjDir + "/e2e/utils/policy/allowAll.json"
 	gwctl1             *client.Client
 	gwctl2             *client.Client
 )
@@ -94,5 +94,5 @@ func TestConnectivity(t *testing.T) {
 		expected := strings.Split(output, " ")
 		assert.Equal(t, "pong", strings.TrimSuffix(expected[1], "\n"))
 	})
-	//cleanup()
+	utils.CleanUp()
 }
