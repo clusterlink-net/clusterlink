@@ -131,7 +131,11 @@ func UseKindCluster(name string) error {
 }
 
 func createCluster(name string) (string, error) {
-	err := runCmd("kind create cluster --name=" + name)
+	err := DeleteCluster(name)
+	if err != nil {
+		return "", err
+	}
+	err = runCmd("kind create cluster --name=" + name)
 	if err != nil {
 		return "", err
 	}

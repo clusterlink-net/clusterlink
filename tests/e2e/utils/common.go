@@ -37,7 +37,7 @@ var (
 )
 
 // ProjDir is the current directory of the project
-var ProjDir string = getProjFolder()
+var ProjDir = getProjFolder()
 
 func getProjFolder() string {
 	_, filename, _, _ := runtime.Caller(1)

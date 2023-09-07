@@ -103,7 +103,8 @@ func TestConnectivity(t *testing.T) {
 		err = gwctl2.SendAccessPolicy(policy, client.Add)
 		require.NoError(t, err)
 
-		utils.UseKindCluster(gw1Name)
+		err = utils.UseKindCluster(gw1Name)
+		require.NoError(t, err)
 		curlClient, _ := utils.GetPodNameIP(curlClient)
 		output, err := utils.GetOutput("kubectl exec -i " + curlClient + " -- curl -s http://pinger-server:3000/ping")
 		require.NoError(t, err)
