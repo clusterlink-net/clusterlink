@@ -4,6 +4,7 @@
 package connectivity
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -16,16 +17,17 @@ import (
 )
 
 const (
-	cPortUint     = uint16(30443)
 	gw1Name       = "mbg1"
 	gw2Name       = "mbg2"
 	curlClient    = "curl-client"
 	pingerService = "pinger-server"
 	pingerPort    = uint16(3000)
+	kindDestPort  = "30001"
 )
 
 var (
-	allowAllPolicyFile = utils.ProjDir + "/e2e/utils/policy/allowAll.json"
+	allowAllPolicyFile = utils.ProjDir + "/tests/e2e/utils/policy/allowAll.json"
+	manifests          = utils.ProjDir + "/tests/e2e/utils/manifests/"
 	gwctl1             *client.Client
 	gwctl2             *client.Client
 )
@@ -36,6 +38,21 @@ func TestConnectivity(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to setup cluster")
 		}
+		err = utils.LaunchApp(gw1Name, curlClient, "curlimages/curl", manifests+curlClient+".yaml")
+		if err != nil {
+			t.Fatalf("Failed to LaunchApp  curlimages/curl")
+		}
+
+		err = utils.LaunchApp(gw2Name, pingerService, "subfuzion/pinger", manifests+pingerService+".yaml")
+		if err != nil {
+			t.Fatalf("Failed to LaunchApp  subfuzion/pinger")
+		}
+
+		err = utils.CreateK8sService(pingerService, strconv.Itoa(int(pingerPort)), kindDestPort)
+		if err != nil {
+			t.Fatalf("Failed to CreateK8sService")
+		}
+
 		gwctl1, err = utils.GetClient(gw1Name)
 		if err != nil {
 			t.Fatalf("Failed to get Client")
@@ -51,9 +68,9 @@ func TestConnectivity(t *testing.T) {
 		require.NoError(t, err)
 		gw2IP, err := utils.GetKindIP(gw2Name)
 		require.NoError(t, err)
-		err = gwctl1.Peers.Create(&api.Peer{Name: gw2Name, Spec: api.PeerSpec{Gateways: []api.Endpoint{{Host: gw2IP, Port: cPortUint}}}})
+		err = gwctl1.Peers.Create(&api.Peer{Name: gw2Name, Spec: api.PeerSpec{Gateways: []api.Endpoint{{Host: gw2IP, Port: utils.ControlPort}}}})
 		require.NoError(t, err)
-		err = gwctl2.Peers.Create(&api.Peer{Name: gw1Name, Spec: api.PeerSpec{Gateways: []api.Endpoint{{Host: gw1IP, Port: cPortUint}}}})
+		err = gwctl2.Peers.Create(&api.Peer{Name: gw1Name, Spec: api.PeerSpec{Gateways: []api.Endpoint{{Host: gw1IP, Port: utils.ControlPort}}}})
 		require.NoError(t, err)
 
 		peers, err := gwctl1.Peers.List()
