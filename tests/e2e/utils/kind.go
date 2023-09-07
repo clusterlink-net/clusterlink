@@ -101,6 +101,7 @@ func GetPodNameIP(name string) (string, string) {
 		log.Info("No pods found with label:", labelSelector)
 		return "", ""
 	}
+
 	pod := pods.Items[0]
 	// check if the pod is ready
 	isReady := false
@@ -110,6 +111,7 @@ func GetPodNameIP(name string) (string, string) {
 			break
 		}
 	}
+
 	if !isReady {
 		log.Infof("Pod %s in namespace %s is not ready", name, namespace)
 		return "", ""
@@ -123,8 +125,8 @@ func GetPodNameIP(name string) (string, string) {
 }
 
 // UseKindCluster switches the context to the specified cluster
-func UseKindCluster(name string) {
-	runCmd("kubectl config use-context kind-" + name)
+func UseKindCluster(name string) error {
+	return runCmd("kubectl config use-context kind-" + name)
 }
 
 func createCluster(name string) (string, error) {
@@ -132,17 +134,19 @@ func createCluster(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	err = runCmd("kind load docker-image mbg --name=" + name)
 	if err != nil {
 		return "", err
 	}
+
 	ip, err := GetKindIP(name)
 	return ip, err
 }
 
 // DeleteCluster deletes a kind cluster
-func DeleteCluster(name string) {
-	runCmd("kind delete cluster --name=" + name)
+func DeleteCluster(name string) error {
+	return runCmd("kind delete cluster --name=" + name)
 }
 
 // StartClusterLink creates a cluster, and launches clusterlink
@@ -152,34 +156,70 @@ func StartClusterLink(name, cPortLocal, cPort, manifests string) error {
 	if err != nil {
 		return err
 	}
-	runCmd("kubectl apply -f " + manifests + "mbg-role.yaml")
-	runCmd("kubectl create -f " + manifests + "mbg.yaml")
-	runCmd("kubectl create -f " + manifests + "dataplane.yaml")
+
+	err = runCmd("kubectl apply -f " + manifests + "mbg-role.yaml")
+	if err != nil {
+		return err
+	}
+
+	err = runCmd("kubectl create -f " + manifests + "mbg.yaml")
+	if err != nil {
+		return err
+	}
+
+	err = runCmd("kubectl create -f " + manifests + "dataplane.yaml")
+	if err != nil {
+		return err
+	}
+
 	err = isPodReady("mbg")
 	if err != nil {
 		return err
 	}
+
 	gwPod, _ := GetPodNameIP("mbg")
 	err = isPodReady("dataplane")
 	if err != nil {
 		return err
 	}
+
 	dpPod, _ := GetPodNameIP("dataplane")
-	runCmd("kubectl create service nodeport dataplane --tcp=" + cPortLocal + ":" + cPortLocal + " --node-port=" + cPort)
+	err = runCmd("kubectl create service nodeport dataplane --tcp=" + cPortLocal + ":" + cPortLocal + " --node-port=" + cPort)
+	if err != nil {
+		return err
+	}
+
 	startcmd := gwPod + " -- ./controlplane start --id " + name + " --ip " + clusterIP +
 		" --cport " + cPort + " --cportLocal " + cPortLocal + " --certca " + certs + "/ca.crt --cert " +
 		certs + "/" + name + ".crt --key " + certs + "/" + name + ".key"
-	runCmdB("kubectl exec -i " + startcmd)
-	runCmdB("kubectl exec -i " + dpPod + " -- ./dataplane --id " + name + " --certca " + certs + "/ca.crt --cert " +
+	err = runCmdB("kubectl exec -i " + startcmd)
+	if err != nil {
+		return err
+	}
+
+	err = runCmdB("kubectl exec -i " + dpPod + " -- ./dataplane --id " + name + " --certca " + certs + "/ca.crt --cert " +
 		certs + "/" + name + ".crt --key " + certs + "/" + name + ".key")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // LaunchApp launches an application using the specified image in the cluster
 func LaunchApp(clusterName, svcName, svcImage, svcYaml string) error {
-	UseKindCluster(clusterName)
-	runCmd("kind load docker-image " + svcImage + " --name=" + clusterName)
-	err := runCmd("kubectl create -f " + svcYaml)
+	err := UseKindCluster(clusterName)
+	if err != nil {
+		return err
+	}
+
+	err = runCmd("kind load docker-image " + svcImage + " --name=" + clusterName)
+	if err != nil {
+		log.Infof("Download locally docker-image %v", svcImage)
+
+	}
+
+	err = runCmd("kubectl create -f " + svcYaml)
 	if err != nil {
 		return err
 	}
@@ -196,10 +236,15 @@ func CreateK8sService(name, port, targetPort string) error {
 
 // GetKindIP returns the IP of the Kind cluster
 func GetKindIP(name string) (string, error) {
-	UseKindCluster(name)
+	err := UseKindCluster(name)
+	if err != nil {
+		return "", err
+	}
+
 	output, err := exec.Command("kubectl", "get", "nodes", "-o", "jsonpath={.items[0].status.addresses[?(@.type=='InternalIP')].address}").Output()
 	if err != nil {
 		return "", err
 	}
+
 	return string(output), nil
 }

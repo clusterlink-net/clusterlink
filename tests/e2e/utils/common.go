@@ -39,8 +39,6 @@ const (
 var (
 	mtlsFolder = ProjDir + "/e2e/utils/mtls/"
 	manifests  = ProjDir + "/e2e/utils/manifests/"
-	gwctl1     *client.Client
-	gwctl2     *client.Client
 )
 
 // ProjDir is the current directory of the project
@@ -53,8 +51,17 @@ func getProjFolder() string {
 
 // StartClusterSetup starts a two cluster setup
 func StartClusterSetup() error {
-	StartClusterLink(gw1Name, cPortLocal, cPort, manifests)
-	StartClusterLink(gw2Name, cPortLocal, cPort, manifests)
+	err := StartClusterLink(gw1Name, cPortLocal, cPort, manifests)
+	if err != nil {
+		return err
+	}
+
+	err = StartClusterLink(gw2Name, cPortLocal, cPort, manifests)
+
+	if err != nil {
+		return err
+	}
+
 	return startTestPods()
 }
 
@@ -64,19 +71,25 @@ func GetClient(name string) (*client.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	parsedCertData, err := util.ParseTLSFiles(mtlsFolder+caCrt, mtlsFolder+gw1crt, mtlsFolder+gw1key)
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
+
 	gwctl := client.New(gwIP, cPortUint, parsedCertData.ClientConfig(name))
 	return gwctl, nil
 }
 
 // CleanUp deletes the clusters that were created
-func CleanUp() {
-	DeleteCluster(gw1Name)
-	DeleteCluster(gw2Name)
+func CleanUp() error {
+	err := DeleteCluster(gw1Name)
+	if err != nil {
+		return err
+	}
+
+	return DeleteCluster(gw2Name)
 }
 
 func startTestPods() error {
@@ -84,14 +97,17 @@ func startTestPods() error {
 	if err != nil {
 		return err
 	}
+
 	err = LaunchApp(gw2Name, pingerService, "subfuzion/pinger", manifests+pingerService+".yaml")
 	if err != nil {
 		return err
 	}
+
 	err = CreateK8sService(pingerService, strconv.Itoa(int(pingerPort)), kindDestPort)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -106,6 +122,7 @@ func GetPolicyFromFile(filename string) (api.Policy, error) {
 	if err != nil {
 		return api.Policy{}, fmt.Errorf("error parsing Json in policy file: %w", err)
 	}
+
 	policy.Spec.Blob = fileBuf
 	return policy, nil
 }
@@ -113,11 +130,12 @@ func GetPolicyFromFile(filename string) (api.Policy, error) {
 func runCmdB(c string) error {
 	log.Println(c)
 	argSplit := strings.Split(c, " ")
-	cmd := exec.Command(argSplit[0], argSplit[1:]...)
+	cmd := exec.Command(argSplit[0], argSplit[1:]...) //nolint:gosec
 	if err := cmd.Start(); err != nil {
 		log.Error("Error starting command:", err)
 		return err
 	}
+
 	time.Sleep(time.Second)
 	return nil
 }
@@ -126,7 +144,7 @@ func runCmdB(c string) error {
 func runCmd(c string) error {
 	log.Println(c)
 	argSplit := strings.Split(c, " ")
-	cmd := exec.Command(argSplit[0], argSplit[1:]...)
+	cmd := exec.Command(argSplit[0], argSplit[1:]...) //nolint:gosec
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
@@ -169,7 +187,7 @@ func readOutput(pipe io.Reader) {
 func GetOutput(c string) (string, error) {
 	log.Println(c)
 	argSplit := strings.Split(c, " ")
-	cmd := exec.Command(argSplit[0], argSplit[1:]...)
+	cmd := exec.Command(argSplit[0], argSplit[1:]...) //nolint:gosec
 	stdout, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Println(err.Error())
