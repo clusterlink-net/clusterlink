@@ -77,7 +77,7 @@ clean-tests:
 	kind delete cluster --name=mbg2
 
 tests-e2e: clean-tests 	docker-build 
-	$(GO) test -p 1 -timeout 30m -v -tags e2e ./e2e/...
+	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/...
 #------------------------------------------------------
 # Run Targets
 #------------------------------------------------------
