@@ -32,8 +32,8 @@ const (
 )
 
 var (
-	mtlsFolder = ProjDir + "/tests/e2e/utils/mtls/"
-	manifests  = ProjDir + "/tests/e2e/utils/manifests/"
+	mtlsFolder = ProjDir + "/tests/e2e/utils/testdata/mtls/"
+	manifests  = ProjDir + "/tests/e2e/utils/testdata/manifests/"
 )
 
 // ProjDir is the current directory of the project

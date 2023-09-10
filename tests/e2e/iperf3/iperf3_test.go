@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	allowAllPolicyFile = utils.ProjDir + "/tests/e2e/utils/policy/allowAll.json"
+	allowAllPolicyFile = utils.ProjDir + "/tests/e2e/utils/testdata/policy/allowAll.json"
 	gwctl1             *client.Client
 	gwctl2             *client.Client
 )
@@ -42,12 +42,12 @@ func TestIperf3(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to setup cluster")
 		}
-		err = utils.LaunchApp(gw1Name, srcSvc, "mlabbe/iperf3", utils.ProjDir+"/tests/e2e/iperf3/manifests/iperf3-client.yaml")
+		err = utils.LaunchApp(gw1Name, srcSvc, "mlabbe/iperf3", utils.ProjDir+"/tests/e2e/utils/testdata/manifests/iperf3/iperf3-client.yaml")
 		if err != nil {
 			t.Fatalf("Failed to LaunchApp iperf3 client mlabbe/iperf3")
 		}
 
-		err = utils.LaunchApp(gw2Name, destSvc, "mlabbe/iperf3", utils.ProjDir+"/tests/e2e/iperf3/manifests/iperf3-server.yaml")
+		err = utils.LaunchApp(gw2Name, destSvc, "mlabbe/iperf3", utils.ProjDir+"/tests/e2e/utils/testdata/manifests/iperf3/iperf3-server.yaml")
 		if err != nil {
 			t.Fatalf("Failed to LaunchApp iperf3 server mlabbe/iperf3")
 		}

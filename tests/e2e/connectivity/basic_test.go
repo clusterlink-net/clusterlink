@@ -26,8 +26,8 @@ const (
 )
 
 var (
-	allowAllPolicyFile = utils.ProjDir + "/tests/e2e/utils/policy/allowAll.json"
-	manifests          = utils.ProjDir + "/tests/e2e/utils/manifests/"
+	allowAllPolicyFile = utils.ProjDir + "/tests/e2e/utils/testdata/policy/allowAll.json"
+	manifests          = utils.ProjDir + "/tests/e2e/utils/testdata/manifests/"
 	gwctl1             *client.Client
 	gwctl2             *client.Client
 )
@@ -112,5 +112,7 @@ func TestConnectivity(t *testing.T) {
 		expected := strings.Split(output, " ")
 		assert.Equal(t, "pong", strings.TrimSuffix(expected[1], "\n"))
 	})
-	utils.CleanUp()
+
+	err := utils.CleanUp()
+	require.NoError(t, err)
 }
