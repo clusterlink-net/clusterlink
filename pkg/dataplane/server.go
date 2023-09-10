@@ -79,7 +79,7 @@ func (d *Dataplane) routes() {
 		r.Post("/", d.controlPlaneForwardingHandler) // Post /newLocalConnection  - New connection parameters check
 	})
 
-	d.Router.Route(policyengine.PolicyRoute+policyengine.AclRoute, func(r chi.Router) {
+	d.Router.Route(policyengine.PolicyRoute+policyengine.ACLRoute, func(r chi.Router) {
 		r.Get(policyengine.GetRoute, d.controlPlaneForwardingHandler)
 		r.Post(policyengine.AddRoute, d.controlPlaneForwardingHandler) // Add ACL Rule
 		r.Post(policyengine.DelRoute, d.controlPlaneForwardingHandler) // Delete ACL Rule

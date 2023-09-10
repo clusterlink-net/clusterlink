@@ -66,7 +66,7 @@ func (o *policyCreateOptions) run() error {
 		return err
 	}
 	switch o.pType {
-	case policyengine.AclType:
+	case policyengine.ACLType:
 		return g.SendACLPolicy(o.serviceSrc, o.serviceDst, o.gwDest, o.priority, event.Action(o.action), client.Add)
 	case policyengine.LbType:
 		return g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.PolicyLoadBalancer(o.policy), o.gwDest, client.Add)
@@ -144,7 +144,7 @@ func (o *policyDeleteOptions) run() error {
 		return err
 	}
 	switch o.pType {
-	case policyengine.AclType:
+	case policyengine.ACLType:
 		err = g.SendACLPolicy(o.serviceSrc, o.serviceDst, o.gwDest, priority, event.Action(action), client.Del)
 	case policyengine.LbType:
 		err = g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.PolicyLoadBalancer(o.policy), o.gwDest, client.Del)

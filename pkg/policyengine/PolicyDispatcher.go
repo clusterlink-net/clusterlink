@@ -17,12 +17,12 @@ import (
 )
 
 const (
-	AclType    = "acl"    // Type for acl policies (deprecated)
+	ACLType    = "acl"    // Type for acl policies (deprecated)
 	LbType     = "lb"     // Type for load-balancing policies
 	AccessType = "access" // Type for access policies
 
 	PolicyRoute = "/policy"        // Parent route for all kinds of policies
-	AclRoute    = "/" + AclType    // Route for managing ACL policies (deprecated)
+	ACLRoute    = "/" + ACLType    // Route for managing ACL policies (deprecated)
 	LbRoute     = "/" + LbType     // Route for managing LoadBalancer policies
 	AccessRoute = "/" + AccessType // Route for managing Access policies (Connectivity policies)
 
@@ -79,7 +79,7 @@ func (pH *PolicyHandler) Routes(r *chi.Mux) chi.Router {
 		r.Post("/", pH.exposeRequest) // New expose request
 	})
 
-	r.Route(AclRoute, func(r chi.Router) {
+	r.Route(ACLRoute, func(r chi.Router) {
 		r.Get(GetRoute, pH.accessControl.GetRuleReq)
 		r.Post(AddRoute, pH.accessControl.AddRuleReq) // Add ACL Rule
 		r.Post(DelRoute, pH.accessControl.DelRuleReq)
