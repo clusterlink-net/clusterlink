@@ -18,8 +18,8 @@ import (
 	"github.ibm.com/mbg-agent/pkg/utils/httputils"
 )
 
-const TCP_TYPE = "tcp"
-const MTLS_TYPE = "mtls"
+const TypeTCP = "tcp"
+const TypeMTLS = "mtls"
 
 var clog = logrus.WithField("component", "DataPlane")
 
@@ -103,7 +103,7 @@ func (d *Dataplane) startListenerToExportServiceEndpoint(c apiObject.ConnectRequ
 	}
 	clog.Infof("Received control plane response for service %s ,connection information : %v ", c.Id, rep)
 	switch dataplane {
-	case TCP_TYPE:
+	case TypeTCP:
 		clog.Infof("Sending Connect reply to Connection(%v) to use Dest:%v", rep.ConnId, "use connect hijack")
 		conn := hijackConn(w)
 		if conn == nil {
@@ -112,7 +112,7 @@ func (d *Dataplane) startListenerToExportServiceEndpoint(c apiObject.ConnectRequ
 		}
 		go d.startTCPListenerService("httpconnect", rep.DestSvcEndpoint, c.Policy, rep.ConnId, conn, nil, eventManager.Incoming)
 		return true, dataplane, endpoint
-	case MTLS_TYPE:
+	case TypeMTLS:
 		clog.Infof("Starting a Receiver service for %s Using serviceEndpoint : %s/%s",
 			rep.DestSvcEndpoint, rep.SrcGwEndpoint, endpoint)
 
@@ -291,7 +291,7 @@ func (d *Dataplane) StartListenerToImportServiceEndpoint(destId string, acceptor
 		}
 
 		switch dataplane {
-		case TCP_TYPE:
+		case TypeTCP:
 			connDest, err := d.TCPConnectReq(r.SrcId, destId, "forward", r.Target)
 
 			if err != nil {
@@ -307,7 +307,7 @@ func (d *Dataplane) StartListenerToImportServiceEndpoint(destId string, acceptor
 			clog.Infof("Using %s for  %s/%s to connect to Service-%v", dataplane, r.Target, connectDest, destId)
 			go d.startTCPListenerService(servicePort, connectDest, "forward", r.ConnId, ac, connDest, eventManager.Outgoing)
 
-		case MTLS_TYPE:
+		case TypeMTLS:
 			// Send connection request to other MBG
 			connectType, connectDest, err := d.mTLSConnectReq(r.SrcId, destId, "forward", r.Target)
 
