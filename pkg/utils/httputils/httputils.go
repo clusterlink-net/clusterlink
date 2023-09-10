@@ -17,8 +17,8 @@ const (
 	RESPFAIL string = "Fail"
 )
 
-// HttpGet is a convenience function to issue a GET request
-func HttpGet(url string, cl http.Client) ([]byte, error) {
+// Get is a convenience function to issue a GET request
+func Get(url string, cl http.Client) ([]byte, error) {
 	resp, err := cl.Get(url)
 	if resp != nil {
 		defer resp.Body.Close()
@@ -35,8 +35,8 @@ func HttpGet(url string, cl http.Client) ([]byte, error) {
 	return body, nil
 }
 
-// HttpPOST is a convenience function to issue a POST request
-func HttpPost(url string, jsonData []byte, cl http.Client) ([]byte, error) {
+// Post is a convenience function to issue a POST request
+func Post(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 	resp, err := cl.Post(url, "application/json",
 		bytes.NewBuffer(jsonData))
 
@@ -56,8 +56,8 @@ func HttpPost(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 	return body, nil
 }
 
-// HttpDelete is a convenience function to issue a DELETE request
-func HttpDelete(url string, jsonData []byte, cl http.Client) ([]byte, error) {
+// HTTPDelete is a convenience function to issue a DELETE request
+func Delete(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodDelete, url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return []byte(RESPFAIL), err
@@ -82,8 +82,8 @@ func HttpDelete(url string, jsonData []byte, cl http.Client) ([]byte, error) {
 	return body, nil
 }
 
-// HttpConnect is a convenience function to issue a CONNECT request
-func HttpConnect(address, url string, jsonData string) (net.Conn, error) {
+// Connect is a convenience function to issue a CONNECT request
+func Connect(address, url string, jsonData string) (net.Conn, error) {
 	c, err := dial(address)
 	if err != nil {
 		return nil, err
@@ -100,15 +100,18 @@ func HttpConnect(address, url string, jsonData string) (net.Conn, error) {
 	if resp != nil {
 		defer resp.Body.Close()
 	}
+
 	if err != nil {
 		log.Errorln(err)
 		return nil, err
 	}
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("connect response code: %v", resp.StatusCode)
-	} else {
-		return c, nil
 	}
+
+	return c, nil
+
 }
 
 func dial(addr string) (net.Conn, error) {
@@ -127,7 +130,7 @@ type connDialer struct {
 	c net.Conn
 }
 
-// Dial fakes a connect to an existing connection
-func (cd connDialer) Dial(network, addr string) (net.Conn, error) {
+// Dial (network , addr)fakes a connect to an existing connection
+func (cd connDialer) Dial(_, _ string) (net.Conn, error) {
 	return cd.c, nil
 }

@@ -18,7 +18,7 @@ import (
 )
 
 // Return connection IP and port
-func GetConnIp(c net.Conn) (string, string) {
+func GetConnIP(c net.Conn) (string, string) {
 	s := strings.Split(c.LocalAddr().String(), ":")
 	ip := s[0]
 	port := s[1]

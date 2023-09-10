@@ -136,7 +136,8 @@ func (d *Dataplane) SendToControlPlaneNewExportConnRequest(srcID, srcGwID, destI
 		clog.Error(err)
 		return rep, err
 	}
-	resp, err := httputils.HttpPost(address, j, d.Store.GetLocalHTTPClient())
+
+	resp, err := httputils.Post(address, j, d.Store.GetLocalHTTPClient())
 	if err := json.Unmarshal(resp, &rep); err != nil {
 		clog.Error("Unable to Unmarshal json NewConnParmaReply ", err)
 	}
@@ -341,7 +342,7 @@ func (d *Dataplane) mTLSConnectReq(svcID, svcIDDest, svcPolicy, mbgIP string) (s
 		return "", "", err
 	}
 	// Send connect
-	resp, err := httputils.HttpPost(address, j, d.Store.GetRemoteHTTPClient())
+	resp, err := httputils.Post(address, j, d.Store.GetRemoteHTTPClient())
 	if err != nil {
 		clog.Error(err)
 		return "", "", err
@@ -371,7 +372,8 @@ func (d *Dataplane) TCPConnectReq(svcID, svcIDDest, svcPolicy, mbgIP string) (ne
 		clog.Error(err)
 		return nil, err
 	}
-	c, resp := httputils.HttpConnect(mbgIP, url, string(jsonData))
+
+	c, resp := httputils.Connect(mbgIP, url, string(jsonData))
 	if resp == nil {
 		clog.Printf("Successfully Connected")
 		return c, nil
@@ -411,7 +413,8 @@ func (d *Dataplane) SendToControlPlaneNewImportConnRequest(srcIP, destIP, destID
 		clog.Error(err)
 		return rep, err
 	}
-	resp, err := httputils.HttpPost(address, j, d.Store.GetLocalHTTPClient())
+	resp, err := httputils.Post(address, j, d.Store.GetLocalHTTPClient())
+
 	if err := json.Unmarshal(resp, &rep); err != nil {
 		clog.Error("Unable to Unmarshal json NewConnParmaReply ", err)
 	}
@@ -462,7 +465,8 @@ func (d *Dataplane) SendToControlPlaneConnStatus(connID string, incomingBytes, o
 		clog.Error(err)
 		return err
 	}
-	_, err = httputils.HttpPost(address, j, d.Store.GetLocalHTTPClient())
+
+	_, err = httputils.Post(address, j, d.Store.GetLocalHTTPClient())
 
 	return err
 }
