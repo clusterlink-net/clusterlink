@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.ibm.com/mbg-agent/pkg/policyEngine/policytypes"
+	"github.ibm.com/mbg-agent/pkg/policyengine/policytypes"
 )
 
 // PDP is the main object to maintain a set of connectivity policies and decide

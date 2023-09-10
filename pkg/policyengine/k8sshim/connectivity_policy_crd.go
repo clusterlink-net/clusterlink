@@ -3,7 +3,7 @@ package k8sshim
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.ibm.com/mbg-agent/pkg/policyEngine/policytypes"
+	"github.ibm.com/mbg-agent/pkg/policyengine/policytypes"
 )
 
 const (

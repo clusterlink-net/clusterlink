@@ -63,11 +63,7 @@ func (cps *ConnectivityPolicy) Validate() error {
 	if len(cps.To) == 0 {
 		return fmt.Errorf("empty To field is not allowed")
 	}
-	if err := cps.To.validate(); err != nil {
-		return err
-	}
-
-	return nil
+	return cps.To.validate()
 }
 
 func (wsl WorkloadSetOrSelectorList) validate() error {

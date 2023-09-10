@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
-	"github.ibm.com/mbg-agent/pkg/policyEngine/k8sshim"
-	"github.ibm.com/mbg-agent/pkg/policyEngine/policytypes"
+	"github.ibm.com/mbg-agent/pkg/policyengine/k8sshim"
+	"github.ibm.com/mbg-agent/pkg/policyengine/policytypes"
 )
 
 //go:embed test_data/simple_privileged.yaml

@@ -8,8 +8,8 @@ import (
 
 	"github.ibm.com/mbg-agent/pkg/api"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
-	"github.ibm.com/mbg-agent/pkg/policyEngine"
-	"github.ibm.com/mbg-agent/pkg/policyEngine/policytypes"
+	"github.ibm.com/mbg-agent/pkg/policyengine"
+	"github.ibm.com/mbg-agent/pkg/policyengine/policytypes"
 	"github.ibm.com/mbg-agent/pkg/util/jsonapi"
 	"github.ibm.com/mbg-agent/pkg/util/rest"
 )
@@ -68,16 +68,16 @@ const (
 
 // SendACLPolicy sends an ACL request to the GW.
 func (c *Client) SendACLPolicy(serviceSrc string, serviceDst string, gwDest string, priority int, action event.Action, command int) error {
-	path := policyEngine.PolicyRoute + policyEngine.AclRoute
+	path := policyengine.PolicyRoute + policyengine.ACLRoute
 	switch command {
 	case Add:
-		path += policyEngine.AddRoute
+		path += policyengine.AddRoute
 	case Del:
-		path += policyEngine.DelRoute
+		path += policyengine.DelRoute
 	default:
 		return fmt.Errorf("unknown command")
 	}
-	jsonReq, err := json.Marshal(policyEngine.AclRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, MbgDest: gwDest, Priority: priority, Action: action})
+	jsonReq, err := json.Marshal(policyengine.ACLRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, MbgDest: gwDest, Priority: priority, Action: action})
 	if err != nil {
 		return err
 	}
@@ -88,12 +88,12 @@ func (c *Client) SendACLPolicy(serviceSrc string, serviceDst string, gwDest stri
 
 // SendAccessPolicy sends the policy engine a request to add, update (using add) or delete an access policy
 func (c *Client) SendAccessPolicy(policy api.Policy, command int) error {
-	path := policyEngine.PolicyRoute + policyEngine.AccessRoute
+	path := policyengine.PolicyRoute + policyengine.AccessRoute
 	switch command {
 	case Add:
-		path += policyEngine.AddRoute
+		path += policyengine.AddRoute
 	case Del:
-		path += policyEngine.DelRoute
+		path += policyengine.DelRoute
 	default:
 		return fmt.Errorf("unknown command")
 	}
@@ -103,17 +103,17 @@ func (c *Client) SendAccessPolicy(policy api.Policy, command int) error {
 }
 
 // SendLBPolicy sends an LB request to the GW.
-func (c *Client) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine.PolicyLoadBalancer, gwDest string, command int) error {
-	path := policyEngine.PolicyRoute + policyEngine.LbRoute
+func (c *Client) SendLBPolicy(serviceSrc, serviceDst string, policy policyengine.PolicyLoadBalancer, gwDest string, command int) error {
+	path := policyengine.PolicyRoute + policyengine.LbRoute
 	switch command {
 	case Add:
-		path += policyEngine.AddRoute
+		path += policyengine.AddRoute
 	case Del:
-		path += policyEngine.DelRoute
+		path += policyengine.DelRoute
 	default:
 		return fmt.Errorf("unknown command")
 	}
-	jsonReq, err := json.Marshal(policyEngine.LoadBalancerRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, Policy: policy, DefaultMbg: gwDest})
+	jsonReq, err := json.Marshal(policyengine.LoadBalancerRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, Policy: policy, DefaultMbg: gwDest})
 	if err != nil {
 		return err
 	}
@@ -122,32 +122,32 @@ func (c *Client) SendLBPolicy(serviceSrc, serviceDst string, policy policyEngine
 }
 
 // GetACLPolicies sends an ACL get request to the GW.
-func (c *Client) GetACLPolicies() (policyEngine.ACL, error) {
-	var rules policyEngine.ACL
-	path := policyEngine.PolicyRoute + policyEngine.AclRoute
+func (c *Client) GetACLPolicies() (policyengine.ACL, error) {
+	var rules policyengine.ACL
+	path := policyengine.PolicyRoute + policyengine.ACLRoute
 	resp, err := c.client.Get(path)
 	if err != nil {
-		return make(policyEngine.ACL), err
+		return make(policyengine.ACL), err
 	}
 	err = json.NewDecoder(bytes.NewBuffer(resp.Body)).Decode(&rules)
 	if err != nil {
 		fmt.Printf("Unable to decode response %v\n", err)
-		return make(policyEngine.ACL), err
+		return make(policyengine.ACL), err
 	}
 	return rules, nil
 }
 
 // GetLBPolicies sends an LB get request to the GW.
-func (c *Client) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadBalancer, error) {
-	var policies map[string]map[string]policyEngine.PolicyLoadBalancer
-	path := policyEngine.PolicyRoute + policyEngine.LbRoute
+func (c *Client) GetLBPolicies() (map[string]map[string]policyengine.PolicyLoadBalancer, error) {
+	var policies map[string]map[string]policyengine.PolicyLoadBalancer
+	path := policyengine.PolicyRoute + policyengine.LbRoute
 	resp, err := c.client.Get(path)
 	if err != nil {
-		return make(map[string]map[string]policyEngine.PolicyLoadBalancer), err
+		return make(map[string]map[string]policyengine.PolicyLoadBalancer), err
 	}
 
 	if err := json.Unmarshal(resp.Body, &policies); err != nil {
-		return make(map[string]map[string]policyEngine.PolicyLoadBalancer), err
+		return make(map[string]map[string]policyengine.PolicyLoadBalancer), err
 	}
 	return policies, nil
 }
@@ -155,7 +155,7 @@ func (c *Client) GetLBPolicies() (map[string]map[string]policyEngine.PolicyLoadB
 // GetAccessPolicies returns a slice of ConnectivityPolicies, that are currently used by the connectivity PDP
 func (c *Client) GetAccessPolicies() ([]policytypes.ConnectivityPolicy, error) {
 	var policies []policytypes.ConnectivityPolicy
-	path := policyEngine.PolicyRoute + policyEngine.AccessRoute
+	path := policyengine.PolicyRoute + policyengine.AccessRoute
 	resp, err := c.client.Get(path)
 	if err != nil {
 		return nil, err

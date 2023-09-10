@@ -1,4 +1,4 @@
-package policyEngine_test
+package policyengine_test
 
 import (
 	"bytes"
@@ -15,8 +15,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
-	"github.ibm.com/mbg-agent/pkg/policyEngine"
-	"github.ibm.com/mbg-agent/pkg/policyEngine/policytypes"
+	"github.ibm.com/mbg-agent/pkg/policyengine"
+	"github.ibm.com/mbg-agent/pkg/policyengine/policytypes"
 )
 
 const (
@@ -26,7 +26,7 @@ const (
 
 var (
 	selectAllSelector = metav1.LabelSelector{}
-	simpleSelector    = metav1.LabelSelector{MatchLabels: policytypes.WorkloadAttrs{policyEngine.ServiceNameLabel: svcName}}
+	simpleSelector    = metav1.LabelSelector{MatchLabels: policytypes.WorkloadAttrs{policyengine.ServiceNameLabel: svcName}}
 	simpleWorkloadSet = policytypes.WorkloadSetOrSelector{WorkloadSelector: &simpleSelector}
 	policy            = policytypes.ConnectivityPolicy{
 		Name:       "test-policy",
@@ -42,7 +42,7 @@ var (
 
 func TestMain(m *testing.M) {
 	router := chi.NewRouter()
-	policyEngine.StartPolicyDispatcher(router, event.Allow)
+	policyengine.StartPolicyDispatcher(router, event.Allow)
 
 	server = httptest.NewServer(router)
 	client = server.Client()
@@ -60,12 +60,12 @@ const (
 func TestAddAndGetConnectivityPolicy(t *testing.T) {
 	policyBuf, err := json.Marshal(policy)
 	require.Nil(t, err)
-	resp, err := client.Post(server.URL+policyEngine.AccessRoute+policyEngine.AddRoute, jsonEncoding, bytes.NewReader(policyBuf))
+	resp, err := client.Post(server.URL+policyengine.AccessRoute+policyengine.AddRoute, jsonEncoding, bytes.NewReader(policyBuf))
 	require.Nil(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-	resp, err = client.Get(server.URL + policyEngine.AccessRoute)
+	resp, err = client.Get(server.URL + policyengine.AccessRoute)
 	require.Nil(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
@@ -81,18 +81,18 @@ func TestAddAndGetConnectivityPolicy(t *testing.T) {
 func TestAddAndDeleteConnectivityPolicy(t *testing.T) {
 	policyBuf, err := json.Marshal(policy)
 	require.Nil(t, err)
-	resp, err := client.Post(server.URL+policyEngine.AccessRoute+policyEngine.AddRoute, jsonEncoding, bytes.NewReader(policyBuf))
+	resp, err := client.Post(server.URL+policyengine.AccessRoute+policyengine.AddRoute, jsonEncoding, bytes.NewReader(policyBuf))
 	require.Nil(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-	resp, err = client.Post(server.URL+policyEngine.AccessRoute+policyEngine.DelRoute, jsonEncoding, bytes.NewReader(policyBuf))
+	resp, err = client.Post(server.URL+policyengine.AccessRoute+policyengine.DelRoute, jsonEncoding, bytes.NewReader(policyBuf))
 	require.Nil(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	// deleting the same policy again should result in a not-found error
-	resp, err = client.Post(server.URL+policyEngine.AccessRoute+policyEngine.DelRoute, jsonEncoding, bytes.NewReader(policyBuf))
+	resp, err = client.Post(server.URL+policyengine.AccessRoute+policyengine.DelRoute, jsonEncoding, bytes.NewReader(policyBuf))
 	require.Nil(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusNotFound, resp.StatusCode)
@@ -102,13 +102,13 @@ func TestAddBadPolicy(t *testing.T) {
 	badPolicy := policytypes.ConnectivityPolicy{Name: "bad-policy"}
 	policyBuf, err := json.Marshal(badPolicy)
 	require.Nil(t, err)
-	resp, err := client.Post(server.URL+policyEngine.AccessRoute+policyEngine.AddRoute, jsonEncoding, bytes.NewReader(policyBuf))
+	resp, err := client.Post(server.URL+policyengine.AccessRoute+policyengine.AddRoute, jsonEncoding, bytes.NewReader(policyBuf))
 	require.Nil(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode)
 
 	notEvenAPolicy := []byte{'{'} // a malformed json
-	resp, err = client.Post(server.URL+policyEngine.AccessRoute+policyEngine.AddRoute, jsonEncoding, bytes.NewReader(notEvenAPolicy))
+	resp, err = client.Post(server.URL+policyengine.AccessRoute+policyengine.AddRoute, jsonEncoding, bytes.NewReader(notEvenAPolicy))
 	require.Nil(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -116,7 +116,7 @@ func TestAddBadPolicy(t *testing.T) {
 
 func TestDeleteMalformedPolicy(t *testing.T) {
 	notEvenAPolicy := []byte{'{'}
-	resp, err := client.Post(server.URL+policyEngine.AccessRoute+policyEngine.DelRoute, jsonEncoding, bytes.NewReader(notEvenAPolicy))
+	resp, err := client.Post(server.URL+policyengine.AccessRoute+policyengine.DelRoute, jsonEncoding, bytes.NewReader(notEvenAPolicy))
 	require.Nil(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -143,8 +143,8 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	)
 
 	simpleSelector2 := metav1.LabelSelector{MatchLabels: policytypes.WorkloadAttrs{
-		policyEngine.ServiceNameLabel: svcName,
-		policyEngine.MbgNameLabel:     mbg2}}
+		policyengine.ServiceNameLabel: svcName,
+		policyengine.MbgNameLabel:     mbg2}}
 	simpleWorkloadSet2 := policytypes.WorkloadSetOrSelector{WorkloadSelector: &simpleSelector2}
 	policy2 := policy
 	policy2.To = []policytypes.WorkloadSetOrSelector{simpleWorkloadSet2}
@@ -198,7 +198,7 @@ func removeRemoteSvc(t *testing.T, svc, mbg string) {
 func addPolicy(t *testing.T, policy policytypes.ConnectivityPolicy) {
 	policyBuf, err := json.Marshal(policy)
 	require.Nil(t, err)
-	resp, err := client.Post(server.URL+policyEngine.AccessRoute+policyEngine.AddRoute, jsonEncoding, bytes.NewReader(policyBuf))
+	resp, err := client.Post(server.URL+policyengine.AccessRoute+policyengine.AddRoute, jsonEncoding, bytes.NewReader(policyBuf))
 	require.Nil(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode)

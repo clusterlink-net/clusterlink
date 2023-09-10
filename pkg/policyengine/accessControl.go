@@ -2,7 +2,7 @@
 /* Package Policy contain all Policies and data structure
 /* related to Policy that can run in mbg
 /**********************************************************/
-package policyEngine
+package policyengine
 
 import (
 	"encoding/json"
@@ -16,7 +16,7 @@ import (
 
 type ACL map[string]rule
 
-type AclRule struct {
+type ACLRule struct {
 	ServiceSrc string
 	ServiceDst string
 	MbgDest    string
@@ -40,7 +40,7 @@ func (acl *AccessControl) Init() {
 }
 
 func (acl *AccessControl) AddRuleReq(w http.ResponseWriter, r *http.Request) {
-	var requestAttr AclRule
+	var requestAttr ACLRule
 	err := json.NewDecoder(r.Body).Decode(&requestAttr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -55,7 +55,7 @@ func (acl *AccessControl) AddRuleReq(w http.ResponseWriter, r *http.Request) {
 }
 
 func (acl *AccessControl) DelRuleReq(w http.ResponseWriter, r *http.Request) {
-	var requestAttr AclRule
+	var requestAttr ACLRule
 	err := json.NewDecoder(r.Body).Decode(&requestAttr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -69,7 +69,7 @@ func (acl *AccessControl) DelRuleReq(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (acl *AccessControl) GetRuleReq(w http.ResponseWriter, r *http.Request) {
+func (acl *AccessControl) GetRuleReq(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(acl.ACLRules); err != nil {

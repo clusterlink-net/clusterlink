@@ -12,9 +12,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
-	"github.ibm.com/mbg-agent/pkg/policyEngine/connectivitypdp"
-	"github.ibm.com/mbg-agent/pkg/policyEngine/k8sshim"
-	"github.ibm.com/mbg-agent/pkg/policyEngine/policytypes"
+	"github.ibm.com/mbg-agent/pkg/policyengine/connectivitypdp"
+	"github.ibm.com/mbg-agent/pkg/policyengine/k8sshim"
+	"github.ibm.com/mbg-agent/pkg/policyengine/policytypes"
 )
 
 const testDir = "test_data"
