@@ -81,7 +81,7 @@ func (lB *LoadBalancer) DeletePolicyReq(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (lB *LoadBalancer) GetPolicyReq(w http.ResponseWriter, r *http.Request) {
+func (lB *LoadBalancer) GetPolicyReq(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(lB.Policy); err != nil {
@@ -167,18 +167,18 @@ func (lB *LoadBalancer) RemoveDestService(serviceDst, mbg string) {
 }
 func (lB *LoadBalancer) updateState(serviceSrc, serviceDst string) {
 	if _, ok := lB.Policy[serviceDst][serviceSrc]; ok {
-		lB.ServiceStateMap[serviceDst][serviceSrc].totalConnections += 1
+		lB.ServiceStateMap[serviceDst][serviceSrc].totalConnections++
 	}
 	if _, ok := lB.Policy[event.Wildcard][serviceSrc]; ok && serviceDst == event.Wildcard {
-		lB.ServiceStateMap[event.Wildcard][serviceSrc].totalConnections += 1
+		lB.ServiceStateMap[event.Wildcard][serviceSrc].totalConnections++
 	}
-	lB.ServiceStateMap[serviceDst][event.Wildcard].totalConnections += 1 // always exist
+	lB.ServiceStateMap[serviceDst][event.Wildcard].totalConnections++ // always exist
 }
 
 /*********************  Policy functions ***************************************************/
 func (lB *LoadBalancer) LookupRandom(service string, mbgs []string) (string, error) {
 	index := rand.Intn(len(mbgs)) //nolint:gosec // G404: use of weak random is fine for load balancing
-	plog.Infof("LoadBalancer selects index(%d) - target MBG %s", index, mbgs[index])
+	plog.Infof("LoadBalancer selects index(%d) - target GW %s for service %s", index, mbgs[index], service)
 	return mbgs[index], nil
 }
 
@@ -209,7 +209,7 @@ func (lB *LoadBalancer) LookupWith(serviceSrc, serviceDst string, mbgs []string)
 	plog.Infof("LoadBalancer lookup for serviceSrc %s serviceDst %s with policy %s with %+v", serviceSrc, serviceDst, policy, mbgs)
 
 	if len(mbgs) == 0 {
-		return "", fmt.Errorf("No available target MBG")
+		return "", fmt.Errorf("no available target MBG")
 	}
 
 	switch policy {
@@ -239,20 +239,18 @@ func (lB *LoadBalancer) getDefaultMbg(serviceSrc, serviceDst string) string {
 	if _, ok := lB.Policy[serviceDst]; ok {
 		if _, ok := lB.Policy[serviceDst][serviceSrc]; ok {
 			return lB.ServiceStateMap[serviceDst][serviceSrc].defaultMbg
-		} else {
-			return lB.ServiceStateMap[serviceDst][event.Wildcard].defaultMbg
 		}
-	} else {
-		plog.Errorf("Lookup policy for destination service (%s) that doesn't exist", serviceDst)
-		return ""
+		return lB.ServiceStateMap[serviceDst][event.Wildcard].defaultMbg
 	}
+	plog.Errorf("Lookup policy for destination service (%s) that doesn't exist", serviceDst)
+	return ""
 }
 
 func (lB *LoadBalancer) GetTargetMbgs(service string) ([]string, error) {
 	mbgList := lB.ServiceMap[service]
 	if mbgList == nil {
 		plog.Errorf("Unable to find MBG for %s", service)
-		return []string{}, fmt.Errorf("No available target MBG")
+		return []string{}, fmt.Errorf("no available target MBG")
 	}
 	return *mbgList, nil
 }

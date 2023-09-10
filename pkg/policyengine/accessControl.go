@@ -69,7 +69,7 @@ func (acl *AccessControl) DelRuleReq(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (acl *AccessControl) GetRuleReq(w http.ResponseWriter, r *http.Request) {
+func (acl *AccessControl) GetRuleReq(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(acl.ACLRules); err != nil {
