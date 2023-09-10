@@ -20,7 +20,7 @@ import (
 )
 
 type Store struct {
-	Id               string
+	ID               string
 	CertAuthority    string
 	Cert             string
 	Key              string
@@ -43,7 +43,7 @@ const (
 // Set store parameters
 func NewStore(s *Store, controlplane string) *Store {
 	sObj := &Store{
-		Id:               s.Id,
+		ID:               s.ID,
 		CertAuthority:    s.CertAuthority,
 		Cert:             s.Cert,
 		Key:              s.Key,
@@ -60,8 +60,8 @@ func NewStore(s *Store, controlplane string) *Store {
 }
 
 // Return data-plane id
-func (s *Store) GetMyId() string {
-	return s.Id
+func (s *Store) GetMyID() string {
+	return s.ID
 }
 
 // Return data-plane certificate
@@ -140,23 +140,23 @@ func (s *Store) WaitServiceStopCh(connectionID, servicePort string) {
 func (s *Store) GetProtocolPrefix() string {
 	if s.Dataplane == "mtls" {
 		return "https://"
-	} else {
-		return "http://"
 	}
+
+	return "http://"
 }
 
-// Local Http Client contains a shorter timeout delays for connection and used for local connection inside the cluster
-func (s *Store) GetLocalHttpClient() http.Client {
-	return s.getHttpClient(time.Second * 3)
+// Local HTTP Client contains a shorter timeout delays for connection and used for local connection inside the cluster
+func (s *Store) GetLocalHTTPClient() http.Client {
+	return s.getHTTPClient(time.Second * 3)
 }
 
-// Remote Http Client contains a long timeout delays for connection and is used for connection cross clusters
-func (s *Store) GetRemoteHttpClient() http.Client {
-	return s.getHttpClient(time.Minute * 3)
+// Remote HTTP Client contains a long timeout delays for connection and is used for connection cross clusters
+func (s *Store) GetRemoteHTTPClient() http.Client {
+	return s.getHTTPClient(time.Minute * 3)
 }
 
 // Create HTTP client for mTLS or TCP connection
-func (s *Store) getHttpClient(timeout time.Duration) http.Client {
+func (s *Store) getHTTPClient(timeout time.Duration) http.Client {
 	if s.Dataplane == "mtls" {
 		cert, err := os.ReadFile(s.CertAuthority)
 		if err != nil {
@@ -173,7 +173,7 @@ func (s *Store) getHttpClient(timeout time.Duration) http.Client {
 		tlsConfig := netutils.ConfigureSafeTLSConfig()
 		tlsConfig.RootCAs = caCertPool
 		tlsConfig.Certificates = []tls.Certificate{certificate}
-		tlsConfig.ServerName = s.Id
+		tlsConfig.ServerName = s.ID
 
 		client := http.Client{
 			Timeout: timeout,
@@ -182,9 +182,9 @@ func (s *Store) getHttpClient(timeout time.Duration) http.Client {
 			},
 		}
 		return client
-	} else {
-		return http.Client{}
 	}
+
+	return http.Client{}
 }
 
 /** Database **/

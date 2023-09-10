@@ -37,14 +37,14 @@ type MTLSForwarder struct {
 }
 
 const (
-	ConnectionUrl = "/connectionData/"
+	ConnectionURL = "/connectionData/"
 )
 
 type connDialer struct {
 	c net.Conn
 }
 
-func (cd connDialer) Dial(network, addr string) (net.Conn, error) {
+func (cd connDialer) Dial(_, _ string) (net.Conn, error) {
 	return cd.c, nil
 }
 
@@ -52,26 +52,26 @@ func (cd connDialer) Dial(network, addr string) (net.Conn, error) {
 // targetIPPort in the format of <ip:port>
 // connect is set to true on a client side
 func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, certificate, key, serverName string, endpointConn net.Conn) (int, int, time.Time, time.Time, error) {
-	clog.Infof("Starting to initialize MTLS Forwarder for MBG Dataplane at %s", ConnectionUrl+m.Name)
+	clog.Infof("Starting to initialize MTLS Forwarder for MBG Dataplane at %s", ConnectionURL+m.Name)
 	m.startTstamp = time.Now()
-	connectMbg := "https://" + targetIPPort + ConnectionUrl + name
+	connectMbg := "https://" + targetIPPort + ConnectionURL + name
 	m.connectionToken = name
 	m.Connection = endpointConn
 	m.Name = name
 
 	// Create TCP connection with TLS handshake
-	TLSClientConfig := m.CreateTlsConfig(certca, certificate, key, serverName)
-	MTLS_conn, err := tls.Dial("tcp", targetIPPort, TLSClientConfig)
+	TLSClientConfig := m.CreateTLSConfig(certca, certificate, key, serverName)
+	MTLSConn, err := tls.Dial("tcp", targetIPPort, TLSClientConfig)
 	if err != nil {
 		clog.Infof("Error in connecting.. %+v", err)
 		m.CloseConnection()
 		return 0, 0, m.startTstamp, time.Now(), err
 	}
 
-	TlsConnectClient := &http.Client{
+	TLSConnectClient := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: TLSClientConfig,
-			DialTLS:         connDialer{MTLS_conn}.Dial,
+			DialTLS:         connDialer{MTLSConn}.Dial,
 		},
 	}
 	req, err := http.NewRequest(http.MethodGet, connectMbg, nil)
@@ -80,19 +80,19 @@ func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, cer
 		m.CloseConnection()
 		return 0, 0, m.startTstamp, time.Now(), err
 	}
-	resp, err := TlsConnectClient.Do(req)
+	resp, err := TLSConnectClient.Do(req)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		clog.Infof("Error in Tls Connection %v", err)
+		clog.Infof("Error in TLS Connection %v", err)
 		m.CloseConnection()
 		return 0, 0, m.startTstamp, time.Now(), err
 	}
 
-	m.MTLSConnection = MTLS_conn
+	m.MTLSConnection = MTLSConn
 	clog.Infof("mtlS Connection Established Resp:%s(%d) to Target: %s", resp.Status, resp.StatusCode, connectMbg)
-	clog.Infof("Starting mTLS Forwarder client for MBG Dataplane at %s  to target %s with certs(%s,%s)", ConnectionUrl+m.Name, targetIPPort, certificate, key)
+	clog.Infof("Starting mTLS Forwarder client for MBG Dataplane at %s  to target %s with certs(%s,%s)", ConnectionURL+m.Name, targetIPPort, certificate, key)
 
 	go func() { // From forwarder to other MBG
 		err = m.MTLSDispatch(event.Outgoing)
@@ -107,14 +107,14 @@ func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, cer
 
 // Start mtls Forwarder server on a specific mtls target
 // Register handling function (for hijack the connection) and start dispatch to destination
-func (m *MTLSForwarder) StartMTLSForwarderServer(targetIPPort, name, certca, certificate, key string, endpointConn net.Conn) (int, int, time.Time, time.Time, error) {
-	clog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at %s", ConnectionUrl+m.Name)
+func (m *MTLSForwarder) StartMTLSForwarderServer(targetIPPort, name, certificate, key string, endpointConn net.Conn) (int, int, time.Time, time.Time, error) {
+	clog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at %s", ConnectionURL+m.Name)
 	m.startTstamp = time.Now()
 	// Register function for handling the dataplane traffic
-	clog.Infof("Register new handle func to address =%s", ConnectionUrl+name)
-	m.ChiRouter.Get(ConnectionUrl+name, m.ConnectHandler)
+	clog.Infof("Register new handle func to address =%s", ConnectionURL+name)
+	m.ChiRouter.Get(ConnectionURL+name, m.ConnectHandler)
 
-	connectMbg := "https://" + targetIPPort + ConnectionUrl + name
+	connectMbg := "https://" + targetIPPort + ConnectionURL + name
 
 	clog.Infof("Connect MBG Target =%s", connectMbg)
 	m.Connection = endpointConn
@@ -201,9 +201,9 @@ func (m *MTLSForwarder) MTLSDispatch(direction event.Direction) error {
 	m.CloseConnection()
 	if err == io.EOF {
 		return nil
-	} else {
-		return err
 	}
+
+	return err
 }
 
 // Dispatch from client to server side
@@ -249,12 +249,12 @@ func (m *MTLSForwarder) dispatch(direction event.Direction) error {
 	m.CloseConnection()
 	if err == io.EOF {
 		return nil
-	} else {
-		return err
 	}
+
+	return err
 }
 
-// Close all net connections
+// CloseConnection close all net connections
 func (m *MTLSForwarder) CloseConnection() {
 	if m.Connection != nil {
 		m.Connection.Close()
@@ -265,7 +265,7 @@ func (m *MTLSForwarder) CloseConnection() {
 }
 
 // Get certca, certificate, key  and create tls config
-func (m *MTLSForwarder) CreateTlsConfig(certca, certificate, key, serverName string) *tls.Config {
+func (m *MTLSForwarder) CreateTLSConfig(certca, certificate, key, serverName string) *tls.Config {
 	// Read the key pair to create certificate
 	cert, err := tls.LoadX509KeyPair(certificate, key)
 	if err != nil {

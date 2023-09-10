@@ -13,7 +13,7 @@ import (
 	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
 )
 
-var (
+const (
 	maxDataBufferSize = 64 * 1024
 )
 
@@ -47,7 +47,7 @@ func (c *TCPForwarder) SetClientConnection(client net.Conn) {
 }
 
 // Run client object
-func (c *TCPForwarder) RunTcpForwarder(direction eventManager.Direction) (int, int, time.Time, time.Time, error) {
+func (c *TCPForwarder) RunTCPForwarder(direction eventManager.Direction) (int, int, time.Time, time.Time, error) {
 	c.startTstamp = time.Now()
 	clog.Infof("*** Start TCP Forwarder ***")
 	clog.Infof("[%v] Start listen: %v  send to : %v \n", c.Name, c.Listener, c.Target)
@@ -157,13 +157,13 @@ func (c *TCPForwarder) clientToServer(wg *sync.WaitGroup, cl, server net.Conn, d
 			break
 		}
 	}
-	c.CloseConnection()
 
+	c.CloseConnection()
 	if err == io.EOF {
 		return nil
-	} else {
-		return err
 	}
+
+	return err
 }
 
 // Copy data from server to client
@@ -196,15 +196,16 @@ func (c *TCPForwarder) serverToClient(wg *sync.WaitGroup, cl, server net.Conn, d
 			break
 		}
 	}
+
 	c.CloseConnection()
 	if err == io.EOF {
 		return nil
-	} else {
-		return err
 	}
+
+	return err
 }
 
-// Close connections fo all net.Conn
+// CloseConnection close the connections to all net.Conn
 func (c *TCPForwarder) CloseConnection() {
 	if c.SeverConn != nil {
 		c.SeverConn.Close()
@@ -212,10 +213,9 @@ func (c *TCPForwarder) CloseConnection() {
 	if c.ClientConn != nil {
 		c.ClientConn.Close()
 	}
-
 }
 
-// Trigger close connection signal
+// CloseConnectionSignal - trigger close connection signal
 func (c *TCPForwarder) CloseConnectionSignal() {
 	c.CloseConn <- true
 }

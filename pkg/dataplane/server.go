@@ -109,7 +109,7 @@ func (d *Dataplane) routes() {
 }
 
 // Welcome message to data-plane
-func (d *Dataplane) welcome(w http.ResponseWriter, r *http.Request) {
+func (d *Dataplane) welcome(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte("Welcome to dataplane agent"))
 	clog.Info("Welcome to dataplane agent")
 	if err != nil {
@@ -127,7 +127,7 @@ func (d *Dataplane) controlPlaneForwardingHandler(w http.ResponseWriter, r *http
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	client := d.Store.GetLocalHttpClient()
+	client := d.Store.GetLocalHTTPClient()
 	// Send the forwardingURL request
 	resp, err := client.Do(forwardingReq)
 	forwardingReq.Close = true
