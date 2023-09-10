@@ -36,7 +36,7 @@ func (m *Metrics) init(router *chi.Mux) {
 	router.Mount("/metrics", routes)
 }
 
-func (m *Metrics) GetConnectionMetrics(w http.ResponseWriter, r *http.Request) {
+func (m *Metrics) GetConnectionMetrics(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(m.ConnectionFlow); err != nil {
@@ -64,7 +64,6 @@ func (m *Metrics) aggregateMetrics(connectionStatus event.ConnectionStatusAttr) 
 		flow.LastTstamp = connectionStatus.LastTstamp
 		flow.State = connectionStatus.State
 		// m.ConnectionFlow[connectionStatus.ConnectionId] = flow
-		return
 	} else {
 		m.ConnectionFlow[connectionStatus.ConnectionId] = &connectionStatus
 	}
