@@ -107,7 +107,7 @@ func (m *MTLSForwarder) StartMTLSForwarderClient(targetIPPort, name, certca, cer
 
 // Start mtls Forwarder server on a specific mtls target
 // Register handling function (for hijack the connection) and start dispatch to destination
-func (m *MTLSForwarder) StartMTLSForwarderServer(targetIPPort, name, certca, certificate, key string, endpointConn net.Conn) (int, int, time.Time, time.Time, error) {
+func (m *MTLSForwarder) StartMTLSForwarderServer(targetIPPort, name, certificate, key string, endpointConn net.Conn) (int, int, time.Time, time.Time, error) {
 	clog.Infof("Starting to initialize mTLS Forwarder for MBG Dataplane at %s", ConnectionUrl+m.Name)
 	m.startTstamp = time.Now()
 	// Register function for handling the dataplane traffic
