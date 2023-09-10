@@ -76,11 +76,15 @@ clean-tests:
 	kind delete cluster --name=mbg1
 	kind delete cluster --name=mbg2
 
-tests-e2e: clean-tests 	docker-build 
-	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/...
 #------------------------------------------------------
 # Run Targets
 #------------------------------------------------------
+tests-e2e: clean-tests 	docker-build 
+	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/connectivity/...
+
+tests-iperf3: clean-tests 	docker-build 
+	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/iperf3/...
+
 run-gwctl:
 	@./bin/gwctl
 

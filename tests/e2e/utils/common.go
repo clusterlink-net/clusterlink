@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -26,43 +25,34 @@ const (
 	gw2key  = "mbg2.key"
 	gw2Name = "mbg2"
 
-	caCrt         = "ca.crt"
-	cPortUint     = uint16(30443)
-	cPort         = "30443"
-	cPortLocal    = "443"
-	kindDestPort  = "30001"
-	curlClient    = "curl-client"
-	pingerService = "pinger-server"
-	pingerPort    = uint16(3000)
+	caCrt       = "ca.crt"
+	ControlPort = uint16(30443)
+	cPortLocal  = "443"
+	pingerPort  = uint16(3000)
 )
 
 var (
-	mtlsFolder = ProjDir + "/e2e/utils/mtls/"
-	manifests  = ProjDir + "/e2e/utils/manifests/"
+	mtlsFolder = ProjDir + "/tests/e2e/utils/testdata/mtls/"
+	manifests  = ProjDir + "/tests/e2e/utils/testdata/manifests/"
 )
 
 // ProjDir is the current directory of the project
-var ProjDir string = getProjFolder()
+var ProjDir = getProjFolder()
 
 func getProjFolder() string {
 	_, filename, _, _ := runtime.Caller(1)
-	return path.Dir(path.Dir(path.Dir(filename)))
+	return path.Dir(path.Dir(path.Dir(path.Dir(filename))))
 }
 
 // StartClusterSetup starts a two cluster setup
 func StartClusterSetup() error {
-	err := StartClusterLink(gw1Name, cPortLocal, cPort, manifests)
+	err := StartClusterLink(gw1Name, cPortLocal, manifests, ControlPort)
 	if err != nil {
 		return err
 	}
 
-	err = StartClusterLink(gw2Name, cPortLocal, cPort, manifests)
+	return StartClusterLink(gw2Name, cPortLocal, manifests, ControlPort)
 
-	if err != nil {
-		return err
-	}
-
-	return startTestPods()
 }
 
 // GetClient returns a gwctl client given a cluster name
@@ -78,7 +68,7 @@ func GetClient(name string) (*client.Client, error) {
 		return nil, err
 	}
 
-	gwctl := client.New(gwIP, cPortUint, parsedCertData.ClientConfig(name))
+	gwctl := client.New(gwIP, ControlPort, parsedCertData.ClientConfig(name))
 	return gwctl, nil
 }
 
@@ -90,25 +80,6 @@ func CleanUp() error {
 	}
 
 	return DeleteCluster(gw2Name)
-}
-
-func startTestPods() error {
-	err := LaunchApp(gw1Name, curlClient, "curlimages/curl", manifests+curlClient+".yaml")
-	if err != nil {
-		return err
-	}
-
-	err = LaunchApp(gw2Name, pingerService, "subfuzion/pinger", manifests+pingerService+".yaml")
-	if err != nil {
-		return err
-	}
-
-	err = CreateK8sService(pingerService, strconv.Itoa(int(pingerPort)), kindDestPort)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // GetPolicyFromFile returns a policy json object from the file

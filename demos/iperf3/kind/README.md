@@ -1,5 +1,5 @@
 # <ins>Scenario with iPerf3 Connectivity between 2 clusters<ins>
-In this test we check iPerf3 connectivity between different kind cluster using the MBG components.  
+In this test we check iPerf3 connectivity between different Kind cluster using the MBG components.  
 This setup use two Kind clusters- 
 1) Cluster 1 - contains the gateway (Control-plane/Data-plane) and iPerf3 client.
 2) Cluster 2 - contains the gateway (Control-plane/Data-plane) and iPerf3 server.
@@ -23,9 +23,9 @@ Install local control (gwctl) for the gateway:
     
     sudo make install
 
-### <ins> Step 2: Create kind clusters with the gateway <ins>
-In this step, we build the kind cluster with the gateway image.  
-Build the first kind cluster with gateway, and iperf3-client:
+### <ins> Step 2: Create Kind clusters with the gateway <ins>
+In this step, we build the Kind cluster with the gateway image.  
+Build the first Kind cluster with gateway, and iperf3-client:
 1) Create a Kind cluster with the gateway image:
 
         kind create cluster --name=cluster1
@@ -43,7 +43,7 @@ Build the first kind cluster with gateway, and iperf3-client:
         kind load docker-image mlabbe/iperf3 --name=cluster1
         kubectl create -f $PROJECT_FOLDER/demos/iperf3/manifests/iperf3-client/iperf3-client.yaml
 
-Build the second kind cluster with gateway, and iperf3-client:
+Build the second Kind cluster with gateway, and iperf3-client:
 1) Create a Kind cluster with the gateway image:
 
         kind create cluster --name=cluster2
@@ -92,7 +92,7 @@ Initialize gwctl CLI:
 
     gwctl init --id "gwctl1" --gwIP $MBG1IP --gwPort 30443 --dataplane mtls --certca $PROJECT_FOLDER/demos/utils/mtls/ca.crt --cert $PROJECT_FOLDER/demos/utils//mtls/mbg1.crt --key $PROJECT_FOLDER/demos/utils/mtls/mbg1.key
 
-Note : If you are using macOS to run the kind cluster, instead of running gwctl in the macOS, it's better to run it within the individual kind cluster in the following way. The subsequent gwctl commands need to be called from the respective KIND cluster.
+Note : If you are using macOS to run the Kind cluster, instead of running gwctl in the macOS, it's better to run it within the individual Kind cluster in the following way. The subsequent gwctl commands need to be called from the respective KIND cluster.
 
     kubectl exec -i $MBG1_CP -- ./gwctl init --id "gwctl1" --gwIP $MBG1IP --gwPort 30443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key
 Start the Gateway in Cluster 2:
@@ -105,7 +105,7 @@ Initialize gwctl CLI:
 
     gwctl init --id gwctl2 --gwIP $MBG2IP --gwPort 30443 --dataplane mtls --certca $PROJECT_FOLDER/demos/utils/mtls/ca.crt --cert $PROJECT_FOLDER/demos/utils/mtls/mbg2.crt --key $PROJECT_FOLDER/demos/utils/mtls/mbg2.key
 
-When running kind cluster on macOS run instead the following: 
+When running Kind cluster on macOS run instead the following: 
 
     kubectl exec -i $MBG2_CP -- ./gwctl init --id "gwctl2" --gwIP $MBG2IP --gwPort 30443 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key
 
@@ -117,7 +117,7 @@ In this step, we add a peer for each gateway using the gwctl:
     gwctl create peer --myid gwctl1 --name mbg2 --host $MBG2IP --port 30443
     gwctl create peer --myid gwctl2 --name mbg1 --host $MBG1IP --port 30443
 
-When running kind cluster on macOS run instead the following: 
+When running Kind cluster on macOS run instead the following: 
     
     kubectl config use-context kind-cluster1
     kubectl exec -i $MBG1_CP -- ./gwctl create peer --myid gwctl1 --name mbg2 --host $MBG2IP --port 30443
@@ -132,18 +132,19 @@ Export the iperf3-server service to the Cluster 2 gateway:
 
     gwctl create export --myid gwctl2 --name iperf3-server --host iperf3-server --port 5000
 
-When running kind cluster on macOS run instead the following: 
+When running Kind cluster on macOS run instead the following: 
 
     kubectl exec -i $MBG2_CP -- ./gwctl create export --myid gwctl2 --name iperf3-server --host iperf3-server --port 5000
 
 Note: iperf3-client doesnt need to be added since it is not exported.
+
 ### <ins> Step 6: import iperf3 server service from Cluster 2 <ins>
 In this step, we import the iperf3-server service from Cluster 2 gateway to Cluster 1 gateway
 First, we specify which service we want to import and specify the local k8s endpoint (host:port) that will create for this service:
 
     gwctl create import --myid gwctl1 --name iperf3-server --host iperf3-server --port 5000
 
-When running kind cluster on macOS run instead the following:
+When running Kind cluster on macOS run instead the following:
 
     kubectl config use-context kind-cluster1
     kubectl exec -i $MBG1_CP -- ./gwctl create import --myid gwctl1 --name iperf3-server --host iperf3-server --port 5000
@@ -152,7 +153,7 @@ Second, we specify the peer we want to import the service:
 
     gwctl create binding --myid gwctl1 --import iperf3-server --peer mbg2
 
-When running kind cluster on macOS run instead the following:
+When running Kind cluster on macOS run instead the following:
  
     kubectl config use-context kind-cluster1
     kubectl exec -i $MBG1_CP -- ./gwctl create binding --myid gwctl1 --import iperf3-server --peer mbg2

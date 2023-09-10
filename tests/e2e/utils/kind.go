@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -130,7 +131,11 @@ func UseKindCluster(name string) error {
 }
 
 func createCluster(name string) (string, error) {
-	err := runCmd("kind create cluster --name=" + name)
+	err := DeleteCluster(name)
+	if err != nil {
+		return "", err
+	}
+	err = runCmd("kind create cluster --name=" + name)
 	if err != nil {
 		return "", err
 	}
@@ -150,7 +155,7 @@ func DeleteCluster(name string) error {
 }
 
 // StartClusterLink creates a cluster, and launches clusterlink
-func StartClusterLink(name, cPortLocal, cPort, manifests string) error {
+func StartClusterLink(name, cPortLocal, manifests string, cPort uint16) error {
 	certs := "./mtls"
 	clusterIP, err := createCluster(name)
 	if err != nil {
@@ -184,13 +189,14 @@ func StartClusterLink(name, cPortLocal, cPort, manifests string) error {
 	}
 
 	dpPod, _ := GetPodNameIP("dataplane")
-	err = runCmd("kubectl create service nodeport dataplane --tcp=" + cPortLocal + ":" + cPortLocal + " --node-port=" + cPort)
+	cPortStr := strconv.Itoa(int(cPort))
+	err = runCmd("kubectl create service nodeport dataplane --tcp=" + cPortLocal + ":" + cPortLocal + " --node-port=" + cPortStr)
 	if err != nil {
 		return err
 	}
 
 	startcmd := gwPod + " -- ./controlplane start --id " + name + " --ip " + clusterIP +
-		" --cport " + cPort + " --cportLocal " + cPortLocal + " --certca " + certs + "/ca.crt --cert " +
+		" --cport " + cPortStr + " --cportLocal " + cPortLocal + " --certca " + certs + "/ca.crt --cert " +
 		certs + "/" + name + ".crt --key " + certs + "/" + name + ".key"
 	err = runCmdB("kubectl exec -i " + startcmd)
 	if err != nil {

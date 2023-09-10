@@ -1,56 +1,55 @@
-//go:build e2e
-// +build e2e
-
-package connectivity
+// ###############################################################
+// Name: Simple iperf3  test
+// Desc: create 2 kind clusters :
+// 1) MBG and iperf3 client
+// 2) MBG and iperf3 server
+// ##############################################################
+package iperf3_test
 
 import (
+	"log"
 	"strconv"
-	"strings"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.ibm.com/mbg-agent/pkg/api"
 	"github.ibm.com/mbg-agent/pkg/client"
+	"github.ibm.com/mbg-agent/pkg/utils/logutils"
 	"github.ibm.com/mbg-agent/tests/e2e/utils"
 )
 
 const (
-	gw1Name       = "mbg1"
-	gw2Name       = "mbg2"
-	curlClient    = "curl-client"
-	pingerService = "pinger-server"
-	pingerPort    = uint16(3000)
-	kindDestPort  = "30001"
+	gw1Name        = "mbg1"
+	gw2Name        = "mbg2"
+	srcSvc         = "iperf3-client"
+	destSvc        = "iperf3-server"
+	destPort       = uint16(5000)
+	kindDirectPort = "30001"
 )
 
 var (
 	allowAllPolicyFile = utils.ProjDir + "/tests/e2e/utils/testdata/policy/allowAll.json"
-	manifests          = utils.ProjDir + "/tests/e2e/utils/testdata/manifests/"
 	gwctl1             *client.Client
 	gwctl2             *client.Client
 )
 
-func TestConnectivity(t *testing.T) {
+// TestIperf3 check e2e iperf3 test
+func TestIperf3(t *testing.T) {
+	logutils.SetLog("info", false, "")
 	t.Run("Starting Cluster Setup", func(t *testing.T) {
 		err := utils.StartClusterSetup()
 		if err != nil {
 			t.Fatalf("Failed to setup cluster")
 		}
-		err = utils.LaunchApp(gw1Name, curlClient, "curlimages/curl", manifests+curlClient+".yaml")
+		err = utils.LaunchApp(gw1Name, srcSvc, "mlabbe/iperf3", utils.ProjDir+"/tests/e2e/utils/testdata/manifests/iperf3/iperf3-client.yaml")
 		if err != nil {
-			t.Fatalf("Failed to LaunchApp  curlimages/curl")
+			t.Fatalf("Failed to LaunchApp iperf3 client mlabbe/iperf3")
 		}
 
-		err = utils.LaunchApp(gw2Name, pingerService, "subfuzion/pinger", manifests+pingerService+".yaml")
+		err = utils.LaunchApp(gw2Name, destSvc, "mlabbe/iperf3", utils.ProjDir+"/tests/e2e/utils/testdata/manifests/iperf3/iperf3-server.yaml")
 		if err != nil {
-			t.Fatalf("Failed to LaunchApp  subfuzion/pinger")
-		}
-
-		err = utils.CreateK8sService(pingerService, strconv.Itoa(int(pingerPort)), kindDestPort)
-		if err != nil {
-			t.Fatalf("Failed to CreateK8sService")
+			t.Fatalf("Failed to LaunchApp iperf3 server mlabbe/iperf3")
 		}
 
 		gwctl1, err = utils.GetClient(gw1Name)
@@ -81,38 +80,41 @@ func TestConnectivity(t *testing.T) {
 		require.NotEmpty(t, peers)
 	})
 	t.Run("Testing Export service", func(t *testing.T) {
-		_, destSvcIP := utils.GetPodNameIP(pingerService)
-		err := gwctl2.Exports.Create(&api.Export{Name: pingerService, Spec: api.ExportSpec{Service: api.Endpoint{Host: destSvcIP, Port: pingerPort}}})
+		err := gwctl2.Exports.Create(&api.Export{Name: destSvc, Spec: api.ExportSpec{Service: api.Endpoint{Host: destSvc, Port: destPort}}})
 		require.NoError(t, err)
 	})
 	t.Run("Testing Import service", func(t *testing.T) {
-		err := gwctl1.Imports.Create(&api.Import{Name: pingerService, Spec: api.ImportSpec{Service: api.Endpoint{Host: pingerService, Port: pingerPort}}})
+		err := gwctl1.Imports.Create(&api.Import{Name: destSvc, Spec: api.ImportSpec{Service: api.Endpoint{Host: destSvc, Port: destPort}}})
 		require.NoError(t, err)
-		err = gwctl1.Bindings.Create(&api.Binding{Spec: api.BindingSpec{Import: pingerService, Peer: gw2Name}})
+		err = gwctl1.Bindings.Create(&api.Binding{Spec: api.BindingSpec{Import: destSvc, Peer: gw2Name}})
 		require.NoError(t, err)
-		imp, err := gwctl1.Imports.Get(pingerService)
+		imp, err := gwctl1.Imports.Get(destSvc)
 		require.NoError(t, err)
 		impSvc, _ := imp.(*api.Import)
-		assert.Equal(t, impSvc.Name, pingerService)
+		assert.Equal(t, impSvc.Name, destSvc)
 	})
-	t.Run("Testing Service Connectivity", func(t *testing.T) {
+	t.Run("Testing policy", func(t *testing.T) {
 		policy, err := utils.GetPolicyFromFile(allowAllPolicyFile)
 		require.NoError(t, err)
 		err = gwctl1.SendAccessPolicy(policy, client.Add)
 		require.NoError(t, err)
 		err = gwctl2.SendAccessPolicy(policy, client.Add)
 		require.NoError(t, err)
-
-		err = utils.UseKindCluster(gw1Name)
-		require.NoError(t, err)
-		curlClient, _ := utils.GetPodNameIP(curlClient)
-		output, err := utils.GetOutput("kubectl exec -i " + curlClient + " -- curl -s http://pinger-server:3000/ping")
-		require.NoError(t, err)
-		log.Printf("Got %s", output)
-		expected := strings.Split(output, " ")
-		assert.Equal(t, "pong", strings.TrimSuffix(expected[1], "\n"))
 	})
-
+	t.Run("Testing Service Connectivity", func(t *testing.T) {
+		mbg2Ip, _ := utils.GetKindIP(gw2Name)
+		err := utils.UseKindCluster(gw1Name)
+		require.NoError(t, err)
+		iperf3Pod, _ := utils.GetPodNameIP(srcSvc)
+		log.Println("Direct test")
+		output, err := utils.GetOutput("kubectl exec -i " + iperf3Pod + " -- iperf3 -c " + mbg2Ip + " -p " + kindDirectPort)
+		require.NoError(t, err)
+		log.Printf("%s", output)
+		log.Println("Test using the GWs")
+		output, err = utils.GetOutput("kubectl exec -i " + iperf3Pod + " -- iperf3 -c " + destSvc + " -p " + strconv.Itoa(int(destPort)))
+		require.NoError(t, err)
+		log.Printf("%s", output)
+	})
 	err := utils.CleanUp()
 	require.NoError(t, err)
 }
