@@ -72,7 +72,7 @@ if __name__ == "__main__":
     folSv=f"{proj_dir}/demos/iperf3/manifests/iperf3-server"
 
     #files
-    allowAllPolicy=f"{proj_dir}/pkg/policyEngine/policytypes/examples/allowAll.json"
+    allowAllPolicy=f"{proj_dir}/pkg/policyengine/policytypes/examples/allowAll.json"
     
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)

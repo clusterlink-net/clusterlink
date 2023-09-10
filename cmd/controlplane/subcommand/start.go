@@ -15,7 +15,7 @@ import (
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
 	metrics "github.ibm.com/mbg-agent/pkg/metrics"
-	"github.ibm.com/mbg-agent/pkg/policyEngine"
+	"github.ibm.com/mbg-agent/pkg/policyengine"
 	"github.ibm.com/mbg-agent/pkg/utils/logutils"
 	"github.ibm.com/mbg-agent/pkg/utils/netutils"
 )
@@ -45,7 +45,7 @@ func StartCmd() *cobra.Command {
 			dataplane, _ := cmd.Flags().GetString("dataplane")
 			startPolicyEngine, _ := cmd.Flags().GetBool("startPolicyEngine")
 			observe, _ := cmd.Flags().GetBool("observe")
-			policyEngineTarget, _ := cmd.Flags().GetString("policyEngineIp")
+			policyengineTarget, _ := cmd.Flags().GetString("policyengineIp")
 			zeroTrust, _ := cmd.Flags().GetBool("zeroTrust")
 			restore, _ := cmd.Flags().GetBool("restore")
 			logFile, _ := cmd.Flags().GetBool("logFile")
@@ -53,7 +53,7 @@ func StartCmd() *cobra.Command {
 			rtenv, _ := cmd.Flags().GetString("rtenv")
 			profilePort, _ := cmd.Flags().GetInt("profilePort")
 
- 		        if ip == "" || id == "" || cport == "" {
+			if ip == "" || id == "" || cport == "" {
 				fmt.Println("Error: please insert all flag arguments for Mbg start command")
 				os.Exit(1)
 			}
@@ -66,8 +66,8 @@ func StartCmd() *cobra.Command {
 				}()
 			}
 			if restore {
-				if !startPolicyEngine && policyEngineTarget == "" {
-					fmt.Println("Error: Please specify policyEngineTarget")
+				if !startPolicyEngine && policyengineTarget == "" {
+					fmt.Println("Error: Please specify policyengineTarget")
 					os.Exit(1)
 				}
 				restoreMbg(logLevel, logFile, startPolicyEngine, zeroTrust)
@@ -108,7 +108,7 @@ func addStartFlags(cmd *cobra.Command) {
 	cmd.Flags().String("dataplane", "mtls", "tcp/mtls based data-plane proxies")
 	cmd.Flags().Bool("startPolicyEngine", true, "Start policy engine in port")
 	cmd.Flags().Bool("observe", true, "Start metrics manager in port")
-	cmd.Flags().String("policyEngineIp", "", "Set the policy engine ip")
+	cmd.Flags().String("policyengineIp", "", "Set the policy engine ip")
 	cmd.Flags().Bool("zeroTrust", false, "deny (true)/allow(false) by default all incoming traffic")
 	cmd.Flags().Bool("restore", false, "Restore existing stored MBG states")
 	cmd.Flags().Bool("logFile", true, "Save the outputs to file")
@@ -140,8 +140,8 @@ func startHealthMonitor() {
 }
 
 // addPolicyEngine add policy engine server
-func addPolicyEngine(policyEngineTarget string, start bool, zeroTrust bool) {
-	store.GetEventManager().AssignPolicyDispatcher(store.GetAddrStart()+policyEngineTarget, store.GetHttpClient())
+func addPolicyEngine(policyengineTarget string, start bool, zeroTrust bool) {
+	store.GetEventManager().AssignPolicyDispatcher(store.GetAddrStart()+policyengineTarget, store.GetHttpClient())
 	// TODO : Handle different MBG IDs
 	store.SaveState()
 	defaultRule := event.AllowAll
@@ -149,7 +149,7 @@ func addPolicyEngine(policyEngineTarget string, start bool, zeroTrust bool) {
 		defaultRule = event.Deny
 	}
 	if start {
-		policyEngine.StartPolicyDispatcher(store.GetChiRouter(), defaultRule)
+		policyengine.StartPolicyDispatcher(store.GetChiRouter(), defaultRule)
 	}
 }
 

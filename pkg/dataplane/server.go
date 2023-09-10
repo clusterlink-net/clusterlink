@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/chi"
 
-	"github.ibm.com/mbg-agent/pkg/policyEngine"
+	"github.ibm.com/mbg-agent/pkg/policyengine"
 	"github.ibm.com/mbg-agent/pkg/utils/netutils"
 )
 
@@ -79,22 +79,22 @@ func (d *Dataplane) routes() {
 		r.Post("/", d.controlPlaneForwardingHandler) // Post /newLocalConnection  - New connection parameters check
 	})
 
-	d.Router.Route(policyEngine.PolicyRoute+policyEngine.AclRoute, func(r chi.Router) {
-		r.Get(policyEngine.GetRoute, d.controlPlaneForwardingHandler)
-		r.Post(policyEngine.AddRoute, d.controlPlaneForwardingHandler) // Add ACL Rule
-		r.Post(policyEngine.DelRoute, d.controlPlaneForwardingHandler) // Delete ACL Rule
+	d.Router.Route(policyengine.PolicyRoute+policyengine.AclRoute, func(r chi.Router) {
+		r.Get(policyengine.GetRoute, d.controlPlaneForwardingHandler)
+		r.Post(policyengine.AddRoute, d.controlPlaneForwardingHandler) // Add ACL Rule
+		r.Post(policyengine.DelRoute, d.controlPlaneForwardingHandler) // Delete ACL Rule
 	})
 
-	d.Router.Route(policyEngine.PolicyRoute+policyEngine.LbRoute, func(r chi.Router) {
-		r.Get(policyEngine.GetRoute, d.controlPlaneForwardingHandler)
-		r.Post(policyEngine.AddRoute, d.controlPlaneForwardingHandler) // Add LB Policy
-		r.Post(policyEngine.DelRoute, d.controlPlaneForwardingHandler) // Delete LB Policy
+	d.Router.Route(policyengine.PolicyRoute+policyengine.LbRoute, func(r chi.Router) {
+		r.Get(policyengine.GetRoute, d.controlPlaneForwardingHandler)
+		r.Post(policyengine.AddRoute, d.controlPlaneForwardingHandler) // Add LB Policy
+		r.Post(policyengine.DelRoute, d.controlPlaneForwardingHandler) // Delete LB Policy
 	})
 
-	d.Router.Route(policyEngine.PolicyRoute+policyEngine.AccessRoute, func(r chi.Router) {
-		r.Get(policyEngine.GetRoute, d.controlPlaneForwardingHandler)
-		r.Post(policyEngine.AddRoute, d.controlPlaneForwardingHandler) // Add Access Policy
-		r.Post(policyEngine.DelRoute, d.controlPlaneForwardingHandler) // Delete Access Policy
+	d.Router.Route(policyengine.PolicyRoute+policyengine.AccessRoute, func(r chi.Router) {
+		r.Get(policyengine.GetRoute, d.controlPlaneForwardingHandler)
+		r.Post(policyengine.AddRoute, d.controlPlaneForwardingHandler) // Add Access Policy
+		r.Post(policyengine.DelRoute, d.controlPlaneForwardingHandler) // Delete Access Policy
 	})
 
 	d.Router.Route("/policy/conn", func(r chi.Router) {

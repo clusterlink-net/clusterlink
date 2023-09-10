@@ -13,7 +13,7 @@ import (
 	"github.ibm.com/mbg-agent/pkg/api"
 	"github.ibm.com/mbg-agent/pkg/client"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
-	"github.ibm.com/mbg-agent/pkg/policyEngine"
+	"github.ibm.com/mbg-agent/pkg/policyengine"
 )
 
 // PolicyCreateOptions is the command line options for 'create policy'
@@ -66,11 +66,11 @@ func (o *policyCreateOptions) run() error {
 		return err
 	}
 	switch o.pType {
-	case policyEngine.AclType:
+	case policyengine.AclType:
 		return g.SendACLPolicy(o.serviceSrc, o.serviceDst, o.gwDest, o.priority, event.Action(o.action), client.Add)
-	case policyEngine.LbType:
-		return g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyEngine.PolicyLoadBalancer(o.policy), o.gwDest, client.Add)
-	case policyEngine.AccessType:
+	case policyengine.LbType:
+		return g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.PolicyLoadBalancer(o.policy), o.gwDest, client.Add)
+	case policyengine.AccessType:
 		policy, err := policyFromFile(o.policyFile)
 		if err != nil {
 			return err
@@ -144,11 +144,11 @@ func (o *policyDeleteOptions) run() error {
 		return err
 	}
 	switch o.pType {
-	case policyEngine.AclType:
+	case policyengine.AclType:
 		err = g.SendACLPolicy(o.serviceSrc, o.serviceDst, o.gwDest, priority, event.Action(action), client.Del)
-	case policyEngine.LbType:
-		err = g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyEngine.PolicyLoadBalancer(o.policy), o.gwDest, client.Del)
-	case policyEngine.AccessType:
+	case policyengine.LbType:
+		err = g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.PolicyLoadBalancer(o.policy), o.gwDest, client.Del)
+	case policyengine.AccessType:
 		policy, err := policyFromFile(o.policyFile)
 		if err != nil {
 			return err

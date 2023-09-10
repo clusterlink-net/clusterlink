@@ -2,7 +2,7 @@
 /* Package Policy contain all Policies and data structure
 /* related to Policy that can run in mbg
 /**********************************************************/
-package policyEngine
+package policyengine
 
 import (
 	"encoding/json"
@@ -12,8 +12,8 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
-	"github.ibm.com/mbg-agent/pkg/policyEngine/connectivitypdp"
-	"github.ibm.com/mbg-agent/pkg/policyEngine/policytypes"
+	"github.ibm.com/mbg-agent/pkg/policyengine/connectivitypdp"
+	"github.ibm.com/mbg-agent/pkg/policyengine/policytypes"
 )
 
 const (
