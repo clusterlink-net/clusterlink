@@ -136,7 +136,7 @@ func (d *Dataplane) SendToControlPlaneNewExportConnRequest(srcID, srcGwID, destI
 		clog.Error(err)
 		return rep, err
 	}
-	resp, err := httputils.HttpPost(address, j, d.Store.GetLocalHttpClient())
+	resp, err := httputils.HttpPost(address, j, d.Store.GetLocalHTTPClient())
 	if err := json.Unmarshal(resp, &rep); err != nil {
 		clog.Error("Unable to Unmarshal json NewConnParmaReply ", err)
 	}
@@ -266,7 +266,7 @@ func (d *Dataplane) StartListenerToImportServiceEndpoint(destID string, acceptor
 	for {
 		ac, err := acceptor.Accept()
 		clog = logrus.WithFields(logrus.Fields{
-			"component": d.Store.GetMyId() + "-Dataplane",
+			"component": d.Store.GetMyID() + "-Dataplane",
 		})
 		if err != nil {
 			clog.Infof("Accept() returned error: %v", err)
@@ -321,7 +321,7 @@ func (d *Dataplane) StartListenerToImportServiceEndpoint(destID string, acceptor
 				continue
 			}
 			clog.Infof("Using %s for  %s/%s to connect to Service-%v", connectType, r.Target, connectDest, destID)
-			serverName := d.Store.GetMyId()
+			serverName := d.Store.GetMyID()
 			go d.startMTLSListenerService(r.Target, connectDest, certca, certificate, key, serverName, ac, r.ConnId)
 		default:
 			clog.Errorf("%v dataplane type is not supported", dataplane)
@@ -335,13 +335,13 @@ func (d *Dataplane) mTLSConnectReq(svcID, svcIDDest, svcPolicy, mbgIP string) (s
 	clog.Infof("Starting mTLS Connect Request to MBG at %v for Service %v", mbgIP, svcIDDest)
 	address := d.Store.GetProtocolPrefix() + mbgIP + "/exports/serviceEndpoint"
 
-	j, err := json.Marshal(apiObject.ConnectRequest{Id: svcID, IdDest: svcIDDest, Policy: svcPolicy, MbgID: d.Store.GetMyId()})
+	j, err := json.Marshal(apiObject.ConnectRequest{Id: svcID, IdDest: svcIDDest, Policy: svcPolicy, MbgID: d.Store.GetMyID()})
 	if err != nil {
 		clog.Error(err)
 		return "", "", err
 	}
 	// Send connect
-	resp, err := httputils.HttpPost(address, j, d.Store.GetRemoteHttpClient())
+	resp, err := httputils.HttpPost(address, j, d.Store.GetRemoteHTTPClient())
 	if err != nil {
 		clog.Error(err)
 		return "", "", err
@@ -366,7 +366,7 @@ func (d *Dataplane) TCPConnectReq(svcID, svcIDDest, svcPolicy, mbgIP string) (ne
 	clog.Printf("Starting TCP Connect Request to peer at %v for service %v", mbgIP, svcIDDest)
 	url := d.Store.GetProtocolPrefix() + mbgIP + "/exports/serviceEndpoint"
 
-	jsonData, err := json.Marshal(apiObject.ConnectRequest{Id: svcID, IdDest: svcIDDest, Policy: svcPolicy, MbgID: d.Store.GetMyId()})
+	jsonData, err := json.Marshal(apiObject.ConnectRequest{Id: svcID, IdDest: svcIDDest, Policy: svcPolicy, MbgID: d.Store.GetMyID()})
 	if err != nil {
 		clog.Error(err)
 		return nil, err
@@ -411,7 +411,7 @@ func (d *Dataplane) SendToControlPlaneNewImportConnRequest(srcIP, destIP, destID
 		clog.Error(err)
 		return rep, err
 	}
-	resp, err := httputils.HttpPost(address, j, d.Store.GetLocalHttpClient())
+	resp, err := httputils.HttpPost(address, j, d.Store.GetLocalHTTPClient())
 	if err := json.Unmarshal(resp, &rep); err != nil {
 		clog.Error("Unable to Unmarshal json NewConnParmaReply ", err)
 	}
@@ -462,7 +462,7 @@ func (d *Dataplane) SendToControlPlaneConnStatus(connID string, incomingBytes, o
 		clog.Error(err)
 		return err
 	}
-	_, err = httputils.HttpPost(address, j, d.Store.GetLocalHttpClient())
+	_, err = httputils.HttpPost(address, j, d.Store.GetLocalHTTPClient())
 
 	return err
 }
