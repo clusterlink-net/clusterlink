@@ -31,9 +31,9 @@ if __name__ == "__main__":
     printHeader("\n\nStart Kind Test\n\n")
     printHeader("Start pre-setting")
     
-    qotdFol   = f"{proj_dir}/demos/qotd/manifests/"
-    
-    dataplane = args["dataplane"]
+    qotdFol    = f"{proj_dir}/demos/qotd/manifests/"
+    allowAllPolicy =f"{proj_dir}/pkg/policyengine/policytypes/examples/allowAll.json"
+    dataplane  = args["dataplane"]
     
     #MBG1 parameters 
     mbg1DataPort    = "30001"
@@ -187,6 +187,14 @@ if __name__ == "__main__":
     printHeader(f"\n\nStart import and binding svc {quoteApp.name} in GW3")
     runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl create import --name {quoteApp.name} --host {quoteApp.name} --port {quoteApp.port}')
     runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl create binding --import {quoteApp.name}  --peer {mbg2Name}')
+    
+        
+    # Set policies
+    printHeader(f"\n\nApplying policy file {allowAllPolicy}")
+    useKindCluster(mbg1Name)
+    runcmd(f'gwctl --myid {gwctl1Name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gwctl2Name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gwctl3Name} create policy --type access --policyFile {allowAllPolicy}')
     
     # Get service and policies
     useKindCluster(mbg1Name)
