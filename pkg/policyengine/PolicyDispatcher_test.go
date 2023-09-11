@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	event "github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 	"github.ibm.com/mbg-agent/pkg/policyengine"
 	"github.ibm.com/mbg-agent/pkg/policyengine/policytypes"
 )

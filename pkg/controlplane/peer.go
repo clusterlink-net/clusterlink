@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.ibm.com/mbg-agent/pkg/api"
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/health"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 )
@@ -42,12 +42,12 @@ func addPeer(p api.Peer) {
 	// Update MBG state
 	store.UpdateState()
 
-	peerResp, err := store.GetEventManager().RaiseAddPeerEvent(eventManager.AddPeerAttr{PeerMbg: p.Name})
+	peerResp, err := store.GetEventManager().RaiseAddPeerEvent(eventmanager.AddPeerAttr{PeerMbg: p.Name})
 	if err != nil {
 		plog.Errorf("Unable to raise connection request event")
 		return
 	}
-	if peerResp.Action == eventManager.Deny {
+	if peerResp.Action == eventmanager.Deny {
 		plog.Infof("Denying add peer(%s) due to policy", p.Name)
 		return
 	}
@@ -144,7 +144,7 @@ func removePeer(p api.Peer) {
 	// Update MBG state
 	store.UpdateState()
 
-	err := store.GetEventManager().RaiseRemovePeerEvent(eventManager.RemovePeerAttr{PeerMbg: p.Name})
+	err := store.GetEventManager().RaiseRemovePeerEvent(eventmanager.RemovePeerAttr{PeerMbg: p.Name})
 	if err != nil {
 		plog.Errorf("Unable to raise connection request event")
 		return

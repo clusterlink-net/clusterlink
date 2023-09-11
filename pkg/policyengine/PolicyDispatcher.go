@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
-	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	event "github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 	"github.ibm.com/mbg-agent/pkg/policyengine/connectivitypdp"
 	"github.ibm.com/mbg-agent/pkg/policyengine/policytypes"
 )

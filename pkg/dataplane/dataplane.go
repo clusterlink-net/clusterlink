@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.ibm.com/mbg-agent/pkg/api"
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 	"github.ibm.com/mbg-agent/pkg/dataplane/store"
 	"github.ibm.com/mbg-agent/pkg/utils/httputils"
 )
@@ -97,7 +97,7 @@ func (d *Dataplane) startListenerToExportServiceEndpoint(c apiObject.ConnectRequ
 		clog.Error("Unable to raise connection request event ")
 		return false, "", ""
 	}
-	if rep.Action == eventManager.Deny.String() {
+	if rep.Action == eventmanager.Deny.String() {
 		clog.Infof("Denying incoming connect request (%s,%s) due to policy", c.Id, c.IdDest)
 		return false, "", ""
 	}
@@ -110,7 +110,7 @@ func (d *Dataplane) startListenerToExportServiceEndpoint(c apiObject.ConnectRequ
 			clog.Error("Hijack Failure")
 			return false, "", ""
 		}
-		go d.startTCPListenerService("httpconnect", rep.DestSvcEndpoint, c.Policy, rep.ConnId, conn, nil, eventManager.Incoming)
+		go d.startTCPListenerService("httpconnect", rep.DestSvcEndpoint, c.Policy, rep.ConnId, conn, nil, eventmanager.Incoming)
 		return true, dataplane, endpoint
 	case TypeMTLS:
 		clog.Infof("Starting a Receiver service for %s Using serviceEndpoint : %s/%s",
@@ -155,7 +155,7 @@ func (d *Dataplane) StartMTLSListenerToExportServiceEndpoint(exportServicePort, 
 	clog.Infof("Received new Connection at %s, %s", conn.LocalAddr().String(), importEndPoint)
 	MTLSForward := MTLSForwarder{ChiRouter: d.Router}
 	incomingBytes, outgoingBytes, startTstamp, endTstamp, _ := MTLSForward.StartMTLSForwarderServer(targetMbgIPPort, importEndPoint, "", "", conn)
-	return d.SendToControlPlaneConnStatus(connID, incomingBytes, outgoingBytes, startTstamp, endTstamp, eventManager.Incoming, eventManager.Complete)
+	return d.SendToControlPlaneConnStatus(connID, incomingBytes, outgoingBytes, startTstamp, endTstamp, eventmanager.Incoming, eventmanager.Complete)
 }
 
 func (d *Dataplane) startMTLSListenerService(mbgIP, connectDest, rootCA, certificate, key, serverName string, ac net.Conn, connID string) {
@@ -163,14 +163,14 @@ func (d *Dataplane) startMTLSListenerService(mbgIP, connectDest, rootCA, certifi
 
 	incomingBytes, outgoingBytes, startTstamp, endTstamp, _ := MTLSForward.StartMTLSForwarderClient(mbgIP, connectDest, rootCA, certificate, key, serverName, ac)
 
-	if err := d.SendToControlPlaneConnStatus(connID, incomingBytes, outgoingBytes, startTstamp, endTstamp, eventManager.Outgoing, eventManager.Complete); err != nil {
+	if err := d.SendToControlPlaneConnStatus(connID, incomingBytes, outgoingBytes, startTstamp, endTstamp, eventmanager.Outgoing, eventmanager.Complete); err != nil {
 		clog.Infof("failed to send connection %s status: %+v", connID, err) // TODO: better error handling
 	}
 }
 
 // Run server for Data connection - we have one server and client that we can add some network functions e.g: TCP-split
 // By default we just forward the data
-func (d *Dataplane) startTCPListenerService(svcListenPort, svcIP, _ /*policy*/, connID string, serverConn, clientConn net.Conn, direction eventManager.Direction) {
+func (d *Dataplane) startTCPListenerService(svcListenPort, svcIP, _ /*policy*/, connID string, serverConn, clientConn net.Conn, direction eventmanager.Direction) {
 
 	srcIP := svcListenPort
 	destIP := svcIP
@@ -186,7 +186,7 @@ func (d *Dataplane) startTCPListenerService(svcListenPort, svcIP, _ /*policy*/, 
 	}
 
 	incomingBytes, outgoingBytes, startTstamp, endTstamp, _ := forward.RunTCPForwarder(direction)
-	if err := d.SendToControlPlaneConnStatus(connID, incomingBytes, outgoingBytes, startTstamp, endTstamp, direction, eventManager.Complete); err != nil {
+	if err := d.SendToControlPlaneConnStatus(connID, incomingBytes, outgoingBytes, startTstamp, endTstamp, direction, eventmanager.Complete); err != nil {
 		clog.Infof("failed to send connection %s status: %+v", connID, err) // TODO: better error handling
 	}
 }
@@ -285,7 +285,7 @@ func (d *Dataplane) StartListenerToImportServiceEndpoint(destID string, acceptor
 			ac.Close()
 			continue
 		}
-		if r.Action == eventManager.Deny.String() {
+		if r.Action == eventmanager.Deny.String() {
 			clog.Infof("Denying Outgoing connection due to policy")
 			ac.Close()
 			continue
@@ -298,7 +298,7 @@ func (d *Dataplane) StartListenerToImportServiceEndpoint(destID string, acceptor
 			if err != nil {
 				clog.Infof("Unable to connect(tcp): %v ", err.Error())
 				ac.Close()
-				err = d.SendToControlPlaneConnStatus(r.ConnId, 0, 0, time.Now(), time.Now(), eventManager.Outgoing, eventManager.PeerDenied)
+				err = d.SendToControlPlaneConnStatus(r.ConnId, 0, 0, time.Now(), time.Now(), eventmanager.Outgoing, eventmanager.PeerDenied)
 				if err != nil {
 					clog.Infof("failed to send connection %s status: %+v ", r.ConnId, err)
 				}
@@ -306,7 +306,7 @@ func (d *Dataplane) StartListenerToImportServiceEndpoint(destID string, acceptor
 			}
 			connectDest := "Use open connect socket" // not needed ehr we use connect - destSvc.Service.Ip + ":" + connectDest
 			clog.Infof("Using %s for  %s/%s to connect to Service-%v", dataplane, r.Target, connectDest, destID)
-			go d.startTCPListenerService(servicePort, connectDest, "forward", r.ConnId, ac, connDest, eventManager.Outgoing)
+			go d.startTCPListenerService(servicePort, connectDest, "forward", r.ConnId, ac, connDest, eventmanager.Outgoing)
 
 		case TypeMTLS:
 			// Send connection request to other MBG
@@ -315,7 +315,7 @@ func (d *Dataplane) StartListenerToImportServiceEndpoint(destID string, acceptor
 			if err != nil {
 				clog.Infof("Unable to connect(MTLS): %v ", err.Error())
 				ac.Close()
-				err = d.SendToControlPlaneConnStatus(r.ConnId, 0, 0, time.Now(), time.Now(), eventManager.Outgoing, eventManager.PeerDenied)
+				err = d.SendToControlPlaneConnStatus(r.ConnId, 0, 0, time.Now(), time.Now(), eventmanager.Outgoing, eventmanager.PeerDenied)
 				if err != nil {
 					clog.Infof("failed to send connection %s status: %+v ", r.ConnId, err)
 				}
@@ -450,7 +450,7 @@ func (d *Dataplane) delImportServiceEndpoint(_ string) {
 }
 
 // Send request to control-plane to check connection permission and parameters
-func (d *Dataplane) SendToControlPlaneConnStatus(connID string, incomingBytes, outgoingBytes int, startTstamp, endTstamp time.Time, direction eventManager.Direction, state eventManager.ConnectionState) error {
+func (d *Dataplane) SendToControlPlaneConnStatus(connID string, incomingBytes, outgoingBytes int, startTstamp, endTstamp time.Time, direction eventmanager.Direction, state eventmanager.ConnectionState) error {
 	address := d.Store.GetControlPlaneAddr() + "/connectionStatus"
 
 	connStatus := apiObject.ConnectionStatus{ConnectionId: connID,

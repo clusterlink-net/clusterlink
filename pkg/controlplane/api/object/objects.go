@@ -3,7 +3,7 @@ package apiObject
 import (
 	"time"
 
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 )
 
 // ImportReply return dataplane information (port) about new import endpoint
@@ -69,6 +69,6 @@ type ConnectionStatus struct {
 	OutgoingBytes int
 	StartTstamp   time.Time
 	LastTstamp    time.Time
-	Direction     eventManager.Direction
-	State         eventManager.ConnectionState
+	Direction     eventmanager.Direction
+	State         eventmanager.ConnectionState
 }

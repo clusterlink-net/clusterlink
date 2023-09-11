@@ -9,7 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	"github.ibm.com/mbg-agent/pkg/utils/httputils"
 )
@@ -119,7 +119,7 @@ func MonitorHeartBeats() {
 			elapsed := t.Sub(lastSeen)
 			if elapsed > timeout {
 				klog.Errorf("Heartbeat Timeout reached, Inactivating MBG %s(LastSeen:%v)", m, lastSeen)
-				err := store.GetEventManager().RaiseRemovePeerEvent(eventManager.RemovePeerAttr{PeerMbg: m})
+				err := store.GetEventManager().RaiseRemovePeerEvent(eventmanager.RemovePeerAttr{PeerMbg: m})
 				if err != nil {
 					klog.Errorf("Unable to raise remove peer event")
 					return

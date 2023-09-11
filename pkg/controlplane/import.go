@@ -10,7 +10,7 @@ import (
 
 	"github.ibm.com/mbg-agent/pkg/api"
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	kubernetes "github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
 	"github.ibm.com/mbg-agent/pkg/utils/httputils"
@@ -197,12 +197,12 @@ func RestoreImportServices() {
 	for svcID, svcArr := range store.GetRemoteServicesArr() {
 		allow := false
 		for _, svc := range svcArr {
-			policyResp, err := store.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: svc.Id, Mbg: svc.MbgId})
+			policyResp, err := store.GetEventManager().RaiseNewRemoteServiceEvent(eventmanager.NewRemoteServiceAttr{Service: svc.Id, Mbg: svc.MbgId})
 			if err != nil {
 				mlog.Error("unable to raise remote service event", store.GetMyId())
 				continue
 			}
-			if policyResp.Action == eventManager.Deny {
+			if policyResp.Action == eventmanager.Deny {
 				continue
 			}
 			allow = true

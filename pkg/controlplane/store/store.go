@@ -17,7 +17,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	event "github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 	"github.ibm.com/mbg-agent/pkg/utils/netutils"
 )
 
@@ -660,6 +660,6 @@ func readState() mbgState {
 		return mbgState{}
 	}
 	// Don't change part of the Fields
-	state.MyEventManager.HttpClient = s.MyEventManager.HttpClient
+	state.MyEventManager.HTTPClient = s.MyEventManager.HTTPClient
 	return state
 }

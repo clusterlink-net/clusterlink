@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.ibm.com/mbg-agent/pkg/api"
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 )
 
@@ -40,12 +40,12 @@ func CreateBindingHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createBinding(b api.Binding) error {
-	policyResp, err := store.GetEventManager().RaiseNewRemoteServiceEvent(eventManager.NewRemoteServiceAttr{Service: b.Spec.Import, Mbg: b.Spec.Peer})
+	policyResp, err := store.GetEventManager().RaiseNewRemoteServiceEvent(eventmanager.NewRemoteServiceAttr{Service: b.Spec.Import, Mbg: b.Spec.Peer})
 	if err != nil {
 		blog.Error("unable to raise connection request event ", store.GetMyId())
 		return err
 	}
-	if policyResp.Action == eventManager.Deny {
+	if policyResp.Action == eventmanager.Deny {
 		blog.Errorf("unable to create service endpoint due to policy")
 		return err
 	}
