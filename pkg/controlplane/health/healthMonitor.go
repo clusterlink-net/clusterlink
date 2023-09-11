@@ -62,13 +62,13 @@ func validateMBGs(mbgID string) {
 func SendHeartBeats() error {
 	mbgLastSeen = make(map[string]time.Time)
 	store.UpdateState()
-	j, err := json.Marshal(apiObject.HeartBeat{Id: store.GetMyId()})
+	j, err := json.Marshal(apiObject.HeartBeat{Id: store.GetMyID()})
 	if err != nil {
 		klog.Error(err)
 		return fmt.Errorf("unable to marshal json for heartbeat")
 	}
 	head := store.GetAddrStart()
-	httpclient := store.GetHttpClient()
+	httpclient := store.GetHTTPClient()
 	for {
 		mList := store.GetMbgList()
 		for _, m := range mList {

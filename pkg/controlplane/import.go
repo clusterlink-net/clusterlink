@@ -76,8 +76,8 @@ func createImportServiceEndpoint(e api.Import) error {
 		mlog.Error(err)
 		return err
 	}
-	// Send expose
-	resp, err := httputils.Post(address, j, store.GetHttpClient())
+	// Send Import
+	resp, err := httputils.Post(address, j, store.GetHTTPClient())
 	mlog.Infof("Create connection request to address %s data-plane for service(%s)- %s ", address, e.Name, string(resp))
 	if err != nil {
 		mlog.Error(err)
@@ -146,9 +146,9 @@ func getAllImportServices() []api.Import {
 // Convert service object to service request object
 func convertImportServiceToImportReq(svcID string) api.Import {
 	for _, s := range store.GetRemoteService(svcID) {
-		sPort := store.GetConnectionArr()[s.Id]
+		sPort := store.GetConnectionArr()[s.ID]
 		port, _ := strconv.Atoi(sPort)
-		iSvc := api.Import{Name: s.Id, Spec: api.ImportSpec{Service: api.Endpoint{Host: s.Id, Port: uint16(port)}}}
+		iSvc := api.Import{Name: s.ID, Spec: api.ImportSpec{Service: api.Endpoint{Host: s.ID, Port: uint16(port)}}}
 		return iSvc
 	}
 	return api.Import{}
@@ -197,9 +197,9 @@ func RestoreImportServices() {
 	for svcID, svcArr := range store.GetRemoteServicesArr() {
 		allow := false
 		for _, svc := range svcArr {
-			policyResp, err := store.GetEventManager().RaiseNewRemoteServiceEvent(eventmanager.NewRemoteServiceAttr{Service: svc.Id, Mbg: svc.MbgId})
+			policyResp, err := store.GetEventManager().RaiseNewRemoteServiceEvent(eventmanager.NewRemoteServiceAttr{Service: svc.ID, Mbg: svc.MbgID})
 			if err != nil {
-				mlog.Error("unable to raise remote service event", store.GetMyId())
+				mlog.Error("unable to raise remote service event", store.GetMyID())
 				continue
 			}
 			if policyResp.Action == eventmanager.Deny {

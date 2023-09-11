@@ -21,7 +21,7 @@ import (
 	"github.ibm.com/mbg-agent/pkg/utils/netutils"
 )
 
-var log = logrus.WithField("component", s.MyInfo.Id)
+var log = logrus.WithField("component", s.MyInfo.ID)
 var dataMutex sync.Mutex
 var mbgArrMutex sync.RWMutex
 var ChiRouter *chi.Mux = chi.NewRouter()
@@ -41,8 +41,8 @@ type mbgState struct {
 }
 
 type MbgInfo struct {
-	Id                string
-	Ip                string
+	ID                string
+	IP                string
 	Cport             ServicePort
 	DataPortRange     ServicePort
 	MaxPorts          int
@@ -54,20 +54,20 @@ type MbgInfo struct {
 }
 
 type Mbgctl struct {
-	Id string
-	Ip string
+	ID string
+	IP string
 }
 
 type RemoteService struct {
-	Id          string
-	MbgId       string
-	MbgIp       string
+	ID          string
+	MbgID       string
+	MbgIP       string
 	Description string
 }
 
 type LocalService struct {
-	Id           string
-	Ip           string
+	ID           string
+	IP           string
 	Port         string
 	Description  string
 	PeersExposed []string // TODO: not unique
@@ -98,12 +98,12 @@ const (
 	vm            = "vm"
 )
 
-func GetMyIp() string {
-	return s.MyInfo.Ip
+func GetMyIP() string {
+	return s.MyInfo.IP
 }
 
-func GetMyId() string {
-	return s.MyInfo.Id
+func GetMyID() string {
+	return s.MyInfo.ID
 }
 
 func GetMyCport() ServicePort {
@@ -156,8 +156,8 @@ func GetEventManager() *event.EventManager {
 }
 
 func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDataPortRange, caFile, certificate, key, dataplane string) {
-	s.MyInfo.Id = id
-	s.MyInfo.Ip = ip
+	s.MyInfo.ID = id
+	s.MyInfo.IP = ip
 	s.MyInfo.Cport.Local = ":" + cportLocal
 	s.MyInfo.Cport.External = ":" + cportExternal
 	s.MyInfo.DataPortRange.Local = localDataPortRange
@@ -168,14 +168,14 @@ func SetState(id, ip, cportLocal, cportExternal, localDataPortRange, externalDat
 	s.MyInfo.KeyFile = key
 	s.MyInfo.Dataplane = dataplane
 	s.MyInfo.DataplaneEndpoint = "dataplane:443"
-	log = logrus.WithField("component", s.MyInfo.Id)
+	log = logrus.WithField("component", s.MyInfo.ID)
 	CreateProjectfolder()
 	SaveState()
 }
 
 func SetMbgctl(id, ip string) {
 	log.Info(s)
-	s.MbgctlArr[id] = Mbgctl{Id: id, Ip: ip}
+	s.MbgctlArr[id] = Mbgctl{ID: id, IP: ip}
 	SaveState()
 }
 
@@ -188,7 +188,7 @@ func SetConnection(service, port string) {
 }
 func UpdateState() {
 	s = readState()
-	log = logrus.WithField("component", s.MyInfo.Id)
+	log = logrus.WithField("component", s.MyInfo.ID)
 }
 
 func restorePeer(id string) {
@@ -232,26 +232,26 @@ func RemoveMbg(mbg string) {
 	SaveState()
 }
 
-func ActivateMbg(mbgId string) {
-	log.Infof("Activating MBG %s", mbgId)
-	peerResp, err := s.MyEventManager.RaiseAddPeerEvent(event.AddPeerAttr{PeerMbg: mbgId})
+func ActivateMbg(mbgID string) {
+	log.Infof("Activating MBG %s", mbgID)
+	peerResp, err := s.MyEventManager.RaiseAddPeerEvent(event.AddPeerAttr{PeerMbg: mbgID})
 	if err != nil {
 		log.Errorf("Unable to raise connection request event")
 		return
 	}
 	if peerResp.Action == event.Deny {
-		log.Infof("Denying add peer(%s) due to policy", mbgId)
+		log.Infof("Denying add peer(%s) due to policy", mbgID)
 		return
 	}
 	mbgArrMutex.Lock()
-	mbgI, ok := s.InactiveMbgArr[mbgId]
+	mbgI, ok := s.InactiveMbgArr[mbgID]
 	if !ok {
 		// Ignore
 		mbgArrMutex.Unlock()
 		return
 	}
-	s.MbgArr[mbgId] = mbgI
-	delete(s.InactiveMbgArr, mbgId)
+	s.MbgArr[mbgID] = mbgI
+	delete(s.InactiveMbgArr, mbgID)
 	mbgArrMutex.Unlock()
 
 	PrintState()
@@ -294,33 +294,33 @@ func LookupLocalService(label, ip string) (LocalService, error) {
 func LookupLocalServiceFromLabel(label string) (LocalService, error) {
 	for _, service := range s.MyServices {
 		// Compare Service Labels
-		if service.Id == label {
+		if service.ID == label {
 			return service, nil
 		}
 	}
 	// If the local app/service is not defined, we send the name as a "wildcard"
-	return LocalService{Id: "*", Ip: "", Description: ""}, errors.New("unable to find local service")
+	return LocalService{ID: "*", IP: "", Description: ""}, errors.New("unable to find local service")
 }
 
 func LookupLocalServiceFromIP(network string) (LocalService, error) {
 	serviceNetwork := strings.Split(network, ":")
 	for _, service := range s.MyServices {
 		// Compare Service IPs
-		if strings.Split(service.Ip, ":")[0] == serviceNetwork[0] {
+		if strings.Split(service.IP, ":")[0] == serviceNetwork[0] {
 			return service, nil
 		}
 	}
 	// If the local app/service is not defined, we send the name as a "wildcard"
-	return LocalService{Id: "*", Ip: "", Description: ""}, errors.New("unable to find local service")
+	return LocalService{ID: "*", IP: "", Description: ""}, errors.New("unable to find local service")
 }
 
-func GetServiceMbgIp(ip string) string {
-	svcIp := strings.Split(ip, ":")[0]
+func GetServiceMbgIP(ip string) string {
+	svcIP := strings.Split(ip, ":")[0]
 	mbgArrMutex.RLock()
 	for _, m := range s.MbgArr {
-		if m.Ip == svcIp {
-			mbgIp := m.Ip + m.Cport.External
-			return mbgIp
+		if m.IP == svcIP {
+			mbgIP := m.IP + m.Cport.External
+			return mbgIP
 		}
 	}
 	mbgArrMutex.RUnlock()
@@ -334,7 +334,7 @@ func GetMbgTarget(id string) string {
 		mbgArrMutex.RLock()
 		mbgI := s.MbgArr[id]
 		mbgArrMutex.RUnlock()
-		return mbgI.Ip + mbgI.Cport.External
+		return mbgI.IP + mbgI.Cport.External
 	} else {
 		log.Errorf("Peer(%s) does not exist", id)
 		return ""
@@ -346,7 +346,7 @@ func GetMbgTargetPair(id string) (string, string) {
 	mbgArrMutex.RLock()
 	mbgI := s.MbgArr[id]
 	mbgArrMutex.RUnlock()
-	return mbgI.Ip, mbgI.Cport.External
+	return mbgI.IP, mbgI.Cport.External
 }
 
 func IsMbgPeer(id string) bool {
@@ -375,7 +375,7 @@ func AddMbgNbr(id, ip, cport string) {
 		mbgArrMutex.Unlock()
 		return
 	}
-	s.MbgArr[id] = MbgInfo{Id: id, Ip: ip, Cport: ServicePort{External: ":" + cport, Local: ""}}
+	s.MbgArr[id] = MbgInfo{ID: id, IP: ip, Cport: ServicePort{External: ":" + cport, Local: ""}}
 	mbgArrMutex.Unlock()
 
 	PrintState()
@@ -400,7 +400,7 @@ func AddLocalService(id, ip string, port uint16) {
 	if _, ok := s.MyServices[id]; ok {
 		log.Infof("Local Service already added %s", id) // Allow overwrite service
 	}
-	s.MyServices[id] = LocalService{Id: id, Ip: ip, Port: strconv.Itoa(int(port))}
+	s.MyServices[id] = LocalService{ID: id, IP: ip, Port: strconv.Itoa(int(port))}
 	log.Infof("Adding local service: %s", id)
 	PrintState()
 	SaveState()
@@ -452,14 +452,14 @@ func exists(slice []string, entry string) (int, bool) {
 	return -1, false
 }
 
-func CreateImportService(importId string) {
-	if _, ok := s.RemoteServices[importId]; ok {
-		log.Infof("Import service:[%v] already exist", importId)
+func CreateImportService(importID string) {
+	if _, ok := s.RemoteServices[importID]; ok {
+		log.Infof("Import service:[%v] already exist", importID)
 
 	} else {
-		s.RemoteServiceMap[importId] = []string{}
-		s.RemoteServices[importId] = []RemoteService{}
-		log.Infof("Create import service:[%v] ", importId)
+		s.RemoteServiceMap[importID] = []string{}
+		s.RemoteServices[importID] = []RemoteService{}
+		log.Infof("Create import service:[%v] ", importID)
 
 	}
 
@@ -467,16 +467,16 @@ func CreateImportService(importId string) {
 	SaveState()
 }
 
-func AddRemoteService(id, ip, description, mbgId string) {
-	svc := RemoteService{Id: id, MbgId: mbgId, MbgIp: ip, Description: description}
+func AddRemoteService(id, ip, description, mbgID string) {
+	svc := RemoteService{ID: id, MbgID: mbgID, MbgIP: ip, Description: description}
 	if mbgs, ok := s.RemoteServiceMap[id]; ok {
-		_, exist := exists(mbgs, mbgId)
+		_, exist := exists(mbgs, mbgID)
 		if !exist {
-			s.RemoteServiceMap[id] = append(mbgs, mbgId)
+			s.RemoteServiceMap[id] = append(mbgs, mbgID)
 			s.RemoteServices[id] = append(s.RemoteServices[id], svc)
 		}
 	} else {
-		s.RemoteServiceMap[id] = []string{mbgId}
+		s.RemoteServiceMap[id] = []string{mbgID}
 		s.RemoteServices[id] = []RemoteService{svc}
 	}
 	log.Infof("Adding remote service: [%v]", s.RemoteServiceMap[id])
@@ -514,38 +514,38 @@ func RemoveMbgFromServiceMap(mbg string) {
 	}
 }
 
-func RemoveMbgFromService(svcId, mbg string, mbgs []string) {
+func RemoveMbgFromService(svcID, mbg string, mbgs []string) {
 	// Remove from service map
 	index, exist := exists(mbgs, mbg)
 	if !exist {
 		return
 	}
-	s.RemoteServiceMap[svcId] = append((mbgs)[:index], (mbgs)[index+1:]...)
-	log.Infof("MBG removed from remote service %v->[%+v]", svcId, s.RemoteServiceMap[svcId])
+	s.RemoteServiceMap[svcID] = append((mbgs)[:index], (mbgs)[index+1:]...)
+	log.Infof("MBG removed from remote service %v->[%+v]", svcID, s.RemoteServiceMap[svcID])
 	// Remove from service array
-	for idx, reSvc := range s.RemoteServices[svcId] {
-		if reSvc.MbgId == mbg {
-			s.RemoteServices[svcId] = append((s.RemoteServices[svcId])[:idx], (s.RemoteServices[svcId])[idx+1:]...)
+	for idx, reSvc := range s.RemoteServices[svcID] {
+		if reSvc.MbgID == mbg {
+			s.RemoteServices[svcID] = append((s.RemoteServices[svcID])[:idx], (s.RemoteServices[svcID])[idx+1:]...)
 			break
 		}
 	}
-	log.Infof("MBG service %v provided by %d peers", svcId, len(s.RemoteServiceMap[svcId]))
-	if len(s.RemoteServiceMap[svcId]) == 0 {
-		delete(s.RemoteServices, svcId)
-		delete(s.RemoteServiceMap, svcId)
-		FreeUpPorts(svcId)
+	log.Infof("MBG service %v provided by %d peers", svcID, len(s.RemoteServiceMap[svcID]))
+	if len(s.RemoteServiceMap[svcID]) == 0 {
+		delete(s.RemoteServices, svcID)
+		delete(s.RemoteServiceMap, svcID)
+		FreeUpPorts(svcID)
 		// TODO: handle the error?
-		_ = GetEventManager().RaiseRemoveRemoteServiceEvent(event.RemoveRemoteServiceAttr{Service: svcId, Mbg: ""}) //remove the service
-	} else { //remove specific mbg from the mbg
+		_ = GetEventManager().RaiseRemoveRemoteServiceEvent(event.RemoveRemoteServiceAttr{Service: svcID, Mbg: ""}) // remove the service
+	} else { // remove specific mbg from the mbg
 		// TODO: handle the error?
-		_ = GetEventManager().RaiseRemoveRemoteServiceEvent(event.RemoveRemoteServiceAttr{Service: svcId, Mbg: mbg})
+		_ = GetEventManager().RaiseRemoveRemoteServiceEvent(event.RemoveRemoteServiceAttr{Service: svcID, Mbg: mbg})
 	}
 	SaveState()
 }
 
-func (s *LocalService) GetIpAndPort() string {
+func (s *LocalService) GetIPAndPort() string {
 	// Support only DNS target
-	target := s.Ip + ":" + s.Port
+	target := s.IP + ":" + s.Port
 	return target
 }
 
@@ -557,7 +557,7 @@ func GetAddrStart() string {
 	}
 }
 
-func GetHttpClient() http.Client {
+func GetHTTPClient() http.Client {
 	if s.MyInfo.Dataplane == "mtls" {
 		cert, err := os.ReadFile(s.MyInfo.CaFile)
 		if err != nil {
@@ -574,7 +574,7 @@ func GetHttpClient() http.Client {
 		tlsConfig := netutils.ConfigureSafeTLSConfig()
 		tlsConfig.RootCAs = caCertPool
 		tlsConfig.Certificates = []tls.Certificate{certificate}
-		tlsConfig.ServerName = s.MyInfo.Id
+		tlsConfig.ServerName = s.MyInfo.ID
 
 		client := http.Client{
 			Timeout: 3 * time.Minute,
@@ -590,23 +590,23 @@ func GetHttpClient() http.Client {
 
 func PrintState() {
 	log.Infof("****** MBG State ********")
-	log.Infof("ID: %v IP: %v%v", s.MyInfo.Id, s.MyInfo.Ip, s.MyInfo.Cport)
+	log.Infof("ID: %v IP: %v%v", s.MyInfo.ID, s.MyInfo.IP, s.MyInfo.Cport)
 	nb := ""
 	inb := ""
 	services := ""
 	mbgArrMutex.RLock()
 	for _, n := range s.MbgArr {
-		nb = nb + n.Id + " "
+		nb = nb + n.ID + " "
 	}
 	mbgArrMutex.RUnlock()
 
 	log.Infof("MBG neighbors : %s", nb)
 	for _, n := range s.InactiveMbgArr {
-		inb = inb + n.Id + ", "
+		inb = inb + n.ID + ", "
 	}
 	log.Infof("Inactive MBG neighbors : %s", inb)
 	for _, se := range s.MyServices {
-		services = services + se.Id + ", "
+		services = services + se.ID + ", "
 	}
 	log.Infof("Myservices: %v", services)
 	log.Infof("Remoteservices: %v", s.RemoteServiceMap)

@@ -30,8 +30,8 @@ func (m MbgHandler) Routes() chi.Router {
 
 	r.Route("/peers", func(r chi.Router) {
 		r.Get("/", GetAllPeersHandler)       // GET    /peer      - Get all peers
-		r.Post("/", AddPeerHandler)          // Post   /peer      - Add peer Id to peers list
-		r.Get("/{id}", GetPeerHandler)       // GET    /peer/{id} - Get peer Id
+		r.Post("/", AddPeerHandler)          // Post   /peer      - Add peer ID to peers list
+		r.Get("/{id}", GetPeerHandler)       // GET    /peer/{id} - Get peer ID
 		r.Delete("/{id}", RemovePeerHandler) // Delete /peer/{id} - Delete peer
 	})
 
@@ -50,8 +50,8 @@ func (m MbgHandler) Routes() chi.Router {
 	r.Route("/imports", func(r chi.Router) {
 		r.Post("/", AddImportServiceHandler)                // Post /imports            - Add Remote service
 		r.Get("/", GetAllImportServicesHandler)             // Get  /imports            - Get all remote services
-		r.Get("/{id}", GetImportServiceHandler)             // Get  /imports/{svcId}    - Get specific remote service
-		r.Delete("/{id}", DelImportServiceHandler)          // Delete  /imports/{svcId} - Delete specific remote service
+		r.Get("/{id}", GetImportServiceHandler)             // Get  /imports/{svcID}    - Get specific remote service
+		r.Delete("/{id}", DelImportServiceHandler)          // Delete  /imports/{svcID} - Delete specific remote service
 		r.Post("/newConnection", setupNewImportConnHandler) // Post /newImportConnection - New connection parameters check
 	})
 
@@ -117,12 +117,12 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 		log.Infof("Unable to lookup local service :%v", err)
 	}
 
-	policyResp, err := store.GetEventManager().RaiseNewConnectionRequestEvent(eventmanager.ConnectionRequestAttr{SrcService: srcSvc.Id, DstService: destSvcID, Direction: eventmanager.Outgoing, OtherMbg: eventmanager.Wildcard})
+	policyResp, err := store.GetEventManager().RaiseNewConnectionRequestEvent(eventmanager.ConnectionRequestAttr{SrcService: srcSvc.ID, DstService: destSvcID, Direction: eventmanager.Outgoing, OtherMbg: eventmanager.Wildcard})
 	if err != nil {
 		log.Errorf("Unable to raise connection request event")
 		return apiObject.NewImportConnParmaReply{Action: eventmanager.Deny.String()}
 	}
-	connectionID := srcSvc.Id + ":" + destSvcID + ":" + ksuid.New().String()
+	connectionID := srcSvc.ID + ":" + destSvcID + ":" + ksuid.New().String()
 	connectionStatus := eventmanager.ConnectionStatusAttr{ConnectionID: connectionID,
 		SrcService:      appLabel,
 		DstService:      destSvcID,
@@ -140,7 +140,7 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 		// TODO: allow the connection to proceed?
 	}
 
-	log.Infof("Accepting Outgoing Connect request from service: %v to service: %v", srcSvc.Id, destSvcID)
+	log.Infof("Accepting Outgoing Connect request from service: %v to service: %v", srcSvc.ID, destSvcID)
 
 	var target string
 	if policyResp.TargetMbg == "" {
@@ -149,7 +149,7 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 	} else {
 		target = store.GetMbgTarget(policyResp.TargetMbg)
 	}
-	return apiObject.NewImportConnParmaReply{Action: policyResp.Action.String(), Target: target, SrcId: srcSvc.Id, ConnId: connectionID}
+	return apiObject.NewImportConnParmaReply{Action: policyResp.Action.String(), Target: target, SrcId: srcSvc.ID, ConnId: connectionID}
 }
 
 // New connection request to export service- HTTP handler
@@ -179,7 +179,7 @@ func setupNewExportConn(srcSvcID, srcGwID, destSvcID string) apiObject.NewExport
 	policyResp, err := store.GetEventManager().RaiseNewConnectionRequestEvent(eventmanager.ConnectionRequestAttr{SrcService: srcSvcID, DstService: destSvcID, Direction: eventmanager.Incoming, OtherMbg: srcGwID})
 
 	if err != nil {
-		log.Error("Unable to raise connection request event ", store.GetMyId())
+		log.Error("Unable to raise connection request event ", store.GetMyID())
 		return apiObject.NewExportConnParmaReply{Action: eventmanager.Deny.String()}
 	}
 
@@ -202,7 +202,7 @@ func setupNewExportConn(srcSvcID, srcGwID, destSvcID string) apiObject.NewExport
 	}
 
 	srcGw := store.GetMbgTarget(srcGwID)
-	return apiObject.NewExportConnParmaReply{Action: policyResp.Action.String(), SrcGwEndpoint: srcGw, DestSvcEndpoint: localSvc.GetIpAndPort(), ConnId: connectionID}
+	return apiObject.NewExportConnParmaReply{Action: policyResp.Action.String(), SrcGwEndpoint: srcGw, DestSvcEndpoint: localSvc.GetIPAndPort(), ConnId: connectionID}
 }
 
 // Connection Status handler to receive metrics regarding connection from the dataplane

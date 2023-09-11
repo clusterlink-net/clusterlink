@@ -42,7 +42,7 @@ func CreateBindingHandler(w http.ResponseWriter, r *http.Request) {
 func createBinding(b api.Binding) error {
 	policyResp, err := store.GetEventManager().RaiseNewRemoteServiceEvent(eventmanager.NewRemoteServiceAttr{Service: b.Spec.Import, Mbg: b.Spec.Peer})
 	if err != nil {
-		blog.Error("unable to raise connection request event ", store.GetMyId())
+		blog.Error("unable to raise connection request event ", store.GetMyID())
 		return err
 	}
 	if policyResp.Action == eventmanager.Deny {
@@ -103,7 +103,7 @@ func GetBindingHandler(w http.ResponseWriter, r *http.Request) {
 func getBinding(svcID string) []api.Binding {
 	bArr := []api.Binding{}
 	for _, s := range store.GetRemoteService(svcID) {
-		bArr = append(bArr, api.Binding{Spec: api.BindingSpec{Import: s.Id, Peer: s.MbgId}})
+		bArr = append(bArr, api.Binding{Spec: api.BindingSpec{Import: s.ID, Peer: s.MbgID}})
 	}
 	blog.Infof("getBinding bArr: %v", bArr)
 
