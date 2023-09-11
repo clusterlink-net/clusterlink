@@ -1,0 +1,23 @@
+{
+    "name": "deny-to-iperf3",
+    "privileged": false,
+    "action": "deny",
+    "from": [
+        {
+            "workloadSelector": {
+                "matchLabels": {
+                    "clusterlink/metadata.serviceName": "iperf3-client"
+                }
+            }
+        }
+    ],
+    "to": [
+        {
+            "workloadSelector": {
+                "matchLabels": {
+                    "clusterlink/metadata.serviceName": "iperf3-server"
+                }
+            }
+        }
+    ]
+}

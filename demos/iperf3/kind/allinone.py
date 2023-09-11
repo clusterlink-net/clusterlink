@@ -26,6 +26,7 @@ if __name__ == "__main__":
     parser.add_argument('-c','--cni', help='Which cni to use default(kindnet)/flannel/calico/diff (different cni for each cluster)', required=False, default="default")
 
     args = vars(parser.parse_args())
+    allowAllPolicy =f"{proj_dir}/pkg/policyengine/policytypes/examples/allowAll.json"
 
     printHeader("\n\nStart Kind Test\n\n")
     printHeader("Start pre-setting")
@@ -98,11 +99,12 @@ if __name__ == "__main__":
       
     ###get mbg parameters
     useKindCluster(mbg1Name)
-    mbg1Ip               = getKindIp("mbg1")
+    mbg1Ip        = getKindIp("mbg1")
     useKindCluster(mbg2Name)
-    mbg2Ip=getKindIp(mbg2Name)
+    mbg2Ip        = getKindIp(mbg2Name)
+    _ , mbg2PodIp = getPodNameIp(mbg2Name)
     useKindCluster(mbg3Name)
-    mbg3Ip                = getKindIp("mbg3")
+    mbg3Ip        = getKindIp("mbg3")
 
     # Start gwctl
     startGwctl(gwctl1Name, mbg1Ip, mbg1cPort, dataplane, gwctl1crt)
@@ -133,6 +135,12 @@ if __name__ == "__main__":
     importService(mbg1Name, gwctl1Name, destSvc,destPort, mbg2Name)
     importService(mbg3Name, gwctl3Name, destSvc,destPort, mbg2Name)
 
+    # Set policies
+    printHeader(f"\n\nApplying policy file {allowAllPolicy}")
+    useKindCluster(mbg1Name)
+    runcmd(f'gwctl --myid {gwctl1Name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gwctl2Name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gwctl3Name} create policy --type access --policyFile {allowAllPolicy}')
     #Get services
     getService(gwctl1Name,destSvc)
     

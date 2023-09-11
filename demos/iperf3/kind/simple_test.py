@@ -20,8 +20,7 @@ from demos.iperf3.kind.iperf3_service_create import setIperf3client, setIperf3Se
 from demos.iperf3.kind.iperf3_service_import import importService
 from demos.iperf3.kind.iperf3_service_get import getService
 from demos.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
-from demos.iperf3.kind.apply_policy import addPolicy
-from demos.iperf3.kind.apply_access_policy import applyAccessPolicy
+from demos.iperf3.kind.apply_policy import applyAccessPolicy
 
 from demos.utils.kind.kindAux import useKindCluster, getKindIp,startKindClusterMbg,startGwctl
 

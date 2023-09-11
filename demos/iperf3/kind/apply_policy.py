@@ -1,30 +1,33 @@
 #!/usr/bin/env python3
-import os,time
-import subprocess as sp
+import os
 import sys
 import argparse
 
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{proj_dir}')
+from demos.utils.mbgAux import runcmd, printHeader
 
 srcSvc   = "iperf3-client"
 destSvc  = "iperf3-server"
+denyIper3Policy=f"{proj_dir}/demos/iperf3/testdata/policy/denyToIperf3.json"
+denyGw3Policy=f"{proj_dir}/demos/iperf3/testdata/policy/denyFromGw.json"
+
     
-def addPolicy(mbg, gwctlName, command, action, srcSvc=srcSvc,destSvc=destSvc, priority=0):
-    useKindCluster(mbg)
-    gwctlPod=getPodName("gwctl")
-    printHeader(f"Block Traffic in {mbg}")          
-    action = 1 if action == "deny" else 0
-    runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl {command} policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --gwDest mbg2 --priority {priority} --action {action}')
-                    
+def applyAccessPolicy(mbgName, gwctlName, policyFile):
+    printHeader(f"\n\nApplying policy file {policyFile} to {mbgName}")
+    runcmd(f'gwctl --myid {gwctlName} create policy --type access --policyFile {policyFile}')
+
+def deleteAccessPolicy(gwctlName, policyFile):
+    runcmd(f'gwctl delete policy --myid {gwctlName} --type access --policyFile {policyFile}')
+    
 def applyPolicy(mbg, gwctlName, type, srcSvc=srcSvc,destSvc=destSvc ):
     if mbg in ["mbg1","mbg3"]:
         if type == "deny":
             printHeader(f"Block Traffic in {mbg}")          
-            runcmd(f'gwctl create policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --gwDest mbg2 --priority 0 --action 1')
-        elif type == "allow":
+            applyAccessPolicy(mbg, gwctlName, denyIper3Policy)
+        elif type == "allow": # Remove the deny policy
             printHeader(f"Allow Traffic in {mbg}")
-            runcmd(f'gwctl delete policy --myid {gwctlName} --type acl --serviceSrc {srcSvc} --serviceDst {destSvc} --gwDest mbg2')
+            deleteAccessPolicy(gwctlName, denyIper3Policy)
         elif type == "show":
             printHeader(f"Show Policies in {mbg}")
             runcmd(f'gwctl get policy --myid {gwctlName}')
@@ -34,16 +37,13 @@ def applyPolicy(mbg, gwctlName, type, srcSvc=srcSvc,destSvc=destSvc ):
     if mbg == "mbg2":
         if type == "deny":
             printHeader("Block Traffic in MBG2")
-            runcmd(f'gwctl create policy --myid {gwctlName} --type acl --gwDest mbg3 --priority 0 --action 1')
-        elif type == "allow":
+            applyAccessPolicy(mbg, gwctlName, denyGw3Policy)
+        elif type == "allow": # Remove the deny policy
             printHeader("Allow Traffic in MBG2")
-            runcmd(f'gwctl delete policy --myid {gwctlName} --type acl --gwDest mbg3 ')
+            deleteAccessPolicy(gwctlName, denyGw3Policy)
         else:
             print("Unknown command")
 
-
-from demos.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName
-from demos.utils.kind.kindAux import useKindCluster
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
