@@ -1,0 +1,19 @@
+{
+    "name": "deny-from-gw1",
+    "privileged": false,
+    "action": "deny",
+    "from": [
+        {
+            "workloadSelector": {
+                "matchLabels": {
+                    "clusterlink/metadata.gatewayName": "gw1"
+                }
+            }
+        }
+    ],
+    "to": [
+        {
+            "workloadSelector": {}
+        }
+    ]
+}
