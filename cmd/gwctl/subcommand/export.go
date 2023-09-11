@@ -131,7 +131,7 @@ func (o *exportDeleteOptions) run() error {
 		return err
 	}
 
-	err = g.Exports.Delete(&api.Export{Name: o.name})
+	err = g.Exports.Delete(o.name)
 	if err != nil {
 		return err
 	}
