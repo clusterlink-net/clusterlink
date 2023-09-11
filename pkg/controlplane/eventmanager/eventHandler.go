@@ -42,10 +42,9 @@ func (m *EventManager) RaiseNewConnectionRequestEvent(connectionAttr ConnectionR
 			return ConnectionRequestResp{Action: Allow, TargetMbg: "", BitRate: 0}, err
 		}
 		return r, nil
-	} else {
-		// No Policy Dispatcher assigned
-		return ConnectionRequestResp{Action: Allow, TargetMbg: "", BitRate: 0}, nil
 	}
+	// No Policy Dispatcher assigned
+	return ConnectionRequestResp{Action: Allow, TargetMbg: "", BitRate: 0}, nil
 }
 
 func (m *EventManager) RaiseConnectionStatusEvent(connectionStatusAttr ConnectionStatusAttr) error {
@@ -60,10 +59,9 @@ func (m *EventManager) RaiseConnectionStatusEvent(connectionStatusAttr Connectio
 		}
 		_, err = httputils.Post(url, jsonReq, m.HTTPClient)
 		return err
-	} else {
-		// No Metrics Manager assigned
-		return nil
 	}
+	// No Metrics Manager assigned
+	return nil
 }
 
 func (m *EventManager) RaiseNewRemoteServiceEvent(remoteServiceAttr NewRemoteServiceAttr) (NewRemoteServiceResp, error) {
@@ -87,10 +85,9 @@ func (m *EventManager) RaiseNewRemoteServiceEvent(remoteServiceAttr NewRemoteSer
 			return NewRemoteServiceResp{Action: Allow}, err
 		}
 		return r, nil
-	} else {
-		// No Policy Dispatcher assigned
-		return NewRemoteServiceResp{Action: Allow}, nil
 	}
+	// No Policy Dispatcher assigned
+	return NewRemoteServiceResp{Action: Allow}, nil
 }
 
 func (m *EventManager) RaiseExposeRequestEvent(exposeRequestAttr ExposeRequestAttr) (ExposeRequestResp, error) {
@@ -115,10 +112,9 @@ func (m *EventManager) RaiseExposeRequestEvent(exposeRequestAttr ExposeRequestAt
 			return ExposeRequestResp{Action: Allow}, err
 		}
 		return r, nil
-	} else {
-		// No Policy Dispatcher assigned
-		return ExposeRequestResp{Action: AllowAll}, nil
 	}
+	// No Policy Dispatcher assigned
+	return ExposeRequestResp{Action: AllowAll}, nil
 }
 
 func (m *EventManager) RaiseAddPeerEvent(addPeerAttr AddPeerAttr) (AddPeerResp, error) {
@@ -145,10 +141,9 @@ func (m *EventManager) RaiseAddPeerEvent(addPeerAttr AddPeerAttr) (AddPeerResp, 
 			return AddPeerResp{Action: Allow}, err
 		}
 		return r, nil
-	} else {
-		// No Policy Dispatcher assigned
-		return AddPeerResp{Action: Allow}, nil
 	}
+	// No Policy Dispatcher assigned
+	return AddPeerResp{Action: Allow}, nil
 }
 
 func (m *EventManager) RaiseRemovePeerEvent(removePeerAttr RemovePeerAttr) error {
@@ -168,10 +163,9 @@ func (m *EventManager) RaiseRemovePeerEvent(removePeerAttr RemovePeerAttr) error
 			elog.Errorf("Unable to send to Policy dispatcher %s", url)
 		}
 		return nil
-	} else {
-		// No Policy Dispatcher assigned
-		return nil
 	}
+	// No Policy Dispatcher assigned
+	return nil
 }
 
 func (m *EventManager) RaiseRemoveRemoteServiceEvent(removeRemoteServiceAttr RemoveRemoteServiceAttr) error {
@@ -189,12 +183,12 @@ func (m *EventManager) RaiseRemoveRemoteServiceEvent(removeRemoteServiceAttr Rem
 		if string(resp) == httputils.RESPFAIL {
 			elog.Errorf("Unable to send to Policy dispatcher %s", url)
 		}
-		return nil
 	} else {
 		// No Policy Dispatcher assigned
 		elog.Infof("No PolicyDispatcher ")
-		return nil
 	}
+	return nil
+
 }
 func (m *EventManager) RaiseServiceListRequestEvent(serviceListRequestAttr ServiceListRequestAttr) (ServiceListRequestResp, error) {
 	elog.Infof("Service List Event %+v", serviceListRequestAttr)
