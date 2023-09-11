@@ -102,7 +102,6 @@ if __name__ == "__main__":
     mbg1Ip        = getKindIp("mbg1")
     useKindCluster(mbg2Name)
     mbg2Ip        = getKindIp(mbg2Name)
-    _ , mbg2PodIp = getPodNameIp(mbg2Name)
     useKindCluster(mbg3Name)
     mbg3Ip        = getKindIp("mbg3")
 
@@ -159,10 +158,12 @@ if __name__ == "__main__":
 
     # Test external
     printHeader("\n\nTest external service")
+    useKindCluster(mbg2Name)
+    _ , destSvcPodIp = getPodNameIp(destSvc)
     externalName ="iperf3-external" 
-    exportExternalService(gwctl2Name,externalName, destSvc,destPort,mbg2Ip,kindDestPort )
-    importService(mbg1Name, gwctl1Name, externalName,destPort, mbg2Name)
-    testIperf3Client(mbg1Name, srcSvc, externalName,    destPort)
+    exportExternalService(gwctl2Name, externalName, externalName, destPort, destSvcPodIp, destPort)
+    importService(mbg1Name, gwctl1Name, externalName, destPort, mbg2Name)
+    testIperf3Client(mbg1Name, srcSvc, externalName, destPort)
 
     #Block Traffic in MBG3
     printHeader("Start Block Traffic in MBG3")
