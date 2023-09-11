@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -90,7 +91,11 @@ func (o *Options) Run() error {
 		return err
 	}
 
-	return o.runEnvoy(peerName, parsedCertData.CommonName())
+	// generate random dataplane ID
+	dataplaneID := uuid.New().String()
+	log.Infof("Dataplane ID: %s.", dataplaneID)
+
+	return o.runEnvoy(peerName, dataplaneID)
 }
 
 // NewCLDataplaneCommand creates a *cobra.Command object with default parameters.
