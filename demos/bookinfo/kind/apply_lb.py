@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     mbg = args["mbg"]
     type = args["type"]
-    gwctlName     = mbg[:-1]+"ctl"+ mbg[-1]
+    gwctlName     = "gwctl"+ mbg[-1]
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
 

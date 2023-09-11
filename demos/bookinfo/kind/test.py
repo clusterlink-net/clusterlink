@@ -22,7 +22,7 @@ from demos.utils.kind.kindAux import useKindCluster,startKindClusterMbg,getKindI
 ############################### MAIN ##########################
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
-    parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="tcp")
+    parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="mtls")
 
     parser.add_argument('-src','--src', help='Source service name', required=False)
     parser.add_argument('-dst','--dest', help='Destination service name', required=False)
@@ -33,6 +33,7 @@ if __name__ == "__main__":
     
     folpdct   = f"{proj_dir}/demos/bookinfo/manifests/product/"
     folReview = f"{proj_dir}/demos/bookinfo/manifests/review"
+    allowAllPolicy =f"{proj_dir}/pkg/policyengine/policytypes/examples/allowAll.json"
     dataplane = args["dataplane"]
  
 
@@ -113,8 +114,8 @@ if __name__ == "__main__":
     waitPod(srcSvc2)
     _ , srcSvcIp1 =getPodNameIp(srcSvc1)
     _ , srcSvcIp2 =getPodNameIp(srcSvc2)
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create export --name {srcSvc1}')
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create export --name {srcSvc2}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create export --name {srcSvc1} --port {srcK8sSvcPort}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create export --name {srcSvc2} --port {srcK8sSvcPort}')
 
     
 
@@ -166,8 +167,16 @@ if __name__ == "__main__":
     #Get services
     useKindCluster(mbg1Name)
     printHeader("\n\nStart get service")
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl get service')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl get import')
     runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl get policy')
+    
+ # Set policies
+    printHeader(f"\n\nApplying policy file {allowAllPolicy}")
+    useKindCluster(mbg1Name)
+    runcmd(f'gwctl --myid {gwctl1Name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gwctl2Name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gwctl3Name} create policy --type access --policyFile {allowAllPolicy}')
+
 
     print(f"Proctpage1 url: http://{mbg1Ip}:30001/productpage")
     print(f"Proctpage2 url: http://{mbg1Ip}:30002/productpage")
