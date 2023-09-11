@@ -26,7 +26,7 @@ type Instance struct {
 	bindings *cpstore.Bindings
 
 	peerLock   sync.RWMutex
-	peerClient map[string]*Client
+	peerClient map[string]*client
 
 	xdsManager *xdsManager
 	ports      *portManager
@@ -51,7 +51,7 @@ func (cp *Instance) CreatePeer(peer *cpstore.Peer) error {
 	}
 
 	// initialize peer client
-	client := NewClient(peer, cp.peerTLS.ClientConfig(peer.Name))
+	client := newClient(peer, cp.peerTLS.ClientConfig(peer.Name))
 
 	cp.peerLock.Lock()
 	cp.peerClient[peer.Name] = client
@@ -77,7 +77,7 @@ func (cp *Instance) UpdatePeer(peer *cpstore.Peer) error {
 	}
 
 	// initialize peer client
-	client := NewClient(peer, cp.peerTLS.ClientConfig(peer.Name))
+	client := newClient(peer, cp.peerTLS.ClientConfig(peer.Name))
 
 	cp.peerLock.Lock()
 	cp.peerClient[peer.Name] = client
@@ -422,7 +422,7 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, kubeC
 
 	cp := &Instance{
 		peerTLS:     peerTLS,
-		peerClient:  make(map[string]*Client),
+		peerClient:  make(map[string]*client),
 		peers:       peers,
 		exports:     exports,
 		imports:     imports,

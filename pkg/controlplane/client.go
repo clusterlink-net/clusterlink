@@ -13,8 +13,8 @@ import (
 	"github.ibm.com/mbg-agent/pkg/util/jsonapi"
 )
 
-// Client for accessing a remote peer.
-type Client struct {
+// client for accessing a remote peer.
+type client struct {
 	// jsonapi clients for connecting to the remote peer (one per each gateway)
 	clients []*jsonapi.Client
 
@@ -31,8 +31,8 @@ type remoteServerAuthorizationResponse struct {
 	AccessToken string
 }
 
-// Authorize a request for accessing a peer exported service, yielding an access token.
-func (c *Client) Authorize(req *api.AuthorizationRequest) (*remoteServerAuthorizationResponse, error) {
+// authorize a request for accessing a peer exported service, yielding an access token.
+func (c *client) Authorize(req *api.AuthorizationRequest) (*remoteServerAuthorizationResponse, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to serialize authorization request: %v", err)
@@ -78,13 +78,13 @@ func (c *Client) Authorize(req *api.AuthorizationRequest) (*remoteServerAuthoriz
 	return resp, nil
 }
 
-// NewClient returns a new Peer API client.
-func NewClient(peer *store.Peer, tlsConfig *tls.Config) *Client {
+// newClient returns a new Peer API client.
+func newClient(peer *store.Peer, tlsConfig *tls.Config) *client {
 	clients := make([]*jsonapi.Client, len(peer.Gateways))
 	for i, endpoint := range peer.Gateways {
 		clients[i] = jsonapi.NewClient(endpoint.Host, endpoint.Port, tlsConfig)
 	}
-	return &Client{
+	return &client{
 		clients: clients,
 		logger: logrus.WithFields(logrus.Fields{
 			"component": "peer-client",
