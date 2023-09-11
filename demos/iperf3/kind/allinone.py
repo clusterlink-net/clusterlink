@@ -73,8 +73,8 @@ if __name__ == "__main__":
 
         
     #folders
-    folCl=f"{proj_dir}/demos/iperf3/manifests/iperf3-client"
-    folSv=f"{proj_dir}/demos/iperf3/manifests/iperf3-server"
+    folCl=f"{proj_dir}/demos/iperf3/testdata/manifests/iperf3-client"
+    folSv=f"{proj_dir}/demos/iperf3/testdata/manifests/iperf3-server"
     
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)

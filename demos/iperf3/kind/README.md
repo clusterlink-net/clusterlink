@@ -41,7 +41,7 @@ Build the first Kind cluster with gateway, and iperf3-client:
 3) Create an iPerf3-client deployment: 
    
         kind load docker-image mlabbe/iperf3 --name=cluster1
-        kubectl create -f $PROJECT_FOLDER/demos/iperf3/manifests/iperf3-client/iperf3-client.yaml
+        kubectl create -f $PROJECT_FOLDER/demos/iperf3/testdata/manifests/iperf3-client/iperf3-client.yaml
 
 Build the second Kind cluster with gateway, and iperf3-client:
 1) Create a Kind cluster with the gateway image:
@@ -59,7 +59,7 @@ Build the second Kind cluster with gateway, and iperf3-client:
 3) Create an iPerf3-server deployment:
    
         kind load docker-image mlabbe/iperf3 --name=cluster2
-        kubectl create -f $PROJECT_FOLDER/demos/iperf3/manifests/iperf3-server/iperf3.yaml
+        kubectl create -f $PROJECT_FOLDER/demos/iperf3/testdata/manifests/iperf3-server/iperf3.yaml
         kubectl create service nodeport iperf3-server --tcp=5000:5000 --node-port=30001
 
 Check that container statuses are Running.
