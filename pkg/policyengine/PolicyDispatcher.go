@@ -17,12 +17,10 @@ import (
 )
 
 const (
-	ACLType    = "acl"    // Type for acl policies (deprecated)
 	LbType     = "lb"     // Type for load-balancing policies
 	AccessType = "access" // Type for access policies
 
 	PolicyRoute = "/policy"        // Parent route for all kinds of policies
-	ACLRoute    = "/" + ACLType    // Route for managing ACL policies (deprecated)
 	LbRoute     = "/" + LbType     // Route for managing LoadBalancer policies
 	AccessRoute = "/" + AccessType // Route for managing Access policies (Connectivity policies)
 
@@ -32,10 +30,6 @@ const (
 
 	ServiceNameLabel = "clusterlink/metadata.serviceName"
 	MbgNameLabel     = "clusterlink/metadata.gatewayName"
-
-	connectivityPDPAgent = "ConnectivityPDP"
-	loadBalancerAgent    = "LoadBalancer"
-	accessControlAgent   = "AccessControl"
 )
 
 var plog = logrus.WithField("component", "PolicyEngine")
@@ -46,8 +40,6 @@ type MbgState struct {
 }
 
 type PolicyHandler struct {
-	SubscriptionMap map[string][]string
-	accessControl   *AccessControl
 	loadBalancer    *LoadBalancer
 	connectivityPDP *connectivitypdp.PDP
 	mbgState        MbgState
@@ -79,16 +71,10 @@ func (pH *PolicyHandler) Routes(r *chi.Mux) chi.Router {
 		r.Post("/", pH.exposeRequest) // New expose request
 	})
 
-	r.Route(ACLRoute, func(r chi.Router) {
-		r.Get(GetRoute, pH.accessControl.GetRuleReq)
-		r.Post(AddRoute, pH.accessControl.AddRuleReq) // Add ACL Rule
-		r.Post(DelRoute, pH.accessControl.DelRuleReq)
-	})
-
 	r.Route(AccessRoute, func(r chi.Router) {
 		r.Get(GetRoute, pH.getConnPoliciesReq)
-		r.Post(AddRoute, pH.addConnPolicyReq) // Add ACL Rule
-		r.Post(DelRoute, pH.delConnPolicyReq)
+		r.Post(AddRoute, pH.addConnPolicyReq) // Add Access Policy
+		r.Post(DelRoute, pH.delConnPolicyReq) // Delete Access policies
 	})
 
 	r.Route(LbRoute, func(r chi.Router) {
@@ -127,20 +113,65 @@ func (pH *PolicyHandler) removePeer(peerMbg string) {
 	plog.Infof("Removed Peer(%s, %d) %+v", peerMbg, index, *pH.mbgState.mbgPeers)
 }
 
-func getServiceAttrs(serviceName, mbg string) policytypes.WorkloadAttrs {
+func getServiceAttrs(serviceName, peer string) policytypes.WorkloadAttrs {
 	ret := policytypes.WorkloadAttrs{ServiceNameLabel: serviceName}
-	if len(mbg) > 0 {
-		ret[MbgNameLabel] = mbg
+	if len(peer) > 0 {
+		ret[MbgNameLabel] = peer
 	}
 	return ret
 }
 
-func getServiceAttrsForMultipleMbgs(serviceName string, mbgs []string) []policytypes.WorkloadAttrs {
+func getServiceAttrsForMultiplePeers(serviceName string, peers []string) []policytypes.WorkloadAttrs {
 	res := []policytypes.WorkloadAttrs{}
-	for _, mbg := range mbgs {
-		res = append(res, getServiceAttrs(serviceName, mbg))
+	for _, peer := range peers {
+		res = append(res, getServiceAttrs(serviceName, peer))
 	}
 	return res
+}
+
+func (pH *PolicyHandler) decideIncomingConnection(requestAttr *event.ConnectionRequestAttr) event.Action {
+	src := getServiceAttrs(requestAttr.SrcService, requestAttr.OtherMbg)
+	dest := getServiceAttrs(requestAttr.DstService, "")
+	decisions, err := pH.connectivityPDP.Decide(src, []policytypes.WorkloadAttrs{dest})
+	if err != nil {
+		plog.Errorf("error deciding on a connection: %v", err)
+		return event.Deny
+	}
+	if decisions[0].Decision == policytypes.PolicyDecisionAllow {
+		return event.Allow
+	}
+	return event.Deny
+}
+
+func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionRequestAttr) (event.Action, string) {
+	// Get a list of MBGs for the service
+	mbgList, err := pH.loadBalancer.GetTargetMbgs(requestAttr.DstService)
+	if err != nil {
+		plog.Errorf("error getting target peers: %v", err)
+		return event.Deny, ""
+	}
+
+	src := getServiceAttrs(requestAttr.SrcService, "")
+	dsts := getServiceAttrsForMultiplePeers(requestAttr.DstService, mbgList)
+	decisions, err := pH.connectivityPDP.Decide(src, dsts)
+	if err != nil {
+		plog.Errorf("error deciding on a connection: %v", err)
+		return event.Deny, ""
+	}
+
+	allowedMbgs := []string{}
+	for _, decision := range decisions {
+		if decision.Decision == policytypes.PolicyDecisionAllow {
+			allowedMbgs = append(allowedMbgs, decision.Destination[MbgNameLabel])
+		}
+	}
+
+	// Perform load-balancing using the filtered mbgList
+	targetMbg, err := pH.loadBalancer.LookupWith(requestAttr.SrcService, requestAttr.DstService, allowedMbgs)
+	if err != nil {
+		return event.Deny, ""
+	}
+	return event.Allow, targetMbg
 }
 
 func (pH *PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Request) {
@@ -150,83 +181,15 @@ func (pH *PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Req
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	plog.Infof("New connection request : %+v -> %+v", requestAttr, pH.SubscriptionMap[event.NewConnectionRequest])
+	plog.Infof("New connection request : %+v", requestAttr)
 
 	var action event.Action
 	var targetMbg string
 	var bitrate int
-	for _, agent := range pH.SubscriptionMap[event.NewConnectionRequest] {
-		plog.Infof("Applying Policy %s", agent)
-		switch agent {
-		case connectivityPDPAgent:
-			if requestAttr.Direction == event.Incoming {
-				src := getServiceAttrs(requestAttr.SrcService, requestAttr.OtherMbg)
-				dest := getServiceAttrs(requestAttr.DstService, "")
-				decisions, err := pH.connectivityPDP.Decide(src, []policytypes.WorkloadAttrs{dest})
-				if err != nil {
-					action = event.Deny
-					plog.Errorf("error deciding on a connection: %v", err)
-					break
-				}
-				if decisions[0].Decision == policytypes.PolicyDecisionAllow && action != event.Deny {
-					action = event.Allow
-				} else {
-					action = event.Deny
-				}
-			}
-		case accessControlAgent:
-			if requestAttr.Direction == event.Incoming {
-				var decision event.Action
-				decision, bitrate = pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, requestAttr.OtherMbg, event.Allow)
-				if decision == event.Allow && action != event.Deny {
-					action = event.Allow
-				} else {
-					action = event.Deny
-				}
-			}
-		case loadBalancerAgent:
-			plog.Infof("Looking up loadbalancer direction %v", requestAttr.Direction)
-			if requestAttr.Direction == event.Outgoing {
-				// Get a list of MBGs for the service
-				mbgList, err := pH.loadBalancer.GetTargetMbgs(requestAttr.DstService)
-				if err != nil {
-					action = event.Deny
-					break
-				}
-
-				src := getServiceAttrs(requestAttr.SrcService, "")
-				dsts := getServiceAttrsForMultipleMbgs(requestAttr.DstService, mbgList)
-				decisions, err := pH.connectivityPDP.Decide(src, dsts)
-				if err != nil {
-					action = event.Deny
-					break
-				}
-				allowedMbgs := []string{}
-				for _, decision := range decisions {
-					if decision.Decision == policytypes.PolicyDecisionAllow {
-						allowedMbgs = append(allowedMbgs, decision.Destination[MbgNameLabel])
-					}
-				}
-
-				action = event.Allow
-				// Truncate mbgs from mbgList based on the policy
-				var mbgValidList []string
-				for _, mbg := range allowedMbgs {
-					// For new outgoing connections, the default is set up in the init state
-					act, _ := pH.accessControl.Lookup(requestAttr.SrcService, requestAttr.DstService, mbg, pH.accessControl.DefaultRule)
-					if act != event.Deny {
-						mbgValidList = append(mbgValidList, mbg)
-					}
-				}
-				// Perform load-balancing using the truncated mbgList
-				targetMbg, err = pH.loadBalancer.LookupWith(requestAttr.SrcService, requestAttr.DstService, mbgValidList)
-				if err != nil {
-					action = event.Deny
-				}
-			}
-		default:
-			plog.Errorf("Unrecognized Policy Agent")
-		}
+	if requestAttr.Direction == event.Incoming {
+		action = pH.decideIncomingConnection(&requestAttr)
+	} else if requestAttr.Direction == event.Outgoing {
+		action, targetMbg = pH.decideOutgoingConnection(&requestAttr)
 	}
 
 	plog.Infof("Response : %+v", event.ConnectionRequestResp{Action: action, TargetMbg: targetMbg, BitRate: bitrate})
@@ -246,30 +209,17 @@ func (pH *PolicyHandler) addPeerRequest(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	plog.Infof("Add Peer request : %+v -> %+v", requestAttr, pH.SubscriptionMap[event.AddPeerRequest])
-	// TODO : Convert this into standard interfaces. This requires formalizing Policy I/O
-	var action event.Action
 
-	for _, agent := range pH.SubscriptionMap[event.AddPeerRequest] {
-		switch agent {
-		case accessControlAgent:
-			_, action, _ = pH.accessControl.RulesLookup(event.Wildcard, event.Wildcard, requestAttr.PeerMbg)
-		default:
-			plog.Errorf("Unrecognized Policy Agent")
-		}
-	}
-
+	plog.Infof("Add Peer request : %+v", requestAttr)
+	// Currently, request is always allowed
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(event.AddPeerResp{Action: action}); err != nil {
+	if err := json.NewEncoder(w).Encode(event.AddPeerResp{Action: event.Allow}); err != nil {
 		plog.Errorf("Error happened in JSON encode. Err: %s", err)
 		return
 	}
 
-	// Update States
-	if action != event.Deny {
-		pH.addPeer(requestAttr.PeerMbg)
-	}
+	pH.addPeer(requestAttr.PeerMbg)
 }
 
 func (pH *PolicyHandler) removePeerRequest(w http.ResponseWriter, r *http.Request) {
@@ -292,28 +242,17 @@ func (pH *PolicyHandler) newRemoteService(w http.ResponseWriter, r *http.Request
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	plog.Infof("New Remote Service request : %+v -> %+v", requestAttr, pH.SubscriptionMap[event.NewRemoteService])
-	// TODO : Convert this into standard interfaces. This requires formalizing Policy I/O
-	var action event.Action
 
-	for _, agent := range pH.SubscriptionMap[event.NewRemoteService] {
-		switch agent {
-		case accessControlAgent:
-			action, _ = pH.accessControl.Lookup(event.Wildcard, requestAttr.Service, requestAttr.Mbg, event.Allow)
-		default:
-			plog.Errorf("Unrecognized Policy Agent")
-		}
-	}
+	plog.Infof("New Remote Service request : %+v", requestAttr)
+	// Currently, request is always allowed
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(event.NewRemoteServiceResp{Action: action}); err != nil {
+	if err := json.NewEncoder(w).Encode(event.NewRemoteServiceResp{Action: event.Allow}); err != nil {
 		plog.Errorf("Error happened in JSON encode. Err: %s", err)
 	}
 
 	// Update States
-	if action != event.Deny {
-		pH.loadBalancer.AddToServiceMap(requestAttr.Service, requestAttr.Mbg)
-	}
+	pH.loadBalancer.AddToServiceMap(requestAttr.Service, requestAttr.Mbg)
 }
 
 func (pH *PolicyHandler) removeRemoteServiceRequest(w http.ResponseWriter, r *http.Request) {
@@ -335,24 +274,12 @@ func (pH *PolicyHandler) exposeRequest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	plog.Infof("New Expose request : %+v -> %+v", requestAttr, pH.SubscriptionMap[event.ExposeRequest])
-	// TODO : Convert this into standard interfaces. This requires formalizing Policy I/O
-	action := event.AllowAll
-	var mbgPeers []string
 
-	for _, agent := range pH.SubscriptionMap[event.ExposeRequest] {
-		switch agent {
-		case accessControlAgent:
-			plog.Infof("Checking accesses for %+v", pH.mbgState.mbgPeers)
-			action, mbgPeers = pH.accessControl.LookupTarget(requestAttr.Service, pH.mbgState.mbgPeers)
-		default:
-			plog.Errorf("Unrecognized Policy Agent")
-		}
-	}
-
+	plog.Infof("New Expose request : %+v", requestAttr)
+	// Currently, request is always allowed
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(event.ExposeRequestResp{Action: action, TargetMbgs: mbgPeers}); err != nil {
+	if err := json.NewEncoder(w).Encode(event.ExposeRequestResp{Action: event.AllowAll, TargetMbgs: *pH.mbgState.mbgPeers}); err != nil {
 		plog.Errorf("Error happened in JSON encode. Err: %s", err)
 		return
 	}
@@ -420,23 +347,10 @@ func (pH *PolicyHandler) policyWelcome(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (pH *PolicyHandler) init(router *chi.Mux, defaultRule event.Action) {
-	pH.SubscriptionMap = make(map[string][]string)
 	pH.mbgState.mbgPeers = &([]string{})
-	policyList1 := []string{accessControlAgent, loadBalancerAgent, connectivityPDPAgent}
-	policyList2 := []string{accessControlAgent}
-
-	pH.accessControl = &AccessControl{DefaultRule: defaultRule}
 	pH.loadBalancer = &LoadBalancer{}
-	pH.accessControl.Init()
 	pH.loadBalancer.Init()
 	pH.connectivityPDP = connectivitypdp.NewPDP()
-
-	pH.SubscriptionMap[event.NewConnectionRequest] = policyList1
-	pH.SubscriptionMap[event.AddPeerRequest] = policyList2
-	pH.SubscriptionMap[event.NewRemoteService] = policyList2
-	pH.SubscriptionMap[event.ExposeRequest] = policyList2
-
-	plog.Infof("Subscription Map - %+v", pH.SubscriptionMap)
 
 	routes := pH.Routes(router)
 	router.Mount(PolicyRoute, routes)

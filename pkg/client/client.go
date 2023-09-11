@@ -1,7 +1,6 @@
 package client
 
 import (
-	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -66,26 +65,6 @@ const (
 	Del
 )
 
-// SendACLPolicy sends an ACL request to the GW.
-func (c *Client) SendACLPolicy(serviceSrc string, serviceDst string, gwDest string, priority int, action event.Action, command int) error {
-	path := policyengine.PolicyRoute + policyengine.ACLRoute
-	switch command {
-	case Add:
-		path += policyengine.AddRoute
-	case Del:
-		path += policyengine.DelRoute
-	default:
-		return fmt.Errorf("unknown command")
-	}
-	jsonReq, err := json.Marshal(policyengine.ACLRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, MbgDest: gwDest, Priority: priority, Action: action})
-	if err != nil {
-		return err
-	}
-
-	_, err = c.client.Post(path, jsonReq)
-	return err
-}
-
 // SendAccessPolicy sends the policy engine a request to add, update (using add) or delete an access policy
 func (c *Client) SendAccessPolicy(policy api.Policy, command int) error {
 	path := policyengine.PolicyRoute + policyengine.AccessRoute
@@ -119,22 +98,6 @@ func (c *Client) SendLBPolicy(serviceSrc, serviceDst string, policy policyengine
 	}
 	_, err = c.client.Post(path, jsonReq)
 	return err
-}
-
-// GetACLPolicies sends an ACL get request to the GW.
-func (c *Client) GetACLPolicies() (policyengine.ACL, error) {
-	var rules policyengine.ACL
-	path := policyengine.PolicyRoute + policyengine.ACLRoute
-	resp, err := c.client.Get(path)
-	if err != nil {
-		return make(policyengine.ACL), err
-	}
-	err = json.NewDecoder(bytes.NewBuffer(resp.Body)).Decode(&rules)
-	if err != nil {
-		fmt.Printf("Unable to decode response %v\n", err)
-		return make(policyengine.ACL), err
-	}
-	return rules, nil
 }
 
 // GetLBPolicies sends an LB get request to the GW.
