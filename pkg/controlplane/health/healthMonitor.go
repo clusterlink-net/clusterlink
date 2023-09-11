@@ -24,35 +24,35 @@ const (
 var mbgLastSeenMutex sync.RWMutex
 var mbgLastSeen map[string]time.Time
 
-func updateLastSeen(mbgId string) {
+func updateLastSeen(mbgID string) {
 	mbgLastSeenMutex.Lock()
-	mbgLastSeen[mbgId] = time.Now()
+	mbgLastSeen[mbgID] = time.Now()
 	mbgLastSeenMutex.Unlock()
 }
 
-func RemoveLastSeen(mbgId string) {
+func RemoveLastSeen(mbgID string) {
 	mbgLastSeenMutex.Lock()
-	delete(mbgLastSeen, mbgId)
+	delete(mbgLastSeen, mbgID)
 	mbgLastSeenMutex.Unlock()
 }
 
-func getLastSeen(mbgId string) (time.Time, bool) {
+func getLastSeen(mbgID string) (time.Time, bool) {
 	mbgLastSeenMutex.RLock()
-	lastSeen, ok := mbgLastSeen[mbgId]
+	lastSeen, ok := mbgLastSeen[mbgID]
 	mbgLastSeenMutex.RUnlock()
 	return lastSeen, ok
 }
 
-func validateMBGs(mbgId string) {
-	ok := store.IsMbgPeer(mbgId)
+func validateMBGs(mbgID string) {
+	ok := store.IsMbgPeer(mbgID)
 	if !ok {
-		// klog.Infof("Update state before activating MBG %s", mbgId)
+		// klog.Infof("Update state before activating MBG %s", mbgID)
 		// store.UpdateState()
-		// ok = store.IsMbgPeer(mbgId)
+		// ok = store.IsMbgPeer(mbgID)
 		// if !ok {
 		// Activate MBG only if its present in inactive list
-		if store.IsMbgInactivePeer(mbgId) {
-			store.ActivateMbg(mbgId)
+		if store.IsMbgInactivePeer(mbgID) {
+			store.ActivateMbg(mbgID)
 		}
 		// }
 	}
