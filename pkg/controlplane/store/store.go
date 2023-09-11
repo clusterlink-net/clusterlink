@@ -335,10 +335,9 @@ func GetMbgTarget(id string) string {
 		mbgI := s.MbgArr[id]
 		mbgArrMutex.RUnlock()
 		return mbgI.IP + mbgI.Cport.External
-	} else {
-		log.Errorf("Peer(%s) does not exist", id)
-		return ""
 	}
+	log.Errorf("Peer(%s) does not exist", id)
+	return ""
 
 }
 
@@ -438,9 +437,8 @@ func DelLocalService(id string) {
 		PrintState()
 		SaveState()
 		return
-	} else {
-		log.Errorf("Local Service %s doesn't exist", id)
 	}
+	log.Errorf("Local Service %s doesn't exist", id)
 }
 
 func exists(slice []string, entry string) (int, bool) {
@@ -552,9 +550,8 @@ func (s *LocalService) GetIPAndPort() string {
 func GetAddrStart() string {
 	if s.MyInfo.Dataplane == "mtls" {
 		return "https://"
-	} else {
-		return "http://"
 	}
+	return "http://"
 }
 
 func GetHTTPClient() http.Client {
@@ -583,9 +580,10 @@ func GetHTTPClient() http.Client {
 			},
 		}
 		return client
-	} else {
-		return http.Client{}
 	}
+	// Return default client
+	return http.Client{}
+
 }
 
 func PrintState() {
