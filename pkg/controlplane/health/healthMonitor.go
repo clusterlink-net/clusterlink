@@ -62,7 +62,7 @@ func validateMBGs(mbgID string) {
 func SendHeartBeats() error {
 	mbgLastSeen = make(map[string]time.Time)
 	store.UpdateState()
-	j, err := json.Marshal(apiObject.HeartBeat{Id: store.GetMyID()})
+	j, err := json.Marshal(apiObject.HeartBeat{ID: store.GetMyID()})
 	if err != nil {
 		klog.Error(err)
 		return fmt.Errorf("unable to marshal json for heartbeat")
@@ -94,7 +94,7 @@ func HandleHB(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RecvHeartbeat(h.Id)
+	RecvHeartbeat(h.ID)
 
 	// Response
 	w.WriteHeader(http.StatusOK)

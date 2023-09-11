@@ -1,4 +1,4 @@
-package apiObject
+package apiobject
 
 import (
 	"time"
@@ -8,19 +8,19 @@ import (
 
 // ImportReply return dataplane information (port) about new import endpoint
 type ImportReply struct {
-	Id   string
+	ID   string
 	Port string
 }
 
 // HeartBeats
 type HeartBeat struct {
-	Id string
+	ID string
 }
 
 // ConnectRequest
 type ConnectRequest struct {
-	Id     string
-	IdDest string
+	ID     string
+	IDDest string
 	Policy string
 	MbgID  string
 }
@@ -33,24 +33,24 @@ type ConnectReply struct {
 
 // New connection to import service request
 type NewImportConnParmaReq struct {
-	SrcIp  string
-	DestIp string
-	DestId string
+	SrcIP  string
+	DestIP string
+	DestID string
 }
 
 // New connection to import service reply
 type NewImportConnParmaReply struct {
 	Action string
 	Target string
-	SrcId  string
-	ConnId string
+	SrcID  string
+	ConnID string
 }
 
 // New connection to export service struct request
 type NewExportConnParmaReq struct {
-	SrcId   string
-	SrcGwId string
-	DestId  string
+	SrcID   string
+	SrcGwID string
+	DestID  string
 }
 
 // New connection to import service struct reply
@@ -58,13 +58,13 @@ type NewExportConnParmaReply struct {
 	Action          string
 	SrcGwEndpoint   string
 	DestSvcEndpoint string
-	ConnId          string
+	ConnID          string
 }
 
 // Connection Status
 type ConnectionStatus struct {
-	ConnectionId  string
-	GlobalId      string // To be used to trace a flow across gateways
+	ConnectionID  string
+	GlobalID      string // To be used to trace a flow across gateways
 	IncomingBytes int
 	OutgoingBytes int
 	StartTstamp   time.Time

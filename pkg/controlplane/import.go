@@ -89,7 +89,7 @@ func createImportServiceEndpoint(e api.Import) error {
 		mlog.Error(err)
 		return err
 	}
-	store.SetConnection(r.Id, r.Port)
+	store.SetConnection(r.ID, r.Port)
 	return nil
 }
 

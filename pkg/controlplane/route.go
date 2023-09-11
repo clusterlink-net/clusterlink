@@ -84,7 +84,7 @@ func setupNewImportConnHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 	log.Infof("Got new connection check for dataplane: %+v", c)
-	connReply := setupNewImportConn(c.SrcIp, c.DestIp, c.DestId)
+	connReply := setupNewImportConn(c.SrcIP, c.DestIP, c.DestID)
 	// Response
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(connReply); err != nil {
@@ -101,7 +101,7 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 	// If we cant find the service, we get the "service id" as a wildcard
 	// which is sent to the policy engine to decide.
 
-	// Ideally do a control plane connect API, Policy checks, and then create a mTLS forwarder
+	// IDeally do a control plane connect API, Policy checks, and then create a mTLS forwarder
 	// ImportEndPoint has to be in the connect Request/Response
 	var appLabel = ""
 	var err error
@@ -149,7 +149,7 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 	} else {
 		target = store.GetMbgTarget(policyResp.TargetMbg)
 	}
-	return apiObject.NewImportConnParmaReply{Action: policyResp.Action.String(), Target: target, SrcId: srcSvc.ID, ConnId: connectionID}
+	return apiObject.NewImportConnParmaReply{Action: policyResp.Action.String(), Target: target, SrcID: srcSvc.ID, ConnID: connectionID}
 }
 
 // New connection request to export service- HTTP handler
@@ -164,7 +164,7 @@ func setupNewExportConnHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 	log.Infof("Got new connection check for dataplane: %+v", c)
-	connReply := setupNewExportConn(c.SrcId, c.SrcGwId, c.DestId)
+	connReply := setupNewExportConn(c.SrcID, c.SrcGwID, c.DestID)
 	// Response
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(connReply); err != nil {
@@ -202,7 +202,7 @@ func setupNewExportConn(srcSvcID, srcGwID, destSvcID string) apiObject.NewExport
 	}
 
 	srcGw := store.GetMbgTarget(srcGwID)
-	return apiObject.NewExportConnParmaReply{Action: policyResp.Action.String(), SrcGwEndpoint: srcGw, DestSvcEndpoint: localSvc.GetIPAndPort(), ConnId: connectionID}
+	return apiObject.NewExportConnParmaReply{Action: policyResp.Action.String(), SrcGwEndpoint: srcGw, DestSvcEndpoint: localSvc.GetIPAndPort(), ConnID: connectionID}
 }
 
 // Connection Status handler to receive metrics regarding connection from the dataplane
@@ -216,7 +216,7 @@ func connStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-	connectionStatus := eventmanager.ConnectionStatusAttr{ConnectionID: c.ConnectionId,
+	connectionStatus := eventmanager.ConnectionStatusAttr{ConnectionID: c.ConnectionID,
 		IncomingBytes: c.IncomingBytes,
 		OutgoingBytes: c.OutgoingBytes,
 		StartTstamp:   c.StartTstamp,
