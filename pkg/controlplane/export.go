@@ -102,7 +102,7 @@ func getExportService(svcID string) api.Export {
 }
 
 // GetAllExportServicesHandler - HTTP handler for Get all export services
-func GetAllExportServicesHandler(w http.ResponseWriter, r *http.Request) {
+func GetAllExportServicesHandler(w http.ResponseWriter, _ *http.Request) {
 	sArr := getAllExportServices() // GetService control plane logic
 
 	// Set response

@@ -56,7 +56,7 @@ func addPeer(p api.Peer) {
 }
 
 // GetAllPeersHandler -Get all peers HTTP handler
-func GetAllPeersHandler(w http.ResponseWriter, r *http.Request) {
+func GetAllPeersHandler(w http.ResponseWriter, _ *http.Request) {
 
 	// Get Peer control plane logic
 	p := getAllPeers()

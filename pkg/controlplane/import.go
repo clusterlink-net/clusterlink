@@ -118,7 +118,7 @@ func getImportService(svcID string) api.Import {
 }
 
 // GetAllImportServicesHandler Get All - remote service HTTP handler
-func GetAllImportServicesHandler(w http.ResponseWriter, r *http.Request) {
+func GetAllImportServicesHandler(w http.ResponseWriter, _ *http.Request) {
 	// GetService control plane logic
 	mlog.Infof("Received get all import services")
 	sArr := getAllImportServices()

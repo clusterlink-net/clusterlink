@@ -66,7 +66,7 @@ func (m MbgHandler) Routes() chi.Router {
 	return r
 }
 
-func (m MbgHandler) controlplaneWelcome(w http.ResponseWriter, r *http.Request) {
+func (m MbgHandler) controlplaneWelcome(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte("Welcome to control plane Gateway"))
 	if err != nil {
 		log.Println(err)
