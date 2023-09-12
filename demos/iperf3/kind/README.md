@@ -84,7 +84,7 @@ First, Initialize the parameters of the test (pods' names and IPs):
 Start the Gateway in Cluster 1:
 
     kubectl config use-context kind-cluster1
-    kubectl exec -i $MBG1_CP -- ./controlplane start --id mbg1 --ip $MBG1IP --cport 30443 --cportLocal 443 --externalDataPortRange 30001 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key --startPolicyEngine=true --logFile=true --zeroTrust=false &
+    kubectl exec -i $MBG1_CP -- ./controlplane start --id mbg1 --ip $MBG1IP --cport 30443 --cportLocal 443 --externalDataPortRange 30001 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key --startPolicyEngine=true --logFile=true &
     kubectl exec -i $MBG1_DP -- ./dataplane --id mbg1 --dataplane mtls --certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key &
 
 

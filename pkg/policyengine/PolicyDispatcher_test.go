@@ -42,7 +42,7 @@ var (
 
 func TestMain(m *testing.M) {
 	router := chi.NewRouter()
-	policyengine.StartPolicyDispatcher(router, event.Allow)
+	policyengine.StartPolicyDispatcher(router)
 
 	server = httptest.NewServer(router)
 	client = server.Client()

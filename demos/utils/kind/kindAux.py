@@ -34,7 +34,7 @@ def getKindIp(name):
 def startGwctl(gwctlName, mbgIP, mbgcPort, dataplane, gwctlcrt):
     runcmd(f'gwctl init --id {gwctlName} --gwIP {mbgIP} --gwPort {mbgcPort}  --dataplane {dataplane} {gwctlcrt} ')
 
-def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane, mbgcrtFlags, gwctlLocal=True, runInfg=False, cni="default", logFile=True,zeroTrust=False):
+def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane, mbgcrtFlags, gwctlLocal=True, runInfg=False, cni="default", logFile=True):
     os.system(f"kind delete cluster --name={mbgName}")
     ###first Mbg
     printHeader(f"\n\nStart building {mbgName}")
@@ -46,7 +46,7 @@ def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort
     
     printHeader(f"\n\nStart {mbgName} (along with PolicyEngine)")
     startcmd= f'{podMbg} -- ./controlplane start --id "{mbgName}" --ip {mbgKindIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --externalDataPortRange {mbgDataPort}\
-    --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine={True} --observe={True} --logFile={logFile} --zeroTrust={zeroTrust}'
+    --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine={True} --observe={True} --logFile={logFile}'
 
     if runInfg:
         runcmd("kubectl exec -it " + startcmd)
