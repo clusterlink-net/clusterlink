@@ -12,8 +12,8 @@ from demos.utils.kind.kindAux import useKindCluster,getKindIp
 
 iperf3DestPort  = "30001"
 #folders
-folCl=f"{proj_dir}/demos/iperf3/manifests/iperf3-client"
-folSv=f"{proj_dir}/demos/iperf3/manifests/iperf3-server"
+folCl=f"{proj_dir}/demos/iperf3/testdata/manifests/iperf3-client"
+folSv=f"{proj_dir}/demos/iperf3/testdata/manifests/iperf3-server"
     
 def setIperf3client(mbgName, gwctlName,srcSvc):
     printHeader(f"Create {srcSvc} (client) service in {mbgName}")

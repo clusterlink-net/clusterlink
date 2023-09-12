@@ -27,7 +27,7 @@ mbg2ibm = cluster(name="mbg2", zone = "dal10",      platform = "ibm", type = "ta
 destSvc  = "iperf3-server"
 srcSvc   = "iperf3-client"
 mbgcPort="443"
-folMn=f"{PROJECT_PATH}/demos/iperf3/manifests/"
+folMn=f"{PROJECT_PATH}/demos/iperf3/testdata/manifests/"
 
 
 if __name__ == "__main__":

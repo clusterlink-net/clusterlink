@@ -20,8 +20,7 @@ from demos.iperf3.kind.iperf3_service_create import setIperf3client, setIperf3Se
 from demos.iperf3.kind.iperf3_service_import import importService
 from demos.iperf3.kind.iperf3_service_get import getService
 from demos.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
-from demos.iperf3.kind.apply_policy import addPolicy
-from demos.iperf3.kind.apply_access_policy import applyAccessPolicy
+from demos.iperf3.kind.apply_policy import applyAccessPolicy
 
 from demos.utils.kind.kindAux import useKindCluster, getKindIp,startKindClusterMbg,startGwctl
 
@@ -68,8 +67,8 @@ if __name__ == "__main__":
     
         
     #folders
-    folCl=f"{proj_dir}/demos/iperf3/manifests/iperf3-client"
-    folSv=f"{proj_dir}/demos/iperf3/manifests/iperf3-server"
+    folCl=f"{proj_dir}/demos/iperf3/testdata/manifests/iperf3-client"
+    folSv=f"{proj_dir}/demos/iperf3/testdata/manifests/iperf3-server"
 
     #files
     allowAllPolicy=f"{proj_dir}/pkg/policyengine/policytypes/examples/allowAll.json"

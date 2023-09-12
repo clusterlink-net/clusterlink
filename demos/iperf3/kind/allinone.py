@@ -26,6 +26,7 @@ if __name__ == "__main__":
     parser.add_argument('-c','--cni', help='Which cni to use default(kindnet)/flannel/calico/diff (different cni for each cluster)', required=False, default="default")
 
     args = vars(parser.parse_args())
+    allowAllPolicy =f"{proj_dir}/pkg/policyengine/policytypes/examples/allowAll.json"
 
     printHeader("\n\nStart Kind Test\n\n")
     printHeader("Start pre-setting")
@@ -73,8 +74,8 @@ if __name__ == "__main__":
 
         
     #folders
-    folCl=f"{proj_dir}/demos/iperf3/manifests/iperf3-client"
-    folSv=f"{proj_dir}/demos/iperf3/manifests/iperf3-server"
+    folCl=f"{proj_dir}/demos/iperf3/testdata/manifests/iperf3-client"
+    folSv=f"{proj_dir}/demos/iperf3/testdata/manifests/iperf3-server"
     
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
@@ -98,11 +99,11 @@ if __name__ == "__main__":
       
     ###get mbg parameters
     useKindCluster(mbg1Name)
-    mbg1Ip               = getKindIp("mbg1")
+    mbg1Ip        = getKindIp("mbg1")
     useKindCluster(mbg2Name)
-    mbg2Ip=getKindIp(mbg2Name)
+    mbg2Ip        = getKindIp(mbg2Name)
     useKindCluster(mbg3Name)
-    mbg3Ip                = getKindIp("mbg3")
+    mbg3Ip        = getKindIp("mbg3")
 
     # Start gwctl
     startGwctl(gwctl1Name, mbg1Ip, mbg1cPort, dataplane, gwctl1crt)
@@ -133,6 +134,12 @@ if __name__ == "__main__":
     importService(mbg1Name, gwctl1Name, destSvc,destPort, mbg2Name)
     importService(mbg3Name, gwctl3Name, destSvc,destPort, mbg2Name)
 
+    # Set policies
+    printHeader(f"\n\nApplying policy file {allowAllPolicy}")
+    useKindCluster(mbg1Name)
+    runcmd(f'gwctl --myid {gwctl1Name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gwctl2Name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gwctl3Name} create policy --type access --policyFile {allowAllPolicy}')
     #Get services
     getService(gwctl1Name,destSvc)
     
@@ -151,10 +158,12 @@ if __name__ == "__main__":
 
     # Test external
     printHeader("\n\nTest external service")
+    useKindCluster(mbg2Name)
+    _ , destSvcPodIp = getPodNameIp(destSvc)
     externalName ="iperf3-external" 
-    exportExternalService(gwctl2Name,externalName, destSvc,destPort,mbg2Ip,kindDestPort )
-    importService(mbg1Name, gwctl1Name, externalName,destPort, mbg2Name)
-    testIperf3Client(mbg1Name, srcSvc, externalName,    destPort)
+    exportExternalService(gwctl2Name, externalName, externalName, destPort, destSvcPodIp, destPort)
+    importService(mbg1Name, gwctl1Name, externalName, destPort, mbg2Name)
+    testIperf3Client(mbg1Name, srcSvc, externalName, destPort)
 
     #Block Traffic in MBG3
     printHeader("Start Block Traffic in MBG3")
