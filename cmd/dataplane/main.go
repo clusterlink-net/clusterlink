@@ -4,7 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" //nolint:gosec // G108:  Profiling endpoint is automatically exposed on /debug/pprof
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	dp "github.ibm.com/mbg-agent/pkg/dataplane"
@@ -38,13 +39,17 @@ func main() {
 	if profilePort != 0 {
 		go func() {
 			log.Info("Starting PProf HTTP listener at ", profilePort)
-			log.WithError(http.ListenAndServe(fmt.Sprintf("localhost:%d", profilePort), nil)).
-				Error("PProf HTTP listener stopped working")
+			server := &http.Server{
+				Addr:              fmt.Sprintf("localhost:%d", profilePort),
+				ReadHeaderTimeout: 3 * time.Second,
+			}
+			log.WithError(server.ListenAndServe()).Error("PProf HTTP listener stopped working")
 		}()
 	}
 
 	// Set Dataplane
 	dp := dp.NewDataplane(&store.Store{ID: id, CertAuthority: ca, Cert: cert, Key: key, Dataplane: dataplane}, controlplane)
+
 	dp.StartServer(port)
 	log.Infof("Dataplane main process is finished")
 }

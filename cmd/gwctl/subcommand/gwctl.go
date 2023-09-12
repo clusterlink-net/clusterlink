@@ -107,7 +107,7 @@ func (o *stateGetOptions) run() error {
 
 	sJSON, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
-		return fmt.Errorf("Error: %v", err.Error())
+		return fmt.Errorf("error: %v", err.Error())
 	}
 
 	fmt.Println(string(sJSON))

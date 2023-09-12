@@ -3,7 +3,7 @@ package subcommand
 import (
 	"fmt"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" //nolint:gosec // G198: Subprocess launched by package local calls only
 	"os"
 	"time"
 
@@ -59,8 +59,11 @@ func StartCmd() *cobra.Command {
 			if profilePort != 0 {
 				go func() {
 					log.Info("Starting PProf HTTP listener at ", profilePort)
-					log.WithError(http.ListenAndServe(fmt.Sprintf("localhost:%d", profilePort), nil)).
-						Error("PProf HTTP listener stopped working")
+					server := &http.Server{
+						Addr:              fmt.Sprintf("localhost:%d", profilePort),
+						ReadHeaderTimeout: 3 * time.Second,
+					}
+					log.WithError(server.ListenAndServe()).Error("PProf HTTP listener stopped working")
 				}()
 			}
 			if restore {

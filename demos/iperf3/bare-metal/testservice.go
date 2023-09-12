@@ -1,6 +1,6 @@
 /*
- * This file is for temporary testing purpose. TODO : Remove this in future
- */
+This file is for temporary testing purpose. TODO : Remove this in future
+*/
 package main
 
 import (
@@ -69,9 +69,7 @@ func recvServiceData(conn net.Conn, write bool) {
 		if write {
 			_, err = conn.Write([]byte("Success from server"))
 			if err != nil {
-				if err == io.EOF {
-					err = nil //Ignore EOF error
-				} else {
+				if err != io.EOF {
 					log.Fatalf("Read error %v\n", err)
 				}
 			}
