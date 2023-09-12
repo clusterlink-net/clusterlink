@@ -134,21 +134,18 @@ func DelExportServiceHandler(w http.ResponseWriter, r *http.Request) {
 	svcID := chi.URLParam(r, "id")
 
 	// AddService control plane logic
-	err := delExportService(svcID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+	delExportService(svcID)
+
 	// Response
 	w.WriteHeader(http.StatusNoContent)
-	_, err = w.Write([]byte("Service deleted successfully"))
+	_, err := w.Write([]byte("Service deleted successfully"))
 	if err != nil {
 		slog.Println(err)
 	}
 }
 
 // Delete local service - control plane logic
-func delExportService(svcID string) error {
+func delExportService(svcID string) {
 	store.UpdateState()
 	var svcArr []store.LocalService
 	if svcID == "*" { // remove all services
@@ -159,17 +156,5 @@ func delExportService(svcID string) error {
 
 	for _, svc := range svcArr {
 		store.DelLocalService(svc.ID)
-		if kubernetes.Data.CheckEndpointExist(svc.ID) {
-			if err := kubernetes.Data.DeleteEndpoint(svc.ID); err != nil {
-				return err
-			}
-		}
-		if kubernetes.Data.CheckServiceExist(svc.ID) {
-			if err := kubernetes.Data.DeleteService(svc.ID); err != nil {
-				return err
-			}
-		}
 	}
-	return nil
-
 }

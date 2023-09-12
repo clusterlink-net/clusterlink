@@ -159,19 +159,12 @@ func convertImportServiceToImportReq(svcID string) api.Import {
 func DelImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse del service struct from request
 	svcID := chi.URLParam(r, "id")
-	// Parse add service struct from request
-	var s api.Import
-	defer r.Body.Close()
-	err := json.NewDecoder(r.Body).Decode(&s)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 
 	// AddService control plane logic
 	delImportService(svcID)
 	if MyRunTimeEnv.IsRuntimeEnvK8s() {
-		if err = deleteImportK8sService(svcID); err != nil {
+		if err := deleteImportK8sService(svcID); err != nil {
+
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			mlog.Println(err)
 			return
@@ -180,10 +173,6 @@ func DelImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Response
 	w.WriteHeader(http.StatusNoContent)
-	_, err = w.Write([]byte("Service deleted successfully"))
-	if err != nil {
-		mlog.Println(err)
-	}
 }
 
 // Delete remote service - control logic
