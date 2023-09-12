@@ -28,7 +28,7 @@ func (m *EventManager) RaiseNewConnectionRequestEvent(connectionAttr ConnectionR
 			elog.Errorf("Unable to marshal json %v", err)
 			return ConnectionRequestResp{Action: Allow, TargetMbg: "", BitRate: 0}, err
 		}
-		resp, err := httputils.HttpPost(url, jsonReq, m.HttpClient)
+		resp, err := httputils.Post(url, jsonReq, m.HttpClient)
 		if err != nil {
 			elog.Errorf("unable to POST request %v", err)
 			return ConnectionRequestResp{Action: Allow, TargetMbg: "", BitRate: 0}, err
@@ -57,7 +57,7 @@ func (m *EventManager) RaiseConnectionStatusEvent(connectionStatusAttr Connectio
 			elog.Errorf("Unable to marshal json %v", err)
 			return err
 		}
-		_, err = httputils.HttpPost(url, jsonReq, m.HttpClient)
+		_, err = httputils.Post(url, jsonReq, m.HttpClient)
 		return err
 	} else {
 		// No Metrics Manager assigned
@@ -75,7 +75,7 @@ func (m *EventManager) RaiseNewRemoteServiceEvent(remoteServiceAttr NewRemoteSer
 			elog.Errorf("Unable to marshal json %v", err)
 			return NewRemoteServiceResp{Action: Allow}, err
 		}
-		resp, err := httputils.HttpPost(url, jsonReq, m.HttpClient)
+		resp, err := httputils.Post(url, jsonReq, m.HttpClient)
 		if err != nil {
 			return NewRemoteServiceResp{Action: Allow}, err
 		}
@@ -103,7 +103,7 @@ func (m *EventManager) RaiseExposeRequestEvent(exposeRequestAttr ExposeRequestAt
 			elog.Errorf("Unable to marshal json %v", err)
 			return ExposeRequestResp{Action: Allow}, err
 		}
-		resp, err := httputils.HttpPost(url, jsonReq, m.HttpClient)
+		resp, err := httputils.Post(url, jsonReq, m.HttpClient)
 		if err != nil {
 			return ExposeRequestResp{Action: Allow}, err
 		}
@@ -131,7 +131,7 @@ func (m *EventManager) RaiseAddPeerEvent(addPeerAttr AddPeerAttr) (AddPeerResp, 
 			elog.Errorf("Unable to marshal json %v", err)
 			return AddPeerResp{Action: Allow}, err
 		}
-		resp, err := httputils.HttpPost(url, jsonReq, m.HttpClient)
+		resp, err := httputils.Post(url, jsonReq, m.HttpClient)
 		if err != nil {
 			elog.Errorf("Unable to unmarshal RaiseAddPeerEvent json %v", err)
 			return AddPeerResp{Action: Allow}, err
@@ -160,7 +160,7 @@ func (m *EventManager) RaiseRemovePeerEvent(removePeerAttr RemovePeerAttr) error
 			elog.Errorf("Unable to marshal json %v", err)
 			return err
 		}
-		_, err = httputils.HttpPost(url, jsonReq, m.HttpClient)
+		_, err = httputils.Post(url, jsonReq, m.HttpClient)
 		if err != nil {
 			elog.Errorf("Unable to send to Policy dispatcher %s", url)
 		}
@@ -182,7 +182,7 @@ func (m *EventManager) RaiseRemoveRemoteServiceEvent(removeRemoteServiceAttr Rem
 			elog.Errorf("Unable to marshal json %v", err)
 			return err
 		}
-		resp, _ := httputils.HttpPost(url, jsonReq, m.HttpClient)
+		resp, _ := httputils.Post(url, jsonReq, m.HttpClient)
 		if string(resp) == httputils.RESPFAIL {
 			elog.Errorf("Unable to send to Policy dispatcher %s", url)
 		}

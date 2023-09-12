@@ -77,7 +77,7 @@ func createImportServiceEndpoint(e api.Import) error {
 		return err
 	}
 	// Send expose
-	resp, err := httputils.HttpPost(address, j, store.GetHttpClient())
+	resp, err := httputils.Post(address, j, store.GetHttpClient())
 	mlog.Infof("Create connection request to address %s data-plane for service(%s)- %s ", address, e.Name, string(resp))
 	if err != nil {
 		mlog.Error(err)
@@ -172,10 +172,10 @@ func DelImportServiceHandler(w http.ResponseWriter, r *http.Request) {
 	delImportService(svcID)
 	if MyRunTimeEnv.IsRuntimeEnvK8s() {
 		if err = deleteImportK8sService(svcID); err != nil {
-		  http.Error(w, err.Error(), http.StatusInternalServerError)
-		  mlog.Println(err)
-		  return
-    }
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			mlog.Println(err)
+			return
+		}
 	}
 
 	// Response

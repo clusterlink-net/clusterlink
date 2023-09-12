@@ -73,7 +73,7 @@ func SendHeartBeats() error {
 		mList := store.GetMbgList()
 		for _, m := range mList {
 			url := head + store.GetMbgTarget(m) + "/hb"
-			_, err := httputils.HttpPost(url, j, httpclient)
+			_, err := httputils.Post(url, j, httpclient)
 			if err != nil {
 				klog.Errorf("Unable to send heartbeat to %s, Error: %v", url, err.Error())
 				continue
