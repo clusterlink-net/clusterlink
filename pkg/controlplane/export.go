@@ -98,11 +98,11 @@ func getExportService(svcID string) api.Export {
 	store.UpdateState()
 	s := store.GetLocalService(svcID)
 	port, _ := strconv.Atoi(s.Port)
-	return api.Export{Name: s.Id, Spec: api.ExportSpec{Service: api.Endpoint{Host: s.Ip, Port: uint16(port)}}}
+	return api.Export{Name: s.ID, Spec: api.ExportSpec{Service: api.Endpoint{Host: s.IP, Port: uint16(port)}}}
 }
 
 // GetAllExportServicesHandler - HTTP handler for Get all export services
-func GetAllExportServicesHandler(w http.ResponseWriter, r *http.Request) {
+func GetAllExportServicesHandler(w http.ResponseWriter, _ *http.Request) {
 	sArr := getAllExportServices() // GetService control plane logic
 
 	// Set response
@@ -120,10 +120,10 @@ func getAllExportServices() []api.Export {
 	sArr := []api.Export{}
 
 	for _, s := range store.GetLocalServicesArr() {
-		sPort := store.GetConnectionArr()[s.Id]
-		sIP := store.GetMyIp()
+		sPort := store.GetConnectionArr()[s.ID]
+		sIP := store.GetMyIP()
 		port, _ := strconv.Atoi(sPort)
-		sArr = append(sArr, api.Export{Name: s.Id, Spec: api.ExportSpec{Service: api.Endpoint{Host: sIP, Port: uint16(port)}}})
+		sArr = append(sArr, api.Export{Name: s.ID, Spec: api.ExportSpec{Service: api.Endpoint{Host: sIP, Port: uint16(port)}}})
 	}
 	return sArr
 }
@@ -158,14 +158,14 @@ func delExportService(svcID string) error {
 	}
 
 	for _, svc := range svcArr {
-		store.DelLocalService(svc.Id)
-		if kubernetes.Data.CheckEndpointExist(svc.Id) {
-			if err := kubernetes.Data.DeleteEndpoint(svc.Id); err != nil {
+		store.DelLocalService(svc.ID)
+		if kubernetes.Data.CheckEndpointExist(svc.ID) {
+			if err := kubernetes.Data.DeleteEndpoint(svc.ID); err != nil {
 				return err
 			}
 		}
-		if kubernetes.Data.CheckServiceExist(svc.Id) {
-			if err := kubernetes.Data.DeleteService(svc.Id); err != nil {
+		if kubernetes.Data.CheckServiceExist(svc.ID) {
+			if err := kubernetes.Data.DeleteService(svc.ID); err != nil {
 				return err
 			}
 		}

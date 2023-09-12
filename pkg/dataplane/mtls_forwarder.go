@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
-	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	event "github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 	"github.ibm.com/mbg-agent/pkg/utils/netutils"
 )
 

@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
-	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	event "github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 )
 
 var mlog = logrus.WithField("component", "Metrics")
@@ -56,16 +56,16 @@ func (m *Metrics) PostConnectionMetrics(w http.ResponseWriter, r *http.Request) 
 }
 
 func (m *Metrics) aggregateMetrics(connectionStatus event.ConnectionStatusAttr) {
-	if _, exists := m.ConnectionFlow[connectionStatus.ConnectionId]; exists {
+	if _, exists := m.ConnectionFlow[connectionStatus.ConnectionID]; exists {
 		// Update existing metrics
-		flow := m.ConnectionFlow[connectionStatus.ConnectionId]
+		flow := m.ConnectionFlow[connectionStatus.ConnectionID]
 		flow.IncomingBytes += connectionStatus.IncomingBytes
 		flow.OutgoingBytes += connectionStatus.OutgoingBytes
 		flow.LastTstamp = connectionStatus.LastTstamp
 		flow.State = connectionStatus.State
-		// m.ConnectionFlow[connectionStatus.ConnectionId] = flow
+		// m.ConnectionFlow[connectionStatus.ConnectionID] = flow
 	} else {
-		m.ConnectionFlow[connectionStatus.ConnectionId] = &connectionStatus
+		m.ConnectionFlow[connectionStatus.ConnectionID] = &connectionStatus
 	}
 }
 

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.ibm.com/mbg-agent/pkg/api"
-	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	event "github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 	"github.ibm.com/mbg-agent/pkg/policyengine"
 	"github.ibm.com/mbg-agent/pkg/policyengine/policytypes"
 	"github.ibm.com/mbg-agent/pkg/util/jsonapi"

@@ -11,7 +11,7 @@ import (
 	"github.com/segmentio/ksuid"
 	log "github.com/sirupsen/logrus"
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/health"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
@@ -30,8 +30,8 @@ func (m MbgHandler) Routes() chi.Router {
 
 	r.Route("/peers", func(r chi.Router) {
 		r.Get("/", GetAllPeersHandler)       // GET    /peer      - Get all peers
-		r.Post("/", AddPeerHandler)          // Post   /peer      - Add peer Id to peers list
-		r.Get("/{id}", GetPeerHandler)       // GET    /peer/{id} - Get peer Id
+		r.Post("/", AddPeerHandler)          // Post   /peer      - Add peer ID to peers list
+		r.Get("/{id}", GetPeerHandler)       // GET    /peer/{id} - Get peer ID
 		r.Delete("/{id}", RemovePeerHandler) // Delete /peer/{id} - Delete peer
 	})
 
@@ -50,8 +50,8 @@ func (m MbgHandler) Routes() chi.Router {
 	r.Route("/imports", func(r chi.Router) {
 		r.Post("/", AddImportServiceHandler)                // Post /imports            - Add Remote service
 		r.Get("/", GetAllImportServicesHandler)             // Get  /imports            - Get all remote services
-		r.Get("/{id}", GetImportServiceHandler)             // Get  /imports/{svcId}    - Get specific remote service
-		r.Delete("/{id}", DelImportServiceHandler)          // Delete  /imports/{svcId} - Delete specific remote service
+		r.Get("/{id}", GetImportServiceHandler)             // Get  /imports/{svcID}    - Get specific remote service
+		r.Delete("/{id}", DelImportServiceHandler)          // Delete  /imports/{svcID} - Delete specific remote service
 		r.Post("/newConnection", setupNewImportConnHandler) // Post /newImportConnection - New connection parameters check
 	})
 
@@ -66,7 +66,7 @@ func (m MbgHandler) Routes() chi.Router {
 	return r
 }
 
-func (m MbgHandler) controlplaneWelcome(w http.ResponseWriter, r *http.Request) {
+func (m MbgHandler) controlplaneWelcome(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte("Welcome to control plane Gateway"))
 	if err != nil {
 		log.Println(err)
@@ -84,7 +84,7 @@ func setupNewImportConnHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 	log.Infof("Got new connection check for dataplane: %+v", c)
-	connReply := setupNewImportConn(c.SrcIp, c.DestIp, c.DestId)
+	connReply := setupNewImportConn(c.SrcIP, c.DestIP, c.DestID)
 	// Response
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(connReply); err != nil {
@@ -101,7 +101,7 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 	// If we cant find the service, we get the "service id" as a wildcard
 	// which is sent to the policy engine to decide.
 
-	// Ideally do a control plane connect API, Policy checks, and then create a mTLS forwarder
+	// IDeally do a control plane connect API, Policy checks, and then create a mTLS forwarder
 	// ImportEndPoint has to be in the connect Request/Response
 	var appLabel = ""
 	var err error
@@ -117,22 +117,22 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 		log.Infof("Unable to lookup local service :%v", err)
 	}
 
-	policyResp, err := store.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: srcSvc.Id, DstService: destSvcID, Direction: eventManager.Outgoing, OtherMbg: eventManager.Wildcard})
+	policyResp, err := store.GetEventManager().RaiseNewConnectionRequestEvent(eventmanager.ConnectionRequestAttr{SrcService: srcSvc.ID, DstService: destSvcID, Direction: eventmanager.Outgoing, OtherMbg: eventmanager.Wildcard})
 	if err != nil {
 		log.Errorf("Unable to raise connection request event")
-		return apiObject.NewImportConnParmaReply{Action: eventManager.Deny.String()}
+		return apiObject.NewImportConnParmaReply{Action: eventmanager.Deny.String()}
 	}
-	connectionId := srcSvc.Id + ":" + destSvcID + ":" + ksuid.New().String()
-	connectionStatus := eventManager.ConnectionStatusAttr{ConnectionId: connectionId,
+	connectionID := srcSvc.ID + ":" + destSvcID + ":" + ksuid.New().String()
+	connectionStatus := eventmanager.ConnectionStatusAttr{ConnectionID: connectionID,
 		SrcService:      appLabel,
 		DstService:      destSvcID,
 		DestinationPeer: policyResp.TargetMbg,
 		StartTstamp:     time.Now(),
-		Direction:       eventManager.Outgoing,
-		State:           eventManager.Ongoing}
+		Direction:       eventmanager.Outgoing,
+		State:           eventmanager.Ongoing}
 
-	if policyResp.Action == eventManager.Deny {
-		connectionStatus.State = eventManager.Denied
+	if policyResp.Action == eventmanager.Deny {
+		connectionStatus.State = eventmanager.Denied
 	}
 
 	if err = store.GetEventManager().RaiseConnectionStatusEvent(connectionStatus); err != nil {
@@ -140,7 +140,7 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 		// TODO: allow the connection to proceed?
 	}
 
-	log.Infof("Accepting Outgoing Connect request from service: %v to service: %v", srcSvc.Id, destSvcID)
+	log.Infof("Accepting Outgoing Connect request from service: %v to service: %v", srcSvc.ID, destSvcID)
 
 	var target string
 	if policyResp.TargetMbg == "" {
@@ -149,7 +149,7 @@ func setupNewImportConn(srcIP, destIP, destSvcID string) apiObject.NewImportConn
 	} else {
 		target = store.GetMbgTarget(policyResp.TargetMbg)
 	}
-	return apiObject.NewImportConnParmaReply{Action: policyResp.Action.String(), Target: target, SrcId: srcSvc.Id, ConnId: connectionId}
+	return apiObject.NewImportConnParmaReply{Action: policyResp.Action.String(), Target: target, SrcID: srcSvc.ID, ConnID: connectionID}
 }
 
 // New connection request to export service- HTTP handler
@@ -164,7 +164,7 @@ func setupNewExportConnHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 	log.Infof("Got new connection check for dataplane: %+v", c)
-	connReply := setupNewExportConn(c.SrcId, c.SrcGwId, c.DestId)
+	connReply := setupNewExportConn(c.SrcID, c.SrcGwID, c.DestID)
 	// Response
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(connReply); err != nil {
@@ -176,24 +176,24 @@ func setupNewExportConnHandler(w http.ResponseWriter, r *http.Request) {
 // New connection request  to export service-control plane logic that check the policy and connection parameters
 func setupNewExportConn(srcSvcID, srcGwID, destSvcID string) apiObject.NewExportConnParmaReply {
 	localSvc := store.GetLocalService(destSvcID)
-	policyResp, err := store.GetEventManager().RaiseNewConnectionRequestEvent(eventManager.ConnectionRequestAttr{SrcService: srcSvcID, DstService: destSvcID, Direction: eventManager.Incoming, OtherMbg: srcGwID})
+	policyResp, err := store.GetEventManager().RaiseNewConnectionRequestEvent(eventmanager.ConnectionRequestAttr{SrcService: srcSvcID, DstService: destSvcID, Direction: eventmanager.Incoming, OtherMbg: srcGwID})
 
 	if err != nil {
-		log.Error("Unable to raise connection request event ", store.GetMyId())
-		return apiObject.NewExportConnParmaReply{Action: eventManager.Deny.String()}
+		log.Error("Unable to raise connection request event ", store.GetMyID())
+		return apiObject.NewExportConnParmaReply{Action: eventmanager.Deny.String()}
 	}
 
-	connectionId := srcSvcID + ":" + destSvcID + ":" + ksuid.New().String()
-	connectionStatus := eventManager.ConnectionStatusAttr{ConnectionId: connectionId,
+	connectionID := srcSvcID + ":" + destSvcID + ":" + ksuid.New().String()
+	connectionStatus := eventmanager.ConnectionStatusAttr{ConnectionID: connectionID,
 		SrcService:      srcSvcID,
 		DstService:      destSvcID,
 		DestinationPeer: srcGwID,
 		StartTstamp:     time.Now(),
-		Direction:       eventManager.Incoming,
-		State:           eventManager.Ongoing}
+		Direction:       eventmanager.Incoming,
+		State:           eventmanager.Ongoing}
 
-	if policyResp.Action == eventManager.Deny {
-		connectionStatus.State = eventManager.Denied
+	if policyResp.Action == eventmanager.Deny {
+		connectionStatus.State = eventmanager.Denied
 	}
 
 	if err = store.GetEventManager().RaiseConnectionStatusEvent(connectionStatus); err != nil {
@@ -202,7 +202,7 @@ func setupNewExportConn(srcSvcID, srcGwID, destSvcID string) apiObject.NewExport
 	}
 
 	srcGw := store.GetMbgTarget(srcGwID)
-	return apiObject.NewExportConnParmaReply{Action: policyResp.Action.String(), SrcGwEndpoint: srcGw, DestSvcEndpoint: localSvc.GetIpAndPort(), ConnId: connectionId}
+	return apiObject.NewExportConnParmaReply{Action: policyResp.Action.String(), SrcGwEndpoint: srcGw, DestSvcEndpoint: localSvc.GetIPAndPort(), ConnID: connectionID}
 }
 
 // Connection Status handler to receive metrics regarding connection from the dataplane
@@ -216,7 +216,7 @@ func connStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-	connectionStatus := eventManager.ConnectionStatusAttr{ConnectionId: c.ConnectionId,
+	connectionStatus := eventmanager.ConnectionStatusAttr{ConnectionID: c.ConnectionID,
 		IncomingBytes: c.IncomingBytes,
 		OutgoingBytes: c.OutgoingBytes,
 		StartTstamp:   c.StartTstamp,

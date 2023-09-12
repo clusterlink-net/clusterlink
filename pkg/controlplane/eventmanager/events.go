@@ -1,4 +1,4 @@
-package eventManager
+package eventmanager
 
 import "time"
 
@@ -61,7 +61,7 @@ type ConnectionRequestResp struct {
 }
 
 type ConnectionStatusAttr struct {
-	ConnectionId    string // Unique ID to track a connection from start to end within the gateway
+	ConnectionID    string // Unique ID to track a connection from start to end within the gateway
 	SrcService      string // Source application/service initiating the connection
 	DstService      string // Destination application/service receiving the connection
 	IncomingBytes   int

@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	cp "github.ibm.com/mbg-agent/pkg/controlplane"
-	event "github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	event "github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/health"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
@@ -141,7 +141,7 @@ func startHealthMonitor() {
 
 // addPolicyEngine add policy engine server
 func addPolicyEngine(policyengineTarget string, start bool, zeroTrust bool) {
-	store.GetEventManager().AssignPolicyDispatcher(store.GetAddrStart()+policyengineTarget, store.GetHttpClient())
+	store.GetEventManager().AssignPolicyDispatcher(store.GetAddrStart()+policyengineTarget, store.GetHTTPClient())
 	// TODO : Handle different MBG IDs
 	store.SaveState()
 	defaultRule := event.AllowAll
@@ -194,7 +194,7 @@ func restoreMbg(logLevel string, logFile, startPolicyEngine bool, zeroTrust bool
 }
 
 func addMetricsManager(metricsManagerTarget string, start bool) {
-	store.GetEventManager().AssignMetricsManager(store.GetAddrStart()+metricsManagerTarget, store.GetHttpClient())
+	store.GetEventManager().AssignMetricsManager(store.GetAddrStart()+metricsManagerTarget, store.GetHTTPClient())
 	store.SaveState()
 	if start {
 		metrics.StartMetricsManager(store.GetChiRouter())

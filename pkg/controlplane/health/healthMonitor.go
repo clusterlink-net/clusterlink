@@ -9,7 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventManager"
+	"github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
 	"github.ibm.com/mbg-agent/pkg/controlplane/store"
 	"github.ibm.com/mbg-agent/pkg/utils/httputils"
 )
@@ -24,35 +24,35 @@ const (
 var mbgLastSeenMutex sync.RWMutex
 var mbgLastSeen map[string]time.Time
 
-func updateLastSeen(mbgId string) {
+func updateLastSeen(mbgID string) {
 	mbgLastSeenMutex.Lock()
-	mbgLastSeen[mbgId] = time.Now()
+	mbgLastSeen[mbgID] = time.Now()
 	mbgLastSeenMutex.Unlock()
 }
 
-func RemoveLastSeen(mbgId string) {
+func RemoveLastSeen(mbgID string) {
 	mbgLastSeenMutex.Lock()
-	delete(mbgLastSeen, mbgId)
+	delete(mbgLastSeen, mbgID)
 	mbgLastSeenMutex.Unlock()
 }
 
-func getLastSeen(mbgId string) (time.Time, bool) {
+func getLastSeen(mbgID string) (time.Time, bool) {
 	mbgLastSeenMutex.RLock()
-	lastSeen, ok := mbgLastSeen[mbgId]
+	lastSeen, ok := mbgLastSeen[mbgID]
 	mbgLastSeenMutex.RUnlock()
 	return lastSeen, ok
 }
 
-func validateMBGs(mbgId string) {
-	ok := store.IsMbgPeer(mbgId)
+func validateMBGs(mbgID string) {
+	ok := store.IsMbgPeer(mbgID)
 	if !ok {
-		// klog.Infof("Update state before activating MBG %s", mbgId)
+		// klog.Infof("Update state before activating MBG %s", mbgID)
 		// store.UpdateState()
-		// ok = store.IsMbgPeer(mbgId)
+		// ok = store.IsMbgPeer(mbgID)
 		// if !ok {
 		// Activate MBG only if its present in inactive list
-		if store.IsMbgInactivePeer(mbgId) {
-			store.ActivateMbg(mbgId)
+		if store.IsMbgInactivePeer(mbgID) {
+			store.ActivateMbg(mbgID)
 		}
 		// }
 	}
@@ -62,13 +62,13 @@ func validateMBGs(mbgId string) {
 func SendHeartBeats() error {
 	mbgLastSeen = make(map[string]time.Time)
 	store.UpdateState()
-	j, err := json.Marshal(apiObject.HeartBeat{Id: store.GetMyId()})
+	j, err := json.Marshal(apiObject.HeartBeat{ID: store.GetMyID()})
 	if err != nil {
 		klog.Error(err)
 		return fmt.Errorf("unable to marshal json for heartbeat")
 	}
 	head := store.GetAddrStart()
-	httpclient := store.GetHttpClient()
+	httpclient := store.GetHTTPClient()
 	for {
 		mList := store.GetMbgList()
 		for _, m := range mList {
@@ -94,7 +94,7 @@ func HandleHB(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RecvHeartbeat(h.Id)
+	RecvHeartbeat(h.ID)
 
 	// Response
 	w.WriteHeader(http.StatusOK)
@@ -119,7 +119,7 @@ func MonitorHeartBeats() {
 			elapsed := t.Sub(lastSeen)
 			if elapsed > timeout {
 				klog.Errorf("Heartbeat Timeout reached, Inactivating MBG %s(LastSeen:%v)", m, lastSeen)
-				err := store.GetEventManager().RaiseRemovePeerEvent(eventManager.RemovePeerAttr{PeerMbg: m})
+				err := store.GetEventManager().RaiseRemovePeerEvent(eventmanager.RemovePeerAttr{PeerMbg: m})
 				if err != nil {
 					klog.Errorf("Unable to raise remove peer event")
 					return
