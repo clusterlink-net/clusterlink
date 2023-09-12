@@ -346,7 +346,7 @@ func (pH *PolicyHandler) policyWelcome(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func (pH *PolicyHandler) init(router *chi.Mux, defaultRule event.Action) {
+func (pH *PolicyHandler) init(router *chi.Mux) {
 	pH.mbgState.mbgPeers = &([]string{})
 	pH.loadBalancer = &LoadBalancer{}
 	pH.loadBalancer.Init()
@@ -356,7 +356,7 @@ func (pH *PolicyHandler) init(router *chi.Mux, defaultRule event.Action) {
 	router.Mount(PolicyRoute, routes)
 }
 
-func StartPolicyDispatcher(router *chi.Mux, defaultRule event.Action) {
+func StartPolicyDispatcher(router *chi.Mux) {
 	plog.Infof("Policy Engine started")
-	MyPolicyHandler.init(router, defaultRule)
+	MyPolicyHandler.init(router)
 }

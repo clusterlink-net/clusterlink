@@ -29,7 +29,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="mtls")
     parser.add_argument('-c','--cni', help='Which cni to use default(kindnet)/flannel/calico/diff (different cni for each cluster)', required=False, default="default")
-    parser.add_argument('-z','--zeroTrust', help='use zerotrust by default or not', required=False, default=False)
 
     args = vars(parser.parse_args())
 
@@ -38,7 +37,6 @@ if __name__ == "__main__":
 
     dataplane = args["dataplane"]
     cni = args["cni"]
-    zeroTrust= args["zeroTrust"]
     crtFol   = f"{proj_dir}/demos/utils/mtls"
     #MBG1 parameters 
     mbg1DataPort    = "30001"
@@ -89,8 +87,8 @@ if __name__ == "__main__":
     
     
     ### Build MBG in Kind clusters environment 
-    startKindClusterMbg(mbg1Name, gwctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags, cni=mbg1cni, zeroTrust=zeroTrust)        
-    startKindClusterMbg(mbg2Name, gwctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags, cni=mbg2cni, zeroTrust=zeroTrust)        
+    startKindClusterMbg(mbg1Name, gwctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags, cni=mbg1cni)        
+    startKindClusterMbg(mbg2Name, gwctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags, cni=mbg2cni)        
       
     ###get mbg parameters
     useKindCluster(mbg1Name)
