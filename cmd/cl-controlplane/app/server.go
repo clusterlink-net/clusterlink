@@ -12,6 +12,9 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/grpc"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/http"
+	"github.com/clusterlink-net/clusterlink/pkg/deployment"
+	"github.com/clusterlink-net/clusterlink/pkg/deployment/k8s"
+	"github.com/clusterlink-net/clusterlink/pkg/deployment/unknown"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv/bolt"
 	"github.com/clusterlink-net/clusterlink/pkg/util"
@@ -37,10 +40,17 @@ const (
 	httpServerAddress = "127.0.0.1:1100"
 	// grpcServerAddress is the address of the localhost gRPC server.
 	grpcServerAddress = "127.0.0.1:1101"
+
+	// DeploymentUnknown represents an unknown deployment.
+	DeploymentUnknown = ""
+	// DeploymentK8S represents a Kubernetes deployment.
+	DeploymentK8S = "k8s"
 )
 
 // Options contains everything necessary to create and run a controlplane.
 type Options struct {
+	// Deployment environment.
+	Deployment string
 	// LogFile is the path to file where logs will be written.
 	LogFile string
 	// LogLevel is the log level.
@@ -49,6 +59,9 @@ type Options struct {
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.Deployment, "deployment", DeploymentUnknown,
+		fmt.Sprintf("Deployment environment (supported values: \"%s\" (default), \"%s\").",
+			DeploymentUnknown, DeploymentK8S))
 	fs.StringVar(&o.LogFile, "log-file", "",
 		"Path to a file where logs will be written. If not specified, logs will be printed to stderr.")
 	fs.StringVar(&o.LogLevel, "log-level", logLevel,
@@ -103,8 +116,21 @@ func (o *Options) Run() error {
 
 	storeManager := kv.NewManager(kvStore)
 
-	// TODO: initialize kubernetes client and pass to NewInstance
-	cp, err := controlplane.NewInstance(parsedCertData, storeManager, nil)
+	// initiailze deployment
+	var deployment deployment.Deployment
+	switch o.Deployment {
+	case DeploymentUnknown:
+		deployment = unknown.NewDeployment()
+	case DeploymentK8S:
+		deployment, err = k8s.NewDeployment()
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unknown deployment type: %s", o.Deployment)
+	}
+
+	cp, err := controlplane.NewInstance(parsedCertData, storeManager, deployment)
 	if err != nil {
 		return err
 	}
