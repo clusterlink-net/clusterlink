@@ -9,9 +9,9 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/sirupsen/logrus"
-	"k8s.io/client-go/kubernetes"
 
 	cpstore "github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-org/clusterlink/pkg/deployment"
 	"github.com/clusterlink-org/clusterlink/pkg/store"
 	"github.com/clusterlink-org/clusterlink/pkg/util"
 )
@@ -30,7 +30,7 @@ type Instance struct {
 
 	xdsManager *xdsManager
 	ports      *portManager
-	kubeClient *kubernetes.Clientset
+	deployment deployment.Deployment
 
 	jwkSignKey   jwk.Key
 	jwkVerifyKey jwk.Key
@@ -213,7 +213,14 @@ func (cp *Instance) CreateImport(imp *cpstore.Import) error {
 		return err
 	}
 
-	// TODO: create k8s service using cp.kubeClient
+	// TODO: handle a crash happening between storing an import and creating a service
+	if cp.initialized {
+		err := cp.deployment.CreateService(imp.Service.Host, imp.Service.Port, imp.Port)
+		if err != nil {
+			// TODO: reconcile
+			return err
+		}
+	}
 
 	return nil
 }
@@ -235,7 +242,11 @@ func (cp *Instance) UpdateImport(imp *cpstore.Import) error {
 		return err
 	}
 
-	// TODO: update k8s service using cp.kubeClient
+	err = cp.deployment.UpdateService(imp.Service.Host, imp.Service.Port, imp.Port)
+	if err != nil {
+		// TODO: reconcile
+		return err
+	}
 
 	return nil
 }
@@ -255,14 +266,18 @@ func (cp *Instance) DeleteImport(name string) (*cpstore.Import, error) {
 		return nil, err
 	}
 
-	// TODO: delete k8s service using cp.kubeClient
-
 	if err := cp.xdsManager.DeleteImport(name); err != nil {
 		// practically impossible
 		return imp, err
 	}
 
 	cp.ports.Release(imp.Port)
+
+	if err := cp.deployment.DeleteService(imp.Service.Host); err != nil {
+		// TODO: reconcile
+		return nil, err
+	}
+
 	return imp, nil
 }
 
@@ -393,7 +408,7 @@ func (cp *Instance) generateJWK() error {
 }
 
 // NewInstance returns a new controlplane instance.
-func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, kubeClient *kubernetes.Clientset) (*Instance, error) {
+func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, deployment deployment.Deployment) (*Instance, error) {
 	logger := logrus.WithField("component", "controlplane")
 
 	peers, err := cpstore.NewPeers(storeManager)
@@ -429,7 +444,7 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, kubeC
 		bindings:    bindings,
 		xdsManager:  newXDSManager(),
 		ports:       newPortManager(),
-		kubeClient:  kubeClient,
+		deployment:  deployment,
 		initialized: false,
 		logger:      logger,
 	}

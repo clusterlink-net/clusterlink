@@ -53,9 +53,6 @@ function test_k8s {
   # get imported service port
   PORT=$(kubectl exec -it gwctl -- /bin/bash -c "gwctl get import --name foo | jq '.Status.Listener.Port' | tr -d '\n'")
 
-  # expose imported service (TODO: remove this when controlplane automatically creates a service)
-  kubectl expose deployment cl-dataplane --name=bla --port=9999 --target-port=$PORT
-
   # wait for imported service socket to come up
   kubectl exec -it gwctl -- timeout 30 sh -c 'until nc -z $0 $1; do sleep 0.1; done' bla 9999
   # wait for iperf server to come up
