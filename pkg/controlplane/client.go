@@ -3,8 +3,11 @@ package controlplane
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -13,12 +16,21 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/util/jsonapi"
 )
 
+const (
+	// heartbeatInterval is the time lapse between consecutive heartbeat requests to a responding peer.
+	heartbeatInterval = 10 * time.Second
+	// heartbeatRetransmissionTime is the time lapse between consecutive heartbeat requests to a non-responding peer.
+	heartbeatRetransmissionTime = 60 * time.Second
+)
+
 // client for accessing a remote peer.
 type client struct {
 	// jsonapi clients for connecting to the remote peer (one per each gateway)
-	clients []*jsonapi.Client
-
-	logger *logrus.Entry
+	clients  []*jsonapi.Client
+	lastSeen time.Time
+	active   bool
+	lock     sync.RWMutex
+	logger   *logrus.Entry
 }
 
 // remoteServerAuthorizationResponse represents an authorization response received from a remote controlplane server.
@@ -78,16 +90,91 @@ func (c *client) Authorize(req *api.AuthorizationRequest) (*remoteServerAuthoriz
 	return resp, nil
 }
 
+// IsActive returns if the peer is active or not.
+func (c *client) IsActive() bool {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.active
+}
+
+// setActive the peer status (active or not).
+func (c *client) setActive(active bool) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.active = active
+	if active || c.lastSeen.IsZero() {
+		c.lastSeen = time.Now()
+	}
+}
+
+// GetHeartbeat get a heartbeat from other peers.
+func (c *client) getHeartbeat() error {
+	var retErr error
+	// copy peer clients array aside
+	peerClients := make([]*jsonapi.Client, len(c.clients))
+	{
+		c.lock.RLock()
+		defer c.lock.RUnlock()
+		copy(peerClients, c.clients)
+	}
+
+	for _, client := range peerClients {
+		serverResp, err := client.Get(api.HeartbeatPath)
+		if err != nil {
+			retErr = errors.Join(retErr, err)
+			continue
+		}
+
+		if serverResp.Status == http.StatusOK {
+			return nil
+		}
+
+		retErr = errors.Join(retErr, fmt.Errorf("unable to get heartbeat (%d), server returned: %s",
+			serverResp.Status, serverResp.Body))
+	}
+
+	return retErr // Return an error if all client targets are unreachable
+}
+
+// heartbeatMonitor checks all peers for responsiveness, every fixed amount of time.
+func (c *client) heartbeatMonitor() {
+	c.logger.Info("Start sending heartbeat requests to peer")
+	ticker := time.NewTicker(heartbeatInterval)
+	defer ticker.Stop()
+	for {
+		t := time.Now()
+		if c.IsActive() || (!c.IsActive() && (t.Sub(c.lastSeen) > heartbeatRetransmissionTime)) ||
+			c.lastSeen.IsZero() {
+			if err := c.getHeartbeat(); err != nil {
+				if c.IsActive() {
+					c.logger.Errorf("Unable to get heartbeat from peer  Error: %v", err.Error())
+					c.setActive(false)
+				}
+			} else {
+				c.setActive(true)
+			}
+		}
+
+		// wait till it's time for next heartbeat round
+		<-ticker.C
+	}
+}
+
 // newClient returns a new Peer API client.
 func newClient(peer *store.Peer, tlsConfig *tls.Config) *client {
 	clients := make([]*jsonapi.Client, len(peer.Gateways))
 	for i, endpoint := range peer.Gateways {
 		clients[i] = jsonapi.NewClient(endpoint.Host, endpoint.Port, tlsConfig)
 	}
-	return &client{
-		clients: clients,
+	c := &client{
+		clients:  clients,
+		active:   false,
+		lastSeen: time.Time{},
 		logger: logrus.WithFields(logrus.Fields{
 			"component": "peer-client",
 			"peer":      peer}),
 	}
+
+	go c.heartbeatMonitor()
+	return c
 }
