@@ -28,6 +28,7 @@ func NewServer(cp *controlplane.Instance, tlsConfig *tls.Config) *Server {
 
 	s.addAPIHandlers()
 	s.addAuthzHandlers()
+	s.addHeartbeatHandler()
 
 	return s
 }
