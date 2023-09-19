@@ -33,8 +33,9 @@ const (
 )
 
 var (
-	mtlsFolder = ProjDir + "/tests/e2e/utils/testdata/mtls/"
-	manifests  = ProjDir + "/tests/e2e/utils/testdata/manifests/"
+	testOutputFolder = ProjDir + "/bin/tests/e2e/"
+	mtlsFolder       = ProjDir + "/tests/e2e/utils/testdata/mtls/"
+	manifests        = ProjDir + "/tests/e2e/utils/testdata/manifests/"
 )
 
 // ProjDir is the current directory of the project
@@ -46,24 +47,42 @@ func getProjFolder() string {
 }
 
 // StartClusterSetup starts a two cluster setup
-func StartClusterSetup() error {
-	err := StartClusterLink(gw1Name, cPortLocal, manifests, ControlPort)
+func StartClusterSetup(cpType string) error {
+	if cpType == "new" {
+		clAdm := ProjDir + "/bin/cl-adm "
+		// Create test folder
+		err := createFolder(testOutputFolder)
+		if err != nil {
+			return err
+		}
+
+		err = runCmdInDir(clAdm+" create fabric", testOutputFolder)
+		if err != nil {
+			return err
+		}
+	}
+	err := StartClusterLink(gw1Name, cPortLocal, manifests, ControlPort, cpType)
 	if err != nil {
 		return err
 	}
 
-	return StartClusterLink(gw2Name, cPortLocal, manifests, ControlPort)
+	return StartClusterLink(gw2Name, cPortLocal, manifests, ControlPort, cpType)
 
 }
 
 // GetClient returns a gwctl client given a cluster name
-func GetClient(name string) (*client.Client, error) {
+func GetClient(name, cpType string) (*client.Client, error) {
+	var parsedCertData *util.ParsedCertData
 	gwIP, err := GetKindIP(name)
 	if err != nil {
 		return nil, err
 	}
+	if cpType == "new" {
+		parsedCertData, err = util.ParseTLSFiles(testOutputFolder+"/cert.pem", testOutputFolder+name+"/gwctl/cert.pem", testOutputFolder+name+"/gwctl/key.pem")
+	} else {
+		parsedCertData, err = util.ParseTLSFiles(mtlsFolder+caCrt, mtlsFolder+gw1crt, mtlsFolder+gw1key)
+	}
 
-	parsedCertData, err := util.ParseTLSFiles(mtlsFolder+caCrt, mtlsFolder+gw1crt, mtlsFolder+gw1key)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -109,6 +128,18 @@ func runCmdB(c string) error {
 	}
 
 	time.Sleep(time.Second)
+	return nil
+}
+
+func runCmdInDir(c, dir string) error {
+	log.Println(c)
+	argSplit := strings.Split(c, " ")
+	cmd := exec.Command(argSplit[0], argSplit[1:]...) //nolint:gosec
+	cmd.Dir = dir
+	if err := cmd.Run(); err != nil {
+		log.Error("Error running command:", err)
+		return err
+	}
 	return nil
 }
 
@@ -166,4 +197,14 @@ func GetOutput(c string) (string, error) {
 		return "", err
 	}
 	return string(stdout), nil
+}
+
+// CreateFolder - Remove and create a folder for test
+func createFolder(dir string) error {
+	err := runCmd(fmt.Sprintf("rm -rf %s ", dir))
+	if err != nil {
+		return err
+	}
+
+	return runCmd(fmt.Sprintf("mkdir -p %s", testOutputFolder))
 }
