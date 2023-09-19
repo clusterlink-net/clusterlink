@@ -1,9 +1,7 @@
-//go:build e2e
-// +build e2e
-
 package connectivity
 
 import (
+	"flag"
 	"strconv"
 	"strings"
 	"testing"
@@ -33,9 +31,11 @@ var (
 	gwctl2             *client.Client
 )
 
+var cpType = flag.String("controlplane", "old", "Check which control-plane to use")
+
 func TestConnectivity(t *testing.T) {
 	t.Run("Starting Cluster Setup", func(t *testing.T) {
-		err := utils.StartClusterSetup()
+		err := utils.StartClusterSetup(*cpType)
 		if err != nil {
 			t.Fatalf("Failed to setup cluster")
 		}
@@ -54,11 +54,11 @@ func TestConnectivity(t *testing.T) {
 			t.Fatalf("Failed to CreateK8sService")
 		}
 
-		gwctl1, err = utils.GetClient(gw1Name)
+		gwctl1, err = utils.GetClient(gw1Name, *cpType)
 		if err != nil {
 			t.Fatalf("Failed to get Client")
 		}
-		gwctl2, err = utils.GetClient(gw2Name)
+		gwctl2, err = utils.GetClient(gw2Name, *cpType)
 		if err != nil {
 			t.Fatalf("Failed to get Client")
 		}
