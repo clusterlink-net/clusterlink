@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.ibm.com/mbg-agent/pkg/api"
-	"github.ibm.com/mbg-agent/pkg/controlplane"
-	"github.ibm.com/mbg-agent/pkg/controlplane/store"
-	"github.ibm.com/mbg-agent/pkg/util/rest"
+	"github.com/clusterlink-org/clusterlink/pkg/api"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-org/clusterlink/pkg/util/rest"
 )
 
 func (s *Server) addAPIHandlers() {

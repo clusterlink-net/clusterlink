@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-chi/chi"
 
-	"github.ibm.com/mbg-agent/pkg/policyengine"
-	"github.ibm.com/mbg-agent/pkg/utils/netutils"
+	"github.com/clusterlink-org/clusterlink/pkg/policyengine"
+	"github.com/clusterlink-org/clusterlink/pkg/utils/netutils"
 )
 
 func (d *Dataplane) StartServer(port string) {

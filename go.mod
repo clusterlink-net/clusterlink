@@ -1,4 +1,4 @@
-module github.ibm.com/mbg-agent
+module github.com/clusterlink-org/clusterlink
 
 go 1.20
 

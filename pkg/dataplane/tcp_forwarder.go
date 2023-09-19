@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
 )
 
 const (

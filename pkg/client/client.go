@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.ibm.com/mbg-agent/pkg/api"
-	event "github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
-	"github.ibm.com/mbg-agent/pkg/policyengine"
-	"github.ibm.com/mbg-agent/pkg/policyengine/policytypes"
-	"github.ibm.com/mbg-agent/pkg/util/jsonapi"
-	"github.ibm.com/mbg-agent/pkg/util/rest"
+	"github.com/clusterlink-org/clusterlink/pkg/api"
+	event "github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-org/clusterlink/pkg/policyengine"
+	"github.com/clusterlink-org/clusterlink/pkg/policyengine/policytypes"
+	"github.com/clusterlink-org/clusterlink/pkg/util/jsonapi"
+	"github.com/clusterlink-org/clusterlink/pkg/util/rest"
 )
 
 // Client for accessing the API.

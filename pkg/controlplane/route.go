@@ -10,11 +10,12 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/segmentio/ksuid"
 	log "github.com/sirupsen/logrus"
-	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
-	"github.ibm.com/mbg-agent/pkg/controlplane/health"
-	"github.ibm.com/mbg-agent/pkg/controlplane/store"
-	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
+
+	apiObject "github.com/clusterlink-org/clusterlink/pkg/controlplane/api/object"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/health"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-org/clusterlink/pkg/k8s/kubernetes"
 )
 
 // MbgHandler struct

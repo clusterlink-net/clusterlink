@@ -7,9 +7,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.ibm.com/mbg-agent/cmd/gwctl/config"
-	cmdutil "github.ibm.com/mbg-agent/cmd/util"
-	"github.ibm.com/mbg-agent/pkg/api"
+	"github.com/clusterlink-org/clusterlink/cmd/gwctl/config"
+	cmdutil "github.com/clusterlink-org/clusterlink/cmd/util"
+	"github.com/clusterlink-org/clusterlink/pkg/api"
 )
 
 // importCreateOptions is the command line options for 'create import'

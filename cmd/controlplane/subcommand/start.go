@@ -9,14 +9,15 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	cp "github.ibm.com/mbg-agent/pkg/controlplane"
-	"github.ibm.com/mbg-agent/pkg/controlplane/health"
-	"github.ibm.com/mbg-agent/pkg/controlplane/store"
-	"github.ibm.com/mbg-agent/pkg/k8s/kubernetes"
-	metrics "github.ibm.com/mbg-agent/pkg/metrics"
-	"github.ibm.com/mbg-agent/pkg/policyengine"
-	"github.ibm.com/mbg-agent/pkg/utils/logutils"
-	"github.ibm.com/mbg-agent/pkg/utils/netutils"
+
+	cp "github.com/clusterlink-org/clusterlink/pkg/controlplane"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/health"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-org/clusterlink/pkg/k8s/kubernetes"
+	metrics "github.com/clusterlink-org/clusterlink/pkg/metrics"
+	"github.com/clusterlink-org/clusterlink/pkg/policyengine"
+	"github.com/clusterlink-org/clusterlink/pkg/utils/logutils"
+	"github.com/clusterlink-org/clusterlink/pkg/utils/netutils"
 )
 
 const (

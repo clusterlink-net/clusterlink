@@ -6,7 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/store"
+	"github.com/clusterlink-org/clusterlink/pkg/store"
 )
 
 // Imports is a cached persistent store of imports.

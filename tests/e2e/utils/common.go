@@ -12,9 +12,10 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.ibm.com/mbg-agent/pkg/api"
-	"github.ibm.com/mbg-agent/pkg/client"
-	"github.ibm.com/mbg-agent/pkg/util"
+
+	"github.com/clusterlink-org/clusterlink/pkg/api"
+	"github.com/clusterlink-org/clusterlink/pkg/client"
+	"github.com/clusterlink-org/clusterlink/pkg/util"
 )
 
 const (

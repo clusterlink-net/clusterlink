@@ -11,7 +11,8 @@ import (
 	"net/http"
 
 	"github.com/sirupsen/logrus"
-	event "github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
+
+	event "github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
 )
 
 var llog = logrus.WithField("component", "LoadBalancer")
