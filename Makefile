@@ -79,11 +79,12 @@ clean-tests:
 #------------------------------------------------------
 # Run Targets
 #------------------------------------------------------
-tests-e2e: clean-tests 	docker-build 
-	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/connectivity/...
+CP ?= old
+tests-e2e: build docker-build
+	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/connectivity/... --controlplane=$(CP)
 
-tests-iperf3: clean-tests 	docker-build 
-	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/iperf3/...
+tests-iperf3: build docker-build 
+	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/iperf3/... --controlplane=$(CP)
 
 run-gwctl:
 	@./bin/gwctl
