@@ -8,9 +8,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/controlplane/api"
-	"github.ibm.com/mbg-agent/pkg/controlplane/store"
-	"github.ibm.com/mbg-agent/pkg/util/jsonapi"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-org/clusterlink/pkg/util/jsonapi"
 )
 
 // client for accessing a remote peer.

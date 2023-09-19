@@ -7,7 +7,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwt"
 
-	"github.ibm.com/mbg-agent/pkg/controlplane/api"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
 )
 
 const (

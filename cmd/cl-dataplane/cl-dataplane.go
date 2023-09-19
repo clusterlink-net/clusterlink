@@ -4,7 +4,7 @@ package main
 import (
 	"os"
 
-	"github.ibm.com/mbg-agent/cmd/cl-dataplane/app"
+	"github.com/clusterlink-org/clusterlink/cmd/cl-dataplane/app"
 )
 
 func main() {

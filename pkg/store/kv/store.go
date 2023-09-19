@@ -7,7 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/store"
+	"github.com/clusterlink-org/clusterlink/pkg/store"
 )
 
 // ObjectStore represents a persistent store of objects, backed by a KV-store.

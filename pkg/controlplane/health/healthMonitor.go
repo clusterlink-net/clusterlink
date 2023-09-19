@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
-	"github.ibm.com/mbg-agent/pkg/controlplane/store"
-	"github.ibm.com/mbg-agent/pkg/utils/httputils"
+
+	apiObject "github.com/clusterlink-org/clusterlink/pkg/controlplane/api/object"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-org/clusterlink/pkg/utils/httputils"
 )
 
 var klog = logrus.WithField("component", "controlPlane/health")

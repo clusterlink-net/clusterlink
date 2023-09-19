@@ -5,7 +5,8 @@ import (
 	"net/http"
 
 	"github.com/sirupsen/logrus"
-	"github.ibm.com/mbg-agent/pkg/utils/httputils"
+
+	"github.com/clusterlink-org/clusterlink/pkg/utils/httputils"
 )
 
 var elog = logrus.WithField("component", "EventManager")

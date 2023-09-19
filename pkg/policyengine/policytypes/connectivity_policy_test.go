@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.ibm.com/mbg-agent/pkg/policyengine/policytypes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/clusterlink-org/clusterlink/pkg/policyengine/policytypes"
 )
 
 var (

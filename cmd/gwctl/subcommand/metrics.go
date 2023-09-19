@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.ibm.com/mbg-agent/cmd/gwctl/config"
+	"github.com/clusterlink-org/clusterlink/cmd/gwctl/config"
 )
 
 // MetricsGetOptions is the command line options for 'get metrics'

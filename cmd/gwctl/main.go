@@ -5,7 +5,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.ibm.com/mbg-agent/cmd/gwctl/subcommand"
+
+	"github.com/clusterlink-org/clusterlink/cmd/gwctl/subcommand"
 )
 
 func main() {

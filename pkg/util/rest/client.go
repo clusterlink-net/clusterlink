@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.ibm.com/mbg-agent/pkg/util/jsonapi"
+	"github.com/clusterlink-org/clusterlink/pkg/util/jsonapi"
 )
 
 // Config specifies a client configuration.

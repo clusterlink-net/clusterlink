@@ -17,12 +17,12 @@ import (
 	"net"
 	"net/http"
 	"os"
-
 	"time"
 
 	"github.com/go-chi/chi"
-	event "github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
-	"github.ibm.com/mbg-agent/pkg/utils/netutils"
+
+	event "github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-org/clusterlink/pkg/utils/netutils"
 )
 
 type MTLSForwarder struct {

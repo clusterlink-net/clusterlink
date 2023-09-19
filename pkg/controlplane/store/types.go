@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.ibm.com/mbg-agent/pkg/api"
+	"github.com/clusterlink-org/clusterlink/pkg/api"
 )
 
 const (

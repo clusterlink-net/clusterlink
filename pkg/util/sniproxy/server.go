@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"inet.af/tcpproxy"
 
-	"github.ibm.com/mbg-agent/pkg/util/tcp"
+	"github.com/clusterlink-org/clusterlink/pkg/util/tcp"
 )
 
 // Server for proxying connections by checking client SNI.

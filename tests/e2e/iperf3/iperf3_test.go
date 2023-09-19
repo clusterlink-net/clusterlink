@@ -13,10 +13,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.ibm.com/mbg-agent/pkg/api"
-	"github.ibm.com/mbg-agent/pkg/client"
-	"github.ibm.com/mbg-agent/pkg/utils/logutils"
-	"github.ibm.com/mbg-agent/tests/e2e/utils"
+
+	"github.com/clusterlink-org/clusterlink/pkg/api"
+	"github.com/clusterlink-org/clusterlink/pkg/client"
+	"github.com/clusterlink-org/clusterlink/pkg/utils/logutils"
+	"github.com/clusterlink-org/clusterlink/tests/e2e/utils"
 )
 
 const (

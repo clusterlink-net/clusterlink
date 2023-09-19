@@ -6,7 +6,7 @@ package main
 import (
 	"os"
 
-	"github.ibm.com/mbg-agent/cmd/cl-controlplane/app"
+	"github.com/clusterlink-org/clusterlink/cmd/cl-controlplane/app"
 )
 
 func main() {

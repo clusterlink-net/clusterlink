@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	event "github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
+	event "github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
 )
 
 type ACL map[string]rule

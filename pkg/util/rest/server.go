@@ -10,8 +10,8 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/store"
-	utilhttp "github.ibm.com/mbg-agent/pkg/util/http"
+	"github.com/clusterlink-org/clusterlink/pkg/store"
+	utilhttp "github.com/clusterlink-org/clusterlink/pkg/util/http"
 )
 
 // Server for handling REST-JSON requests.

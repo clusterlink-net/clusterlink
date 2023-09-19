@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.ibm.com/mbg-agent/cmd/controlplane/subcommand"
+	"github.com/clusterlink-org/clusterlink/cmd/controlplane/subcommand"
 
 	"github.com/spf13/cobra"
 )

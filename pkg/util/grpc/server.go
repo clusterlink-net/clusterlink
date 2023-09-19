@@ -6,7 +6,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	"github.ibm.com/mbg-agent/pkg/util/tcp"
+	"github.com/clusterlink-org/clusterlink/pkg/util/tcp"
 )
 
 // Server is a wrapper of a gRPC server.

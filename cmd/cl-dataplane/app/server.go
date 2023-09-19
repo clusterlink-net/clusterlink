@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.ibm.com/mbg-agent/pkg/dataplane/api"
-	"github.ibm.com/mbg-agent/pkg/util"
+	"github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
+	"github.com/clusterlink-org/clusterlink/pkg/util"
 )
 
 const (

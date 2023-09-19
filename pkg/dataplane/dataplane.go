@@ -11,11 +11,12 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/segmentio/ksuid"
 	"github.com/sirupsen/logrus"
-	"github.ibm.com/mbg-agent/pkg/api"
-	apiObject "github.ibm.com/mbg-agent/pkg/controlplane/api/object"
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
-	"github.ibm.com/mbg-agent/pkg/dataplane/store"
-	"github.ibm.com/mbg-agent/pkg/utils/httputils"
+
+	"github.com/clusterlink-org/clusterlink/pkg/api"
+	apiObject "github.com/clusterlink-org/clusterlink/pkg/controlplane/api/object"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-org/clusterlink/pkg/dataplane/store"
+	"github.com/clusterlink-org/clusterlink/pkg/utils/httputils"
 )
 
 const TypeTCP = "tcp"

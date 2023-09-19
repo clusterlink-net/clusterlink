@@ -16,7 +16,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/utils/netutils"
+	"github.com/clusterlink-org/clusterlink/pkg/utils/netutils"
 )
 
 type Store struct {

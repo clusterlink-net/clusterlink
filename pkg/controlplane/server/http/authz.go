@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.ibm.com/mbg-agent/pkg/controlplane"
-	"github.ibm.com/mbg-agent/pkg/controlplane/api"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
 )
 
 const (

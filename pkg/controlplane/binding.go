@@ -7,9 +7,9 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/api"
-	"github.ibm.com/mbg-agent/pkg/controlplane/eventmanager"
-	"github.ibm.com/mbg-agent/pkg/controlplane/store"
+	"github.com/clusterlink-org/clusterlink/pkg/api"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
 )
 
 var blog = logrus.WithField("component", "mbgControlPlane/binding")

@@ -8,9 +8,10 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	dp "github.ibm.com/mbg-agent/pkg/dataplane"
-	"github.ibm.com/mbg-agent/pkg/dataplane/store"
-	"github.ibm.com/mbg-agent/pkg/utils/logutils"
+
+	dp "github.com/clusterlink-org/clusterlink/pkg/dataplane"
+	"github.com/clusterlink-org/clusterlink/pkg/dataplane/store"
+	"github.com/clusterlink-org/clusterlink/pkg/utils/logutils"
 )
 
 const (

@@ -5,8 +5,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.ibm.com/mbg-agent/pkg/controlplane"
-	"github.ibm.com/mbg-agent/pkg/util/rest"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane"
+	"github.com/clusterlink-org/clusterlink/pkg/util/rest"
 )
 
 // Server implementing the management API, allowing to manage the set of peers, imports, exports and bindings.
