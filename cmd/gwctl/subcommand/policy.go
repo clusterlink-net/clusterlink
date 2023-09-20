@@ -62,7 +62,7 @@ func (o *policyCreateOptions) run() error {
 	}
 	switch o.pType {
 	case policyengine.LbType:
-		return g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.PolicyLoadBalancer(o.policy), o.gwDest, client.Add)
+		return g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.LBScheme(o.policy), o.gwDest, client.Add)
 	case policyengine.AccessType:
 		policy, err := policyFromFile(o.policyFile)
 		if err != nil {
@@ -136,7 +136,7 @@ func (o *policyDeleteOptions) run() error {
 	}
 	switch o.pType {
 	case policyengine.LbType:
-		err = g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.PolicyLoadBalancer(o.policy), o.gwDest, client.Del)
+		err = g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.LBScheme(o.policy), o.gwDest, client.Del)
 	case policyengine.AccessType:
 		policy, err := policyFromFile(o.policyFile)
 		if err != nil {
