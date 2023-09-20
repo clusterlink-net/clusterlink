@@ -5,7 +5,9 @@
 package policyengine
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 
@@ -41,8 +43,8 @@ type PolicyDecider interface {
 	AddLBPolicy(lbPolicy *LBPolicy) error
 	DeleteLBPolicy(lbPolicy *LBPolicy) error
 
-	AddAccessPolicy(policy *policytypes.ConnectivityPolicy) error
-	DeleteAccessPolicy(policy *policytypes.ConnectivityPolicy) error
+	AddAccessPolicy(policy *api.Policy) error
+	DeleteAccessPolicy(policy *api.Policy) error
 
 	AuthorizeAndRouteConnection(connReq *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error)
 
@@ -357,31 +359,27 @@ func (pH *PolicyHandler) getConnPoliciesReq(w http.ResponseWriter, _ *http.Reque
 }
 
 func (pH *PolicyHandler) addConnPolicyReq(w http.ResponseWriter, r *http.Request) {
-	var policy policytypes.ConnectivityPolicy
-	err := json.NewDecoder(r.Body).Decode(&policy)
+	policy, err := connPolicyFromBlob(r.Body)
 	if err != nil {
-		plog.Errorf("failed decoding connectivity policy: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = pH.connectivityPDP.AddOrUpdatePolicy(policy)
+	err = pH.connectivityPDP.AddOrUpdatePolicy(*policy)
 	if err != nil { // policy is syntactically ok, but semantically invalid - 422 is the status to return
 		plog.Errorf("failed adding connectivity policy: %v", err)
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
-	plog.Infof("Added policy : %+v", policy)
+	plog.Infof("Added policy : %+v", *policy)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (pH *PolicyHandler) delConnPolicyReq(w http.ResponseWriter, r *http.Request) {
-	var policy policytypes.ConnectivityPolicy
-	err := json.NewDecoder(r.Body).Decode(&policy)
+	policy, err := connPolicyFromBlob(r.Body)
 	if err != nil {
-		plog.Errorf("failed decoding connectivity policy: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -393,9 +391,19 @@ func (pH *PolicyHandler) delConnPolicyReq(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	plog.Infof("Deleted policy : %+v", policy)
+	plog.Infof("Deleted policy : %+v", *policy)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+}
+
+func connPolicyFromBlob(blob io.Reader) (*policytypes.ConnectivityPolicy, error) {
+	connPolicy := &policytypes.ConnectivityPolicy{}
+	err := json.NewDecoder(blob).Decode(connPolicy)
+	if err != nil {
+		plog.Errorf("failed decoding connectivity policy: %v", err)
+		return nil, err
+	}
+	return connPolicy, nil
 }
 
 func (pH *PolicyHandler) AddLBPolicy(lbPolicy *LBPolicy) error {
@@ -408,12 +416,20 @@ func (pH *PolicyHandler) DeleteLBPolicy(lbPolicy *LBPolicy) error {
 	return nil
 }
 
-func (pH *PolicyHandler) AddAccessPolicy(policy *policytypes.ConnectivityPolicy) error {
-	return pH.connectivityPDP.AddOrUpdatePolicy(*policy)
+func (pH *PolicyHandler) AddAccessPolicy(policy *api.Policy) error {
+	connPolicy, err := connPolicyFromBlob(bytes.NewReader(policy.Spec.Blob))
+	if err != nil {
+		return err
+	}
+	return pH.connectivityPDP.AddOrUpdatePolicy(*connPolicy)
 }
 
-func (pH *PolicyHandler) DeleteAccessPolicy(policy *policytypes.ConnectivityPolicy) error {
-	return pH.connectivityPDP.DeletePolicy(policy.Name, policy.Privileged)
+func (pH *PolicyHandler) DeleteAccessPolicy(policy *api.Policy) error {
+	connPolicy, err := connPolicyFromBlob(bytes.NewReader(policy.Spec.Blob))
+	if err != nil {
+		return err
+	}
+	return pH.connectivityPDP.DeletePolicy(connPolicy.Name, connPolicy.Privileged)
 }
 
 func (pH *PolicyHandler) policyWelcome(w http.ResponseWriter, _ *http.Request) {
