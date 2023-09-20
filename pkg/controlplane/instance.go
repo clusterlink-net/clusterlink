@@ -11,7 +11,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/clusterlink-org/clusterlink/pkg/api"
+	event "github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
 	cpstore "github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-org/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-org/clusterlink/pkg/store"
 	"github.com/clusterlink-org/clusterlink/pkg/util"
 )
@@ -30,6 +33,7 @@ type Instance struct {
 
 	xdsManager *xdsManager
 	ports      *portManager
+	policies   policyengine.PolicyDecider
 	kubeClient *kubernetes.Clientset
 
 	jwkSignKey   jwk.Key
@@ -62,7 +66,7 @@ func (cp *Instance) CreatePeer(peer *cpstore.Peer) error {
 		return err
 	}
 
-	return nil
+	return cp.policies.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
 }
 
 // UpdatePeer updates new route target for egress dataplane connections.
@@ -88,7 +92,7 @@ func (cp *Instance) UpdatePeer(peer *cpstore.Peer) error {
 		return err
 	}
 
-	return nil
+	return cp.policies.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
 }
 
 // GetPeer returns an existing peer.
@@ -115,6 +119,10 @@ func (cp *Instance) DeletePeer(name string) (*cpstore.Peer, error) {
 		return nil, err
 	}
 
+	if err := cp.policies.DeletePeer(name); err != nil {
+		return nil, err
+	}
+
 	return peer, nil
 }
 
@@ -127,6 +135,15 @@ func (cp *Instance) GetAllPeers() []*cpstore.Peer {
 // CreateExport defines a new route target for ingress dataplane connections.
 func (cp *Instance) CreateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Creating export '%s'.", export.Name)
+
+	resp, err := cp.policies.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
+	if err != nil {
+		return err
+	}
+	if resp.Action != event.AllowAll {
+		cp.logger.Warnf("Access policies deny creating export '%s'.", export.Name)
+		return nil
+	}
 
 	if cp.initialized {
 		if err := cp.exports.Create(export); err != nil {
@@ -146,7 +163,16 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Updating export '%s'.", export.Name)
 
-	err := cp.exports.Update(export.Name, func(old *cpstore.Export) *cpstore.Export {
+	resp, err := cp.policies.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
+	if err != nil {
+		return err
+	}
+	if resp.Action != event.AllowAll {
+		cp.logger.Warnf("Access policies deny creating export '%s'.", export.Name)
+		return nil
+	}
+
+	err = cp.exports.Update(export.Name, func(old *cpstore.Export) *cpstore.Export {
 		return export
 	})
 	if err != nil {
@@ -179,6 +205,10 @@ func (cp *Instance) DeleteExport(name string) (*cpstore.Export, error) {
 	if err := cp.xdsManager.DeleteExport(name); err != nil {
 		// practically impossible
 		return export, err
+	}
+
+	if err := cp.policies.DeleteExport(name); err != nil {
+		return nil, err
 	}
 
 	return export, nil
@@ -276,6 +306,15 @@ func (cp *Instance) GetAllImports() []*cpstore.Import {
 func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 	cp.logger.Infof("Creating binding '%s'->'%s'.", binding.Import, binding.Peer)
 
+	action, err := cp.policies.AddBinding(&api.Binding{Spec: binding.BindingSpec})
+	if err != nil {
+		return err
+	}
+	if action != event.Allow {
+		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
+		return nil
+	}
+
 	if cp.initialized {
 		if err := cp.bindings.Create(binding); err != nil {
 			return err
@@ -289,7 +328,16 @@ func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 func (cp *Instance) UpdateBinding(binding *cpstore.Binding) error {
 	cp.logger.Infof("Updating binding '%s'->'%s'.", binding.Import, binding.Peer)
 
-	err := cp.bindings.Update(binding, func(old *cpstore.Binding) *cpstore.Binding {
+	action, err := cp.policies.AddBinding(&api.Binding{Spec: binding.BindingSpec})
+	if err != nil {
+		return err
+	}
+	if action != event.Allow {
+		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
+		return nil
+	}
+
+	err = cp.bindings.Update(binding, func(old *cpstore.Binding) *cpstore.Binding {
 		return binding
 	})
 	if err != nil {
@@ -308,6 +356,11 @@ func (cp *Instance) GetBindings(imp string) []*cpstore.Binding {
 // DeleteBinding removes a binding of an imported service to a remote exported service.
 func (cp *Instance) DeleteBinding(binding *cpstore.Binding) (*cpstore.Binding, error) {
 	cp.logger.Infof("Deleting binding '%s'->'%s'.", binding.Import, binding.Peer)
+
+	if err := cp.policies.DeleteBinding(&api.Binding{Spec: binding.BindingSpec}); err != nil {
+		return nil, err
+	}
+
 	return cp.bindings.Delete(binding)
 }
 
@@ -429,6 +482,7 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, kubeC
 		bindings:    bindings,
 		xdsManager:  newXDSManager(),
 		ports:       newPortManager(),
+		policies:    policyengine.NewPolicyHandler(),
 		kubeClient:  kubeClient,
 		initialized: false,
 		logger:      logger,
