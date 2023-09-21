@@ -8,6 +8,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwt"
 
 	"github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
 )
 
 const (
@@ -66,8 +67,16 @@ func (cp *Instance) AuthorizeEgress(req *EgressAuthorizationRequest) (*EgressAut
 	}
 
 	// TODO: get k8s attributes using cp.kubeClient
-	// TODO: call policy engine
-	target := bindings[0].Peer
+	connReq := eventmanager.ConnectionRequestAttr{DstService: req.Import, Direction: eventmanager.Outgoing}
+	authResp, err := cp.policyDecider.AuthorizeAndRouteConnection(&connReq)
+	if err != nil {
+		return nil, err
+	}
+	if authResp.Action != eventmanager.Allow {
+		return &EgressAuthorizationResponse{Allowed: false}, nil
+	}
+
+	target := authResp.TargetMbg
 	peer := cp.GetPeer(target)
 	if peer == nil {
 		return nil, fmt.Errorf("peer '%s' does not exist", target)
@@ -112,7 +121,15 @@ func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest) (*Ingress
 
 	resp.ServiceExists = true
 
-	// TODO: call policy engine
+	connReq := eventmanager.ConnectionRequestAttr{DstService: req.Service, Direction: eventmanager.Incoming}
+	authResp, err := cp.policyDecider.AuthorizeAndRouteConnection(&connReq)
+	if err != nil {
+		return nil, err
+	}
+	if authResp.Action != eventmanager.Allow {
+		resp.Allowed = false
+		return resp, nil
+	}
 	resp.Allowed = true
 
 	// create access token
