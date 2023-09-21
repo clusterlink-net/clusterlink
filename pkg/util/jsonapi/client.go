@@ -53,7 +53,7 @@ func (c *Client) ServerURL() string {
 func (c *Client) do(method, path string, body []byte) (*Response, error) {
 	requestLogger := c.logger.WithFields(logrus.Fields{"method": method, "path": path})
 
-	requestLogger.WithField("body-length", len(body)).Infof("Issuing request.")
+	requestLogger.WithField("body-length", len(body)).Debugf("Issuing request.")
 	requestLogger.Debugf("Request body: %v.", body)
 
 	req, err := http.NewRequest(method, c.serverURL+path, bytes.NewBuffer(body))
@@ -81,7 +81,7 @@ func (c *Client) do(method, path string, body []byte) (*Response, error) {
 		return nil, fmt.Errorf("unable to read response body: %v", err)
 	}
 
-	requestLogger.WithField("body-length", len(body)).Infof("Received response: %d.", resp.StatusCode)
+	requestLogger.WithField("body-length", len(body)).Debugf("Received response: %d.", resp.StatusCode)
 	requestLogger.Debugf("Response body: %v.", body)
 
 	return &Response{
