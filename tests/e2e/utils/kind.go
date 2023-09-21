@@ -33,7 +33,7 @@ func createClientset() (*kubernetes.Clientset, error) {
 	return clientset, nil
 }
 
-// IsPodReady check if pod is ready using its label
+// IsPodReady checks if a pod is ready using its label.
 func IsPodReady(name string) error {
 	namespace := "default"
 	clientset, err := createClientset()
@@ -62,7 +62,7 @@ func IsPodReady(name string) error {
 	}
 }
 
-// isPodReadyByName Check if pod is ready by the full name of the pod
+// isPodReadyByName checks if a pod is ready by the full name of the pod.
 func isPodReadyByName(pod *corev1.Pod) bool {
 	for _, condition := range pod.Status.Conditions {
 		if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
