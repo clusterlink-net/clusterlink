@@ -1,0 +1,30 @@
+name: pull request - e2e tests
+on:
+  pull_request_review:
+    types: [submitted]
+    branches: [ main ]
+
+jobs:
+  e2e-tests:
+    name: e2e-tests
+    if: github.event.review.state == 'approved'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.20']
+        
+    steps:
+    - name: install make
+      run: sudo apt-get install make
+    - name: set up go 1.x
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.go }}
+    - name: Create k8s Kind Cluster
+      uses: helm/kind-action@v1.5.0
+    - name: checkout
+      uses: actions/checkout@v3
+    - name: run build
+      run: make build
+    - name: run end-to-end tests
+      run: make tests-e2e
