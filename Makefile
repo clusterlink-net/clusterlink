@@ -56,7 +56,7 @@ build:
 	$(GO) build -o ./bin/controlplane ./cmd/controlplane/main.go
 	$(GO) build -o ./bin/dataplane ./cmd/dataplane/main.go
 
-docker-build: 
+docker-build: build
 	docker build --progress=plain --rm --tag mbg .
 	docker build --progress=plain --rm --tag cl-controlplane -f ./cmd/cl-controlplane/Dockerfile .
 	docker build --progress=plain --rm --tag cl-dataplane -f ./cmd/cl-dataplane/Dockerfile .
