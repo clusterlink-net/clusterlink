@@ -1,0 +1,27 @@
+name: PR check - e2e tests
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  e2e-connectivity-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.20']
+        
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.go }}
+    - name: Install kind
+      uses: helm/kind-action@v1.5.0
+      with:
+        install_only: true
+    - name: checkout
+      uses: actions/checkout@v3
+    - name: Run build
+      run: make build
+    - name: Run end-to-end tests
+      run: make tests-e2e
