@@ -81,6 +81,10 @@ clean-tests:
 #------------------------------------------------------
 # Run Targets
 #------------------------------------------------------
+unit-tests:
+	@echo "Running unit tests..."
+	$(GO) test -v -count=1 ./pkg/...  -json -cover | tparse --all
+
 tests-e2e: clean-tests 	docker-build 
 	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/connectivity/...
 
