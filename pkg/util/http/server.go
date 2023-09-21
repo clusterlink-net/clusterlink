@@ -67,10 +67,12 @@ func NewServer(name string, tlsConfig *tls.Config) Server {
 	logWriter := logger.WriterLevel(logrus.ErrorLevel)
 
 	router := chi.NewRouter()
-	router.Use(middleware.RequestLogger(&middleware.DefaultLogFormatter{
-		Logger:  logger,
-		NoColor: true,
-	}))
+	if logrus.GetLevel() >= logrus.DebugLevel {
+		router.Use(middleware.RequestLogger(&middleware.DefaultLogFormatter{
+			Logger:  logger,
+			NoColor: true,
+		}))
+	}
 	router.Use(middleware.Recoverer)
 
 	return Server{
