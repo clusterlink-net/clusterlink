@@ -27,14 +27,15 @@ type Instance struct {
 	exports  *cpstore.Exports
 	imports  *cpstore.Imports
 	bindings *cpstore.Bindings
+	policies *cpstore.AccessPolicies
 
 	peerLock   sync.RWMutex
 	peerClient map[string]*client
 
-	xdsManager *xdsManager
-	ports      *portManager
-	policies   policyengine.PolicyDecider
-	kubeClient *kubernetes.Clientset
+	xdsManager    *xdsManager
+	ports         *portManager
+	policyDecider policyengine.PolicyDecider
+	kubeClient    *kubernetes.Clientset
 
 	jwkSignKey   jwk.Key
 	jwkVerifyKey jwk.Key
@@ -66,7 +67,7 @@ func (cp *Instance) CreatePeer(peer *cpstore.Peer) error {
 		return err
 	}
 
-	return cp.policies.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
+	return cp.policyDecider.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
 }
 
 // UpdatePeer updates new route target for egress dataplane connections.
@@ -92,7 +93,7 @@ func (cp *Instance) UpdatePeer(peer *cpstore.Peer) error {
 		return err
 	}
 
-	return cp.policies.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
+	return cp.policyDecider.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
 }
 
 // GetPeer returns an existing peer.
@@ -119,7 +120,7 @@ func (cp *Instance) DeletePeer(name string) (*cpstore.Peer, error) {
 		return nil, err
 	}
 
-	if err := cp.policies.DeletePeer(name); err != nil {
+	if err := cp.policyDecider.DeletePeer(name); err != nil {
 		return nil, err
 	}
 
@@ -136,7 +137,7 @@ func (cp *Instance) GetAllPeers() []*cpstore.Peer {
 func (cp *Instance) CreateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Creating export '%s'.", export.Name)
 
-	resp, err := cp.policies.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
+	resp, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
 	if err != nil {
 		return err
 	}
@@ -163,7 +164,7 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Updating export '%s'.", export.Name)
 
-	resp, err := cp.policies.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
+	resp, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
 	if err != nil {
 		return err
 	}
@@ -207,7 +208,7 @@ func (cp *Instance) DeleteExport(name string) (*cpstore.Export, error) {
 		return export, err
 	}
 
-	if err := cp.policies.DeleteExport(name); err != nil {
+	if err := cp.policyDecider.DeleteExport(name); err != nil {
 		return nil, err
 	}
 
@@ -306,7 +307,7 @@ func (cp *Instance) GetAllImports() []*cpstore.Import {
 func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 	cp.logger.Infof("Creating binding '%s'->'%s'.", binding.Import, binding.Peer)
 
-	action, err := cp.policies.AddBinding(&api.Binding{Spec: binding.BindingSpec})
+	action, err := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
 	if err != nil {
 		return err
 	}
@@ -328,7 +329,7 @@ func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 func (cp *Instance) UpdateBinding(binding *cpstore.Binding) error {
 	cp.logger.Infof("Updating binding '%s'->'%s'.", binding.Import, binding.Peer)
 
-	action, err := cp.policies.AddBinding(&api.Binding{Spec: binding.BindingSpec})
+	action, err := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
 	if err != nil {
 		return err
 	}
@@ -357,7 +358,7 @@ func (cp *Instance) GetBindings(imp string) []*cpstore.Binding {
 func (cp *Instance) DeleteBinding(binding *cpstore.Binding) (*cpstore.Binding, error) {
 	cp.logger.Infof("Deleting binding '%s'->'%s'.", binding.Import, binding.Peer)
 
-	if err := cp.policies.DeleteBinding(&api.Binding{Spec: binding.BindingSpec}); err != nil {
+	if err := cp.policyDecider.DeleteBinding(&api.Binding{Spec: binding.BindingSpec}); err != nil {
 		return nil, err
 	}
 
@@ -368,6 +369,56 @@ func (cp *Instance) DeleteBinding(binding *cpstore.Binding) (*cpstore.Binding, e
 func (cp *Instance) GetAllBindings() []*cpstore.Binding {
 	cp.logger.Info("Listing all bindings.")
 	return cp.bindings.GetAll()
+}
+
+// CreateAccessPolicy creates an access policy to allow/deny specific connections.
+func (cp *Instance) CreateAccessPolicy(policy *cpstore.AccessPolicy) error {
+	cp.logger.Infof("Creating access policy '%s'.", policy.Spec.Blob)
+
+	if cp.initialized {
+		if err := cp.policies.Create(policy); err != nil {
+			return err
+		}
+	}
+
+	return cp.policyDecider.AddAccessPolicy(&api.Policy{Spec: policy.Spec})
+}
+
+// UpdateAccessPolicy updates an access policy to allow/deny specific connections.
+func (cp *Instance) UpdateAccessPolicy(policy *cpstore.AccessPolicy) error {
+	cp.logger.Infof("Updating access policy '%s'.", policy.Spec.Blob)
+
+	err := cp.policies.Update(policy.Name, func(old *cpstore.AccessPolicy) *cpstore.AccessPolicy {
+		return policy
+	})
+	if err != nil {
+		return err
+	}
+
+	return cp.policyDecider.AddAccessPolicy(&api.Policy{Spec: policy.Spec})
+}
+
+// DeleteAccessPolicy removes an access policy to allow/deny specific connections.
+func (cp *Instance) DeleteAccessPolicy(policy *cpstore.AccessPolicy) (*cpstore.AccessPolicy, error) {
+	cp.logger.Infof("Deleting access policy '%s'.", policy.Spec.Blob)
+
+	if err := cp.policyDecider.DeleteAccessPolicy(&api.Policy{Spec: policy.Spec}); err != nil {
+		return nil, err
+	}
+
+	return cp.policies.Delete(policy.Name)
+}
+
+// GetAccessPolicy returns an access policy with the given name.
+func (cp *Instance) GetAccessPolicy(name string) *cpstore.AccessPolicy {
+	cp.logger.Infof("Getting access policy '%s'.", name)
+	return cp.policies.Get(name)
+}
+
+// GetAllAccessPolicies returns the list of all AccessPolicies.
+func (cp *Instance) GetAllAccessPolicies() []*cpstore.AccessPolicy {
+	cp.logger.Info("Listing all access policies.")
+	return cp.policies.GetAll()
 }
 
 // GetXDSClusterManager returns the xDS cluster manager.
@@ -474,18 +525,18 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, kubeC
 	logger.Infof("Loaded %d bindings.", peers.Len())
 
 	cp := &Instance{
-		peerTLS:     peerTLS,
-		peerClient:  make(map[string]*client),
-		peers:       peers,
-		exports:     exports,
-		imports:     imports,
-		bindings:    bindings,
-		xdsManager:  newXDSManager(),
-		ports:       newPortManager(),
-		policies:    policyengine.NewPolicyHandler(),
-		kubeClient:  kubeClient,
-		initialized: false,
-		logger:      logger,
+		peerTLS:       peerTLS,
+		peerClient:    make(map[string]*client),
+		peers:         peers,
+		exports:       exports,
+		imports:       imports,
+		bindings:      bindings,
+		xdsManager:    newXDSManager(),
+		ports:         newPortManager(),
+		policyDecider: policyengine.NewPolicyHandler(),
+		kubeClient:    kubeClient,
+		initialized:   false,
+		logger:        logger,
 	}
 
 	// initialize instance
