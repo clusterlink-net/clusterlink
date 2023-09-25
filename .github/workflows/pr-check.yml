@@ -2,7 +2,7 @@ name: PR check
 run-name: "PR #${{ github.event.number }} check (${{ github.sha }})"
 on: [pull_request]
 jobs:
-  build-and-unit-test:
+  static-checks-and-build:
     runs-on: ubuntu-22.04
     steps:
       - name: Check out repository code
@@ -25,3 +25,23 @@ jobs:
           version: v1.54.2
       - name: Build binaries
         run: make build
+  unit-tests:
+    needs: static-checks-and-build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.20']  
+    steps:
+    - name: set up go 1.x
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.go }}
+    - name: setup tparse
+      run:  go install github.com/mfridman/tparse@latest
+    - name: checkout
+      uses: actions/checkout@v3
+    - name: run build
+      run: make build
+    - name: run unit tests
+      run: make unit-tests
+    
