@@ -13,11 +13,9 @@ const (
 )
 
 type forwarder struct {
-	listenerConn  net.Conn
-	peerConn      net.Conn
-	incomingBytes int
-	outgoingBytes int
-	logger        *logrus.Entry
+	listenerConn net.Conn
+	peerConn     net.Conn
+	logger       *logrus.Entry
 }
 
 type connDialer struct {
@@ -30,56 +28,51 @@ func (cd connDialer) Dial(_, _ string) (net.Conn, error) {
 
 func (f *forwarder) peerToListener() error {
 	bufData := make([]byte, maxDataBufferSize)
-	var err error
-
 	for {
 		numBytes, err := f.peerConn.Read(bufData)
 		if err != nil {
 			if err != io.EOF { // don't log EOF
 				f.logger.Infof("peerToListener: Read error %v\n", err)
+				return err
 			}
 			break
 		}
-		_, err = f.listenerConn.Write(bufData[:numBytes]) // TODO: track actually written byte count?
+		_, err = f.listenerConn.Write(bufData[:numBytes]) // TODO: track actually written byte count
 		if err != nil {
 			if err != io.EOF { // don't log EOF
 				f.logger.Infof("peerToListener: Write error %v\n", err)
+				return err
 			}
 			break
 		}
 	}
 	f.closeConnections()
-	if err == io.EOF {
-		return nil
-	}
-	return err
+	return nil
 }
 
 func (f *forwarder) listenerToPeer() error {
 	bufData := make([]byte, maxDataBufferSize)
-	var err error
 	for {
 		numBytes, err := f.listenerConn.Read(bufData)
 		if err != nil {
 			if err != io.EOF { // don't log EOF
 				f.logger.Infof("listenerToPeer: Read error %v\n", err)
+				return err
 			}
 			break
 		}
 
-		_, err = f.peerConn.Write(bufData[:numBytes]) // TODO: track actually written byte count?
+		_, err = f.peerConn.Write(bufData[:numBytes]) // TODO: track actually written byte count
 		if err != nil {
 			if err != io.EOF { // don't log EOF
 				f.logger.Infof("listenerToPeer: Write error %v\n", err)
+				return err
 			}
 			break
 		}
 	}
 	f.closeConnections()
-	if err == io.EOF {
-		return nil
-	}
-	return err
+	return nil
 }
 
 func (f *forwarder) closeConnections() {
