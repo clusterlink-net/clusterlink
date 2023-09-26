@@ -59,7 +59,7 @@ func (o *Options) RequiredFlags() []string {
 	return []string{"controlplane-host"}
 }
 
-func runxDSClient(controlPlaneHost string) error {
+func runDataplane(controlPlaneHost string) error {
 	parsedCertData, err := util.ParseTLSFiles(CAFile, CertificateFile, KeyFile)
 	if err != nil {
 		return fmt.Errorf("unable to parse TLS files")
@@ -75,7 +75,7 @@ func runxDSClient(controlPlaneHost string) error {
 	}
 
 	controlplaneTarget := controlPlaneHost + ":" + strconv.Itoa(cpapi.ListenPort)
-	dataplaneID := uuid.New().String() //TODO use parsedCertData.CommonName(), when available
+	dataplaneID := uuid.New().String() // TODO use parsedCertData.CommonName(), when available
 
 	log.Infof("Starting dataplane, peerName : %s, dataplaneID : %s", peerName, dataplaneID)
 	log.Debugf("Dialing to GRPC port(%s:%d) : %s", controlPlaneHost, cpapi.ListenPort, controlplaneTarget)
@@ -124,7 +124,10 @@ func (o *Options) Run() error {
 		return fmt.Errorf("unable to set log level: %v", err)
 	}
 	log.SetLevel(logLevel)
-	runxDSClient(o.ControlplaneHost)
+	err = runDataplane(o.ControlplaneHost)
+	if err != nil {
+		log.Errorf("Failed to run dataplane: %v", err)
+	}
 	return nil
 }
 
