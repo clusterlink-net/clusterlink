@@ -6,18 +6,18 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
+	"github.com/clusterlink-org/clusterlink/pkg/util"
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
-	"github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
-	"github.com/clusterlink-org/clusterlink/pkg/util"
 )
 
 // Server implementing the management API, allowing to manage the set of peers, imports, exports and bindings.
 // Furthermore, this server implements the various authorization APIs.
 type Dataplane struct {
-	Id                 string
+	ID                 string
 	peerName           string
 	router             *chi.Mux
 	apiClient          *http.Client
@@ -58,7 +58,7 @@ func AddListener(listenerName string, listener *listener.Listener) error {
 // NewDataplane returns a new dataplane HTTP server.
 func NewDataplane(dataplaneID, controlplaneTarget, peerName string, parsedCertData *util.ParsedCertData) *Dataplane {
 	d := &Dataplane{
-		Id:       dataplaneID,
+		ID:       dataplaneID,
 		peerName: peerName,
 		router:   chi.NewRouter(),
 		apiClient: &http.Client{

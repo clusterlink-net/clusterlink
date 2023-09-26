@@ -75,7 +75,7 @@ func StartxDSClient(dataplane *server.Dataplane, controlplaneTarget string, cred
 	}
 	log.Infof("Successfully connected to the controlplane")
 
-	c := client.NewADSClient(context.Background(), &core.Node{Id: dataplane.Id}, resource.ClusterType)
+	c := client.NewADSClient(context.Background(), &core.Node{Id: dataplane.ID}, resource.ClusterType)
 	err = c.InitConnect(conn)
 	if err != nil {
 		log.Error("Failed to init connect(cluster) : ", err)
@@ -83,7 +83,7 @@ func StartxDSClient(dataplane *server.Dataplane, controlplaneTarget string, cred
 	}
 	log.Infof("Successfully initialized client for cluster ")
 
-	l := client.NewADSClient(context.Background(), &core.Node{Id: dataplane.Id}, resource.ListenerType)
+	l := client.NewADSClient(context.Background(), &core.Node{Id: dataplane.ID}, resource.ListenerType)
 	err = l.InitConnect(conn)
 	if err != nil {
 		log.Error("Failed to init connect(listener) : ", err)
