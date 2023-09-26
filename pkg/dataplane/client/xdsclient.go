@@ -4,16 +4,15 @@ import (
 	"context"
 	"strings"
 	"sync"
-	"time"
 
+	"github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
+	"github.com/clusterlink-org/clusterlink/pkg/dataplane/server"
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	client "github.com/envoyproxy/go-control-plane/pkg/client/sotw/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	log "github.com/sirupsen/logrus"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-org/clusterlink/pkg/dataplane/server"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/proto"
@@ -21,7 +20,6 @@ import (
 )
 
 func runClusterFetcher(clusterFetcher client.ADSClient) error {
-	time.Sleep(10 * time.Second)
 	for {
 		resp, err := clusterFetcher.Fetch()
 		if err != nil {
@@ -42,7 +40,6 @@ func runClusterFetcher(clusterFetcher client.ADSClient) error {
 }
 
 func runListenerFetcher(listenerFetcher client.ADSClient, dataplane *server.Dataplane) error {
-	time.Sleep(10 * time.Second)
 	for {
 		resp, err := listenerFetcher.Fetch()
 		if err != nil {
