@@ -31,7 +31,7 @@ const (
 	KeyFile = "/etc/ssl/private/clink-dataplane.pem"
 
 	// dataplaneServerAddress is the address of the dataplane HTTP server for authorizing ingress dataplane connections.
-	dataplaneServerAddress = ":8443"
+	dataplaneServerAddress = "127.0.0.1:8443"
 )
 
 // Options contains everything necessary to create and run a dataplane.
@@ -87,7 +87,7 @@ func runDataplane(controlPlaneHost string) error {
 	}()
 
 	go func() {
-		err = dataplane.StartSNIServer()
+		err = dataplane.StartSNIServer(dataplaneServerAddress)
 		log.Error("Failed to start dataplane server", err)
 	}()
 	// Start xDS client, if it fails to start we keep retrying to connect to the controlplane host

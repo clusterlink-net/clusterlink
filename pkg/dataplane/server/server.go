@@ -29,11 +29,11 @@ func (d *Dataplane) StartDataplaneServer(dataplaneServerAddress string) error {
 }
 
 // StartSNIServer starts the SNI Proxy in the dataplane
-func (d *Dataplane) StartSNIServer() error {
+func (d *Dataplane) StartSNIServer(dataplaneServerAddress string) error {
 	dataplaneListenAddress := ":" + strconv.Itoa(api.ListenPort)
 	sniProxy := sniproxy.NewServer(map[string]string{
 		d.peerName:                          d.controlplaneTarget,
-		api.DataplaneServerName(d.peerName): "127.0.0.1:8443",
+		api.DataplaneServerName(d.peerName): dataplaneServerAddress,
 	})
 	d.logger.Infof("SNI proxy starting at %s", dataplaneListenAddress)
 	err := sniProxy.Listen(dataplaneListenAddress)
