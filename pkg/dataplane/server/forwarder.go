@@ -13,9 +13,9 @@ const (
 )
 
 type forwarder struct {
-	listenerConn net.Conn
-	peerConn     net.Conn
-	logger       *logrus.Entry
+	appConn  net.Conn
+	peerConn net.Conn
+	logger   *logrus.Entry
 }
 
 type connDialer struct {
@@ -26,7 +26,7 @@ func (cd connDialer) Dial(_, _ string) (net.Conn, error) {
 	return cd.c, nil
 }
 
-func (f *forwarder) peerToListener() error {
+func (f *forwarder) peerToApp() error {
 	bufData := make([]byte, maxDataBufferSize)
 	for {
 		numBytes, err := f.peerConn.Read(bufData)
@@ -37,7 +37,7 @@ func (f *forwarder) peerToListener() error {
 			}
 			break
 		}
-		_, err = f.listenerConn.Write(bufData[:numBytes]) // TODO: track actually written byte count
+		_, err = f.appConn.Write(bufData[:numBytes]) // TODO: track actually written byte count
 		if err != nil {
 			if err != io.EOF { // don't log EOF
 				f.logger.Infof("peerToListener: Write error %v\n", err)
@@ -50,13 +50,13 @@ func (f *forwarder) peerToListener() error {
 	return nil
 }
 
-func (f *forwarder) listenerToPeer() error {
+func (f *forwarder) appToPeer() error {
 	bufData := make([]byte, maxDataBufferSize)
 	for {
-		numBytes, err := f.listenerConn.Read(bufData)
+		numBytes, err := f.appConn.Read(bufData)
 		if err != nil {
 			if err != io.EOF { // don't log EOF
-				f.logger.Infof("listenerToPeer: Read error %v\n", err)
+				f.logger.Infof("appToPeer: Read error %v\n", err)
 				return err
 			}
 			break
@@ -65,7 +65,7 @@ func (f *forwarder) listenerToPeer() error {
 		_, err = f.peerConn.Write(bufData[:numBytes]) // TODO: track actually written byte count
 		if err != nil {
 			if err != io.EOF { // don't log EOF
-				f.logger.Infof("listenerToPeer: Write error %v\n", err)
+				f.logger.Infof("appToPeer: Write error %v\n", err)
 				return err
 			}
 			break
@@ -79,8 +79,8 @@ func (f *forwarder) closeConnections() {
 	if f.peerConn != nil {
 		f.peerConn.Close()
 	}
-	if f.listenerConn != nil {
-		f.listenerConn.Close()
+	if f.appConn != nil {
+		f.appConn.Close()
 	}
 }
 
@@ -90,7 +90,7 @@ func (f *forwarder) start() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := f.listenerToPeer()
+		err := f.appToPeer()
 		if err != nil {
 			f.logger.Error("End of listener to peer connection ", err)
 		}
@@ -99,7 +99,7 @@ func (f *forwarder) start() {
 	wg.Add(1)
 	go func() {
 		wg.Done()
-		err := f.peerToListener()
+		err := f.peerToApp()
 		if err != nil {
 			f.logger.Error("End of peer to listerner connection ", err)
 		}
