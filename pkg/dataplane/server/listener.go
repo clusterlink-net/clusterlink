@@ -76,13 +76,11 @@ func (d *Dataplane) getEgressAuth(name, sourceIP string) (string, string, error)
 	egressAuthReq.Header.Add(api.ClientIPHeader, sourceIP)
 	egressAuthReq.Header.Add(api.ImportHeader, name)
 	egressAuthResp, err := d.apiClient.Do(egressAuthReq)
-	if egressAuthResp != nil {
-		defer egressAuthResp.Body.Close()
-	}
 	if err != nil {
 		d.logger.Error("Unable to send auth/egress request ", err)
 		return "", "", err
 	}
+	defer egressAuthResp.Body.Close()
 	if egressAuthResp.StatusCode != http.StatusOK {
 		d.logger.Infof("Failed to obtained egress authorization: %s", egressAuthResp.Status)
 		return "", "", fmt.Errorf("failed egress authorization:%s", egressAuthResp.Status)
