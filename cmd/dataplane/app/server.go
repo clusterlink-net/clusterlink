@@ -30,7 +30,7 @@ const (
 	// KeyFile is the path to the private-key file.
 	KeyFile = "/etc/ssl/private/clink-dataplane.pem"
 
-	// dataplaneServerAddress is the address of the dataplane HTTP server for authorizing ingress dataplane connections.
+	// dataplaneServerAddress is the address of the dataplane HTTP server for accepting ingress dataplane connections.
 	dataplaneServerAddress = "127.0.0.1:8443"
 )
 
