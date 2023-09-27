@@ -66,7 +66,7 @@ func runDataplane(controlPlaneHost string) error {
 	}
 	dnsNames := parsedCertData.DNSNames()
 	if len(dnsNames) != 1 {
-		return fmt.Errorf("expected peer certificate to contain a single DNS name, but got %d", len(dnsNames))
+		return fmt.Errorf("expected certificate to contain a single DNS name, but got %d", len(dnsNames))
 	}
 
 	peerName, err := api.StripServerPrefix(dnsNames[0])
