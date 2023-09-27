@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	"github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
 	"github.com/clusterlink-org/clusterlink/pkg/util"
 )
 
@@ -21,7 +20,6 @@ type Dataplane struct {
 	peerName           string
 	router             *chi.Mux
 	apiClient          *http.Client
-	authClient         *http.Client
 	parsedCertData     *util.ParsedCertData
 	controlplaneTarget string
 	logger             *logrus.Entry
@@ -67,12 +65,6 @@ func NewDataplane(dataplaneID, controlplaneTarget, peerName string, parsedCertDa
 			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
 				TLSClientConfig: parsedCertData.ClientConfig(peerName),
-			},
-		},
-		authClient: &http.Client{
-			Timeout: 10 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: parsedCertData.ClientConfig(api.DataplaneServerName(peerName)),
 			},
 		},
 		parsedCertData:     parsedCertData,
