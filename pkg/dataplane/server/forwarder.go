@@ -86,6 +86,7 @@ func (f *forwarder) closeConnections() {
 
 func (f *forwarder) start() {
 	var wg sync.WaitGroup
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -94,6 +95,7 @@ func (f *forwarder) start() {
 			f.logger.Error("End of listener to peer connection ", err)
 		}
 	}()
+
 	wg.Add(1)
 	go func() {
 		wg.Done()
@@ -102,5 +104,6 @@ func (f *forwarder) start() {
 			f.logger.Error("End of peer to listerner connection ", err)
 		}
 	}()
+
 	wg.Wait()
 }

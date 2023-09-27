@@ -20,7 +20,7 @@ func (d *Dataplane) DeleteListener(name string) {
 func (d *Dataplane) CreateListener(name, ip string, port uint32) {
 	listenTarget := ip + ":" + strconv.Itoa(int(port))
 	listenerChan[name] = make(chan bool)
-	d.logger.Infof("Starting an listener for imported service %s at  %s ", name, listenTarget)
+	d.logger.Infof("Starting a listener for imported service %s at %s.", name, listenTarget)
 	acceptor, err := net.Listen("tcp", listenTarget)
 	if err != nil {
 		d.logger.Infof("Error Listen to port %v", err)
@@ -28,7 +28,7 @@ func (d *Dataplane) CreateListener(name, ip string, port uint32) {
 	}
 	go func() {
 		if err = d.serveEgressConnections(name, acceptor); err != nil {
-			d.logger.Infof("failed to serve egress connection on  %s: %+v", listenTarget, err)
+			d.logger.Errorf("Failed to serve egress connection on %s: %+v.", listenTarget, err)
 		}
 	}()
 	<-listenerChan[name]
@@ -37,15 +37,16 @@ func (d *Dataplane) CreateListener(name, ip string, port uint32) {
 
 func (d *Dataplane) serveEgressConnections(name string, listener net.Listener) error {
 	for {
-		d.logger.Infof("Serving for imported service %s at  %s ", name, listener.Addr())
+		d.logger.Infof("Serving for imported service %s at %s.", name, listener.Addr())
 		conn, err := listener.Accept()
 		if err != nil {
 			d.logger.Error("Failed to accept egress connection", err)
 			return err
 		}
 
-		d.logger.Infof("Received an egress connection at listener for imported service %s from %s ", name, conn.RemoteAddr().String())
-		d.logger.Infof("Connection : %+v", conn)
+		d.logger.Debugf("Received an egress connection at listener for imported service %s from %s.", name, conn.RemoteAddr().String())
+		d.logger.Debugf("Connection: %+v.", conn)
+
 		targetPeer, accessToken, err := d.getEgressAuth(name, strings.Split(conn.RemoteAddr().String(), ":")[0])
 		if err != nil {
 			d.logger.Error("Failed egress authorization", err)

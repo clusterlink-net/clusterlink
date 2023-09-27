@@ -35,7 +35,8 @@ func (d *Dataplane) StartSNIServer(dataplaneServerAddress string) error {
 		d.peerName:                          d.controlplaneTarget,
 		api.DataplaneServerName(d.peerName): dataplaneServerAddress,
 	})
-	d.logger.Infof("SNI proxy starting at %s", dataplaneListenAddress)
+
+	d.logger.Infof("SNI proxy starting at %s.", dataplaneListenAddress)
 	err := sniProxy.Listen(dataplaneListenAddress)
 	if err != nil {
 		return fmt.Errorf("unable to create listener for server on %s: %v",
@@ -82,11 +83,12 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 
 	serviceTarget, err := GetClusterTarget(resp.Header.Get(cpapi.TargetClusterHeader))
 	if err != nil {
-		d.logger.Errorf("unable to get cluster target")
+		d.logger.Errorf("Unable to get cluster target: %v.", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// Hijack connection
+
+	// hijack connection
 	peerConn, err := d.hijackConn(w)
 	if err != nil {
 		d.logger.Error("hijacking failed ", err)
@@ -94,11 +96,11 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	d.logger.Infof("Initiating connection with %s", serviceTarget)
+	d.logger.Infof("Initiating connection with %s.", serviceTarget)
 
 	listenerConn, err := net.Dial("tcp", serviceTarget) // TODO: support destination with secure connection
 	if err != nil {
-		d.logger.Errorf("Dial to export service failed: %v", err)
+		d.logger.Errorf("Dial to export service failed: %v.", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -114,7 +116,7 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 }
 
 func (d *Dataplane) hijackConn(w http.ResponseWriter) (net.Conn, error) {
-	d.logger.Infof("Starting to hijack connection")
+	d.logger.Debugf("Starting to hijack connection.")
 	hj, ok := w.(http.Hijacker)
 	if !ok {
 		return nil, fmt.Errorf("server doesn't support hijacking")
@@ -123,7 +125,7 @@ func (d *Dataplane) hijackConn(w http.ResponseWriter) (net.Conn, error) {
 	peerConn, _, err := hj.Hijack()
 	if err != nil {
 		d.logger.Infof("Hijacking failed %v\n", err)
-		return nil, fmt.Errorf("hijaclking failed %v", err)
+		return nil, fmt.Errorf("hijacking failed: %v", err)
 	}
 
 	if err = peerConn.SetDeadline(time.Time{}); err != nil {
@@ -149,7 +151,7 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, li
 		return err
 	}
 	url := httpSchemaPrefix + target + cpapi.DataplaneIngressAuthorizationPath
-	d.logger.Debug("Starting to initiate egress connectiion to ", url)
+	d.logger.Debugf("Starting to initiate egress connection to: %s.", url)
 
 	peerConn, err := tls.Dial("tcp", target, tlsConfig)
 	if err != nil {
@@ -168,8 +170,10 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, li
 	if err != nil {
 		return err
 	}
+
 	egressReq.Header.Add(cpapi.AuthorizationHeader, authToken)
-	d.logger.Debugf("Setting %s header to %s", cpapi.AuthorizationHeader, authToken)
+	d.logger.Debugf("Setting %s header to %s.", cpapi.AuthorizationHeader, authToken)
+
 	resp, err := client.Do(egressReq)
 	if resp != nil {
 		defer resp.Body.Close()
