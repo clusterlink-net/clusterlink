@@ -20,9 +20,9 @@ import (
 	"github.com/clusterlink-org/clusterlink/pkg/dataplane/server"
 )
 
-func runClusterFetcher(clusterFetcher client.ADSClient) error {
+func runClusterFetcher(clusters client.ADSClient) error {
 	for {
-		resp, err := clusterFetcher.Fetch()
+		resp, err := clusters.Fetch()
 		if err != nil {
 			log.Error("Failed to fetch cluster", err)
 			continue
@@ -40,28 +40,28 @@ func runClusterFetcher(clusterFetcher client.ADSClient) error {
 	}
 }
 
-func runListenerFetcher(listenerFetcher client.ADSClient, dataplane *server.Dataplane) error {
+func runListenerFetcher(listeners client.ADSClient, dataplane *server.Dataplane) error {
 	for {
-		resp, err := listenerFetcher.Fetch()
+		resp, err := listeners.Fetch()
 		if err != nil {
 			log.Error("Failed to fetch listener", err)
 			continue
 		}
 		for _, r := range resp.Resources {
-			myListener := &listener.Listener{}
-			err := anypb.UnmarshalTo(r, myListener, proto.UnmarshalOptions{})
+			l := &listener.Listener{}
+			err := anypb.UnmarshalTo(r, l, proto.UnmarshalOptions{})
 			if err != nil {
 				log.Error("Failed to unmarshal listener resource : ", err)
 				return err
 			}
-			log.Infof("Listener : %s", myListener.Name)
-			listenerName := strings.TrimPrefix(myListener.Name, api.ImportListenerPrefix)
-			err = server.AddListener(listenerName, myListener)
+			log.Infof("Listener : %s", l.Name)
+			listenerName := strings.TrimPrefix(l.Name, api.ImportListenerPrefix)
+			err = server.AddListener(listenerName, l)
 			if err != nil {
 				continue
 			}
 			go func() {
-				dataplane.CreateListenerToImportServiceEndpoint(listenerName, myListener.Address.GetSocketAddress().GetAddress(), myListener.Address.GetSocketAddress().GetPortValue())
+				dataplane.CreateListenerToImportServiceEndpoint(listenerName, l.Address.GetSocketAddress().GetAddress(), l.Address.GetSocketAddress().GetPortValue())
 			}()
 		}
 	}
