@@ -124,7 +124,7 @@ func (d *Dataplane) hijackConn(w http.ResponseWriter) (net.Conn, error) {
 	// Hijack the connection
 	peerConn, _, err := hj.Hijack()
 	if err != nil {
-		return nil, fmt.Errorf("Hijacking failed: %v", err)
+		return nil, fmt.Errorf("hijacking failed: %v", err)
 	}
 
 	if err = peerConn.SetDeadline(time.Time{}); err != nil {
