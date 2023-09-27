@@ -82,7 +82,7 @@ func runDataplane(controlPlaneHost string) error {
 	dataplane := dpserver.NewDataplane(dataplaneID, controlplaneTarget, peerName, parsedCertData)
 	go func() {
 		err = dataplane.StartDataplaneServer(dataplaneServerAddress)
-		log.Error("Failed to start dataplane server", err)
+		log.Errorf("Failed to start dataplane server: %v.", err)
 	}()
 
 	go func() {
