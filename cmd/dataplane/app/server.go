@@ -90,9 +90,10 @@ func runDataplane(controlPlaneHost string) error {
 		log.Error("Failed to start dataplane server", err)
 	}()
 	// Start xDS client, if it fails to start we keep retrying to connect to the controlplane host
+	creds := credentials.NewTLS(parsedCertData.ClientConfig(cpapi.GRPCServerName(peerName)))
 	for {
 		log.Debugf("Dialing to Controlplane : %s", controlplaneTarget)
-		err = dpclient.StartxDSClient(dataplane, controlplaneTarget, credentials.NewTLS(parsedCertData.ClientConfig(cpapi.GRPCServerName(peerName))))
+		err = dpclient.StartxDSClient(dataplane, controlplaneTarget, creds)
 		if err != nil {
 			log.Errorf("Failed to start xDS client, retrying : %v", err)
 		}
