@@ -33,9 +33,9 @@ const (
 	// dataplaneServerAddress is the address of the dataplane HTTP server for accepting ingress dataplane connections.
 	dataplaneServerAddress = "127.0.0.1:8443"
 
-	//clinkType
+	// clinkType is the clusterlink go dataplane
 	clinkType = "clink"
-	//envoyType
+	// envoyType is the envoy dataplane
 	envoyType = "envoy"
 )
 
