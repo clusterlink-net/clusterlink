@@ -111,7 +111,7 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 		logger:   logrus.WithField("component", "dataplane.forwarder"),
 	}
 
-	forward.start()
+	forward.run()
 
 }
 
@@ -188,6 +188,6 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, ap
 		peerConn: peerConn,
 		logger:   logrus.WithField("component", "dataplane.forwarder"),
 	}
-	forward.start()
+	forward.run()
 	return nil
 }

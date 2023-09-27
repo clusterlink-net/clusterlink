@@ -32,7 +32,6 @@ func (f *forwarder) peerToApp() error {
 		numBytes, err := f.peerConn.Read(bufData)
 		if err != nil {
 			if err != io.EOF { // don't log EOF
-				f.logger.Infof("peerToListener: Read error %v\n", err)
 				return err
 			}
 			break
@@ -40,7 +39,6 @@ func (f *forwarder) peerToApp() error {
 		_, err = f.appConn.Write(bufData[:numBytes]) // TODO: track actually written byte count
 		if err != nil {
 			if err != io.EOF { // don't log EOF
-				f.logger.Infof("peerToListener: Write error %v\n", err)
 				return err
 			}
 			break
@@ -56,7 +54,6 @@ func (f *forwarder) appToPeer() error {
 		numBytes, err := f.appConn.Read(bufData)
 		if err != nil {
 			if err != io.EOF { // don't log EOF
-				f.logger.Infof("appToPeer: Read error %v\n", err)
 				return err
 			}
 			break
@@ -65,7 +62,6 @@ func (f *forwarder) appToPeer() error {
 		_, err = f.peerConn.Write(bufData[:numBytes]) // TODO: track actually written byte count
 		if err != nil {
 			if err != io.EOF { // don't log EOF
-				f.logger.Infof("appToPeer: Write error %v\n", err)
 				return err
 			}
 			break
@@ -84,7 +80,7 @@ func (f *forwarder) closeConnections() {
 	}
 }
 
-func (f *forwarder) start() {
+func (f *forwarder) run() {
 	var wg sync.WaitGroup
 
 	wg.Add(1)
@@ -92,7 +88,7 @@ func (f *forwarder) start() {
 		defer wg.Done()
 		err := f.appToPeer()
 		if err != nil {
-			f.logger.Error("End of listener to peer connection ", err)
+			f.logger.Errorf("End of app to peer connection %v.", err)
 		}
 	}()
 
@@ -101,7 +97,7 @@ func (f *forwarder) start() {
 		wg.Done()
 		err := f.peerToApp()
 		if err != nil {
-			f.logger.Error("End of peer to listerner connection ", err)
+			f.logger.Errorf("End of peer to app connection %v.", err)
 		}
 	}()
 
