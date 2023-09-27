@@ -33,8 +33,8 @@ func createClientset() (*kubernetes.Clientset, error) {
 	return clientset, nil
 }
 
-// Check if pod is ready using its label
-func isPodReady(name string) error {
+// IsPodReady check if pod is ready using its label
+func IsPodReady(name string) error {
 	namespace := "default"
 	clientset, err := createClientset()
 	if err != nil {
@@ -62,7 +62,7 @@ func isPodReady(name string) error {
 	}
 }
 
-// Check if pod is ready by the full name of the pod
+// isPodReadyByName Check if pod is ready by the full name of the pod
 func isPodReadyByName(pod *corev1.Pod) bool {
 	for _, condition := range pod.Status.Conditions {
 		if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
@@ -177,13 +177,13 @@ func StartClusterLink(name, cPortLocal, manifests string, cPort uint16) error {
 		return err
 	}
 
-	err = isPodReady("mbg")
+	err = IsPodReady("mbg")
 	if err != nil {
 		return err
 	}
 
 	gwPod, _ := GetPodNameIP("mbg")
-	err = isPodReady("dataplane")
+	err = IsPodReady("dataplane")
 	if err != nil {
 		return err
 	}
@@ -230,7 +230,7 @@ func LaunchApp(clusterName, svcName, svcImage, svcYaml string) error {
 		return err
 	}
 
-	err = isPodReady(svcName)
+	err = IsPodReady(svcName)
 	time.Sleep(2 * time.Second)
 	return err
 }
