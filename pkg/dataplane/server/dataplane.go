@@ -6,16 +6,16 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
-	"github.com/clusterlink-org/clusterlink/pkg/util"
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
+
+	"github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
+	"github.com/clusterlink-org/clusterlink/pkg/util"
 )
 
-// Server implementing the management API, allowing to manage the set of peers, imports, exports and bindings.
-// Furthermore, this server implements the various authorization APIs.
+// Dataplane implements the server and api client which sends authorization to the control plane
 type Dataplane struct {
 	ID                 string
 	peerName           string
@@ -33,7 +33,7 @@ var (
 	listenerChan map[string]chan bool
 )
 
-// GetTargetCluster returns the cluster address:port from the cluster map
+// GetClusterTarget returns the cluster address:port from the cluster map
 func GetClusterTarget(name string) (string, error) {
 	if _, ok := clusterMap[name]; !ok {
 		return "", fmt.Errorf("unable to find %s in clustermap ", name)
@@ -43,10 +43,12 @@ func GetClusterTarget(name string) (string, error) {
 	return address + ":" + strconv.Itoa(int(port)), nil
 }
 
+// AddCluster adds a cluster to the map
 func AddCluster(cluster *cluster.Cluster) {
 	clusterMap[cluster.Name] = cluster
 }
 
+// AddListener adds a listener to the map
 func AddListener(listenerName string, listener *listener.Listener) error {
 	if _, ok := listenerMap[listenerName]; ok {
 		return fmt.Errorf("listener %s already exists", listenerName)
