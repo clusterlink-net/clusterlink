@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	cpapi "github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
 	"github.com/clusterlink-org/clusterlink/pkg/util/sniproxy"
@@ -105,14 +103,8 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	forward := forwarder{
-		appConn:  appConn,
-		peerConn: peerConn,
-		logger:   logrus.WithField("component", "dataplane.forwarder"),
-	}
-
+	forward := newForwarder(appConn, peerConn)
 	forward.run()
-
 }
 
 func (d *Dataplane) hijackConn(w http.ResponseWriter) (net.Conn, error) {
@@ -181,10 +173,7 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, ap
 	}
 	d.logger.Infof("Connection established successfully!")
 
-	forward := forwarder{appConn: appConn,
-		peerConn: peerConn,
-		logger:   logrus.WithField("component", "dataplane.forwarder"),
-	}
+	forward := newForwarder(appConn, peerConn)
 	forward.run()
 	return nil
 }

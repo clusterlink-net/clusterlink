@@ -103,3 +103,10 @@ func (f *forwarder) run() {
 
 	wg.Wait()
 }
+
+func newForwarder(appConn net.Conn, peerConn net.Conn) *forwarder {
+	return &forwarder{appConn: appConn,
+		peerConn: peerConn,
+		logger:   logrus.WithField("component", "dataplane.forwarder"),
+	}
+}
