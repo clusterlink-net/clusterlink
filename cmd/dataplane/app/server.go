@@ -6,17 +6,17 @@ import (
 	"strconv"
 	"time"
 
-	cpapi "github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
-	dpclient "github.com/clusterlink-org/clusterlink/pkg/dataplane/client"
-	dpserver "github.com/clusterlink-org/clusterlink/pkg/dataplane/server"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
-	"github.com/clusterlink-org/clusterlink/pkg/util"
 	"google.golang.org/grpc/credentials"
+
+	cpapi "github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
+	"github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
+	dpclient "github.com/clusterlink-org/clusterlink/pkg/dataplane/client"
+	dpserver "github.com/clusterlink-org/clusterlink/pkg/dataplane/server"
+	"github.com/clusterlink-org/clusterlink/pkg/util"
 )
 
 const (
