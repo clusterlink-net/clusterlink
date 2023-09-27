@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 package connectivity
 
 import (
@@ -104,7 +101,13 @@ func TestConnectivity(t *testing.T) {
 		err = gwctl2.SendAccessPolicy(policy, client.Add)
 		require.NoError(t, err)
 
+		err = utils.UseKindCluster(gw2Name)
+		require.NoError(t, err)
+		err = utils.IsPodReady(pingerService)
+		require.NoError(t, err)
 		err = utils.UseKindCluster(gw1Name)
+		require.NoError(t, err)
+		err = utils.IsPodReady(curlClient)
 		require.NoError(t, err)
 		curlClient, _ := utils.GetPodNameIP(curlClient)
 		output, err := utils.GetOutput("kubectl exec -i " + curlClient + " -- curl -s http://pinger-server:3000/ping")
