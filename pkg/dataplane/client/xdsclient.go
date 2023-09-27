@@ -28,15 +28,18 @@ func runClusterFetcher(clusters client.ADSClient) error {
 			continue
 		}
 		for _, r := range resp.Resources {
-			myCluster := &cluster.Cluster{}
-			err := anypb.UnmarshalTo(r, myCluster, proto.UnmarshalOptions{})
+			var c cluster.Cluster
+			err := anypb.UnmarshalTo(r, &c, proto.UnmarshalOptions{})
 			if err != nil {
-				log.Error("Failed to unmarshal cluster resource : ", err)
+				log.Errorf("Failed to unmarshal cluster resource: %v.", err)
 				return err
 			}
-			log.Infof("Cluster : %s", myCluster.Name)
+
+			log.Debugf("Cluster : %s.", myCluster.Name)
 			server.AddCluster(myCluster)
 		}
+
+		clusterFetcher.Ack()
 	}
 }
 
