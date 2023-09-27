@@ -3,13 +3,19 @@ package app
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"google.golang.org/grpc/credentials"
 
+	cpapi "github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
+	dpclient "github.com/clusterlink-org/clusterlink/pkg/dataplane/client"
+	dpserver "github.com/clusterlink-org/clusterlink/pkg/dataplane/server"
 	"github.com/clusterlink-org/clusterlink/pkg/util"
 )
 
@@ -23,12 +29,22 @@ const (
 	CertificateFile = "/etc/ssl/certs/clink-dataplane.pem"
 	// KeyFile is the path to the private-key file.
 	KeyFile = "/etc/ssl/private/clink-dataplane.pem"
+
+	// dataplaneServerAddress is the address of the dataplane HTTP server for accepting ingress dataplane connections.
+	dataplaneServerAddress = "127.0.0.1:8443"
+
+	//clinkType
+	clinkType = "clink"
+	//envoyType
+	envoyType = "envoy"
 )
 
 // Options contains everything necessary to create and run a dataplane.
 type Options struct {
 	// ControlplaneHost is the IP/hostname of the controlplane.
 	ControlplaneHost string
+	// Type is the dataplane type.
+	Type string
 	// LogFile is the path to file where logs will be written.
 	LogFile string
 	// LogLevel is the log level.
@@ -39,6 +55,8 @@ type Options struct {
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.ControlplaneHost, "controlplane-host", "",
 		"The controlplane IP/hostname.")
+	fs.StringVar(&o.Type, "type", "clink",
+		"The type of the dataplane. One of clink, envoy.")
 	fs.StringVar(&o.LogFile, "log-file", "",
 		"Path to a file where logs will be written. If not specified, logs will be printed to stderr.")
 	fs.StringVar(&o.LogLevel, "log-level", logLevel,
@@ -48,6 +66,35 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 // RequiredFlags are the names of flags that must be explicitly specified.
 func (o *Options) RequiredFlags() []string {
 	return []string{"controlplane-host"}
+}
+
+// Run the go dataplane.
+func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *util.ParsedCertData) error {
+
+	controlplaneTarget := o.ControlplaneHost + ":" + strconv.Itoa(cpapi.ListenPort)
+
+	log.Infof("Starting go dataplane, Name : %s, ID : %s", peerName, dataplaneID)
+
+	dataplane := dpserver.NewDataplane(dataplaneID, controlplaneTarget, peerName, parsedCertData)
+	go func() {
+		err := dataplane.StartDataplaneServer(dataplaneServerAddress)
+		log.Errorf("Failed to start dataplane server: %v.", err)
+	}()
+
+	go func() {
+		err := dataplane.StartSNIServer(dataplaneServerAddress)
+		log.Error("Failed to start dataplane server", err)
+	}()
+	// Start xDS client, if it fails to start we keep retrying to connect to the controlplane host
+	creds := credentials.NewTLS(parsedCertData.ClientConfig(cpapi.GRPCServerName(peerName)))
+	for {
+		log.Debugf("Dialing to Controlplane : %s", controlplaneTarget)
+		err := dpclient.StartxDSClient(dataplane, controlplaneTarget, creds)
+		if err != nil {
+			log.Errorf("Failed to start xDS client, retrying : %v", err)
+		}
+		time.Sleep(10 * time.Second)
+	}
 }
 
 // Run the dataplane.
@@ -95,7 +142,15 @@ func (o *Options) Run() error {
 	dataplaneID := uuid.New().String()
 	log.Infof("Dataplane ID: %s.", dataplaneID)
 
-	return o.runEnvoy(peerName, dataplaneID)
+	switch o.Type {
+	case clinkType:
+		return o.runGoDataplane(peerName, dataplaneID, parsedCertData)
+	case envoyType:
+		return o.runEnvoy(peerName, dataplaneID)
+	default:
+		return fmt.Errorf("unknown type")
+	}
+
 }
 
 // NewCLDataplaneCommand creates a *cobra.Command object with default parameters.
