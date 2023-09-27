@@ -124,23 +124,20 @@ func (d *Dataplane) hijackConn(w http.ResponseWriter) (net.Conn, error) {
 	// Hijack the connection
 	peerConn, _, err := hj.Hijack()
 	if err != nil {
-		d.logger.Infof("Hijacking failed %v\n", err)
-		return nil, fmt.Errorf("hijacking failed: %v", err)
+		return nil, fmt.Errorf("Hijacking failed: %v", err)
 	}
 
 	if err = peerConn.SetDeadline(time.Time{}); err != nil {
-		d.logger.Infof("failed to clear deadlines on connection: %v", err)
 		return nil, fmt.Errorf("failed to clear deadlines on connection: %v", err)
 	}
 
 	if _, err := peerConn.Write([]byte{}); err != nil {
-		d.logger.Infof("failed to write on connection: %v", err)
 		_ = peerConn.Close() // close the connection ignoring errors
 		return nil, fmt.Errorf("failed to write to connection: %v", err)
 	}
 
 	fmt.Fprintf(peerConn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n")
-	d.logger.Infof("Connection Hijacked  %v->%v", peerConn.RemoteAddr().String(), peerConn.LocalAddr().String())
+	d.logger.Debugf("Connection Hijacked  %v->%v", peerConn.RemoteAddr().String(), peerConn.LocalAddr().String())
 	return peerConn, nil
 }
 
