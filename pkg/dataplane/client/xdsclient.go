@@ -35,11 +35,14 @@ func runClusterFetcher(clusters client.ADSClient) error {
 				return err
 			}
 
-			log.Debugf("Cluster : %s.", myCluster.Name)
-			server.AddCluster(myCluster)
+			log.Debugf("Cluster : %s.", c.Name)
+			server.AddCluster(&c)
 		}
 
-		clusterFetcher.Ack()
+		err = clusters.Ack()
+		if err != nil {
+			log.Errorf("Failed to ack %v.", err)
+		}
 	}
 }
 
@@ -66,6 +69,11 @@ func runListenerFetcher(listeners client.ADSClient, dataplane *server.Dataplane)
 			go func() {
 				dataplane.CreateListener(listenerName, l.Address.GetSocketAddress().GetAddress(), l.Address.GetSocketAddress().GetPortValue())
 			}()
+		}
+
+		err = listeners.Ack()
+		if err != nil {
+			log.Errorf("Failed to ack %v.", err)
 		}
 	}
 }
