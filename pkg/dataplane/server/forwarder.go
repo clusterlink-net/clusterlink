@@ -44,7 +44,6 @@ func (f *forwarder) peerToApp() error {
 			break
 		}
 	}
-	f.closeConnections()
 	return nil
 }
 
@@ -67,7 +66,6 @@ func (f *forwarder) appToPeer() error {
 			break
 		}
 	}
-	f.closeConnections()
 	return nil
 }
 
@@ -102,6 +100,7 @@ func (f *forwarder) run() {
 	}()
 
 	wg.Wait()
+	f.closeConnections()
 }
 
 func newForwarder(appConn net.Conn, peerConn net.Conn) *forwarder {
