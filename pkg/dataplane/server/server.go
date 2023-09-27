@@ -98,7 +98,7 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 
 	d.logger.Infof("Initiating connection with %s.", serviceTarget)
 
-	listenerConn, err := net.Dial("tcp", serviceTarget) // TODO: support destination with secure connection
+	appConn, err := net.Dial("tcp", serviceTarget)
 	if err != nil {
 		d.logger.Errorf("Dial to export service failed: %v.", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -106,9 +106,9 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 	}
 
 	forward := forwarder{
-		listenerConn: listenerConn,
-		peerConn:     peerConn,
-		logger:       logrus.WithField("component", "dataplane.forwarder"),
+		appConn:  appConn,
+		peerConn: peerConn,
+		logger:   logrus.WithField("component", "dataplane.forwarder"),
 	}
 
 	forward.start()
@@ -144,7 +144,7 @@ func (d *Dataplane) hijackConn(w http.ResponseWriter) (net.Conn, error) {
 	return peerConn, nil
 }
 
-func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, listenerConn net.Conn, tlsConfig *tls.Config) error {
+func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, appConn net.Conn, tlsConfig *tls.Config) error {
 	target, err := GetClusterTarget(targetCluster)
 	if err != nil {
 		d.logger.Error(err)
@@ -184,7 +184,7 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, li
 	}
 	d.logger.Infof("Connection established successfully!")
 
-	forward := forwarder{listenerConn: listenerConn,
+	forward := forwarder{appConn: appConn,
 		peerConn: peerConn,
 		logger:   logrus.WithField("component", "dataplane.forwarder"),
 	}
