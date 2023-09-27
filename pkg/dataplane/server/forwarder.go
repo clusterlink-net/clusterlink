@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	maxDataBufferSize = 64 * 1024
+	dataBufferSize = 64 * 1024
 )
 
 type forwarder struct {
@@ -27,7 +27,7 @@ func (cd connDialer) Dial(_, _ string) (net.Conn, error) {
 }
 
 func (f *forwarder) peerToApp() error {
-	bufData := make([]byte, maxDataBufferSize)
+	bufData := make([]byte, dataBufferSize)
 	for {
 		numBytes, err := f.peerConn.Read(bufData)
 		if err != nil {
@@ -49,7 +49,7 @@ func (f *forwarder) peerToApp() error {
 }
 
 func (f *forwarder) appToPeer() error {
-	bufData := make([]byte, maxDataBufferSize)
+	bufData := make([]byte, dataBufferSize)
 	for {
 		numBytes, err := f.appConn.Read(bufData)
 		if err != nil {
