@@ -16,7 +16,7 @@ func (d *Dataplane) DeleteListener(name string) {
 	listenerChan[name] <- true
 }
 
-// CreateListenerToImportServiceEndpoint starts a listener to an imported service
+// CreateListener starts a listener to an imported service
 func (d *Dataplane) CreateListener(name, ip string, port uint32) {
 	listenTarget := ip + ":" + strconv.Itoa(int(port))
 	listenerChan[name] = make(chan bool)

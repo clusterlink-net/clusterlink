@@ -64,13 +64,13 @@ func NewDataplane(dataplaneID, controlplaneTarget, peerName string, parsedCertDa
 		peerName: peerName,
 		router:   chi.NewRouter(),
 		apiClient: &http.Client{
-			Timeout: 10 & time.Second,
+			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
 				TLSClientConfig: parsedCertData.ClientConfig(peerName),
 			},
 		},
 		authClient: &http.Client{
-			Timeout: 10 & time.Second,
+			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
 				TLSClientConfig: parsedCertData.ClientConfig(api.DataplaneServerName(peerName)),
 			},
