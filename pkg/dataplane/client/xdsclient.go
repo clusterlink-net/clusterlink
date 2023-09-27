@@ -61,7 +61,7 @@ func runListenerFetcher(listeners client.ADSClient, dataplane *server.Dataplane)
 				continue
 			}
 			go func() {
-				dataplane.CreateListenerToImportServiceEndpoint(listenerName, l.Address.GetSocketAddress().GetAddress(), l.Address.GetSocketAddress().GetPortValue())
+				dataplane.CreateListener(listenerName, l.Address.GetSocketAddress().GetAddress(), l.Address.GetSocketAddress().GetPortValue())
 			}()
 		}
 	}
