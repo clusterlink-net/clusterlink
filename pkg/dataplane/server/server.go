@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	cpapi "github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
-	"github.com/clusterlink-org/clusterlink/pkg/util/sniproxy"
-	"github.com/clusterlink-org/clusterlink/pkg/utils/netutils"
+	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
+	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
+	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
 )
 
 const (

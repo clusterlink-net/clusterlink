@@ -16,8 +16,8 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-org/clusterlink/pkg/dataplane/server"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	"github.com/clusterlink-net/clusterlink/pkg/dataplane/server"
 )
 
 func runClusterFetcher(clusters client.ADSClient) error {

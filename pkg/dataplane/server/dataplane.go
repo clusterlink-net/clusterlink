@@ -11,7 +11,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	"github.com/clusterlink-org/clusterlink/pkg/util"
+	"github.com/clusterlink-net/clusterlink/pkg/util"
 )
 
 // Dataplane implements the server and api client which sends authorization to the control plane
