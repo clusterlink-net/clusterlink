@@ -10,7 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/credentials"
 
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
@@ -87,10 +86,10 @@ func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *u
 	}()
 
 	// Start xDS client, if it fails to start we keep retrying to connect to the controlplane host
-	creds := credentials.NewTLS(parsedCertData.ClientConfig(cpapi.GRPCServerName(peerName)))
+	tlsConfig := parsedCertData.ClientConfig(cpapi.GRPCServerName(peerName))
 	for {
 		log.Debugf("Dialing to Controlplane: %s.", controlplaneTarget)
-		err := dpclient.StartxDSClient(dataplane, controlplaneTarget, creds)
+		err := dpclient.StartxDSClient(dataplane, controlplaneTarget, tlsConfig)
 		if err != nil {
 			log.Errorf("Failed to start xDS client, retrying: %v.", err)
 		}

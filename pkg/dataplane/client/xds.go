@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
 	"strings"
 	"sync"
 
@@ -79,9 +80,9 @@ func runListenerFetcher(listeners client.ADSClient, dataplane *server.Dataplane)
 }
 
 // StartxDSClient starts the xDS client which fetches to clusters & listeners from controlplane
-func StartxDSClient(dataplane *server.Dataplane, controlplaneTarget string, cred credentials.TransportCredentials) error {
+func StartxDSClient(dataplane *server.Dataplane, controlplaneTarget string, tlsConfig *tls.Config) error {
 	var wg sync.WaitGroup
-	conn, err := grpc.Dial(controlplaneTarget, grpc.WithTransportCredentials(cred))
+	conn, err := grpc.Dial(controlplaneTarget, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
 	if err != nil {
 		return err
 	}
