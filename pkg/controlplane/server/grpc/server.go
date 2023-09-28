@@ -9,8 +9,8 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
 
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane"
-	"github.com/clusterlink-org/clusterlink/pkg/util/grpc"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
+	"github.com/clusterlink-net/clusterlink/pkg/util/grpc"
 )
 
 // Server implements an xDS server for dataplane dynamic configuration.

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
-	dpapi "github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 )
 
 // DeleteListener deletes the listener to an imported service

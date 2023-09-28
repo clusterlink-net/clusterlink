@@ -6,7 +6,7 @@ package main
 import (
 	"os"
 
-	"github.com/clusterlink-org/clusterlink/cmd/cl-controlplane/app"
+	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
 )
 
 func main() {

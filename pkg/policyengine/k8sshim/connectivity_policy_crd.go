@@ -3,7 +3,7 @@ package k8sshim
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/clusterlink-org/clusterlink/pkg/policyengine/policytypes"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
 
 const (

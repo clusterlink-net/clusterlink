@@ -11,9 +11,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
-	cpstore "github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
-	"github.com/clusterlink-org/clusterlink/pkg/store"
-	"github.com/clusterlink-org/clusterlink/pkg/util"
+	cpstore "github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-net/clusterlink/pkg/store"
+	"github.com/clusterlink-net/clusterlink/pkg/util"
 )
 
 // Instance of a controlplane, where all API servers delegate their requested actions to.

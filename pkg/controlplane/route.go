@@ -11,11 +11,11 @@ import (
 	"github.com/segmentio/ksuid"
 	log "github.com/sirupsen/logrus"
 
-	apiObject "github.com/clusterlink-org/clusterlink/pkg/controlplane/api/object"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/health"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
-	"github.com/clusterlink-org/clusterlink/pkg/k8s/kubernetes"
+	apiObject "github.com/clusterlink-net/clusterlink/pkg/controlplane/api/object"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/health"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-net/clusterlink/pkg/k8s/kubernetes"
 )
 
 // MbgHandler struct

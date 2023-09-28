@@ -8,10 +8,10 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	"github.com/clusterlink-org/clusterlink/pkg/api"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/health"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/health"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 )
 
 var plog = logrus.WithField("component", "mbgControlPlane/Peer")

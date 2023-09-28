@@ -17,10 +17,10 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/clusterlink-org/clusterlink/pkg/api"
-	cpapi "github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
-	dpapi "github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
+	"github.com/clusterlink-net/clusterlink/pkg/api"
+	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
+	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 )
 
 // xdsManager manages the core routing components of the dataplane.

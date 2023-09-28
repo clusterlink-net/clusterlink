@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 )
 
 const (

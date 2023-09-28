@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 )
 
 const (

@@ -1,4 +1,4 @@
-module github.com/clusterlink-org/clusterlink
+module github.com/clusterlink-net/clusterlink
 
 go 1.20
 

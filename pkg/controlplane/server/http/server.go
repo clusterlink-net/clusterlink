@@ -5,8 +5,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane"
-	"github.com/clusterlink-org/clusterlink/pkg/util/rest"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
+	"github.com/clusterlink-net/clusterlink/pkg/util/rest"
 )
 
 // Server implementing the management API, allowing to manage the set of peers, imports, exports and bindings.

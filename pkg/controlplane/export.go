@@ -9,9 +9,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
 
-	"github.com/clusterlink-org/clusterlink/pkg/api"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
-	"github.com/clusterlink-org/clusterlink/pkg/k8s/kubernetes"
+	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-net/clusterlink/pkg/k8s/kubernetes"
 )
 
 var slog = logrus.WithField("component", "mbgControlPlane/export")

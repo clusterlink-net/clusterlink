@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/clusterlink-org/clusterlink/pkg/policyengine/policytypes"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
 
 // PDP is the main object to maintain a set of connectivity policies and decide
