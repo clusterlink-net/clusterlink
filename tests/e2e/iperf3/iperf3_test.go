@@ -16,7 +16,7 @@ import (
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/client"
-	"github.com/clusterlink-net/clusterlink/pkg/utils/logutils"
+	logutils "github.com/clusterlink-net/clusterlink/pkg/util/log"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/utils"
 )
 
@@ -37,7 +37,7 @@ var (
 
 // TestIperf3 check e2e iperf3 test
 func TestIperf3(t *testing.T) {
-	logutils.SetLog("info", false, "")
+	logutils.SetLog("info", "")
 	t.Run("Starting Cluster Setup", func(t *testing.T) {
 		err := utils.StartClusterSetup()
 		if err != nil {

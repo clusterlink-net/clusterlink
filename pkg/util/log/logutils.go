@@ -13,16 +13,16 @@ import (
 )
 
 const (
-	projectFolder            = "/.gw/"
 	logrusStackJump          = 4
 	logrusFieldlessStackJump = 6
 )
 
-func SetLog(logLevel string, logfile bool, logFileName string) {
-	usr, _ := user.Current()
-	logFileFullPath := path.Join(usr.HomeDir, projectFolder, logFileName)
-	CreateProjectfolder(logFileFullPath)
-	if logfile {
+func SetLog(logLevel string, logFileName string) {
+	if logFileName != "" {
+		usr, _ := user.Current()
+		logFileFullPath := path.Join(usr.HomeDir, logFileName)
+		createLogfolder(logFileFullPath)
+
 		f, err := os.OpenFile(logFileFullPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0600)
 		fmt.Printf("Creating log file: %v\n", logFileFullPath)
 		if err != nil {
@@ -32,13 +32,14 @@ func SetLog(logLevel string, logfile bool, logFileName string) {
 		// assign it to the standard logger
 		logrus.SetOutput(f)
 	}
+
 	// Set logrus
 	ll, err := logrus.ParseLevel(logLevel)
 	if err != nil {
 		ll = logrus.ErrorLevel
 	}
 	logrus.SetLevel(ll)
-	logrus.SetFormatter(&MyFormatter{
+	logrus.SetFormatter(&myFormatter{
 		TextFormatter: &logrus.TextFormatter{
 			ForceColors:     true,
 			FullTimestamp:   true,
@@ -49,11 +50,11 @@ func SetLog(logLevel string, logfile bool, logFileName string) {
 	})
 }
 
-type MyFormatter struct {
+type myFormatter struct {
 	*logrus.TextFormatter
 }
 
-func (f *MyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+func (f *myFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	if entry.Level == logrus.ErrorLevel {
 		_, file, line := f.getCurrentPosition(entry)
 		entry.Data["file"] = file
@@ -63,7 +64,7 @@ func (f *MyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return f.TextFormatter.Format(entry)
 }
 
-func (f *MyFormatter) getCurrentPosition(entry *logrus.Entry) (string, string, string) {
+func (f *myFormatter) getCurrentPosition(entry *logrus.Entry) (string, string, string) {
 	skip := logrusStackJump
 	if len(entry.Data) == 0 {
 		skip = logrusFieldlessStackJump
@@ -80,7 +81,8 @@ start:
 	return function, file, lineNumber
 }
 
-func CreateProjectfolder(filePath string) {
+// createLogfolder create the log folder if not exists
+func createLogfolder(filePath string) {
 	dir := filepath.Dir(filePath)
 
 	// Check if the directory already exists

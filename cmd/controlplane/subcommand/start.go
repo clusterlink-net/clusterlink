@@ -16,12 +16,12 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/k8s/kubernetes"
 	metrics "github.com/clusterlink-net/clusterlink/pkg/metrics"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
-	"github.com/clusterlink-net/clusterlink/pkg/utils/logutils"
+	logutils "github.com/clusterlink-net/clusterlink/pkg/util/log"
 	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
 )
 
 const (
-	logFileName = "gw.log"
+	logFileName = "/.gw/gw.log"
 )
 
 // StartCmd represents the start command of control plane
@@ -154,7 +154,11 @@ func addPolicyEngine(policyengineTarget string, start bool) {
 func createMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, dataplane,
 	caFile, certificateFile, keyFile, logLevel string, logFile bool) {
 
-	logutils.SetLog(logLevel, logFile, logFileName)
+	if logFile {
+		logutils.SetLog(logLevel, logFileName)
+	} else {
+		logutils.SetLog(logLevel, "")
+	}
 	store.SetState(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
 
 	// Set chi router
@@ -171,7 +175,11 @@ func createMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalData
 // restoreMbg restore the mbg after a failure in the control plane
 func restoreMbg(logLevel string, logFile, startPolicyEngine bool) {
 	store.UpdateState()
-	logutils.SetLog(logLevel, logFile, logFileName)
+	if logFile {
+		logutils.SetLog(logLevel, logFileName)
+	} else {
+		logutils.SetLog(logLevel, "")
+	}
 	if startPolicyEngine {
 		go addPolicyEngine("localhost"+store.GetMyCport().Local, true)
 	}

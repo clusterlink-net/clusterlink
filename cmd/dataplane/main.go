@@ -11,11 +11,11 @@ import (
 
 	dp "github.com/clusterlink-net/clusterlink/pkg/dataplane"
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/store"
-	"github.com/clusterlink-net/clusterlink/pkg/utils/logutils"
+	logutils "github.com/clusterlink-net/clusterlink/pkg/util/log"
 )
 
 const (
-	logFileName = "dataplane.log"
+	logFileName = "/.gw/dataplane.log"
 )
 
 func main() {
@@ -34,7 +34,7 @@ func main() {
 	// Parse command-line flags
 	flag.Parse()
 	// Set log file
-	logutils.SetLog(logLevel, true, logFileName)
+	logutils.SetLog(logLevel, logFileName)
 	log.Infof("Dataplane main started")
 
 	if profilePort != 0 {
