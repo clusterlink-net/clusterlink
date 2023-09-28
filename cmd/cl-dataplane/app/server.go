@@ -73,7 +73,7 @@ func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *u
 
 	controlplaneTarget := o.ControlplaneHost + ":" + strconv.Itoa(cpapi.ListenPort)
 
-	log.Infof("Starting go dataplane, Name : %s, ID : %s", peerName, dataplaneID)
+	log.Infof("Starting go dataplane, Name: %s, ID: %s", peerName, dataplaneID)
 
 	dataplane := dpserver.NewDataplane(dataplaneID, controlplaneTarget, peerName, parsedCertData)
 	go func() {
@@ -85,13 +85,14 @@ func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *u
 		err := dataplane.StartSNIServer(dataplaneServerAddress)
 		log.Error("Failed to start dataplane server", err)
 	}()
+
 	// Start xDS client, if it fails to start we keep retrying to connect to the controlplane host
 	creds := credentials.NewTLS(parsedCertData.ClientConfig(cpapi.GRPCServerName(peerName)))
 	for {
-		log.Debugf("Dialing to Controlplane : %s", controlplaneTarget)
+		log.Debugf("Dialing to Controlplane: %s.", controlplaneTarget)
 		err := dpclient.StartxDSClient(dataplane, controlplaneTarget, creds)
 		if err != nil {
-			log.Errorf("Failed to start xDS client, retrying : %v", err)
+			log.Errorf("Failed to start xDS client, retrying: %v.", err)
 		}
 		time.Sleep(10 * time.Second)
 	}
