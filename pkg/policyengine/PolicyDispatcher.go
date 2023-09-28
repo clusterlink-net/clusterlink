@@ -12,9 +12,9 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	event "github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
-	"github.com/clusterlink-org/clusterlink/pkg/policyengine/connectivitypdp"
-	"github.com/clusterlink-org/clusterlink/pkg/policyengine/policytypes"
+	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
 
 const (

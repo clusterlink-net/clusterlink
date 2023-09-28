@@ -1,11 +1,22 @@
-# ClusterLink project
-The ClusterLink project simplifies the connection between application services that are located in different domains, networks, and cloud infrastructures. 
+# ClusterLink Project
+
+## Disclaimers and Warnings
+
+This is an incomplete work in progress, provided in the interest of sharing experience and gathering feedback.
+The code is pre-alpha quality right now. This means that it shouldn't be used in production at all.
+
+Before settling on the `ClusterLink` name. the code base was previously developed as part of a
+"multi-border Gateway" concept. You may still find various places in code and documentation referring to
+the old name (directly or using the `MBG` acronym). We're in the process of changing all such references.
+
+## What Is ClusterLink?
+
+The ClusterLink project simplifies the connection between application services that are located in different domains, networks, and cloud infrastructures.
 
 For more details, see the document: [ClusterLink extended abstract](docs/ClusteLink.pdf).
 
-## ClusterLink description
 ClusterLink deploys a gateway into each location, facilitating the configuration and access to multi-cloud services.
-The ClusterLink gateway contains the following components: 
+The ClusterLink gateway contains the following components:
 
 1) ```Control Plane``` is responsible for maintaining the internal state of the gateway, for all the communications with the remote peer gateways by means of the ClusterLink CP Protocol (REST APIs), and for commanding the local DP to forward user traffic according to policies.
    Part of the control plane is the policy engine that can also apply network policies (ACL, load-balancing, etc.)
@@ -16,22 +27,28 @@ The ClusterLink gateway contains the following components:
 ![alt text](./docs/clusterlink.png)
 
 The ClusterLink APIs use the following entities for configuring cross cluster communication:
-* Peer. represent remote ClusterLink gateways and contain the metadata necessary for creating protected connections to these remote peers.
-* Exported service. represent application services hosted in the local cluster and exposed to remote ClusterLink gateways as Imported Service entities in those peers.
-* Imported service. represent remote application services that the gateway makes available locally to clients inside its cluster.
-* Policy. represent communication rules that must be enforced for all cross-cluster communications at each ClusterLink gateway.
 
-## <ins>How to setup and run ClusterLink <ins>
+* Peer. Represent remote ClusterLink gateways and contain the metadata necessary for creating protected connections to these remote peers.
+* Exported service. Represent application services hosted in the local cluster and exposed to remote ClusterLink gateways as Imported Service entities in those peers.
+* Imported service. Represent remote application services that the gateway makes available locally to clients inside its cluster.
+* Policy. Represent communication rules that must be enforced for all cross-cluster communications at each ClusterLink gateway.
+
+## How to setup and run ClusterLink
+
 ClusterLink can be set up and run on different environments: local environment (Kind), Bare-metal environment, or cloud environment.
 
-### <ins> Run ClusterLink in local environment (Kind) <ins>
+### Run ClusterLink in local environment (Kind)
+
 ClusterLink can run in any K8s environment, such as Kind.
 To run the ClusterLink in a Kind environment, follow one of the examples:
+
 1) Performance example - Run iPerf3 test between iPerf3 client and server using ClusterLink components. This example is used for performance measuring. Instructions can be found [Here](demos/iperf3/kind/README.md).
 1) Application example - Run the BookInfo application in different clusters using ClusterLink components. This example demonstrates communication distributed applications (in different clusters) with different policies.Instructions can be found [Here](demos/bookinfo/kind/README.md).
 
-### <ins>Run ClusterLink in Bare-metal environment with 2 hosts<ins> 
+### Run ClusterLink in Bare-metal environment with 2 hosts
+
 TBD
 
-### <ins>Run ClusterLink in cloud environment<ins> 
+### Run ClusterLink in cloud environment
+
 TBD

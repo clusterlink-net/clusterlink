@@ -9,8 +9,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/clusterlink-org/clusterlink/pkg/client"
-	"github.com/clusterlink-org/clusterlink/pkg/util"
+	"github.com/clusterlink-net/clusterlink/pkg/client"
+	"github.com/clusterlink-net/clusterlink/pkg/util"
 )
 
 const (

@@ -8,12 +8,12 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	"github.com/clusterlink-org/clusterlink/pkg/api"
-	apiObject "github.com/clusterlink-org/clusterlink/pkg/controlplane/api/object"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
-	kubernetes "github.com/clusterlink-org/clusterlink/pkg/k8s/kubernetes"
-	"github.com/clusterlink-org/clusterlink/pkg/utils/httputils"
+	"github.com/clusterlink-net/clusterlink/pkg/api"
+	apiObject "github.com/clusterlink-net/clusterlink/pkg/controlplane/api/object"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
+	kubernetes "github.com/clusterlink-net/clusterlink/pkg/k8s/kubernetes"
+	"github.com/clusterlink-net/clusterlink/pkg/utils/httputils"
 )
 
 var mlog = logrus.WithField("component", "ControlPlane/Import")

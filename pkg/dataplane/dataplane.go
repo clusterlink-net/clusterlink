@@ -12,11 +12,11 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/sirupsen/logrus"
 
-	"github.com/clusterlink-org/clusterlink/pkg/api"
-	apiObject "github.com/clusterlink-org/clusterlink/pkg/controlplane/api/object"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
-	"github.com/clusterlink-org/clusterlink/pkg/dataplane/store"
-	"github.com/clusterlink-org/clusterlink/pkg/utils/httputils"
+	"github.com/clusterlink-net/clusterlink/pkg/api"
+	apiObject "github.com/clusterlink-net/clusterlink/pkg/controlplane/api/object"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-net/clusterlink/pkg/dataplane/store"
+	"github.com/clusterlink-net/clusterlink/pkg/utils/httputils"
 )
 
 const TypeTCP = "tcp"

@@ -17,7 +17,10 @@ clean: ; $(info $(M) cleaning...)	@
 prereqs: 											## Verify that required utilities are installed
 	@echo -- $@ for MBG Project--
 	@go version || (echo "Please install GOLANG: https://go.dev/doc/install" && exit 1)
-#	@which goimports || (echo "Please install goimports: https://pkg.go.dev/golang.org/x/tools/cmd/goimports" && exit 1)
+
+test-prereqs: prereqs
+	@which goimports || (echo "Please install goimports: https://pkg.go.dev/golang.org/x/tools/cmd/goimports" && exit 1)
+	$(GO) install github.com/mfridman/tparse@latest
 	@kubectl version --client || (echo "Please install kubectl: https://kubernetes.io/docs/tasks/tools/" && exit 1)
 	@docker version --format 'Docker v{{.Server.Version}}' || (echo "Please install Docker Engine: https://docs.docker.com/engine/install" && exit 1)
 	@kind --version || (echo "Please install kind: https://kind.sigs.k8s.io/docs/user/quick-start/#installation" && exit 1)
@@ -55,8 +58,12 @@ build:
 	$(GO) build -o ./bin/cl-dataplane ./cmd/cl-dataplane
 	$(GO) build -o ./bin/controlplane ./cmd/controlplane/main.go
 	$(GO) build -o ./bin/dataplane ./cmd/dataplane/main.go
+	$(GO) build -o ./bin/cl-controlplane ./cmd/cl-controlplane
+	$(GO) build -o ./bin/cl-dataplane ./cmd/cl-dataplane
+	$(GO) build -o ./bin/cl-adm ./cmd/cl-adm
 
-docker-build: 
+
+docker-build: build
 	docker build --progress=plain --rm --tag mbg .
 	docker build --progress=plain --rm --tag cl-controlplane -f ./cmd/cl-controlplane/Dockerfile .
 	docker build --progress=plain --rm --tag cl-dataplane -f ./cmd/cl-dataplane/Dockerfile .
@@ -78,6 +85,10 @@ clean-tests:
 #------------------------------------------------------
 # Run Targets
 #------------------------------------------------------
+unit-tests:
+	@echo "Running unit tests..."
+	$(GO) test -v -count=1 ./pkg/...  -json -cover | tparse --all
+
 tests-e2e: clean-tests 	docker-build 
 	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/connectivity/...
 

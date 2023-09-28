@@ -8,8 +8,8 @@ import (
 	"strings"
 	"text/template"
 
-	cpapi "github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
+	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 )
 
 const (

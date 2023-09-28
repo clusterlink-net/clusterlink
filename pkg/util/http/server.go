@@ -12,7 +12,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/sirupsen/logrus"
 
-	"github.com/clusterlink-org/clusterlink/pkg/util/tcp"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tcp"
 )
 
 // Server is a wrapper of an HTTP server.
@@ -67,10 +67,12 @@ func NewServer(name string, tlsConfig *tls.Config) Server {
 	logWriter := logger.WriterLevel(logrus.ErrorLevel)
 
 	router := chi.NewRouter()
-	router.Use(middleware.RequestLogger(&middleware.DefaultLogFormatter{
-		Logger:  logger,
-		NoColor: true,
-	}))
+	if logrus.GetLevel() >= logrus.DebugLevel {
+		router.Use(middleware.RequestLogger(&middleware.DefaultLogFormatter{
+			Logger:  logger,
+			NoColor: true,
+		}))
+	}
 	router.Use(middleware.Recoverer)
 
 	return Server{

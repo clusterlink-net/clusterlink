@@ -7,10 +7,11 @@ import (
 	_ "net/http/pprof" //nolint:gosec // G108:  Profiling endpoint is automatically exposed on /debug/pprof
 	"time"
 
-	dp "github.com/clusterlink-org/clusterlink/pkg/dataplane"
-	"github.com/clusterlink-org/clusterlink/pkg/dataplane/store"
-	"github.com/clusterlink-org/clusterlink/pkg/utils/logutils"
 	log "github.com/sirupsen/logrus"
+
+	dp "github.com/clusterlink-net/clusterlink/pkg/dataplane"
+	"github.com/clusterlink-net/clusterlink/pkg/dataplane/store"
+	"github.com/clusterlink-net/clusterlink/pkg/utils/logutils"
 )
 
 const (

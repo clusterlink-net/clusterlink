@@ -1,6 +1,6 @@
 package kv
 
-import "github.com/clusterlink-org/clusterlink/pkg/store"
+import "github.com/clusterlink-net/clusterlink/pkg/store"
 
 // Manager of multiple object stores that are persisted together.
 type Manager struct {

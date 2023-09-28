@@ -12,11 +12,11 @@ import (
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/credentials"
 
-	cpapi "github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-org/clusterlink/pkg/dataplane/api"
-	dpclient "github.com/clusterlink-org/clusterlink/pkg/dataplane/client"
-	dpserver "github.com/clusterlink-org/clusterlink/pkg/dataplane/server"
-	"github.com/clusterlink-org/clusterlink/pkg/util"
+	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
+	dpclient "github.com/clusterlink-net/clusterlink/pkg/dataplane/client"
+	dpserver "github.com/clusterlink-net/clusterlink/pkg/dataplane/server"
+	"github.com/clusterlink-net/clusterlink/pkg/util"
 )
 
 const (

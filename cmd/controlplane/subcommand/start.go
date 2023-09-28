@@ -10,14 +10,14 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	cp "github.com/clusterlink-org/clusterlink/pkg/controlplane"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/health"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
-	"github.com/clusterlink-org/clusterlink/pkg/k8s/kubernetes"
-	metrics "github.com/clusterlink-org/clusterlink/pkg/metrics"
-	"github.com/clusterlink-org/clusterlink/pkg/policyengine"
-	"github.com/clusterlink-org/clusterlink/pkg/utils/logutils"
-	"github.com/clusterlink-org/clusterlink/pkg/utils/netutils"
+	cp "github.com/clusterlink-net/clusterlink/pkg/controlplane"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/health"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-net/clusterlink/pkg/k8s/kubernetes"
+	metrics "github.com/clusterlink-net/clusterlink/pkg/metrics"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
+	"github.com/clusterlink-net/clusterlink/pkg/utils/logutils"
+	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
 )
 
 const (

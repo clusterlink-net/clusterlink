@@ -21,8 +21,8 @@ import (
 
 	"github.com/go-chi/chi"
 
-	event "github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
-	"github.com/clusterlink-org/clusterlink/pkg/utils/netutils"
+	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
 )
 
 type MTLSForwarder struct {
