@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/clusterlink-org/clusterlink/cmd/gwctl/config"
+	"github.com/clusterlink-net/clusterlink/cmd/gwctl/config"
 )
 
 // ConfigCmd contains all the config commands of the CLI.

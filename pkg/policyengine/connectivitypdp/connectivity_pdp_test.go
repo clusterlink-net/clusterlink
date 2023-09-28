@@ -12,9 +12,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
-	"github.com/clusterlink-org/clusterlink/pkg/policyengine/connectivitypdp"
-	"github.com/clusterlink-org/clusterlink/pkg/policyengine/k8sshim"
-	"github.com/clusterlink-org/clusterlink/pkg/policyengine/policytypes"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/k8sshim"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
 
 const testDir = "test_data"

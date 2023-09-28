@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
-	"github.com/clusterlink-org/clusterlink/pkg/policyengine/k8sshim"
-	"github.com/clusterlink-org/clusterlink/pkg/policyengine/policytypes"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/k8sshim"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
 
 //go:embed test_data/simple_privileged.yaml

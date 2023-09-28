@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/bbolt"
 
-	"github.com/clusterlink-org/clusterlink/pkg/store/kv"
+	"github.com/clusterlink-net/clusterlink/pkg/store/kv"
 )
 
 const (

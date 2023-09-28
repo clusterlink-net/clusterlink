@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/clusterlink-org/clusterlink/cmd/controlplane/subcommand"
+	"github.com/clusterlink-net/clusterlink/cmd/controlplane/subcommand"
 
 	"github.com/spf13/cobra"
 )

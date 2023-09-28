@@ -7,9 +7,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/clusterlink-org/clusterlink/cmd/gwctl/config"
-	cmdutil "github.com/clusterlink-org/clusterlink/cmd/util"
-	"github.com/clusterlink-org/clusterlink/pkg/util"
+	"github.com/clusterlink-net/clusterlink/cmd/gwctl/config"
+	cmdutil "github.com/clusterlink-net/clusterlink/cmd/util"
+	"github.com/clusterlink-net/clusterlink/pkg/util"
 )
 
 // initOptions is the command line options for 'init'

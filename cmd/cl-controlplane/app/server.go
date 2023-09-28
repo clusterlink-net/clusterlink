@@ -8,15 +8,15 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/server"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/server/grpc"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/server/http"
-	"github.com/clusterlink-org/clusterlink/pkg/store/kv"
-	"github.com/clusterlink-org/clusterlink/pkg/store/kv/bolt"
-	"github.com/clusterlink-org/clusterlink/pkg/util"
-	"github.com/clusterlink-org/clusterlink/pkg/util/sniproxy"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/grpc"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/http"
+	"github.com/clusterlink-net/clusterlink/pkg/store/kv"
+	"github.com/clusterlink-net/clusterlink/pkg/store/kv/bolt"
+	"github.com/clusterlink-net/clusterlink/pkg/util"
+	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
 )
 
 const (

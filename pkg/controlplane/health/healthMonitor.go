@@ -9,10 +9,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	apiObject "github.com/clusterlink-org/clusterlink/pkg/controlplane/api/object"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/store"
-	"github.com/clusterlink-org/clusterlink/pkg/utils/httputils"
+	apiObject "github.com/clusterlink-net/clusterlink/pkg/controlplane/api/object"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-net/clusterlink/pkg/utils/httputils"
 )
 
 var klog = logrus.WithField("component", "controlPlane/health")

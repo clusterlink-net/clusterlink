@@ -6,7 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/clusterlink-org/clusterlink/pkg/store"
+	"github.com/clusterlink-net/clusterlink/pkg/store"
 )
 
 // Bindings is a cached persistent store of bindings.

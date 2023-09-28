@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/clusterlink-org/clusterlink/pkg/api"
-	event "github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
-	"github.com/clusterlink-org/clusterlink/pkg/policyengine"
-	"github.com/clusterlink-org/clusterlink/pkg/policyengine/policytypes"
-	"github.com/clusterlink-org/clusterlink/pkg/util/jsonapi"
-	"github.com/clusterlink-org/clusterlink/pkg/util/rest"
+	"github.com/clusterlink-net/clusterlink/pkg/api"
+	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
+	"github.com/clusterlink-net/clusterlink/pkg/util/jsonapi"
+	"github.com/clusterlink-net/clusterlink/pkg/util/rest"
 )
 
 // Client for accessing the API.

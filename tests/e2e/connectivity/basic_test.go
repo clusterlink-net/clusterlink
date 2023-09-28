@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/clusterlink-org/clusterlink/pkg/api"
-	"github.com/clusterlink-org/clusterlink/pkg/client"
-	"github.com/clusterlink-org/clusterlink/tests/e2e/utils"
+	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/client"
+	"github.com/clusterlink-net/clusterlink/tests/e2e/utils"
 )
 
 const (

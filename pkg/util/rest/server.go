@@ -10,8 +10,8 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	"github.com/clusterlink-org/clusterlink/pkg/store"
-	utilhttp "github.com/clusterlink-org/clusterlink/pkg/util/http"
+	"github.com/clusterlink-net/clusterlink/pkg/store"
+	utilhttp "github.com/clusterlink-net/clusterlink/pkg/util/http"
 )
 
 // Server for handling REST-JSON requests.

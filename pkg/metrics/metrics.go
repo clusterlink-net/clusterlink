@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
-	event "github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
+	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 )
 
 var mlog = logrus.WithField("component", "Metrics")

@@ -12,7 +12,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/sirupsen/logrus"
 
-	"github.com/clusterlink-org/clusterlink/pkg/util/tcp"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tcp"
 )
 
 // Server is a wrapper of an HTTP server.

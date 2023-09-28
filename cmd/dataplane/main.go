@@ -9,9 +9,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	dp "github.com/clusterlink-org/clusterlink/pkg/dataplane"
-	"github.com/clusterlink-org/clusterlink/pkg/dataplane/store"
-	"github.com/clusterlink-org/clusterlink/pkg/utils/logutils"
+	dp "github.com/clusterlink-net/clusterlink/pkg/dataplane"
+	"github.com/clusterlink-net/clusterlink/pkg/dataplane/store"
+	"github.com/clusterlink-net/clusterlink/pkg/utils/logutils"
 )
 
 const (

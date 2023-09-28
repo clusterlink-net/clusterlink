@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/clusterlink-org/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/api"
 )
 
 const (

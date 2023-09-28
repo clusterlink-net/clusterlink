@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/clusterlink-org/clusterlink/cmd/gwctl/subcommand"
+	"github.com/clusterlink-net/clusterlink/cmd/gwctl/subcommand"
 )
 
 func main() {

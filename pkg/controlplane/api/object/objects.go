@@ -3,7 +3,7 @@ package apiobject
 import (
 	"time"
 
-	"github.com/clusterlink-org/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 )
 
 // ImportReply return dataplane information (port) about new import endpoint
