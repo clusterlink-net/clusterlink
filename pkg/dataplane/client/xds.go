@@ -40,6 +40,7 @@ func (x *XDSClient) runFetcher(_ *fetcher, resourceType string) error {
 			x.logger.Errorf("Failed to initialize fetcher: %v.", err)
 			continue
 		}
+		x.logger.Infof("Successfully initialized client for %s type.", resourceType)
 		err = f.Run()
 		x.logger.Infof("Fetcher '%s' stopped: %v.", resourceType, err)
 	}

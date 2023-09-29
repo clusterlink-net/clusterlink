@@ -34,7 +34,7 @@ func (f *fetcher) handleClusters(resources []*anypb.Any) error {
 			return err
 		}
 
-		logrus.Debugf("Cluster : %s.", c.Name)
+		f.logger.Debugf("Cluster : %s.", c.Name)
 		f.dataplane.AddCluster(&c)
 	}
 	return nil
@@ -47,7 +47,7 @@ func (f *fetcher) handleListeners(resources []*anypb.Any) error {
 		if err != nil {
 			return err
 		}
-		logrus.Debugf("Listener : %s.", l.Name)
+		f.logger.Debugf("Listener : %s.", l.Name)
 		listenerName := strings.TrimPrefix(l.Name, api.ImportListenerPrefix)
 		err = f.dataplane.AddListener(listenerName, l)
 		if err != nil {
@@ -64,7 +64,7 @@ func (f *fetcher) Run() error {
 	for {
 		resp, err := f.client.Fetch()
 		if err != nil {
-			logrus.Errorf("Failed to fetch %s: %v.", f.resourceType, err)
+			f.logger.Errorf("Failed to fetch %s: %v.", f.resourceType, err)
 			return err
 		}
 		switch f.resourceType {
@@ -84,16 +84,15 @@ func (f *fetcher) Run() error {
 
 		err = f.client.Ack()
 		if err != nil {
-			logrus.Errorf("failed to ack: %v.", err)
+			f.logger.Errorf("failed to ack: %v.", err)
 		}
 	}
 }
 
-func newFetcher(_ context.Context, conn *grpc.ClientConn, resourceType string, dataplane *server.Dataplane) (*fetcher, error) {
-	client := client.NewADSClient(context.Background(), &core.Node{Id: dataplane.ID}, resourceType)
+func newFetcher(ctx context.Context, conn *grpc.ClientConn, resourceType string, dataplane *server.Dataplane) (*fetcher, error) {
+	client := client.NewADSClient(ctx, &core.Node{Id: dataplane.ID}, resourceType)
 	err := client.InitConnect(conn)
 	if err != nil {
-		logrus.Error("failed to initialize fetching:", err)
 		return nil, err
 	}
 	logrus.Infof("Successfully initialized client for %s type.", resourceType)
