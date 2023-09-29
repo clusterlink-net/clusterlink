@@ -22,36 +22,33 @@ type Dataplane struct {
 	apiClient          *http.Client
 	parsedCertData     *util.ParsedCertData
 	controlplaneTarget string
+	clusterMap         map[string]*cluster.Cluster
+	listenerMap        map[string]*listener.Listener
+	listenerChan       map[string]chan bool
 	logger             *logrus.Entry
 }
 
-var (
-	clusterMap   map[string]*cluster.Cluster
-	listenerMap  map[string]*listener.Listener
-	listenerChan map[string]chan bool
-)
-
 // GetClusterTarget returns the cluster address:port from the cluster map
-func GetClusterTarget(name string) (string, error) {
-	if _, ok := clusterMap[name]; !ok {
+func (d *Dataplane) GetClusterTarget(name string) (string, error) {
+	if _, ok := d.clusterMap[name]; !ok {
 		return "", fmt.Errorf("unable to find %s in clustermap ", name)
 	}
-	address := clusterMap[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Address.GetSocketAddress().GetAddress()
-	port := clusterMap[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Address.GetSocketAddress().GetPortValue()
+	address := d.clusterMap[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Address.GetSocketAddress().GetAddress()
+	port := d.clusterMap[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Address.GetSocketAddress().GetPortValue()
 	return address + ":" + strconv.Itoa(int(port)), nil
 }
 
 // AddCluster adds a cluster to the map
-func AddCluster(cluster *cluster.Cluster) {
-	clusterMap[cluster.Name] = cluster
+func (d *Dataplane) AddCluster(cluster *cluster.Cluster) {
+	d.clusterMap[cluster.Name] = cluster
 }
 
 // AddListener adds a listener to the map
-func AddListener(listenerName string, listener *listener.Listener) error {
-	if _, ok := listenerMap[listenerName]; ok {
+func (d *Dataplane) AddListener(listenerName string, listener *listener.Listener) error {
+	if _, ok := d.listenerMap[listenerName]; ok {
 		return fmt.Errorf("listener %s already exists", listenerName)
 	}
-	listenerMap[listenerName] = listener
+	d.listenerMap[listenerName] = listener
 	return nil
 }
 
@@ -69,11 +66,12 @@ func NewDataplane(dataplaneID, controlplaneTarget, peerName string, parsedCertDa
 		},
 		parsedCertData:     parsedCertData,
 		controlplaneTarget: controlplaneTarget,
+		clusterMap:         make(map[string]*cluster.Cluster),
+		listenerMap:        make(map[string]*listener.Listener),
+		listenerChan:       make(map[string]chan bool),
 		logger:             logrus.WithField("component", "dataplane.server.http"),
 	}
-	clusterMap = make(map[string]*cluster.Cluster)
-	listenerMap = make(map[string]*listener.Listener)
-	listenerChan = make(map[string]chan bool)
+
 	d.addAuthzHandlers()
 	return d
 }

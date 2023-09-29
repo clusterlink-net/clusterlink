@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -87,14 +86,9 @@ func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *u
 
 	// Start xDS client, if it fails to start we keep retrying to connect to the controlplane host
 	tlsConfig := parsedCertData.ClientConfig(cpapi.GRPCServerName(peerName))
-	for {
-		log.Debugf("Dialing to Controlplane: %s.", controlplaneTarget)
-		err := dpclient.StartxDSClient(dataplane, controlplaneTarget, tlsConfig)
-		if err != nil {
-			log.Errorf("Failed to start xDS client, retrying: %v.", err)
-		}
-		time.Sleep(10 * time.Second)
-	}
+	xdsClient := dpclient.NewXDSClient(dataplane, controlplaneTarget, tlsConfig)
+	err := xdsClient.Run()
+	return fmt.Errorf("xDS Client stopped : %v", err)
 }
 
 // Run the dataplane.
