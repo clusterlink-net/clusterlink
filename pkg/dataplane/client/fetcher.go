@@ -11,7 +11,6 @@ import (
 	client "github.com/envoyproxy/go-control-plane/pkg/client/sotw/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -35,7 +34,7 @@ func (f *fetcher) handleClusters(resources []*anypb.Any) error {
 			return err
 		}
 
-		log.Debugf("Cluster : %s.", c.Name)
+		logrus.Debugf("Cluster : %s.", c.Name)
 		f.dataplane.AddCluster(&c)
 	}
 	return nil
@@ -48,7 +47,7 @@ func (f *fetcher) handleListeners(resources []*anypb.Any) error {
 		if err != nil {
 			return err
 		}
-		log.Debugf("Listener : %s.", l.Name)
+		logrus.Debugf("Listener : %s.", l.Name)
 		listenerName := strings.TrimPrefix(l.Name, api.ImportListenerPrefix)
 		err = f.dataplane.AddListener(listenerName, l)
 		if err != nil {
@@ -65,7 +64,7 @@ func (f *fetcher) Run() error {
 	for {
 		resp, err := f.client.Fetch()
 		if err != nil {
-			log.Errorf("Failed to fetch %s: %v.", f.resourceType, err)
+			logrus.Errorf("Failed to fetch %s: %v.", f.resourceType, err)
 			return err
 		}
 		switch f.resourceType {
@@ -85,19 +84,19 @@ func (f *fetcher) Run() error {
 
 		err = f.client.Ack()
 		if err != nil {
-			log.Errorf("failed to ack: %v.", err)
+			logrus.Errorf("failed to ack: %v.", err)
 		}
 	}
 }
 
-func newFetcher(ctx context.Context, conn *grpc.ClientConn, resourceType string, dataplane *server.Dataplane) (*fetcher, error) {
+func newFetcher(_ context.Context, conn *grpc.ClientConn, resourceType string, dataplane *server.Dataplane) (*fetcher, error) {
 	client := client.NewADSClient(context.Background(), &core.Node{Id: dataplane.ID}, resourceType)
 	err := client.InitConnect(conn)
 	if err != nil {
-		log.Error("failed to initialize fetching:", err)
+		logrus.Error("failed to initialize fetching:", err)
 		return nil, err
 	}
-	log.Infof("Successfully initialized client for %s type.", resourceType)
+	logrus.Infof("Successfully initialized client for %s type.", resourceType)
 	return &fetcher{client: client,
 		resourceType: resourceType,
 		dataplane:    dataplane,
