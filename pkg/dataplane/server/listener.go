@@ -13,13 +13,13 @@ import (
 
 // DeleteListener deletes the listener to an imported service
 func (d *Dataplane) DeleteListener(name string) {
-	listenerChan[name] <- true
+	d.listenerChan[name] <- true
 }
 
 // CreateListener starts a listener to an imported service
 func (d *Dataplane) CreateListener(name, ip string, port uint32) {
 	listenTarget := ip + ":" + strconv.Itoa(int(port))
-	listenerChan[name] = make(chan bool)
+	d.listenerChan[name] = make(chan bool)
 	d.logger.Infof("Starting a listener for imported service %s at %s.", name, listenTarget)
 	acceptor, err := net.Listen("tcp", listenTarget)
 	if err != nil {
@@ -31,7 +31,7 @@ func (d *Dataplane) CreateListener(name, ip string, port uint32) {
 			d.logger.Errorf("Failed to serve egress connection on %s: %+v.", listenTarget, err)
 		}
 	}()
-	<-listenerChan[name]
+	<-d.listenerChan[name]
 	acceptor.Close()
 }
 

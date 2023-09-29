@@ -79,7 +79,7 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 
 	d.logger.Infof("Got authorization to use service :%s", resp.Header.Get(cpapi.TargetClusterHeader))
 
-	serviceTarget, err := GetClusterTarget(resp.Header.Get(cpapi.TargetClusterHeader))
+	serviceTarget, err := d.GetClusterTarget(resp.Header.Get(cpapi.TargetClusterHeader))
 	if err != nil {
 		d.logger.Errorf("Unable to get cluster target: %v.", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -134,7 +134,7 @@ func (d *Dataplane) hijackConn(w http.ResponseWriter) (net.Conn, error) {
 }
 
 func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, appConn net.Conn, tlsConfig *tls.Config) error {
-	target, err := GetClusterTarget(targetCluster)
+	target, err := d.GetClusterTarget(targetCluster)
 	if err != nil {
 		d.logger.Error(err)
 		return err

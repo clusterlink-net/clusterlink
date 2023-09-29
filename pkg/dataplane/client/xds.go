@@ -3,118 +3,73 @@ package client
 import (
 	"context"
 	"crypto/tls"
-	"strings"
+	"errors"
 	"sync"
+	"time"
 
-	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	client "github.com/envoyproxy/go-control-plane/pkg/client/sotw/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/server"
 )
 
-func runClusterFetcher(clusters client.ADSClient) error {
+// XDSClient implements the client which fetches clusters and listeners
+type XDSClient struct {
+	dataplane          *server.Dataplane
+	controlplaneTarget string
+	tlsConfig          *tls.Config
+	fetchers           []*fetcher
+	errors             []error
+	logger             *logrus.Entry
+}
+
+func (x *XDSClient) runFetcher(f *fetcher, resourceType string) error {
 	for {
-		resp, err := clusters.Fetch()
+		time.Sleep(5 * time.Second)
+		conn, err := grpc.Dial(x.controlplaneTarget, grpc.WithTransportCredentials(credentials.NewTLS(x.tlsConfig)))
 		if err != nil {
-			log.Error("Failed to fetch cluster", err)
+			x.logger.Errorf("Failed to dial controlplane xDS server: %v.", err)
 			continue
 		}
-		for _, r := range resp.Resources {
-			var c cluster.Cluster
-			err := anypb.UnmarshalTo(r, &c, proto.UnmarshalOptions{})
-			if err != nil {
-				log.Errorf("Failed to unmarshal cluster resource: %v.", err)
-				return err
-			}
+		x.logger.Infof("Successfully connected to the controlplane xDS server.")
 
-			log.Debugf("Cluster : %s.", c.Name)
-			server.AddCluster(&c)
-		}
-
-		err = clusters.Ack()
+		f, err = newFetcher(context.Background(), conn, resourceType, x.dataplane)
 		if err != nil {
-			log.Errorf("Failed to ack %v.", err)
+			x.logger.Errorf("Failed to initialize fetcher: %v.", err)
+			continue
 		}
+		err = f.Run()
+		x.logger.Infof("Fetcher '%s' stopped: %v.", resourceType, err)
 	}
 }
 
-func runListenerFetcher(listeners client.ADSClient, dataplane *server.Dataplane) error {
-	for {
-		resp, err := listeners.Fetch()
-		if err != nil {
-			log.Error("Failed to fetch listener", err)
-			continue
-		}
-		for _, r := range resp.Resources {
-			l := &listener.Listener{}
-			err := anypb.UnmarshalTo(r, l, proto.UnmarshalOptions{})
-			if err != nil {
-				log.Error("Failed to unmarshal listener resource : ", err)
-				return err
-			}
-			log.Infof("Listener : %s", l.Name)
-			listenerName := strings.TrimPrefix(l.Name, api.ImportListenerPrefix)
-			err = server.AddListener(listenerName, l)
-			if err != nil {
-				continue
-			}
-			go func() {
-				dataplane.CreateListener(listenerName, l.Address.GetSocketAddress().GetAddress(), l.Address.GetSocketAddress().GetPortValue())
-			}()
-		}
-
-		err = listeners.Ack()
-		if err != nil {
-			log.Errorf("Failed to ack %v.", err)
-		}
-	}
-}
-
-// StartxDSClient starts the xDS client which fetches to clusters & listeners from controlplane
-func StartxDSClient(dataplane *server.Dataplane, controlplaneTarget string, tlsConfig *tls.Config) error {
+// Run starts the running xDS client which fetches clusters and listeners from the controlplane.
+func (x *XDSClient) Run() error {
 	var wg sync.WaitGroup
-	conn, err := grpc.Dial(controlplaneTarget, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
-	if err != nil {
-		return err
-	}
-	log.Infof("Successfully connected to the controlplane")
-
-	c := client.NewADSClient(context.Background(), &core.Node{Id: dataplane.ID}, resource.ClusterType)
-	err = c.InitConnect(conn)
-	if err != nil {
-		log.Error("Failed to init connect(cluster) : ", err)
-		return err
-	}
-	log.Infof("Successfully initialized client for cluster ")
-
-	l := client.NewADSClient(context.Background(), &core.Node{Id: dataplane.ID}, resource.ListenerType)
-	err = l.InitConnect(conn)
-	if err != nil {
-		log.Error("Failed to init connect(listener) : ", err)
-		return err
-	}
-	log.Infof("Successfully initialized client for listener")
-	wg.Add(1)
+	wg.Add(len(x.fetchers))
 	go func() {
 		defer wg.Done()
-		err = runClusterFetcher(c)
-		log.Errorf("failed to run cluster fetcher: %+v", err)
+		err := x.runFetcher(x.fetchers[0], resource.ClusterType)
+		x.logger.Errorf("Fetcher (cluster) stopped: %v", err)
+		x.errors[0] = err
 	}()
-	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err = runListenerFetcher(l, dataplane)
-		log.Errorf("failed to run listener fetcher: %+v", err)
+		err := x.runFetcher(x.fetchers[1], resource.ListenerType)
+		x.logger.Errorf("Fetcher (listener) stopped: %v", err)
+		x.errors[1] = err
 	}()
 	wg.Wait()
-	return nil
+	return errors.Join(x.errors...)
+}
+
+// NewXDSClient returns am xDS client which can fetch clusters and listeners from the controlplane.
+func NewXDSClient(dataplane *server.Dataplane, controlplaneTarget string, tlsConfig *tls.Config) *XDSClient {
+	return &XDSClient{dataplane: dataplane,
+		controlplaneTarget: controlplaneTarget,
+		tlsConfig:          tlsConfig,
+		fetchers:           make([]*fetcher, 2),
+		logger:             logrus.WithField("component", "xds.client")}
 }
