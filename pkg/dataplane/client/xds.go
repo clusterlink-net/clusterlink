@@ -25,7 +25,7 @@ type XDSClient struct {
 	logger             *logrus.Entry
 }
 
-func (x *XDSClient) runFetcher(f *fetcher, resourceType string) error {
+func (x *XDSClient) runFetcher(_ *fetcher, resourceType string) error {
 	for {
 		time.Sleep(5 * time.Second)
 		conn, err := grpc.Dial(x.controlplaneTarget, grpc.WithTransportCredentials(credentials.NewTLS(x.tlsConfig)))
@@ -35,7 +35,7 @@ func (x *XDSClient) runFetcher(f *fetcher, resourceType string) error {
 		}
 		x.logger.Infof("Successfully connected to the controlplane xDS server.")
 
-		f, err = newFetcher(context.Background(), conn, resourceType, x.dataplane)
+		f, err := newFetcher(context.Background(), conn, resourceType, x.dataplane)
 		if err != nil {
 			x.logger.Errorf("Failed to initialize fetcher: %v.", err)
 			continue
