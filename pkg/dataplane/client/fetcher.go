@@ -95,7 +95,6 @@ func newFetcher(ctx context.Context, conn *grpc.ClientConn, resourceType string,
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("Successfully initialized client for %s type.", resourceType)
 	return &fetcher{client: client,
 		resourceType: resourceType,
 		dataplane:    dataplane,
