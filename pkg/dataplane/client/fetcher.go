@@ -85,7 +85,7 @@ func (f *fetcher) Run() error {
 
 		err = f.client.Ack()
 		if err != nil {
-			log.Errorf("Failed to ack: %v.", err)
+			log.Errorf("failed to ack: %v.", err)
 		}
 	}
 }
@@ -94,7 +94,7 @@ func newFetcher(ctx context.Context, conn *grpc.ClientConn, resourceType string,
 	client := client.NewADSClient(context.Background(), &core.Node{Id: dataplane.ID}, resourceType)
 	err := client.InitConnect(conn)
 	if err != nil {
-		log.Error("Failed to init initialize fetching: %v : ", err)
+		log.Error("failed to initialize fetching:", err)
 		return nil, err
 	}
 	log.Infof("Successfully initialized client for %s type.", resourceType)
