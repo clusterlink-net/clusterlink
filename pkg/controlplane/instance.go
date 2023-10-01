@@ -153,6 +153,22 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 		if err := cp.exports.Create(export); err != nil {
 			return err
 		}
+		// create k8s endpoint and service for external service.
+		exSvc := export.ExportSpec.ExternalService
+		if exSvc.Host != "" && exSvc.Port != 0 && cp.initialized {
+			err := cp.deployment.CreateEndpoint(export.Name, exSvc.Host, exSvc.Port)
+			if err != nil {
+				return err
+			}
+
+			err = cp.deployment.CreateService(export.Name, exSvc.Port, exSvc.Port)
+			if err != nil {
+				delErr := cp.deployment.DeleteEndpoint(export.Name)
+				if delErr != nil {
+					return fmt.Errorf("create service error:%v , delete endpoint error: %v", err, delErr)
+				}
+			}
+		}
 	}
 
 	if err := cp.xdsManager.AddExport(export); err != nil {
@@ -182,6 +198,19 @@ func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	if err != nil {
 		return err
 	}
+	// Update k8s endpoint and service for external service.
+	exSvc := export.ExportSpec.ExternalService
+	if exSvc.Host != "" && exSvc.Port != 0 {
+		err := cp.deployment.UpdateEndpoint(export.Name, exSvc.Host, exSvc.Port)
+		if err != nil {
+			return err
+		}
+
+		err = cp.deployment.UpdateService(export.Name, exSvc.Port, exSvc.Port)
+		if err != nil {
+			return err
+		}
+	}
 
 	if err := cp.xdsManager.AddExport(export); err != nil {
 		// practically impossible
@@ -204,6 +233,20 @@ func (cp *Instance) DeleteExport(name string) (*cpstore.Export, error) {
 	export, err := cp.exports.Delete(name)
 	if err != nil {
 		return nil, err
+	}
+
+	// Deleting k8s endpoint and service for external service.
+	exSvc := export.ExportSpec.ExternalService
+	if exSvc.Host != "" && exSvc.Port != 0 {
+		err := cp.deployment.DeleteEndpoint(name)
+		if err != nil {
+			return nil, err
+		}
+
+		err = cp.deployment.DeleteService(name)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if err := cp.xdsManager.DeleteExport(name); err != nil {

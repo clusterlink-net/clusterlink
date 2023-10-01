@@ -226,8 +226,11 @@ metadata:
   name: cl-controlplane
 rules:
 - apiGroups: [""]
-  resources: ["services"]
+  resources: ["services", "endpoints"]
   verbs: ["create", "delete"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
