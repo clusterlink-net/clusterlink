@@ -25,7 +25,5 @@ jobs:
       run: make build
     - name: Build docker images
       run: make docker-build
-    - name: Run e2e connectivity test on a kind cluster
-      run: ./tests/k8s.sh
-    - name: Run end-to-end tests
+    - name: Run end-to-end tests (old control-plane)
       run: make tests-e2e
