@@ -5,7 +5,9 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -92,7 +94,7 @@ func (c *Client) do(method, path string, body []byte) (*Response, error) {
 
 // NewClient returns a new HTTP client.
 func NewClient(host string, port uint16, tlsConfig *tls.Config) *Client {
-	serverURL := fmt.Sprintf("https://%s:%d", host, port)
+	serverURL := "https://" + net.JoinHostPort(host, strconv.Itoa(int(port)))
 	return &Client{
 		client: &http.Client{
 			Transport: &http.Transport{TLSClientConfig: tlsConfig},
