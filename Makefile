@@ -32,16 +32,16 @@ format: fmt
 fmt: format-go tidy-go vet-go
 vet: vet-go
 
-lint:  ; $(info $(M) running linters...)
-	@golangci-lint run
+lint:  ; $(info running linters...)
+	@golangci-lint run --config=./.golangci.yaml ./...
 
-tidy-go: ; $(info $(M) tidying up go.mod...)
+tidy-go: ; $(info tidying up go.mod...)
 	@go mod tidy
 
-format-go: tidy-go vet-go ; $(info $(M) formatting code...)
+format-go: tidy-go vet-go ; $(info formatting code...)
 	@goimports -l -w .
 
-vet-go: ; $(info $(M) vetting code...)
+vet-go: ; $(info vetting code...)
 	@go vet ./...
 
 #------------------------------------------------------
