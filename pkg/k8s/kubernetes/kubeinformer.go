@@ -367,7 +367,7 @@ func (k *kubeData) initInformers(client kubernetes.Interface) error {
 		return err
 	}
 
-	log.Infof("Starting kubernetes informers, waiting for syncronization")
+	log.Infof("Starting kubernetes informers, waiting for synchronization")
 	informerFactory.Start(k.stopChan)
 	informerFactory.WaitForCacheSync(k.stopChan)
 	k.serviceMap = make(map[string]string)
