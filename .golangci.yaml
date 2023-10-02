@@ -16,8 +16,7 @@ linters:
   # set to true to run only fast linters (e.g., for pre-commit)
   fast: false
 
-  disable-all: false
-
+  disable-all: true
   enable:
     - asasalint
     - asciicheck
