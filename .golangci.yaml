@@ -45,15 +45,15 @@ linters:
     - importas
     - ineffassign
     - makezero
-    # - misspell
+    - misspell
     - nakedret
     # - nestif
     - nilerr
     # - nilnil
     # - noctx
     # - nolintlint
-    # - nonamedreturns
-    # - nosprintfhostport
+    - nonamedreturns
+    - nosprintfhostport
     - prealloc
     - predeclared
     - promlinter
@@ -76,20 +76,19 @@ linters:
 linters-settings:
   gocritic:
     enabled-tags:
-      # - diagnostic
+      - diagnostic
       # - experimental
       # - opinionated
       - performance
       # - style
     disabled-checks:
-      # These 3 will detect many cases, but they do make sense in 
-      # performance oriented code
+      # consider enabling in performance oriented code
       - hugeParam
       - rangeExprCopy
       - rangeValCopy
 
-  # errcheck:
-    # change some error checks which are false by default
+  errcheck:
+    # change some error checks which are disabled by default
     # check-type-assertions: true
     # check-blank: true
     # exclude-functions:
@@ -137,6 +136,6 @@ issues:
   # nothing should be skipped to not miss errors.
   max-same-issues: 0
   # analyze only new code (manually set to false to check existing code)
-  new: false
+  new: true
   # do not automatically fix (until AI assisted code improves)
   fix: false
