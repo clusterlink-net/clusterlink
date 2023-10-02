@@ -7,7 +7,7 @@ IMG ?= $(IMAGE_TAG_BASE):$(SW_VERSION)
 # Target: clean
 #-----------------------------------------------------------------------------
 .PHONY: clean
-clean: ; $(info $(M) cleaning...)	@
+clean: ; $(info cleaning previous builds...)	@
 	@rm -rf ./bin
 
 #------------------------------------------------------
