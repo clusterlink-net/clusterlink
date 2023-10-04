@@ -3,13 +3,17 @@ package app
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
+	dpclient "github.com/clusterlink-net/clusterlink/pkg/dataplane/client"
+	dpserver "github.com/clusterlink-net/clusterlink/pkg/dataplane/server"
 	"github.com/clusterlink-net/clusterlink/pkg/util"
 )
 
@@ -23,6 +27,9 @@ const (
 	CertificateFile = "/etc/ssl/certs/clink-dataplane.pem"
 	// KeyFile is the path to the private-key file.
 	KeyFile = "/etc/ssl/private/clink-dataplane.pem"
+
+	// dataplaneServerAddress is the address of the dataplane HTTP server for accepting ingress dataplane connections.
+	dataplaneServerAddress = "127.0.0.1:8443"
 )
 
 // Options contains everything necessary to create and run a dataplane.
@@ -52,6 +59,31 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 // RequiredFlags are the names of flags that must be explicitly specified.
 func (o *Options) RequiredFlags() []string {
 	return []string{"controlplane-host"}
+}
+
+// Run the go dataplane.
+func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *util.ParsedCertData) error {
+
+	controlplaneTarget := o.ControlplaneHost + ":" + strconv.Itoa(cpapi.ListenPort)
+
+	log.Infof("Starting go dataplane, Name: %s, ID: %s", peerName, dataplaneID)
+
+	dataplane := dpserver.NewDataplane(dataplaneID, controlplaneTarget, peerName, parsedCertData)
+	go func() {
+		err := dataplane.StartDataplaneServer(dataplaneServerAddress)
+		log.Errorf("Failed to start dataplane server: %v.", err)
+	}()
+
+	go func() {
+		err := dataplane.StartSNIServer(dataplaneServerAddress)
+		log.Error("Failed to start dataplane server", err)
+	}()
+
+	// Start xDS client, if it fails to start we keep retrying to connect to the controlplane host
+	tlsConfig := parsedCertData.ClientConfig(cpapi.GRPCServerName(peerName))
+	xdsClient := dpclient.NewXDSClient(dataplane, controlplaneTarget, tlsConfig)
+	err := xdsClient.Run()
+	return fmt.Errorf("xDS Client stopped : %v", err)
 }
 
 // Run the dataplane.
@@ -99,16 +131,17 @@ func (o *Options) Run() error {
 	dataplaneID := uuid.New().String()
 	log.Infof("Dataplane ID: %s.", dataplaneID)
 
-	return o.runEnvoy(peerName, dataplaneID)
+	return o.runGoDataplane(peerName, dataplaneID, parsedCertData)
+
 }
 
-// NewCLDataplaneCommand creates a *cobra.Command object with default parameters.
-func NewCLDataplaneCommand() *cobra.Command {
+// NewCLGoDataplaneCommand creates a *cobra.Command object with default parameters.
+func NewCLGoDataplaneCommand() *cobra.Command {
 	opts := &Options{}
 
 	cmd := &cobra.Command{
-		Use:          "cl-dataplane",
-		Long:         `cl-dataplane: dataplane agent for allowing network connectivity of remote clients and services`,
+		Use:          "cl-go-dataplane",
+		Long:         `cl-go-dataplane: dataplane agent for allowing network connectivity of remote clients and services`,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Run()

@@ -58,6 +58,7 @@ build:
 	$(GO) build -o ./bin/dataplane ./cmd/dataplane/main.go
 	$(GO) build -o ./bin/cl-controlplane ./cmd/cl-controlplane
 	$(GO) build -o ./bin/cl-dataplane ./cmd/cl-dataplane
+	$(GO) build -o ./bin/cl-go-dataplane ./cmd/cl-go-dataplane
 	$(GO) build -o ./bin/cl-adm ./cmd/cl-adm
 
 
@@ -65,6 +66,7 @@ docker-build: build
 	docker build --progress=plain --rm --tag mbg .
 	docker build --progress=plain --rm --tag cl-controlplane -f ./cmd/cl-controlplane/Dockerfile .
 	docker build --progress=plain --rm --tag cl-dataplane -f ./cmd/cl-dataplane/Dockerfile .
+	docker build --progress=plain --rm --tag cl-go-dataplane -f ./cmd/cl-go-dataplane/Dockerfile .
 	docker build --progress=plain --rm --tag gwctl -f ./cmd/gwctl/Dockerfile .
 
 build-image:
