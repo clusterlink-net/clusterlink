@@ -36,8 +36,6 @@ const (
 type Options struct {
 	// ControlplaneHost is the IP/hostname of the controlplane.
 	ControlplaneHost string
-	// Type is the dataplane type.
-	Type string
 	// LogFile is the path to file where logs will be written.
 	LogFile string
 	// LogLevel is the log level.
@@ -48,8 +46,6 @@ type Options struct {
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.ControlplaneHost, "controlplane-host", "",
 		"The controlplane IP/hostname.")
-	fs.StringVar(&o.Type, "type", "clink",
-		"The type of the dataplane. One of clink, envoy.")
 	fs.StringVar(&o.LogFile, "log-file", "",
 		"Path to a file where logs will be written. If not specified, logs will be printed to stderr.")
 	fs.StringVar(&o.LogLevel, "log-level", logLevel,
