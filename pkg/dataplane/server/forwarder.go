@@ -15,7 +15,6 @@ const (
 type forwarder struct {
 	workloadConn net.Conn
 	peerConn     net.Conn
-	close        bool
 	logger       *logrus.Entry
 }
 
