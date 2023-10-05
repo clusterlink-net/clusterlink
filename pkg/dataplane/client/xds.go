@@ -15,17 +15,19 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/server"
 )
 
+// resources indicate the xDS resources that would be fetched
+var resources = [...]string{resource.ClusterType, resource.ListenerType}
+
 // XDSClient implements the client which fetches clusters and listeners
 type XDSClient struct {
 	dataplane          *server.Dataplane
 	controlplaneTarget string
 	tlsConfig          *tls.Config
-	fetchers           []*fetcher
 	errors             []error
 	logger             *logrus.Entry
 }
 
-func (x *XDSClient) runFetcher(_ *fetcher, resourceType string) error {
+func (x *XDSClient) runFetcher(resourceType string) error {
 	for {
 		time.Sleep(5 * time.Second)
 		conn, err := grpc.Dial(x.controlplaneTarget, grpc.WithTransportCredentials(credentials.NewTLS(x.tlsConfig)))
@@ -49,19 +51,15 @@ func (x *XDSClient) runFetcher(_ *fetcher, resourceType string) error {
 // Run starts the running xDS client which fetches clusters and listeners from the controlplane.
 func (x *XDSClient) Run() error {
 	var wg sync.WaitGroup
-	wg.Add(len(x.fetchers))
-	go func() {
-		defer wg.Done()
-		err := x.runFetcher(x.fetchers[0], resource.ClusterType)
-		x.logger.Errorf("Fetcher (cluster) stopped: %v", err)
-		x.errors[0] = err
-	}()
-	go func() {
-		defer wg.Done()
-		err := x.runFetcher(x.fetchers[1], resource.ListenerType)
-		x.logger.Errorf("Fetcher (listener) stopped: %v", err)
-		x.errors[1] = err
-	}()
+	wg.Add(len(resources))
+	for i, res := range resources {
+		go func(i int, res string) {
+			defer wg.Done()
+			err := x.runFetcher(res)
+			x.logger.Errorf("Fetcher (%s) stopped: %v", res, err)
+			x.errors[i] = err
+		}(i, res)
+	}
 	wg.Wait()
 	return errors.Join(x.errors...)
 }
@@ -71,6 +69,5 @@ func NewXDSClient(dataplane *server.Dataplane, controlplaneTarget string, tlsCon
 	return &XDSClient{dataplane: dataplane,
 		controlplaneTarget: controlplaneTarget,
 		tlsConfig:          tlsConfig,
-		fetchers:           make([]*fetcher, 2),
 		logger:             logrus.WithField("component", "xds.client")}
 }

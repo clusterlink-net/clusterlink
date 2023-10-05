@@ -13,9 +13,10 @@ const (
 )
 
 type forwarder struct {
-	appConn  net.Conn
-	peerConn net.Conn
-	logger   *logrus.Entry
+	workloadConn net.Conn
+	peerConn     net.Conn
+	close        bool
+	logger       *logrus.Entry
 }
 
 type connDialer struct {
@@ -26,7 +27,7 @@ func (cd connDialer) Dial(_, _ string) (net.Conn, error) {
 	return cd.c, nil
 }
 
-func (f *forwarder) peerToApp() error {
+func (f *forwarder) peerToWorkload() error {
 	bufData := make([]byte, dataBufferSize)
 	for {
 		numBytes, err := f.peerConn.Read(bufData)
@@ -36,7 +37,7 @@ func (f *forwarder) peerToApp() error {
 			}
 			break
 		}
-		_, err = f.appConn.Write(bufData[:numBytes]) // TODO: track actually written byte count
+		_, err = f.workloadConn.Write(bufData[:numBytes]) // TODO: track actually written byte count
 		if err != nil {
 			if err != io.EOF { // don't log EOF
 				return err
@@ -48,10 +49,10 @@ func (f *forwarder) peerToApp() error {
 	return nil
 }
 
-func (f *forwarder) appToPeer() error {
+func (f *forwarder) workloadToPeer() error {
 	bufData := make([]byte, dataBufferSize)
 	for {
-		numBytes, err := f.appConn.Read(bufData)
+		numBytes, err := f.workloadConn.Read(bufData)
 		if err != nil {
 			if err != io.EOF { // don't log EOF
 				return err
@@ -75,8 +76,8 @@ func (f *forwarder) closeConnections() {
 	if f.peerConn != nil {
 		f.peerConn.Close()
 	}
-	if f.appConn != nil {
-		f.appConn.Close()
+	if f.workloadConn != nil {
+		f.workloadConn.Close()
 	}
 }
 
@@ -86,26 +87,26 @@ func (f *forwarder) run() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := f.appToPeer()
+		err := f.workloadToPeer()
 		if err != nil {
-			f.logger.Errorf("End of app to peer connection %v.", err)
+			f.logger.Errorf("End of workload to peer connection %v.", err)
 		}
 	}()
 
 	wg.Add(1)
 	go func() {
 		wg.Done()
-		err := f.peerToApp()
+		err := f.peerToWorkload()
 		if err != nil {
-			f.logger.Errorf("End of peer to app connection %v.", err)
+			f.logger.Errorf("End of peer to workload connection %v.", err)
 		}
 	}()
 
 	wg.Wait()
 }
 
-func newForwarder(appConn net.Conn, peerConn net.Conn) *forwarder {
-	return &forwarder{appConn: appConn,
+func newForwarder(workloadConn net.Conn, peerConn net.Conn) *forwarder {
+	return &forwarder{workloadConn: workloadConn,
 		peerConn: peerConn,
 		logger:   logrus.WithField("component", "dataplane.forwarder"),
 	}

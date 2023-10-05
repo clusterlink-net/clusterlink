@@ -128,7 +128,6 @@ func (o *Options) Run() error {
 	log.Infof("Dataplane ID: %s.", dataplaneID)
 
 	return o.runGoDataplane(peerName, dataplaneID, parsedCertData)
-
 }
 
 // NewCLGoDataplaneCommand creates a *cobra.Command object with default parameters.
