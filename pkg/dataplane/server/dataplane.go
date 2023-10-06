@@ -46,16 +46,15 @@ func (d *Dataplane) AddCluster(cluster *cluster.Cluster) {
 }
 
 // AddListener adds a listener to the map
-func (d *Dataplane) AddListener(listener *listener.Listener) error {
+func (d *Dataplane) AddListener(listener *listener.Listener) {
 	listenerName := strings.TrimPrefix(listener.Name, api.ImportListenerPrefix)
 	if _, ok := d.listeners[listenerName]; ok {
-		return fmt.Errorf("listener %s already exists", listenerName)
+		return
 	}
 	d.listeners[listenerName] = listener
 	go func() {
 		d.CreateListener(listenerName, listener.Address.GetSocketAddress().GetAddress(), listener.Address.GetSocketAddress().GetPortValue())
 	}()
-	return nil
 }
 
 // NewDataplane returns a new dataplane HTTP server.

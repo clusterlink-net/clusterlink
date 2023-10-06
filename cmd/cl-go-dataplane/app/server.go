@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 
@@ -59,8 +60,7 @@ func (o *Options) RequiredFlags() []string {
 
 // Run the go dataplane.
 func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *util.ParsedCertData) error {
-
-	controlplaneTarget := o.ControlplaneHost + ":" + strconv.Itoa(cpapi.ListenPort)
+	controlplaneTarget := net.JoinHostPort(o.ControlplaneHost, strconv.Itoa(cpapi.ListenPort))
 
 	log.Infof("Starting go dataplane, Name: %s, ID: %s", peerName, dataplaneID)
 

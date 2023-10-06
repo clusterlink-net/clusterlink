@@ -4,17 +4,20 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
 const (
 	dataBufferSize = 64 * 1024
+	readDeadline   = 500 * time.Millisecond
 )
 
 type forwarder struct {
 	workloadConn net.Conn
 	peerConn     net.Conn
+	closeSignal  bool
 	logger       *logrus.Entry
 }
 
@@ -28,46 +31,63 @@ func (cd connDialer) Dial(_, _ string) (net.Conn, error) {
 
 func (f *forwarder) peerToWorkload() error {
 	bufData := make([]byte, dataBufferSize)
+	var err error
+	numBytes := 0
 	for {
-		numBytes, err := f.peerConn.Read(bufData)
+		if f.closeSignal {
+			return nil
+		}
+		err = f.peerConn.SetReadDeadline(time.Now().Add(readDeadline))
 		if err != nil {
-			if err != io.EOF { // don't log EOF
-				return err
+			return err
+		}
+		numBytes, err = f.peerConn.Read(bufData)
+		if err != nil {
+			if err1, ok := err.(net.Error); ok && err1.Timeout() {
+				continue
 			}
 			break
 		}
 		_, err = f.workloadConn.Write(bufData[:numBytes]) // TODO: track actually written byte count
 		if err != nil {
-			if err != io.EOF { // don't log EOF
-				return err
-			}
 			break
 		}
 	}
-	f.closeConnections()
+	f.closeSignal = true
+	if err != io.EOF { // don't log EOF
+		return err
+	}
 	return nil
 }
 
 func (f *forwarder) workloadToPeer() error {
 	bufData := make([]byte, dataBufferSize)
+	var err error
+	numBytes := 0
 	for {
-		numBytes, err := f.workloadConn.Read(bufData)
+		if f.closeSignal {
+			return nil
+		}
+		err = f.workloadConn.SetReadDeadline(time.Now().Add(readDeadline))
 		if err != nil {
-			if err != io.EOF { // don't log EOF
-				return err
+			return err
+		}
+		numBytes, err = f.workloadConn.Read(bufData)
+		if err != nil {
+			if err1, ok := err.(net.Error); ok && err1.Timeout() {
+				continue
 			}
 			break
 		}
-
 		_, err = f.peerConn.Write(bufData[:numBytes]) // TODO: track actually written byte count
 		if err != nil {
-			if err != io.EOF { // don't log EOF
-				return err
-			}
 			break
 		}
 	}
-	f.closeConnections()
+	f.closeSignal = true
+	if err != io.EOF { // don't log EOF
+		return err
+	}
 	return nil
 }
 
@@ -94,7 +114,7 @@ func (f *forwarder) run() {
 
 	wg.Add(1)
 	go func() {
-		wg.Done()
+		defer wg.Done()
 		err := f.peerToWorkload()
 		if err != nil {
 			f.logger.Errorf("End of peer to workload connection %v.", err)
@@ -102,11 +122,13 @@ func (f *forwarder) run() {
 	}()
 
 	wg.Wait()
+	f.closeConnections()
 }
 
 func newForwarder(workloadConn net.Conn, peerConn net.Conn) *forwarder {
 	return &forwarder{workloadConn: workloadConn,
-		peerConn: peerConn,
-		logger:   logrus.WithField("component", "dataplane.forwarder"),
+		peerConn:    peerConn,
+		closeSignal: false,
+		logger:      logrus.WithField("component", "dataplane.forwarder"),
 	}
 }
