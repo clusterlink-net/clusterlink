@@ -79,5 +79,6 @@ func getCmd() *cobra.Command {
 	getCmd.AddCommand(subcommand.BindingGetCmd())
 	getCmd.AddCommand(subcommand.PolicyGetCmd())
 	getCmd.AddCommand(subcommand.MetricsGetCmd())
+	getCmd.AddCommand(subcommand.AllGetCmd())
 	return getCmd
 }

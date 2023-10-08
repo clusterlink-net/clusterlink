@@ -10,6 +10,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/cmd/gwctl/config"
 	cmdutil "github.com/clusterlink-net/clusterlink/cmd/util"
 	"github.com/clusterlink-net/clusterlink/pkg/util"
+	"github.com/clusterlink-net/clusterlink/pkg/util/rest"
 )
 
 // initOptions is the command line options for 'init'
@@ -113,4 +114,55 @@ func (o *stateGetOptions) run() error {
 
 	fmt.Println(string(sJSON))
 	return nil
+}
+
+type allGetOptions struct {
+	myID string
+}
+
+// AllGetCmd - get all gateways objects.
+func AllGetCmd() *cobra.Command {
+	o := allGetOptions{}
+	cmd := &cobra.Command{
+		Use:   "all",
+		Short: "Get all information of the gateway (peers, exports, imports, bindings policies)",
+		Long:  "Get all information of the gateway (peers, exports, imports, bindings policies)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return o.run()
+		},
+	}
+	o.addFlags(cmd.Flags())
+
+	return cmd
+}
+
+// addFlags registers flags for the CLI.
+func (o *allGetOptions) addFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
+}
+
+// run performs the execution of the 'get all' subcommand
+func (o *allGetOptions) run() error {
+	g, err := config.GetClientFromID(o.myID)
+	if err != nil {
+		return err
+	}
+
+	objects := map[string]*rest.Client{"Peers": g.Peers, "Exports": g.Exports, "Imports": g.Imports, "Bindings": g.Bindings}
+	for name, o := range objects {
+		fmt.Printf("%s:\n", name)
+		d, err := o.List()
+		if err != nil {
+			return fmt.Errorf("error: %v", err.Error())
+		}
+		sJSON, err := json.Marshal(d)
+		if err != nil {
+			return fmt.Errorf("error: %v", err.Error())
+		}
+		fmt.Println(string(sJSON))
+	}
+
+	// Policy
+	p := policyGetOptions{myID: o.myID}
+	return p.run()
 }
