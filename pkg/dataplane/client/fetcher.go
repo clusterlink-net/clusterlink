@@ -75,7 +75,7 @@ func (f *fetcher) Run() error {
 
 		err = f.client.Ack()
 		if err != nil {
-			f.logger.Errorf("failed to ack: %v.", err)
+			f.logger.Errorf("Failed to ack: %v.", err)
 		}
 	}
 }
