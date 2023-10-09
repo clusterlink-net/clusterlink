@@ -48,7 +48,7 @@ func (d *Dataplane) addAuthzHandlers() {
 }
 
 func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Request) {
-	forwardingURL := httpSchemaPrefix + d.controlplaneTarget + r.URL.Path
+	forwardingURL := httpSchemaPrefix + d.controlplaneTarget + cpapi.DataplaneIngressAuthorizationPath
 
 	forwardingReq, err := http.NewRequest(r.Method, forwardingURL, r.Body)
 	if err != nil {
@@ -139,7 +139,7 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, ap
 		d.logger.Error(err)
 		return err
 	}
-	url := httpSchemaPrefix + target + cpapi.DataplaneIngressAuthorizationPath
+	url := httpSchemaPrefix + target
 	d.logger.Debugf("Starting to initiate egress connection to: %s.", url)
 
 	peerConn, err := tls.Dial("tcp", target, tlsConfig)
