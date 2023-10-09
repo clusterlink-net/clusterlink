@@ -45,7 +45,7 @@ func (f *fetcher) handleListeners(resources []*anypb.Any) error {
 		if err != nil {
 			return err
 		}
-		f.logger.Debugf("Listener : %s.", l.Name)
+		f.logger.Debugf("Listener: %s.", l.Name)
 		f.dataplane.AddListener(l)
 	}
 	return nil
