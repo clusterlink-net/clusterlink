@@ -109,7 +109,7 @@ func (f *forwarder) run() {
 		defer wg.Done()
 		err := f.workloadToPeer()
 		if err != nil {
-			f.logger.Errorf("End of workload to peer connection %v.", err)
+			f.logger.Errorf("Error in workload to peer connection: %v.", err)
 		}
 	}()
 
@@ -118,7 +118,7 @@ func (f *forwarder) run() {
 		defer wg.Done()
 		err := f.peerToWorkload()
 		if err != nil {
-			f.logger.Errorf("End of peer to workload connection %v.", err)
+			f.logger.Errorf("Error in peer to workload connection: %v.", err)
 		}
 	}()
 
