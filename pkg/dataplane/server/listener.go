@@ -23,7 +23,7 @@ func (d *Dataplane) CreateListener(name, ip string, port uint32) {
 	d.logger.Infof("Starting a listener for imported service %s at %s.", name, listenTarget)
 	acceptor, err := net.Listen("tcp", listenTarget)
 	if err != nil {
-		d.logger.Infof("Error Listen to port %v", err)
+		d.logger.Infof("Error listening to por: %v.", err)
 		return
 	}
 	go func() {
@@ -49,7 +49,7 @@ func (d *Dataplane) serveEgressConnections(name string, listener net.Listener) e
 
 		targetPeer, accessToken, err := d.getEgressAuth(name, strings.Split(conn.RemoteAddr().String(), ":")[0])
 		if err != nil {
-			d.logger.Error("Failed egress authorization", err)
+			d.logger.Infof("Failed egress authorization: %v.", err)
 			conn.Close()
 			continue
 		}
@@ -59,7 +59,7 @@ func (d *Dataplane) serveEgressConnections(name string, listener net.Listener) e
 		go func() {
 			err := d.initiateEgressConnection(targetPeer, accessToken, conn, tlsConfig)
 			if err != nil {
-				d.logger.Error("Failed to initiate egress connection ", err)
+				d.logger.Errorf("Failed to initiate egress connection: %v.", err)
 			}
 		}()
 	}
