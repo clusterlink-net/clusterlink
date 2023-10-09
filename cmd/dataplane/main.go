@@ -47,6 +47,7 @@ func main() {
 			log.WithError(server.ListenAndServe()).Error("PProf HTTP listener stopped working")
 		}()
 	}
+
 	// Set Dataplane
 	dp := dp.NewDataplane(&store.Store{ID: id, CertAuthority: ca, Cert: cert, Key: key, Dataplane: dataplane}, controlplane)
 	dp.StartServer(port)
