@@ -113,7 +113,6 @@ func (acl *AccessControl) RulesLookup(serviceSrc string, serviceDst string, mbgD
 			resultAction = myRule.Action
 			bitrate = myRule.Bitrate
 		}
-		// plog.Infof("Rules Matched.. action=%d", myRule.Action)
 	}
 	return priority, resultAction, bitrate
 }
