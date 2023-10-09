@@ -168,7 +168,7 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, ap
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		d.logger.Infof("Error in TLS Connection %v", err)
+		d.logger.Infof("Error in TLS connection: %v.", err)
 		return err
 	}
 	d.logger.Infof("Connection established successfully!")
