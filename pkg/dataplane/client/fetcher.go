@@ -32,7 +32,7 @@ func (f *fetcher) handleClusters(resources []*anypb.Any) error {
 			return err
 		}
 
-		f.logger.Debugf("Cluster : %s.", c.Name)
+		f.logger.Debugf("Cluster: %s.", c.Name)
 		f.dataplane.AddCluster(c)
 	}
 	return nil
