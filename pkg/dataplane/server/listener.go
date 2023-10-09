@@ -59,7 +59,7 @@ func (d *Dataplane) serveEgressConnections(name string, listener net.Listener) e
 		go func() {
 			err := d.initiateEgressConnection(targetPeer, accessToken, conn, tlsConfig)
 			if err != nil {
-				d.logger.Error("Failed to initiate egress connection ", err)
+				d.logger.Errorf("Failed to initiate egress connection:  %v.", err)
 			}
 		}()
 	}
