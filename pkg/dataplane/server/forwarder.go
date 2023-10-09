@@ -4,6 +4,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -17,7 +18,7 @@ const (
 type forwarder struct {
 	workloadConn net.Conn
 	peerConn     net.Conn
-	closeSignal  bool
+	closeSignal  atomic.Bool
 	logger       *logrus.Entry
 }
 
@@ -34,7 +35,7 @@ func (f *forwarder) peerToWorkload() error {
 	var err error
 	numBytes := 0
 	for {
-		if f.closeSignal {
+		if f.closeSignal.Load() {
 			return nil
 		}
 		err = f.peerConn.SetReadDeadline(time.Now().Add(readDeadline))
@@ -53,7 +54,7 @@ func (f *forwarder) peerToWorkload() error {
 			break
 		}
 	}
-	f.closeSignal = true
+	f.closeSignal.Swap(true)
 	if err != io.EOF { // don't log EOF
 		return err
 	}
@@ -65,7 +66,7 @@ func (f *forwarder) workloadToPeer() error {
 	var err error
 	numBytes := 0
 	for {
-		if f.closeSignal {
+		if f.closeSignal.Load() {
 			return nil
 		}
 		err = f.workloadConn.SetReadDeadline(time.Now().Add(readDeadline))
@@ -84,7 +85,7 @@ func (f *forwarder) workloadToPeer() error {
 			break
 		}
 	}
-	f.closeSignal = true
+	f.closeSignal.Swap(true)
 	if err != io.EOF { // don't log EOF
 		return err
 	}
@@ -127,8 +128,7 @@ func (f *forwarder) run() {
 
 func newForwarder(workloadConn net.Conn, peerConn net.Conn) *forwarder {
 	return &forwarder{workloadConn: workloadConn,
-		peerConn:    peerConn,
-		closeSignal: false,
-		logger:      logrus.WithField("component", "dataplane.forwarder"),
+		peerConn: peerConn,
+		logger:   logrus.WithField("component", "dataplane.forwarder"),
 	}
 }
