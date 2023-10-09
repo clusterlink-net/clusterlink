@@ -1,29 +1,140 @@
+# Based on recommendations in https://olegk.dev/go-linters-configuration-the-right-version
+
 run:
+  # linter execution
   timeout: 30m
+  issues-exit-code: 1
+  concurrency: 4
+  # check tests as well
+  tests: true
+  # fail if go.mod file is outdated.
+  modules-download-mode: readonly
+  # use the Go version from the go.mod file.
+  go: ""
 
 linters:
-  disable-all: false
+  # set to true to run only fast linters (e.g., for pre-commit)
+  fast: false
+
+  disable-all: true
   enable:
+    - asasalint
+    - asciicheck
+    - bidichk
     - bodyclose
-    - errcheck
+    - contextcheck
+    - durationcheck
+    - errcheck 
+    - errname
+    # - errorlint
     - exportloopref
-    - gosec
-    - gosimple
     - ginkgolinter
     - gocritic
+    # - godot
+    - gofmt
+    # - gofumpt
+    - goimports
+    - gomoddirectives
+    - gosec
+    - gosimple
     - govet
+    - grouper
+    # - lll
+    - loggercheck
+    - importas
     - ineffassign
+    - makezero
+    - misspell
+    - nakedret
+    # - nestif
+    - nilerr
+    # - nilnil
+    # - noctx
+    # - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
     - prealloc
+    - predeclared
+    - promlinter
+    - reassign
     - revive
     - staticcheck
     - stylecheck
+    # - tagliatelle
+    - tenv
+    - testableexamples
+    # - thelper
+    # - testpackage
+    - tparallel
     - unconvert
     - unparam
     - unused
+    - usestdlibvars
+    # - varnamelen
 
 linters-settings:
   gocritic:
+    enabled-tags:
+      - diagnostic
+      # - experimental
+      # - opinionated
+      - performance
+      # - style
+    disabled-checks:
+      # consider enabling in performance oriented code
+      - hugeParam
+      - rangeExprCopy
+      - rangeValCopy
+
+  errcheck:
+    # change some error checks which are disabled by default
+    # check-type-assertions: true
+    # check-blank: true
+    # exclude-functions:
+      # - io/ioutil.ReadFile
+      # - io.Copy(*bytes.Buffer)
+      # - io.Copy(os.Stdout)
+
+  govet:
+    disable:
+      - fieldalignment
+
+  nakedret:
+    # No naked returns (default: 30)
+    max-func-lines: 1
+
   staticcheck:
     checks:
       - "all"
+
   stylecheck:
+
+  tagliatelle:
+    case:
+      rules:
+        json: snake
+        yaml: snake
+        xml: camel
+        bson: camel
+        avro: snake
+        mapstructure: kebab
+
+output:
+  # prefer the simplest output: `line-number` without saving to file
+  format: line-number
+  print-issued-lines: false
+  print-linter-name: true
+  # allow multiple reports per line
+  uniq-by-line: false
+  # easier to follow the results with a deterministic output
+  sort-results: true
+
+issues:
+  # setting 0 to have all the results.
+  max-issues-per-linter: 0
+  # nothing should be skipped to not miss errors.
+  max-same-issues: 0
+  # analyze only new code (manually set to false to check existing code)
+  new: true
+  # do not automatically fix (until AI assisted code improves)
+  fix: false
