@@ -20,7 +20,7 @@ const (
 
 // StartDataplaneServer starts the Dataplane server
 func (d *Dataplane) StartDataplaneServer(dataplaneServerAddress string) error {
-	d.logger.Infof("Dataplane server starting  at %s", dataplaneServerAddress)
+	d.logger.Infof("Dataplane server starting at %s.", dataplaneServerAddress)
 	server := netutils.CreateResilientHTTPServer(dataplaneServerAddress, d.router, d.parsedCertData.ServerConfig(), nil, nil, nil)
 
 	return server.ListenAndServeTLS("", "")
@@ -72,12 +72,12 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		d.logger.Infof("Failed to obtained ingress authorization: %s", resp.Status)
+		d.logger.Infof("Failed to obtain ingress authorization: %s.", resp.Status)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	d.logger.Infof("Got authorization to use service :%s", resp.Header.Get(cpapi.TargetClusterHeader))
+	d.logger.Infof("Got authorization to use service: %s.", resp.Header.Get(cpapi.TargetClusterHeader))
 
 	serviceTarget, err := d.GetClusterTarget(resp.Header.Get(cpapi.TargetClusterHeader))
 	if err != nil {
@@ -89,7 +89,7 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 	// hijack connection
 	peerConn, err := d.hijackConn(w)
 	if err != nil {
-		d.logger.Error("hijacking failed ", err)
+		d.logger.Errorf("Hijacking failed: %v.", err)
 		http.Error(w, "hijacking failed", http.StatusInternalServerError)
 		return
 	}
@@ -129,7 +129,7 @@ func (d *Dataplane) hijackConn(w http.ResponseWriter) (net.Conn, error) {
 	}
 
 	fmt.Fprintf(peerConn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n")
-	d.logger.Debugf("Connection Hijacked  %v->%v", peerConn.RemoteAddr().String(), peerConn.LocalAddr().String())
+	d.logger.Debugf("Connection hijacked %v->%v.", peerConn.RemoteAddr().String(), peerConn.LocalAddr().String())
 	return peerConn, nil
 }
 
@@ -168,7 +168,7 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, ap
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		d.logger.Infof("Error in TLS Connection %v", err)
+		d.logger.Infof("Error in TLS connection: %v.", err)
 		return err
 	}
 	d.logger.Infof("Connection established successfully!")

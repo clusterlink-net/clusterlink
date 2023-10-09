@@ -59,7 +59,7 @@ func (d *Dataplane) serveEgressConnections(name string, listener net.Listener) e
 		go func() {
 			err := d.initiateEgressConnection(targetPeer, accessToken, conn, tlsConfig)
 			if err != nil {
-				d.logger.Errorf("Failed to initiate egress connection: %v.", err)
+				d.logger.Errorf("Failed to initiate egress connection:  %v.", err)
 			}
 		}()
 	}
@@ -77,12 +77,12 @@ func (d *Dataplane) getEgressAuth(name, sourceIP string) (string, string, error)
 	egressAuthReq.Header.Add(api.ImportHeader, name)
 	egressAuthResp, err := d.apiClient.Do(egressAuthReq)
 	if err != nil {
-		d.logger.Error("Unable to send auth/egress request ", err)
+		d.logger.Errorf("Unable to send auth/egress request: %v.", err)
 		return "", "", err
 	}
 	defer egressAuthResp.Body.Close()
 	if egressAuthResp.StatusCode != http.StatusOK {
-		d.logger.Infof("Failed to obtained egress authorization: %s", egressAuthResp.Status)
+		d.logger.Infof("Failed to obtain egress authorization: %s", egressAuthResp.Status)
 		return "", "", fmt.Errorf("failed egress authorization:%s", egressAuthResp.Status)
 	}
 	return egressAuthResp.Header.Get(api.TargetClusterHeader), egressAuthResp.Header.Get(api.AuthorizationHeader), nil

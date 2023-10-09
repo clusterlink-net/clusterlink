@@ -32,7 +32,7 @@ func (f *fetcher) handleClusters(resources []*anypb.Any) error {
 			return err
 		}
 
-		f.logger.Debugf("Cluster : %s.", c.Name)
+		f.logger.Debugf("Cluster: %s.", c.Name)
 		f.dataplane.AddCluster(c)
 	}
 	return nil
@@ -45,7 +45,7 @@ func (f *fetcher) handleListeners(resources []*anypb.Any) error {
 		if err != nil {
 			return err
 		}
-		f.logger.Debugf("Listener : %s.", l.Name)
+		f.logger.Debugf("Listener: %s.", l.Name)
 		f.dataplane.AddListener(l)
 	}
 	return nil
@@ -75,7 +75,7 @@ func (f *fetcher) Run() error {
 
 		err = f.client.Ack()
 		if err != nil {
-			f.logger.Errorf("failed to ack: %v.", err)
+			f.logger.Errorf("Failed to ack: %v.", err)
 		}
 	}
 }
