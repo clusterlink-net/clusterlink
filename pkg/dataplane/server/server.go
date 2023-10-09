@@ -129,7 +129,7 @@ func (d *Dataplane) hijackConn(w http.ResponseWriter) (net.Conn, error) {
 	}
 
 	fmt.Fprintf(peerConn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n")
-	d.logger.Debugf("Connection Hijacked  %v->%v", peerConn.RemoteAddr().String(), peerConn.LocalAddr().String())
+	d.logger.Debugf("Connection hijacked %v->%v.", peerConn.RemoteAddr().String(), peerConn.LocalAddr().String())
 	return peerConn, nil
 }
 
