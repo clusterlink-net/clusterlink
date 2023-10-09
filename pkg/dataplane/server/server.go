@@ -72,7 +72,7 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		d.logger.Infof("Failed to obtained ingress authorization: %s", resp.Status)
+		d.logger.Infof("Failed to obtain ingress authorization: %s.", resp.Status)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
