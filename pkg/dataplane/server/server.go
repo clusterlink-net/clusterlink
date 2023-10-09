@@ -44,7 +44,7 @@ func (d *Dataplane) StartSNIServer(dataplaneServerAddress string) error {
 }
 
 func (d *Dataplane) addAuthzHandlers() {
-	d.router.Post(cpapi.DataplaneIngressAuthorizationPath, d.dataplaneIngressAuthorize)
+	d.router.Post("/", d.dataplaneIngressAuthorize)
 }
 
 func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Request) {
