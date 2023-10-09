@@ -158,12 +158,12 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	require.Equal(t, event.Allow, connReqResp.Action)
 	require.Equal(t, mbg2, connReqResp.TargetMbg)
 
-	// Src service does not much the spec of the single access policy
+	// Src service does not match the spec of the single access policy
 	requestAttr = event.ConnectionRequestAttr{SrcService: badSvcName, DstService: svcName, Direction: event.Outgoing}
 	connReqResp = sendConnectionRequest(t, &requestAttr)
 	require.Equal(t, event.Deny, connReqResp.Action)
 
-	// Dst service does not much the spec of the single access policy
+	// Dst service does not match the spec of the single access policy
 	requestAttr = event.ConnectionRequestAttr{SrcService: svcName, DstService: badSvcName, Direction: event.Outgoing}
 	connReqResp = sendConnectionRequest(t, &requestAttr)
 	require.Equal(t, event.Deny, connReqResp.Action)
