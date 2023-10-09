@@ -33,7 +33,7 @@ type Dataplane struct {
 // GetClusterTarget returns the cluster address:port from the cluster map
 func (d *Dataplane) GetClusterTarget(name string) (string, error) {
 	if _, ok := d.clusters[name]; !ok {
-		return "", fmt.Errorf("unable to find %s in clustermap ", name)
+		return "", fmt.Errorf("unable to find %s in cluster map", name)
 	}
 	address := d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Address.GetSocketAddress().GetAddress()
 	port := d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Address.GetSocketAddress().GetPortValue()
