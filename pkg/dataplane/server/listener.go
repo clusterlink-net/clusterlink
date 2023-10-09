@@ -82,7 +82,7 @@ func (d *Dataplane) getEgressAuth(name, sourceIP string) (string, string, error)
 	}
 	defer egressAuthResp.Body.Close()
 	if egressAuthResp.StatusCode != http.StatusOK {
-		d.logger.Infof("Failed to obtained egress authorization: %s", egressAuthResp.Status)
+		d.logger.Infof("Failed to obtain egress authorization: %s", egressAuthResp.Status)
 		return "", "", fmt.Errorf("failed egress authorization:%s", egressAuthResp.Status)
 	}
 	return egressAuthResp.Header.Get(api.TargetClusterHeader), egressAuthResp.Header.Get(api.AuthorizationHeader), nil
