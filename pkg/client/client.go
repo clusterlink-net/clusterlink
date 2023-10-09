@@ -82,7 +82,7 @@ func (c *Client) SendAccessPolicy(policy api.Policy, command int) error {
 }
 
 // SendLBPolicy sends an LB request to the GW.
-func (c *Client) SendLBPolicy(serviceSrc, serviceDst string, policy policyengine.PolicyLoadBalancer, gwDest string, command int) error {
+func (c *Client) SendLBPolicy(serviceSrc, serviceDst string, scheme policyengine.LBScheme, gwDest string, command int) error {
 	path := policyengine.PolicyRoute + policyengine.LbRoute
 	switch command {
 	case Add:
@@ -92,7 +92,7 @@ func (c *Client) SendLBPolicy(serviceSrc, serviceDst string, policy policyengine
 	default:
 		return fmt.Errorf("unknown command")
 	}
-	jsonReq, err := json.Marshal(policyengine.LoadBalancerRule{ServiceSrc: serviceSrc, ServiceDst: serviceDst, Policy: policy, DefaultMbg: gwDest})
+	jsonReq, err := json.Marshal(policyengine.LBPolicy{ServiceSrc: serviceSrc, ServiceDst: serviceDst, Scheme: scheme, DefaultMbg: gwDest})
 	if err != nil {
 		return err
 	}
@@ -101,16 +101,16 @@ func (c *Client) SendLBPolicy(serviceSrc, serviceDst string, policy policyengine
 }
 
 // GetLBPolicies sends an LB get request to the GW.
-func (c *Client) GetLBPolicies() (map[string]map[string]policyengine.PolicyLoadBalancer, error) {
-	var policies map[string]map[string]policyengine.PolicyLoadBalancer
+func (c *Client) GetLBPolicies() (map[string]map[string]policyengine.LBScheme, error) {
+	var policies map[string]map[string]policyengine.LBScheme
 	path := policyengine.PolicyRoute + policyengine.LbRoute
 	resp, err := c.client.Get(path)
 	if err != nil {
-		return make(map[string]map[string]policyengine.PolicyLoadBalancer), err
+		return make(map[string]map[string]policyengine.LBScheme), err
 	}
 
 	if err := json.Unmarshal(resp.Body, &policies); err != nil {
-		return make(map[string]map[string]policyengine.PolicyLoadBalancer), err
+		return make(map[string]map[string]policyengine.LBScheme), err
 	}
 	return policies, nil
 }
