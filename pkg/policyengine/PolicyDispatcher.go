@@ -169,9 +169,9 @@ func (pH *PolicyHandler) decideIncomingConnection(requestAttr *event.ConnectionR
 func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {
 	// Get a list of MBGs for the service
 	mbgList, err := pH.loadBalancer.GetTargetMbgs(requestAttr.DstService)
-	if err != nil {
-		plog.Errorf("error getting target peers: %v", err)
-		return event.ConnectionRequestResp{Action: event.Deny}, err
+	if err != nil || len(mbgList) == 0 {
+		plog.Errorf("error getting target peers for service %s: %v", requestAttr.DstService, err)
+		return event.ConnectionRequestResp{Action: event.Deny}, nil // this can be caused by a user typo - so only log this error
 	}
 
 	src := getServiceAttrs(requestAttr.SrcService, "")
@@ -187,6 +187,11 @@ func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionR
 		if decision.Decision == policytypes.PolicyDecisionAllow {
 			allowedMbgs = append(allowedMbgs, decision.Destination[MbgNameLabel])
 		}
+	}
+
+	if len(allowedMbgs) == 0 {
+		plog.Infof("access policies deny connections to service %s in all peers", requestAttr.DstService)
+		return event.ConnectionRequestResp{Action: event.Deny}, nil
 	}
 
 	// Perform load-balancing using the filtered mbgList
