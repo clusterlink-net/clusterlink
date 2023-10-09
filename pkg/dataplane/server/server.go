@@ -89,7 +89,7 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 	// hijack connection
 	peerConn, err := d.hijackConn(w)
 	if err != nil {
-		d.logger.Error("hijacking failed ", err)
+		d.logger.Errorf("Hijacking failed: %v.", err)
 		http.Error(w, "hijacking failed", http.StatusInternalServerError)
 		return
 	}
