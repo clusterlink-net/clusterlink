@@ -79,7 +79,7 @@ func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *u
 	tlsConfig := parsedCertData.ClientConfig(cpapi.GRPCServerName(peerName))
 	xdsClient := dpclient.NewXDSClient(dataplane, controlplaneTarget, tlsConfig)
 	err := xdsClient.Run()
-	return fmt.Errorf("xDS Client stopped : %v", err)
+	return fmt.Errorf("xDS Client stopped: %v", err)
 }
 
 // Run the dataplane.
