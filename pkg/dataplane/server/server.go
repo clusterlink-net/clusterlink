@@ -77,7 +77,7 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	d.logger.Infof("Got authorization to use service :%s", resp.Header.Get(cpapi.TargetClusterHeader))
+	d.logger.Infof("Got authorization to use service: %s.", resp.Header.Get(cpapi.TargetClusterHeader))
 
 	serviceTarget, err := d.GetClusterTarget(resp.Header.Get(cpapi.TargetClusterHeader))
 	if err != nil {
