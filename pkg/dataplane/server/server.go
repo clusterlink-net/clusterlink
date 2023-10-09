@@ -20,7 +20,7 @@ const (
 
 // StartDataplaneServer starts the Dataplane server
 func (d *Dataplane) StartDataplaneServer(dataplaneServerAddress string) error {
-	d.logger.Infof("Dataplane server starting  at %s", dataplaneServerAddress)
+	d.logger.Infof("Dataplane server starting at %s.", dataplaneServerAddress)
 	server := netutils.CreateResilientHTTPServer(dataplaneServerAddress, d.router, d.parsedCertData.ServerConfig(), nil, nil, nil)
 
 	return server.ListenAndServeTLS("", "")
