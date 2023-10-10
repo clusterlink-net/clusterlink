@@ -40,6 +40,14 @@ func (d *Dataplane) GetClusterTarget(name string) (string, error) {
 	return address + ":" + strconv.Itoa(int(port)), nil
 }
 
+// GetClusterHost returns the cluster hostname after trimming ":"
+func (d *Dataplane) GetClusterHost(name string) (string, error) {
+	if _, ok := d.clusters[name]; !ok {
+		return "", fmt.Errorf("unable to find %s in cluster map", name)
+	}
+	return strings.Split(d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Hostname, ":")[0], nil
+}
+
 // AddCluster adds a cluster to the map
 func (d *Dataplane) AddCluster(cluster *cluster.Cluster) {
 	d.clusters[cluster.Name] = cluster

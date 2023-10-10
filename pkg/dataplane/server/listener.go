@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 )
 
 // DeleteListener deletes the listener to an imported service
@@ -54,7 +53,12 @@ func (d *Dataplane) serveEgressConnections(name string, listener net.Listener) e
 			continue
 		}
 		d.logger.Infof("Received auth from controlplane: target peer: %s with %s", targetPeer, accessToken)
-		tlsConfig := d.parsedCertData.ClientConfig(dpapi.DataplaneServerName(strings.TrimPrefix(targetPeer, api.RemotePeerClusterPrefix)))
+
+		targetHost, err := d.GetClusterHost(targetPeer)
+		if err != nil {
+			return err
+		}
+		tlsConfig := d.parsedCertData.ClientConfig(targetHost)
 
 		go func() {
 			err := d.initiateEgressConnection(targetPeer, accessToken, conn, tlsConfig)
