@@ -12,7 +12,7 @@ import (
 
 const (
 	dataBufferSize = 64 * 1024
-	readDeadline   = 500 * time.Millisecond
+	readDeadline   = 100 * time.Millisecond
 )
 
 type forwarder struct {
