@@ -24,6 +24,7 @@ type XDSClient struct {
 	dataplane          *server.Dataplane
 	controlplaneTarget string
 	tlsConfig          *tls.Config
+	lock               sync.Mutex
 	errors             map[string]error
 	logger             *logrus.Entry
 }
@@ -54,13 +55,17 @@ func (x *XDSClient) runFetcher(resourceType string) error {
 // Run starts the running xDS client which fetches clusters and listeners from the controlplane.
 func (x *XDSClient) Run() error {
 	var wg sync.WaitGroup
+
 	wg.Add(len(resources))
 	for _, res := range resources {
 		go func(res string) {
 			defer wg.Done()
 			err := x.runFetcher(res)
 			x.logger.Errorf("Fetcher (%s) stopped: %v", res, err)
+
+			x.lock.Lock()
 			x.errors[res] = err
+			x.lock.Unlock()
 		}(res)
 	}
 	wg.Wait()
