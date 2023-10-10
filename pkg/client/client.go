@@ -8,7 +8,6 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/pkg/util/jsonapi"
 	"github.com/clusterlink-net/clusterlink/pkg/util/rest"
 )
@@ -25,6 +24,8 @@ type Client struct {
 	Imports *rest.Client
 	// Bindings client.
 	Bindings *rest.Client
+	// Policies client.
+	Policies *rest.Client
 }
 
 // New returns a new client.
@@ -56,6 +57,12 @@ func New(host string, port uint16, tlsConfig *tls.Config) *Client {
 			SampleObject: []api.Binding{},
 			SampleList:   []api.Binding{},
 		}),
+		Policies: rest.NewClient(&rest.Config{
+			Client:       client,
+			BasePath:     "/policies",
+			SampleObject: api.Policy{},
+			SampleList:   []api.Policy{},
+		}),
 	}
 }
 
@@ -65,6 +72,7 @@ const (
 	Del
 )
 
+// TODO: delete when old controlplane is no longer active
 // SendAccessPolicy sends the policy engine a request to add, update (using add) or delete an access policy
 func (c *Client) SendAccessPolicy(policy api.Policy, command int) error {
 	path := policyengine.PolicyRoute + policyengine.AccessRoute
@@ -111,21 +119,6 @@ func (c *Client) GetLBPolicies() (map[string]map[string]policyengine.LBScheme, e
 
 	if err := json.Unmarshal(resp.Body, &policies); err != nil {
 		return make(map[string]map[string]policyengine.LBScheme), err
-	}
-	return policies, nil
-}
-
-// GetAccessPolicies returns a slice of ConnectivityPolicies, that are currently used by the connectivity PDP
-func (c *Client) GetAccessPolicies() ([]policytypes.ConnectivityPolicy, error) {
-	var policies []policytypes.ConnectivityPolicy
-	path := policyengine.PolicyRoute + policyengine.AccessRoute
-	resp, err := c.client.Get(path)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(resp.Body, &policies); err != nil {
-		return nil, err
 	}
 	return policies, nil
 }
