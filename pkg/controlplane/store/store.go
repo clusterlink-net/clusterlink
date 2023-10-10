@@ -139,7 +139,7 @@ func GetDataplane() string {
 func GetDataplaneEndpoint() string {
 	return s.MyInfo.DataplaneEndpoint
 }
-func GetChiRouter() (r *chi.Mux) {
+func GetChiRouter() *chi.Mux {
 	return ChiRouter
 }
 
