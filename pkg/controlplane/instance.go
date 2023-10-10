@@ -466,6 +466,13 @@ func (cp *Instance) init() error {
 		}
 	}
 
+	// add policies
+	for _, policy := range cp.GetAllAccessPolicies() {
+		if err := cp.CreateAccessPolicy(policy); err != nil {
+			return err
+		}
+	}
+
 	cp.initialized = true
 
 	return nil
@@ -510,19 +517,25 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, kubeC
 	if err != nil {
 		return nil, fmt.Errorf("cannot load exports from store: %v", err)
 	}
-	logger.Infof("Loaded %d exports.", peers.Len())
+	logger.Infof("Loaded %d exports.", exports.Len())
 
 	imports, err := cpstore.NewImports(storeManager)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load imports from store: %v", err)
 	}
-	logger.Infof("Loaded %d imports.", peers.Len())
+	logger.Infof("Loaded %d imports.", imports.Len())
 
 	bindings, err := cpstore.NewBindings(storeManager)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load bindings from store: %v", err)
 	}
-	logger.Infof("Loaded %d bindings.", peers.Len())
+	logger.Infof("Loaded %d bindings.", bindings.Len())
+
+	policies, err := cpstore.NewAccessPolicies(storeManager)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load access policies from store: %v", err)
+	}
+	logger.Infof("Loaded %d access policies.", policies.Len())
 
 	cp := &Instance{
 		peerTLS:       peerTLS,
@@ -531,6 +544,7 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, kubeC
 		exports:       exports,
 		imports:       imports,
 		bindings:      bindings,
+		policies:      policies,
 		xdsManager:    newXDSManager(),
 		ports:         newPortManager(),
 		policyDecider: policyengine.NewPolicyHandler(),
