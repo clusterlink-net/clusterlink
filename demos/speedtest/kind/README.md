@@ -1,23 +1,23 @@
 # <ins>OpenSpeedTest application<ins>
 In this test we use OpenSpeedTest application for checking connectivity between different kind clusters using the MBG components.  
-This setup use three Kind clusters- 
-1. MBG1 cluster - contain MBG, gwctl (MBG control component), and firefox client.
-2. MBG2 cluster - contain MBG, gwctl (MBG control component), and OpenSpeedTest server.
-3. MBG3 cluster - contain MBG, gwctl (MBG control component), and two firefox clients.
+This setup uses three Kind clusters- 
+1. MBG1 cluster - contains MBG, gwctl (MBG control component), and firefox client.
+2. MBG2 cluster - contains MBG, gwctl (MBG control component), and OpenSpeedTest server.
+3. MBG3 cluster - contains MBG, gwctl (MBG control component), and two firefox clients.
      
 System illustration:
 
 
 ![alt text](../../..//docs/openspeedtest.png)
 ## <ins> Pre-requires installations <ins>
-To run a Kind test, check all pre-requires are installed (Go, docker, Kubectl, Kind):
+To run a Kind test, check that all pre-requires are installed (Go, docker, Kubectl, Kind):
 
     export PROJECT_FOLDER=`git rev-parse --show-toplevel`
     cd $PROJECT_FOLDER
     make prereqs
 
 ## <ins> OpenSpeedTest test<ins>
-Use a single script to build and kind clusters. 
+Use a single script to build the kind clusters. 
 
     python3 ./test.py
 
@@ -62,6 +62,6 @@ To run the OpenSpeedTest from MBG3, connect with the web browser to the firefox 
     python3 ./apply_policy.py -m mbg2 -t show
     
 ### <ins> Cleanup <ins>
-Delete all Kind cluster.
+Delete all Kind clusters.
 
     make clean-kind
