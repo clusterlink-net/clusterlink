@@ -19,6 +19,9 @@ type Config struct {
 
 	// Dataplanes is the number of dataplane servers to run.
 	Dataplanes uint16
+
+	// DataplaneType is the type of dataplane to create (envoy or go-based)
+	DataplaneType string
 }
 
 // TemplateArgs returns arguments for instantiating a text/template
@@ -64,8 +67,9 @@ func (c Config) TemplateArgs() (map[string]interface{}, error) {
 	}
 
 	return map[string]interface{}{
-		"peer":       c.Peer,
-		"dataplanes": c.Dataplanes,
+		"peer":          c.Peer,
+		"dataplanes":    c.Dataplanes,
+		"dataplaneType": c.DataplaneType,
 
 		"fabricCA":         base64.StdEncoding.EncodeToString(fabricCA),
 		"peerCA":           base64.StdEncoding.EncodeToString(peerCA),

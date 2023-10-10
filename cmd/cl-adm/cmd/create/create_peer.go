@@ -23,12 +23,15 @@ type PeerOptions struct {
 	Name string
 	// Dataplanes is the number of dataplanes to create.
 	Dataplanes uint16
+	// DataplaneType is the type of dataplane to create (envoy or go-based)
+	DataplaneType string
 }
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
 	fs.Uint16Var(&o.Dataplanes, "dataplanes", 1, "Number of dataplanes.")
+	fs.StringVar(&o.DataplaneType, "dataplaneType", "envoy", "Type of dataplane")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -136,8 +139,9 @@ func (o *PeerOptions) Run() error {
 
 	// deployment configuration
 	args, err := templates.Config{
-		Peer:       o.Name,
-		Dataplanes: o.Dataplanes,
+		Peer:          o.Name,
+		Dataplanes:    o.Dataplanes,
+		DataplaneType: o.DataplaneType,
 	}.TemplateArgs()
 	if err != nil {
 		return err
