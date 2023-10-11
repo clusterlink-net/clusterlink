@@ -26,11 +26,12 @@ const (
 // client for accessing a remote peer.
 type client struct {
 	// jsonapi clients for connecting to the remote peer (one per each gateway)
-	clients  []*jsonapi.Client
-	lastSeen time.Time
-	active   bool
-	lock     sync.RWMutex
-	logger   *logrus.Entry
+	clients    []*jsonapi.Client
+	lastSeen   time.Time
+	active     bool
+	stopSignal chan struct{}
+	lock       sync.RWMutex
+	logger     *logrus.Entry
 }
 
 // remoteServerAuthorizationResponse represents an authorization response received from a remote controlplane server.
@@ -136,25 +137,34 @@ func (c *client) getHeartbeat() error {
 	return retErr // Return an error if all client targets are unreachable
 }
 
+// StopMonitor send signal to stop heartbeat monitor
+func (c *client) StopMonitor() {
+	close(c.stopSignal)
+}
+
 // heartbeatMonitor checks all peers for responsiveness, every fixed amount of time.
 func (c *client) heartbeatMonitor() {
 	c.logger.Info("Start sending heartbeat requests to peer")
 	ticker := time.NewTicker(heartbeatInterval)
 	defer ticker.Stop()
 	for {
-		t := time.Now()
-		if c.IsActive() || (!c.IsActive() && (t.Sub(c.lastSeen) > heartbeatRetransmissionTime)) ||
-			c.lastSeen.IsZero() {
-			if err := c.getHeartbeat(); err != nil {
-				if c.IsActive() {
-					c.logger.Errorf("Unable to get heartbeat from peer  Error: %v", err.Error())
-					c.setActive(false)
+		select {
+		case <-c.stopSignal:
+			return
+		default:
+			t := time.Now()
+			if c.IsActive() || (!c.IsActive() && (t.Sub(c.lastSeen) > heartbeatRetransmissionTime)) ||
+				c.lastSeen.IsZero() {
+				if err := c.getHeartbeat(); err != nil {
+					if c.IsActive() {
+						c.logger.Errorf("Unable to get heartbeat from peer error: %v", err.Error())
+						c.setActive(false)
+					}
+				} else {
+					c.setActive(true)
 				}
-			} else {
-				c.setActive(true)
 			}
 		}
-
 		// wait till it's time for next heartbeat round
 		<-ticker.C
 	}
@@ -167,9 +177,10 @@ func newClient(peer *store.Peer, tlsConfig *tls.Config) *client {
 		clients[i] = jsonapi.NewClient(endpoint.Host, endpoint.Port, tlsConfig)
 	}
 	c := &client{
-		clients:  clients,
-		active:   false,
-		lastSeen: time.Time{},
+		clients:    clients,
+		active:     false,
+		lastSeen:   time.Time{},
+		stopSignal: make(chan struct{}),
 		logger: logrus.WithFields(logrus.Fields{
 			"component": "peer-client",
 			"peer":      peer}),
