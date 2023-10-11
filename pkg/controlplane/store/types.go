@@ -111,11 +111,6 @@ type AccessPolicy struct {
 	Version uint32
 }
 
-// Keys return the keys identifying the policy.
-func (ap *AccessPolicy) Keys() []string {
-	return []string{ap.Name}
-}
-
 // NewAccessPolicy creates a new access policy
 func NewAccessPolicy(policy *api.Policy) *AccessPolicy {
 	return &AccessPolicy{
