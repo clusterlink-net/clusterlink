@@ -155,7 +155,7 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, ap
 		},
 	}
 
-	egressReq, err := http.NewRequest("POST", url, nil)
+	egressReq, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
 		return err
 	}

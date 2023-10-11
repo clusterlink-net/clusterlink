@@ -71,7 +71,7 @@ func (d *Dataplane) serveEgressConnections(name string, listener net.Listener) e
 
 func (d *Dataplane) getEgressAuth(name, sourceIP string) (string, string, error) {
 	url := "https://" + d.controlplaneTarget + api.DataplaneEgressAuthorizationPath
-	egressAuthReq, err := http.NewRequest("POST", url, nil)
+	egressAuthReq, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
 		return "", "", err
 	}
