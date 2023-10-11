@@ -67,7 +67,9 @@ func (cp *Instance) CreatePeer(peer *cpstore.Peer) error {
 		return err
 	}
 
-	return cp.policyDecider.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
+	cp.policyDecider.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
+
+	return nil
 }
 
 // UpdatePeer updates new route target for egress dataplane connections.
@@ -93,7 +95,9 @@ func (cp *Instance) UpdatePeer(peer *cpstore.Peer) error {
 		return err
 	}
 
-	return cp.policyDecider.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
+	cp.policyDecider.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
+
+	return nil
 }
 
 // GetPeer returns an existing peer.
@@ -120,9 +124,7 @@ func (cp *Instance) DeletePeer(name string) (*cpstore.Peer, error) {
 		return nil, err
 	}
 
-	if err := cp.policyDecider.DeletePeer(name); err != nil {
-		return nil, err
-	}
+	cp.policyDecider.DeletePeer(name)
 
 	return peer, nil
 }
@@ -208,9 +210,7 @@ func (cp *Instance) DeleteExport(name string) (*cpstore.Export, error) {
 		return export, err
 	}
 
-	if err := cp.policyDecider.DeleteExport(name); err != nil {
-		return nil, err
-	}
+	cp.policyDecider.DeleteExport(name)
 
 	return export, nil
 }
@@ -358,9 +358,7 @@ func (cp *Instance) GetBindings(imp string) []*cpstore.Binding {
 func (cp *Instance) DeleteBinding(binding *cpstore.Binding) (*cpstore.Binding, error) {
 	cp.logger.Infof("Deleting binding '%s'->'%s'.", binding.Import, binding.Peer)
 
-	if err := cp.policyDecider.DeleteBinding(&api.Binding{Spec: binding.BindingSpec}); err != nil {
-		return nil, err
-	}
+	cp.policyDecider.DeleteBinding(&api.Binding{Spec: binding.BindingSpec})
 
 	return cp.bindings.Delete(binding)
 }

@@ -48,14 +48,14 @@ type PolicyDecider interface {
 
 	AuthorizeAndRouteConnection(connReq *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error)
 
-	AddPeer(peer *api.Peer) error
-	DeletePeer(name string) error
+	AddPeer(peer *api.Peer)
+	DeletePeer(name string)
 
 	AddBinding(imp *api.Binding) (event.Action, error)
-	DeleteBinding(imp *api.Binding) error
+	DeleteBinding(imp *api.Binding)
 
 	AddExport(exp *api.Export) (event.ExposeRequestResp, error)
-	DeleteExport(name string) error
+	DeleteExport(name string)
 }
 
 type MbgState struct {
@@ -272,15 +272,13 @@ func (pH *PolicyHandler) removePeerRequest(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
-func (pH *PolicyHandler) AddPeer(peer *api.Peer) error {
+func (pH *PolicyHandler) AddPeer(peer *api.Peer) {
 	pH.addPeer(peer.Name)
-	return nil
 }
 
-func (pH *PolicyHandler) DeletePeer(name string) error {
+func (pH *PolicyHandler) DeletePeer(name string) {
 	pH.removePeer(name)
 	pH.loadBalancer.RemoveMbgFromServiceMap(name)
-	return nil
 }
 
 func (pH *PolicyHandler) newRemoteService(w http.ResponseWriter, r *http.Request) {
@@ -320,9 +318,8 @@ func (pH *PolicyHandler) AddBinding(binding *api.Binding) (event.Action, error) 
 	return event.Allow, nil
 }
 
-func (pH *PolicyHandler) DeleteBinding(binding *api.Binding) error {
+func (pH *PolicyHandler) DeleteBinding(binding *api.Binding) {
 	pH.loadBalancer.RemoveDestService(binding.Spec.Import, binding.Spec.Peer)
-	return nil
 }
 
 func (pH *PolicyHandler) exposeRequest(w http.ResponseWriter, r *http.Request) {
@@ -347,8 +344,7 @@ func (pH *PolicyHandler) AddExport(_ *api.Export) (event.ExposeRequestResp, erro
 	return event.ExposeRequestResp{Action: event.AllowAll, TargetMbgs: pH.mbgState.mbgPeers}, nil
 }
 
-func (pH *PolicyHandler) DeleteExport(_ string) error {
-	return nil
+func (pH *PolicyHandler) DeleteExport(_ string) {
 }
 
 func (pH *PolicyHandler) getConnPoliciesReq(w http.ResponseWriter, _ *http.Request) {
