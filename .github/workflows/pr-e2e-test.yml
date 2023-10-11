@@ -27,5 +27,7 @@ jobs:
       run: make docker-build
     - name: Run e2e connectivity test on a kind cluster
       run: ./tests/k8s.sh
+    - name: Run e2e connectivity test on a kind cluster with go dataplane
+      run: ./tests/k8s.sh go
     - name: Run end-to-end tests
       run: make tests-e2e
