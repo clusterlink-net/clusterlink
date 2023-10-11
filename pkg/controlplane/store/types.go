@@ -45,11 +45,6 @@ type Export struct {
 	Version uint32
 }
 
-// Keys return the keys identifying the export.
-func (exp *Export) Keys() []string {
-	return []string{exp.Name}
-}
-
 // NewExport creates a new export.
 func NewExport(export *api.Export) *Export {
 	return &Export{
@@ -70,11 +65,6 @@ type Import struct {
 	Port uint16
 }
 
-// Keys return the keys identifying the import.
-func (imp *Import) Keys() []string {
-	return []string{imp.Name}
-}
-
 // NewImport creates a new import.
 func NewImport(imp *api.Import) *Import {
 	return &Import{
@@ -89,11 +79,6 @@ type Binding struct {
 	api.BindingSpec
 	// Version of the struct when object was created.
 	Version uint32
-}
-
-// Keys return the keys identifying the binding.
-func (b *Binding) Keys() []string {
-	return []string{b.Import, b.Peer}
 }
 
 // NewBinding creates a new binding.
