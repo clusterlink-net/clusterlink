@@ -15,7 +15,7 @@ function clean_up {
 function test_k8s {
   # create fabric with a single peer (peer1)
   $CLADM create fabric
-  $CLADM create peer --name peer1 --dataplaneType $TYPE
+  $CLADM create peer --name peer1 --dataplane-type $TYPE
 
   # create kind cluster
   kind create cluster --name peer1

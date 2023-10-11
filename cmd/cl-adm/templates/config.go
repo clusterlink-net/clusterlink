@@ -24,6 +24,13 @@ type Config struct {
 	DataplaneType string
 }
 
+const (
+	// DataplaneTypeEnvoy represents an envoy-type dataplane.
+	DataplaneTypeEnvoy = "envoy"
+	// DataplaneTypeGo represents a go-type dataplane.
+	DataplaneTypeGo = "go"
+)
+
 // TemplateArgs returns arguments for instantiating a text/template
 func (c Config) TemplateArgs() (map[string]interface{}, error) {
 	fabricCA, err := os.ReadFile(filepath.Join(config.FabricDirectory(), config.CertificateFileName))
@@ -66,10 +73,16 @@ func (c Config) TemplateArgs() (map[string]interface{}, error) {
 		return nil, err
 	}
 
+	dataplaneTypeEnvoy := true
+
+	if c.DataplaneType == DataplaneTypeGo {
+		dataplaneTypeEnvoy = false
+	}
+
 	return map[string]interface{}{
-		"peer":          c.Peer,
-		"dataplanes":    c.Dataplanes,
-		"dataplaneType": c.DataplaneType,
+		"peer":               c.Peer,
+		"dataplanes":         c.Dataplanes,
+		"dataplaneTypeEnvoy": dataplaneTypeEnvoy,
 
 		"fabricCA":         base64.StdEncoding.EncodeToString(fabricCA),
 		"peerCA":           base64.StdEncoding.EncodeToString(peerCA),

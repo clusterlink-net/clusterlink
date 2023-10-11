@@ -27,31 +27,18 @@ cl-controlplane \
 --log-level info \
 --log-file {{.persistencyDirectoryMountPath}}/log.log \
 
-{{ if (eq .dataplaneType "envoy") }}
 docker run -itd \
 --name {{.peer}}-dataplane \
 -v $FABRIC_DIR/{{.fabricCAPath}}:{{.dataplaneCAMountPath}} \
 -v $FABRIC_DIR/{{.dataplaneCertPath}}:{{.dataplaneCertMountPath}} \
 -v $FABRIC_DIR/{{.dataplaneKeyPath}}:{{.dataplaneKeyMountPath}} \
 -v $FABRIC_DIR/{{.dataplanePersistencyDirectory}}:{{.persistencyDirectoryMountPath}} \
-cl-dataplane \
-cl-dataplane \
+{{ if .dataplaneTypeEnvoy }}cl-dataplane \
+cl-dataplane \{{ else }}cl-go-dataplane \
+cl-go-dataplane \{{ end }}
 --controlplane-host {{.peer}}-controlplane \
 --log-level info \
 --log-file {{.persistencyDirectoryMountPath}}/log.log
-{{ else }}
-docker run -itd \
---name {{.peer}}-dataplane \
--v $FABRIC_DIR/{{.fabricCAPath}}:{{.dataplaneCAMountPath}} \
--v $FABRIC_DIR/{{.dataplaneCertPath}}:{{.dataplaneCertMountPath}} \
--v $FABRIC_DIR/{{.dataplaneKeyPath}}:{{.dataplaneKeyMountPath}} \
--v $FABRIC_DIR/{{.dataplanePersistencyDirectory}}:{{.persistencyDirectoryMountPath}} \
-cl-go-dataplane \
-cl-go-dataplane \
---controlplane-host {{.peer}}-controlplane \
---log-level info \
---log-file {{.persistencyDirectoryMountPath}}/log.log
-{{ end }}
 
 docker run -itd \
 --name {{.peer}}-gwctl \

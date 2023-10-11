@@ -21,7 +21,7 @@ function clean_up {
 function test_docker {
   # create fabric with a single peer (peer1)
   $CLADM create fabric
-  $CLADM create peer --name peer1 --dataplaneType $TYPE
+  $CLADM create peer --name peer1 --dataplane-type $TYPE
 
   # start containers
   ./peer1/docker-run.sh
