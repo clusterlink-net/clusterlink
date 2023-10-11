@@ -106,6 +106,7 @@ func (cp *Instance) DeletePeer(name string) (*cpstore.Peer, error) {
 		return nil, err
 	}
 
+	cp.peerClient[name].StopMonitor()
 	cp.peerLock.Lock()
 	delete(cp.peerClient, name)
 	cp.peerLock.Unlock()
