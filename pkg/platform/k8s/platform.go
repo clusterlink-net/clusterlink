@@ -126,7 +126,7 @@ func (d *Platform) UpdateEndpoint(name, targetIP string, targetPort uint16) {
 		},
 	}
 
-	d.logger.Infof("Updating K8s endPoint at %s:%d that connected to external IP: %s:%d.", name, targetPort, targetIP, targetPort)
+	d.logger.Infof("Updating K8s endPoint at %s:%d to external host: %s:%d.", name, targetPort, targetIP, targetPort)
 	go d.endpointReconciler.UpdateResource(endpointSpec)
 
 }
@@ -143,7 +143,7 @@ func (d *Platform) DeleteEndpoint(name string) {
 
 // NewPlatform returns a new Kubernetes platform.
 func NewPlatform() (*Platform, error) {
-	logger := logrus.WithField("component", "k8s-platform")
+	logger := logrus.WithField("component", "platform.k8s")
 	cfg, err := config.GetConfig()
 	if err != nil {
 		return nil, err
