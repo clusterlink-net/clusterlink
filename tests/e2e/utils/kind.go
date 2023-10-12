@@ -175,6 +175,11 @@ func StartClusterLink(name, cPortLocal, manifests string, cPort uint16, cpType s
 			return err
 		}
 
+		err = IsPodReady("cl-controlplane")
+		if err != nil {
+			return err
+		}
+
 		err = IsPodReady("cl-dataplane")
 		if err != nil {
 			return err
