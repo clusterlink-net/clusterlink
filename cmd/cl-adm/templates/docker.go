@@ -33,7 +33,7 @@ docker run -itd \
 -v $FABRIC_DIR/{{.dataplaneCertPath}}:{{.dataplaneCertMountPath}} \
 -v $FABRIC_DIR/{{.dataplaneKeyPath}}:{{.dataplaneKeyMountPath}} \
 -v $FABRIC_DIR/{{.dataplanePersistencyDirectory}}:{{.persistencyDirectoryMountPath}} \
-{{ if .dataplaneTypeEnvoy }}cl-dataplane \
+{{ if (eq .dataplaneType .dataplaneTypeEnvoy)  }}cl-dataplane \
 cl-dataplane \{{ else }}cl-go-dataplane \
 cl-go-dataplane \{{ end }}
 --controlplane-host {{.peer}}-controlplane \

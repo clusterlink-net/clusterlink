@@ -73,16 +73,10 @@ func (c Config) TemplateArgs() (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	dataplaneTypeEnvoy := true
-
-	if c.DataplaneType == DataplaneTypeGo {
-		dataplaneTypeEnvoy = false
-	}
-
 	return map[string]interface{}{
-		"peer":               c.Peer,
-		"dataplanes":         c.Dataplanes,
-		"dataplaneTypeEnvoy": dataplaneTypeEnvoy,
+		"peer":          c.Peer,
+		"dataplanes":    c.Dataplanes,
+		"dataplaneType": c.DataplaneType,
 
 		"fabricCA":         base64.StdEncoding.EncodeToString(fabricCA),
 		"peerCA":           base64.StdEncoding.EncodeToString(peerCA),
