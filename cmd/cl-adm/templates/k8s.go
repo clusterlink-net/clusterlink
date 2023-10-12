@@ -109,6 +109,11 @@ spec:
               readOnly: true
             - name: cl-controlplane
               mountPath: {{.persistencyDirectoryMountPath}}
+          env:
+            - name: CL-NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
 ---
 apiVersion: apps/v1
 kind: Deployment

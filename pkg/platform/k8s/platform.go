@@ -1,8 +1,7 @@
 package k8s
 
 import (
-	"context"
-	"fmt"
+	"os"
 
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -10,6 +9,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+)
+
+const (
+	defaultNamespace = "default"
 )
 
 // Platform represents a k8s platform.
@@ -152,29 +155,17 @@ func NewPlatform() (*Platform, error) {
 	}
 
 	// Get namespace
-	var podList corev1.PodList
-	labelSelector, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
-		MatchLabels: map[string]string{"app": "cl-controlplane"}})
-	if err != nil {
-		return &Platform{}, err
+	namespace := os.Getenv("CL-NAMESPACE")
+	if namespace == "" {
+		namespace = defaultNamespace
+		logger.Logger.Infoln("the CL-NAMESPACE environment variable is not set- use default namespace")
 	}
 
-	listOptions := &client.ListOptions{LabelSelector: labelSelector}
-	err = cl.List(context.Background(), &podList, listOptions)
-	if err != nil {
-		return &Platform{}, err
-	}
-
-	if len(podList.Items) == 0 {
-		return &Platform{}, fmt.Errorf("pod not found.")
-	}
-
-	clNameSpace := podList.Items[0].Namespace
 	return &Platform{
 		client:             cl,
 		serviceReconciler:  NewReconciler(cl),
 		endpointReconciler: NewReconciler(cl),
-		namespace:          clNameSpace,
+		namespace:          namespace,
 		logger:             logger,
 	}, nil
 }
