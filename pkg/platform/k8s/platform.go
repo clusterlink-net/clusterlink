@@ -12,8 +12,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
-// Deployment represents a k8s deployment.
-type Deployment struct {
+// Platform represents a k8s platform.
+type Platform struct {
 	endpointReconciler *reconciler
 	serviceReconciler  *reconciler
 	client             client.Client
@@ -22,7 +22,7 @@ type Deployment struct {
 }
 
 // CreateService creates a service.
-func (d *Deployment) CreateService(name, targetApp string, port, targetPort uint16) {
+func (d *Platform) CreateService(name, targetApp string, port, targetPort uint16) {
 	serviceSpec := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: d.namespace},
 		Spec: corev1.ServiceSpec{
@@ -42,7 +42,7 @@ func (d *Deployment) CreateService(name, targetApp string, port, targetPort uint
 }
 
 // DeleteService deletes a service.
-func (d *Deployment) DeleteService(name string) {
+func (d *Platform) DeleteService(name string) {
 	serviceSpec := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: d.namespace}}
 
@@ -51,7 +51,7 @@ func (d *Deployment) DeleteService(name string) {
 }
 
 // UpdateService updates a service.
-func (d *Deployment) UpdateService(name, targetApp string, port, targetPort uint16) {
+func (d *Platform) UpdateService(name, targetApp string, port, targetPort uint16) {
 	serviceSpec := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: d.namespace},
 		Spec: corev1.ServiceSpec{
@@ -73,7 +73,7 @@ func (d *Deployment) UpdateService(name, targetApp string, port, targetPort uint
 }
 
 // CreateEndpoint creates a K8s endpoint.
-func (d *Deployment) CreateEndpoint(name, targetIP string, targetPort uint16) {
+func (d *Platform) CreateEndpoint(name, targetIP string, targetPort uint16) {
 	endpointSpec := &corev1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -101,7 +101,7 @@ func (d *Deployment) CreateEndpoint(name, targetIP string, targetPort uint16) {
 }
 
 // UpdateEndpoint creates a K8s endpoint.
-func (d *Deployment) UpdateEndpoint(name, targetIP string, targetPort uint16) {
+func (d *Platform) UpdateEndpoint(name, targetIP string, targetPort uint16) {
 	endpointSpec := &corev1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -129,7 +129,7 @@ func (d *Deployment) UpdateEndpoint(name, targetIP string, targetPort uint16) {
 }
 
 // DeleteEndpoint deletes a k8s endpoint.
-func (d *Deployment) DeleteEndpoint(name string) {
+func (d *Platform) DeleteEndpoint(name string) {
 	endpointSpec := &corev1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: d.namespace}}
 
@@ -138,9 +138,9 @@ func (d *Deployment) DeleteEndpoint(name string) {
 
 }
 
-// NewDeployment returns a new Kubernetes deployment.
-func NewDeployment() (*Deployment, error) {
-	logger := logrus.WithField("component", "k8s-deployment")
+// NewPlatform returns a new Kubernetes platform.
+func NewPlatform() (*Platform, error) {
+	logger := logrus.WithField("component", "k8s-platform")
 	cfg, err := config.GetConfig()
 	if err != nil {
 		return nil, err
@@ -156,21 +156,21 @@ func NewDeployment() (*Deployment, error) {
 	labelSelector, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
 		MatchLabels: map[string]string{"app": "cl-controlplane"}})
 	if err != nil {
-		return &Deployment{}, err
+		return &Platform{}, err
 	}
 
 	listOptions := &client.ListOptions{LabelSelector: labelSelector}
 	err = cl.List(context.Background(), &podList, listOptions)
 	if err != nil {
-		return &Deployment{}, err
+		return &Platform{}, err
 	}
 
 	if len(podList.Items) == 0 {
-		return &Deployment{}, fmt.Errorf("pod not found.")
+		return &Platform{}, fmt.Errorf("pod not found.")
 	}
 
 	clNameSpace := podList.Items[0].Namespace
-	return &Deployment{
+	return &Platform{
 		client:             cl,
 		serviceReconciler:  NewReconciler(cl),
 		endpointReconciler: NewReconciler(cl),

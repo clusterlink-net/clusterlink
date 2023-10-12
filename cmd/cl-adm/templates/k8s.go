@@ -91,7 +91,7 @@ spec:
         - name: cl-controlplane
           image: cl-controlplane
           imagePullPolicy: IfNotPresent
-          args: ["--log-level", "info", "--deployment", "k8s"]
+          args: ["--log-level", "info", "--platform", "k8s"]
           ports:
             - containerPort: {{.controlplanePort}}
           volumeMounts:

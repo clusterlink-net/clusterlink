@@ -13,7 +13,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	cpstore "github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
-	"github.com/clusterlink-net/clusterlink/pkg/deployment"
+	"github.com/clusterlink-net/clusterlink/pkg/platform"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/store"
 	"github.com/clusterlink-net/clusterlink/pkg/util"
@@ -39,7 +39,7 @@ type Instance struct {
 	xdsManager    *xdsManager
 	ports         *portManager
 	policyDecider policyengine.PolicyDecider
-	deployment    deployment.Deployment
+	platform      platform.Platform
 
 	jwkSignKey   jwk.Key
 	jwkVerifyKey jwk.Key
@@ -163,8 +163,8 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 		}
 		// create k8s endpoint and service for external service.
 		if exSvc.Host != "" && exSvc.Port != 0 && cp.initialized {
-			cp.deployment.CreateEndpoint(export.Name, exSvc.Host, exSvc.Port)
-			cp.deployment.CreateService(export.Name, export.Name, exSvc.Port, exSvc.Port)
+			cp.platform.CreateEndpoint(export.Name, exSvc.Host, exSvc.Port)
+			cp.platform.CreateService(export.Name, export.Name, exSvc.Port, exSvc.Port)
 		}
 	}
 
@@ -201,8 +201,8 @@ func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	}
 	// Update k8s endpoint and service for external service.
 	if exSvc.Host != "" && exSvc.Port != 0 {
-		cp.deployment.UpdateEndpoint(export.Name, exSvc.Host, exSvc.Port)
-		cp.deployment.UpdateService(export.Name, export.Name, exSvc.Port, exSvc.Port)
+		cp.platform.UpdateEndpoint(export.Name, exSvc.Host, exSvc.Port)
+		cp.platform.UpdateService(export.Name, export.Name, exSvc.Port, exSvc.Port)
 	}
 
 	if err := cp.xdsManager.AddExport(export); err != nil {
@@ -231,8 +231,8 @@ func (cp *Instance) DeleteExport(name string) (*cpstore.Export, error) {
 	// Deleting k8s endpoint and service for external service.
 	exSvc := export.ExportSpec.ExternalService
 	if exSvc.Host != "" && exSvc.Port != 0 {
-		cp.deployment.DeleteEndpoint(name)
-		cp.deployment.DeleteService(name)
+		cp.platform.DeleteEndpoint(name)
+		cp.platform.DeleteService(name)
 		if err != nil {
 			return nil, err
 		}
@@ -279,7 +279,7 @@ func (cp *Instance) CreateImport(imp *cpstore.Import) error {
 
 	// TODO: handle a crash happening between storing an import and creating a service
 	if cp.initialized {
-		cp.deployment.CreateService(imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
+		cp.platform.CreateService(imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
 	}
 
 	return nil
@@ -302,7 +302,7 @@ func (cp *Instance) UpdateImport(imp *cpstore.Import) error {
 		return err
 	}
 
-	cp.deployment.UpdateService(imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
+	cp.platform.UpdateService(imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
 
 	return nil
 }
@@ -329,7 +329,7 @@ func (cp *Instance) DeleteImport(name string) (*cpstore.Import, error) {
 
 	cp.ports.Release(imp.Port)
 
-	cp.deployment.DeleteService(imp.Service.Host)
+	cp.platform.DeleteService(imp.Service.Host)
 
 	return imp, nil
 }
@@ -539,7 +539,7 @@ func (cp *Instance) generateJWK() error {
 }
 
 // NewInstance returns a new controlplane instance.
-func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, deployment deployment.Deployment) (*Instance, error) {
+func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, platform platform.Platform) (*Instance, error) {
 	logger := logrus.WithField("component", "controlplane")
 
 	peers, err := cpstore.NewPeers(storeManager)
@@ -583,7 +583,7 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, deplo
 		xdsManager:    newXDSManager(),
 		ports:         newPortManager(),
 		policyDecider: policyengine.NewPolicyHandler(),
-		deployment:    deployment,
+		platform:      platform,
 		initialized:   false,
 		logger:        logger,
 	}
