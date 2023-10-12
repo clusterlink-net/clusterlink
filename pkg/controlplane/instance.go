@@ -19,6 +19,10 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/util"
 )
 
+const (
+	dataplaneAppName = "cl-dataplane"
+)
+
 // Instance of a controlplane, where all API servers delegate their requested actions to.
 type Instance struct {
 	peerTLS *util.ParsedCertData
@@ -139,6 +143,10 @@ func (cp *Instance) GetAllPeers() []*cpstore.Peer {
 // CreateExport defines a new route target for ingress dataplane connections.
 func (cp *Instance) CreateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Creating export '%s'.", export.Name)
+	exSvc := export.ExportSpec.ExternalService
+	if (exSvc.Host != "" && exSvc.Port == 0) || (exSvc.Host == "" && exSvc.Port != 0) {
+		return fmt.Errorf("ExternalService (Host: %s ,Port: %d) wasn't set properly", exSvc.Host, exSvc.Port)
+	}
 
 	resp, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
 	if err != nil {
@@ -154,20 +162,9 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 			return err
 		}
 		// create k8s endpoint and service for external service.
-		exSvc := export.ExportSpec.ExternalService
 		if exSvc.Host != "" && exSvc.Port != 0 && cp.initialized {
-			err := cp.deployment.CreateEndpoint(export.Name, exSvc.Host, exSvc.Port)
-			if err != nil {
-				return err
-			}
-
-			err = cp.deployment.CreateService(export.Name, exSvc.Port, exSvc.Port)
-			if err != nil {
-				delErr := cp.deployment.DeleteEndpoint(export.Name)
-				if delErr != nil {
-					return fmt.Errorf("create service error:%v , delete endpoint error: %v", err, delErr)
-				}
-			}
+			cp.deployment.CreateEndpoint(export.Name, exSvc.Host, exSvc.Port)
+			cp.deployment.CreateService(export.Name, export.Name, exSvc.Port, exSvc.Port)
 		}
 	}
 
@@ -182,6 +179,10 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 // UpdateExport updates a new route target for ingress dataplane connections.
 func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Updating export '%s'.", export.Name)
+	exSvc := export.ExportSpec.ExternalService
+	if (exSvc.Host != "" && exSvc.Port == 0) || (exSvc.Host == "" && exSvc.Port != 0) {
+		return fmt.Errorf("ExternalService (Host: %s ,Port: %d) wasn't set properly", exSvc.Host, exSvc.Port)
+	}
 
 	resp, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
 	if err != nil {
@@ -199,17 +200,9 @@ func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 		return err
 	}
 	// Update k8s endpoint and service for external service.
-	exSvc := export.ExportSpec.ExternalService
 	if exSvc.Host != "" && exSvc.Port != 0 {
-		err := cp.deployment.UpdateEndpoint(export.Name, exSvc.Host, exSvc.Port)
-		if err != nil {
-			return err
-		}
-
-		err = cp.deployment.UpdateService(export.Name, exSvc.Port, exSvc.Port)
-		if err != nil {
-			return err
-		}
+		cp.deployment.UpdateEndpoint(export.Name, exSvc.Host, exSvc.Port)
+		cp.deployment.UpdateService(export.Name, export.Name, exSvc.Port, exSvc.Port)
 	}
 
 	if err := cp.xdsManager.AddExport(export); err != nil {
@@ -238,12 +231,8 @@ func (cp *Instance) DeleteExport(name string) (*cpstore.Export, error) {
 	// Deleting k8s endpoint and service for external service.
 	exSvc := export.ExportSpec.ExternalService
 	if exSvc.Host != "" && exSvc.Port != 0 {
-		err := cp.deployment.DeleteEndpoint(name)
-		if err != nil {
-			return nil, err
-		}
-
-		err = cp.deployment.DeleteService(name)
+		cp.deployment.DeleteEndpoint(name)
+		cp.deployment.DeleteService(name)
 		if err != nil {
 			return nil, err
 		}
@@ -290,11 +279,7 @@ func (cp *Instance) CreateImport(imp *cpstore.Import) error {
 
 	// TODO: handle a crash happening between storing an import and creating a service
 	if cp.initialized {
-		err := cp.deployment.CreateService(imp.Service.Host, imp.Service.Port, imp.Port)
-		if err != nil {
-			// TODO: reconcile
-			return err
-		}
+		cp.deployment.CreateService(imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
 	}
 
 	return nil
@@ -317,11 +302,7 @@ func (cp *Instance) UpdateImport(imp *cpstore.Import) error {
 		return err
 	}
 
-	err = cp.deployment.UpdateService(imp.Service.Host, imp.Service.Port, imp.Port)
-	if err != nil {
-		// TODO: reconcile
-		return err
-	}
+	cp.deployment.UpdateService(imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
 
 	return nil
 }
@@ -348,10 +329,7 @@ func (cp *Instance) DeleteImport(name string) (*cpstore.Import, error) {
 
 	cp.ports.Release(imp.Port)
 
-	if err := cp.deployment.DeleteService(imp.Service.Host); err != nil {
-		// TODO: reconcile
-		return nil, err
-	}
+	cp.deployment.DeleteService(imp.Service.Host)
 
 	return imp, nil
 }

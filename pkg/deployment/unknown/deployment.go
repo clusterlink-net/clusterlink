@@ -5,38 +5,27 @@ type Deployment struct {
 }
 
 // CreateService creates a service.
-func (d *Deployment) CreateService(_ string, _, _ uint16) error {
-	return nil
+func (d *Deployment) CreateService(_, _ string, _, _ uint16) {
 }
 
 // UpdateService updates a service.
-func (d *Deployment) UpdateService(_ string, _, _ uint16) error {
-	return nil
+func (d *Deployment) UpdateService(_, _ string, _, _ uint16) {
 }
 
 // DeleteService deletes a service.
-func (d *Deployment) DeleteService(_ string) error {
-	return nil
+func (d *Deployment) DeleteService(_ string) {
 }
 
 // CreateEndpoint creates a endpoint.
-func (d *Deployment) CreateEndpoint(_, _ string, _ uint16) error {
-	return nil
+func (d *Deployment) CreateEndpoint(_, _ string, _ uint16) {
 }
 
 // UpdateEndpoint updates a endpoint.
-func (d *Deployment) UpdateEndpoint(_, _ string, _ uint16) error {
-	return nil
+func (d *Deployment) UpdateEndpoint(_, _ string, _ uint16) {
 }
 
 // DeleteEndpoint deletes a endpoint.
-func (d *Deployment) DeleteEndpoint(_ string) error {
-	return nil
-}
-
-// GetPodLabelsByIP returns all the labels that match the pod IP.
-func (d *Deployment) GetPodLabelsByIP(_ string) (map[string]string, error) {
-	return nil, nil
+func (d *Deployment) DeleteEndpoint(_ string) {
 }
 
 // NewDeployment returns a new unknown deployment.
