@@ -101,10 +101,18 @@ func TestIperf3(t *testing.T) {
 	t.Run("Testing policy", func(t *testing.T) {
 		policy, err := utils.GetPolicyFromFile(allowAllPolicyFile)
 		require.NoError(t, err)
-		err = gwctl1.SendAccessPolicy(policy, client.Add)
-		require.NoError(t, err)
-		err = gwctl2.SendAccessPolicy(policy, client.Add)
-		require.NoError(t, err)
+		if *cpType == "new" {
+			err = gwctl1.Policies.Create(policy)
+			require.NoError(t, err)
+			err = gwctl2.Policies.Create(policy)
+			require.NoError(t, err)
+		} else {
+			err = gwctl1.SendAccessPolicy(policy, client.Add)
+			require.NoError(t, err)
+			err = gwctl2.SendAccessPolicy(policy, client.Add)
+			require.NoError(t, err)
+		}
+
 	})
 	t.Run("Testing Service Connectivity", func(t *testing.T) {
 		mbg2Ip, _ := utils.GetKindIP(gw2Name)

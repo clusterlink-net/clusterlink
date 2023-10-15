@@ -98,11 +98,17 @@ func TestConnectivity(t *testing.T) {
 	})
 	t.Run("Testing Service Connectivity", func(t *testing.T) {
 		policy, err := utils.GetPolicyFromFile(allowAllPolicyFile)
-		require.NoError(t, err)
-		err = gwctl1.SendAccessPolicy(policy, client.Add)
-		require.NoError(t, err)
-		err = gwctl2.SendAccessPolicy(policy, client.Add)
-		require.NoError(t, err)
+		if *cpType == "new" {
+			err = gwctl1.Policies.Create(policy)
+			require.NoError(t, err)
+			err = gwctl2.Policies.Create(policy)
+			require.NoError(t, err)
+		} else {
+			err = gwctl1.SendAccessPolicy(policy, client.Add)
+			require.NoError(t, err)
+			err = gwctl2.SendAccessPolicy(policy, client.Add)
+			require.NoError(t, err)
+		}
 
 		err = utils.UseKindCluster(gw2Name)
 		require.NoError(t, err)
