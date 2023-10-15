@@ -17,18 +17,18 @@ import (
 
 var llog = logrus.WithField("component", "LoadBalancer")
 
-type PolicyLoadBalancer string
+type LBScheme string
 
 const (
-	Random PolicyLoadBalancer = "random"
-	ECMP   PolicyLoadBalancer = "ecmp"
-	Static PolicyLoadBalancer = "static"
+	Random LBScheme = "random"
+	ECMP   LBScheme = "ecmp"
+	Static LBScheme = "static"
 )
 
-type LoadBalancerRule struct {
+type LBPolicy struct {
 	ServiceSrc string
 	ServiceDst string
-	Policy     PolicyLoadBalancer
+	Scheme     LBScheme
 	DefaultMbg string
 }
 
@@ -37,23 +37,27 @@ type ServiceState struct {
 	defaultMbg       string
 }
 type LoadBalancer struct {
-	ServiceMap      map[string]*[]string                       // Service to MBGs
-	Policy          map[string](map[string]PolicyLoadBalancer) // PolicyMap [serviceDst][serviceSrc]Policy
-	ServiceStateMap map[string]map[string]*ServiceState        // State of policy Per destination and source
+	ServiceMap      map[string]*[]string                // Service to MBGs
+	Policy          map[string](map[string]LBScheme)    // PolicyMap [serviceDst][serviceSrc]Policy
+	ServiceStateMap map[string]map[string]*ServiceState // State of policy Per destination and source
 }
 
-func (lB *LoadBalancer) Init() {
-	lB.ServiceMap = make(map[string]*[]string)
-	lB.Policy = make(map[string](map[string]PolicyLoadBalancer))
-	lB.ServiceStateMap = make(map[string](map[string]*ServiceState))
-	lB.ServiceStateMap[event.Wildcard] = make(map[string]*ServiceState)
-	lB.Policy[event.Wildcard] = make(map[string]PolicyLoadBalancer)
-	lB.Policy[event.Wildcard][event.Wildcard] = Random // default policy
+func NewLoadBalancer() *LoadBalancer {
+	lb := &LoadBalancer{
+		ServiceMap:      make(map[string]*[]string),
+		Policy:          make(map[string](map[string]LBScheme)),
+		ServiceStateMap: make(map[string](map[string]*ServiceState)),
+	}
+
+	lb.ServiceStateMap[event.Wildcard] = make(map[string]*ServiceState)
+	lb.Policy[event.Wildcard] = make(map[string]LBScheme)
+	lb.Policy[event.Wildcard][event.Wildcard] = Random // default policy
+	return lb
 }
 
 /*********************  HTTP functions ***************************************************/
 func (lB *LoadBalancer) SetPolicyReq(w http.ResponseWriter, r *http.Request) {
-	var requestAttr LoadBalancerRule
+	var requestAttr LBPolicy
 	err := json.NewDecoder(r.Body).Decode(&requestAttr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -61,14 +65,14 @@ func (lB *LoadBalancer) SetPolicyReq(w http.ResponseWriter, r *http.Request) {
 	}
 	plog.Infof("Set LB Policy request : %+v", requestAttr)
 
-	lB.SetPolicy(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.Policy, requestAttr.DefaultMbg)
+	lB.SetPolicy(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.Scheme, requestAttr.DefaultMbg)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
 
 func (lB *LoadBalancer) DeletePolicyReq(w http.ResponseWriter, r *http.Request) {
-	var requestAttr LoadBalancerRule
+	var requestAttr LBPolicy
 	err := json.NewDecoder(r.Body).Decode(&requestAttr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -76,7 +80,7 @@ func (lB *LoadBalancer) DeletePolicyReq(w http.ResponseWriter, r *http.Request) 
 	}
 	plog.Infof("Delete LB Policy request : %+v", requestAttr)
 
-	lB.deletePolicy(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.Policy, requestAttr.DefaultMbg)
+	lB.deletePolicy(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.Scheme, requestAttr.DefaultMbg)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -123,7 +127,7 @@ func (lB *LoadBalancer) RemoveMbgFromService(svc, mbg string) {
 		llog.Infof("MBG removed from service %v->[%+v]", svc, *(lB.ServiceMap[svc]))
 	}
 }
-func (lB *LoadBalancer) SetPolicy(serviceSrc, serviceDst string, policy PolicyLoadBalancer, defaultMbg string) {
+func (lB *LoadBalancer) SetPolicy(serviceSrc, serviceDst string, policy LBScheme, defaultMbg string) {
 	plog.Infof("Set LB policy %v for serviceSrc %+v serviceDst %+v defaultMbg %+v", policy, serviceSrc, serviceDst, defaultMbg)
 
 	if policy == Static && !lB.checkMbgExist(serviceDst, defaultMbg) {
@@ -132,7 +136,7 @@ func (lB *LoadBalancer) SetPolicy(serviceSrc, serviceDst string, policy PolicyLo
 	}
 
 	if _, ok := lB.Policy[serviceDst]; !ok { // Create default service if destination service is not exist
-		lB.Policy[serviceDst] = make(map[string]PolicyLoadBalancer)
+		lB.Policy[serviceDst] = make(map[string]LBScheme)
 	}
 	// start to update policy
 	lB.Policy[serviceDst][serviceSrc] = policy
@@ -145,7 +149,7 @@ func (lB *LoadBalancer) SetPolicy(serviceSrc, serviceDst string, policy PolicyLo
 	}
 }
 
-func (lB *LoadBalancer) deletePolicy(serviceSrc, serviceDst string, policy PolicyLoadBalancer, defaultMbg string) {
+func (lB *LoadBalancer) deletePolicy(serviceSrc, serviceDst string, policy LBScheme, defaultMbg string) {
 	plog.Infof("Delete LB policy %v for serviceSrc %+v serviceDst %+v defaultMbg %+v", policy, serviceSrc, serviceDst, defaultMbg)
 	if _, ok := lB.Policy[serviceDst][serviceSrc]; ok {
 		delete(lB.Policy[serviceDst], serviceSrc)
@@ -224,7 +228,7 @@ func (lB *LoadBalancer) LookupWith(serviceSrc, serviceDst string, mbgs []string)
 		return lB.LookupRandom(serviceDst, mbgs)
 	}
 }
-func (lB *LoadBalancer) getPolicy(serviceSrc, serviceDst string) PolicyLoadBalancer {
+func (lB *LoadBalancer) getPolicy(serviceSrc, serviceDst string) LBScheme {
 	if p, ok := lB.Policy[serviceDst][serviceSrc]; ok {
 		return p
 	} else if p, ok := lB.Policy[event.Wildcard][serviceSrc]; ok {

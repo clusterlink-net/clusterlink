@@ -5,15 +5,17 @@ import (
 )
 
 const (
-	peerStoreName    = "peer"
-	exportStoreName  = "export"
-	importStoreName  = "import"
-	bindingStoreName = "binding"
+	peerStoreName         = "peer"
+	exportStoreName       = "export"
+	importStoreName       = "import"
+	bindingStoreName      = "binding"
+	accessPolicyStoreName = "accessPolicy"
 
-	bindingStructVersion = 1
-	exportStructVersion  = 1
-	importStructVersion  = 1
-	peerStructVersion    = 1
+	bindingStructVersion      = 1
+	exportStructVersion       = 1
+	importStructVersion       = 1
+	peerStructVersion         = 1
+	accessPolicyStructVersion = 1
 )
 
 // Peer represents a remote peer.
@@ -43,11 +45,6 @@ type Export struct {
 	Version uint32
 }
 
-// Keys return the keys identifying the export.
-func (exp *Export) Keys() []string {
-	return []string{exp.Name}
-}
-
 // NewExport creates a new export.
 func NewExport(export *api.Export) *Export {
 	return &Export{
@@ -68,11 +65,6 @@ type Import struct {
 	Port uint16
 }
 
-// Keys return the keys identifying the import.
-func (imp *Import) Keys() []string {
-	return []string{imp.Name}
-}
-
 // NewImport creates a new import.
 func NewImport(imp *api.Import) *Import {
 	return &Import{
@@ -89,15 +81,25 @@ type Binding struct {
 	Version uint32
 }
 
-// Keys return the keys identifying the binding.
-func (b *Binding) Keys() []string {
-	return []string{b.Import, b.Peer}
-}
-
 // NewBinding creates a new binding.
 func NewBinding(binding *api.Binding) *Binding {
 	return &Binding{
 		BindingSpec: binding.Spec,
 		Version:     bindingStructVersion,
+	}
+}
+
+// AccessPolicy to allow/deny specific connections
+type AccessPolicy struct {
+	api.Policy
+	// Version of the struct when object was created.
+	Version uint32
+}
+
+// NewAccessPolicy creates a new access policy
+func NewAccessPolicy(policy *api.Policy) *AccessPolicy {
+	return &AccessPolicy{
+		Policy:  *policy,
+		Version: accessPolicyStructVersion,
 	}
 }

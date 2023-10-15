@@ -62,13 +62,19 @@ func (o *policyCreateOptions) run() error {
 	}
 	switch o.pType {
 	case policyengine.LbType:
-		return g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.PolicyLoadBalancer(o.policy), o.gwDest, client.Add)
+		return g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.LBScheme(o.policy), o.gwDest, client.Add)
 	case policyengine.AccessType:
 		policy, err := policyFromFile(o.policyFile)
 		if err != nil {
 			return err
 		}
-		return g.SendAccessPolicy(policy, client.Add)
+		err = g.Policies.Create(policy)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Access Policy %s created successfully\n", policy.Name)
+		return nil
 
 	default:
 		return fmt.Errorf("unknown policy type")
@@ -136,13 +142,19 @@ func (o *policyDeleteOptions) run() error {
 	}
 	switch o.pType {
 	case policyengine.LbType:
-		err = g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.PolicyLoadBalancer(o.policy), o.gwDest, client.Del)
+		err = g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.LBScheme(o.policy), o.gwDest, client.Del)
 	case policyengine.AccessType:
 		policy, err := policyFromFile(o.policyFile)
 		if err != nil {
 			return err
 		}
-		return g.SendAccessPolicy(policy, client.Del)
+		err = g.Policies.Delete(policy)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Access policy %s was deleted successfully\n", policy.Name)
+		return nil
 	default:
 		return fmt.Errorf("unknown policy type")
 	}
@@ -182,26 +194,16 @@ func (o *policyGetOptions) run() error {
 		return err
 	}
 
-	lPolicies, err := g.GetLBPolicies()
-	if err != nil {
-		return err
-	}
+	// TODO: Get Load-balancing policies
 
-	fmt.Printf("GW Load-balancing policies\n")
-	for d, val := range lPolicies {
-		for s, p := range val {
-			fmt.Printf("ServiceSrc: %v ServiceDst: %v Policy: %v\n", s, d, p)
-		}
-	}
-
-	accessPolicies, err := g.GetAccessPolicies()
+	accessPolicies, err := g.Policies.List()
 	if err != nil {
 		return err
 	}
 
 	fmt.Printf("Access policies\n")
-	for d := range accessPolicies {
-		fmt.Printf("Access policy %d: %v\n", d, accessPolicies[d])
+	for d, policy := range *accessPolicies.(*[]api.Policy) {
+		fmt.Printf("Access policy %d: %s\n", d, policy.Name)
 	}
 	return nil
 }

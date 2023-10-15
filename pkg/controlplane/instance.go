@@ -11,7 +11,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/clusterlink-net/clusterlink/pkg/api"
+	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	cpstore "github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/store"
 	"github.com/clusterlink-net/clusterlink/pkg/util"
 )
@@ -24,13 +27,15 @@ type Instance struct {
 	exports  *cpstore.Exports
 	imports  *cpstore.Imports
 	bindings *cpstore.Bindings
+	policies *cpstore.AccessPolicies
 
 	peerLock   sync.RWMutex
 	peerClient map[string]*client
 
-	xdsManager *xdsManager
-	ports      *portManager
-	kubeClient *kubernetes.Clientset
+	xdsManager    *xdsManager
+	ports         *portManager
+	policyDecider policyengine.PolicyDecider
+	kubeClient    *kubernetes.Clientset
 
 	jwkSignKey   jwk.Key
 	jwkVerifyKey jwk.Key
@@ -62,6 +67,8 @@ func (cp *Instance) CreatePeer(peer *cpstore.Peer) error {
 		return err
 	}
 
+	cp.policyDecider.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
+
 	return nil
 }
 
@@ -87,6 +94,8 @@ func (cp *Instance) UpdatePeer(peer *cpstore.Peer) error {
 		// practically impossible
 		return err
 	}
+
+	cp.policyDecider.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
 
 	return nil
 }
@@ -115,6 +124,8 @@ func (cp *Instance) DeletePeer(name string) (*cpstore.Peer, error) {
 		return nil, err
 	}
 
+	cp.policyDecider.DeletePeer(name)
+
 	return peer, nil
 }
 
@@ -127,6 +138,15 @@ func (cp *Instance) GetAllPeers() []*cpstore.Peer {
 // CreateExport defines a new route target for ingress dataplane connections.
 func (cp *Instance) CreateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Creating export '%s'.", export.Name)
+
+	resp, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
+	if err != nil {
+		return err
+	}
+	if resp.Action != event.AllowAll {
+		cp.logger.Warnf("Access policies deny creating export '%s'.", export.Name)
+		return nil
+	}
 
 	if cp.initialized {
 		if err := cp.exports.Create(export); err != nil {
@@ -146,7 +166,16 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Updating export '%s'.", export.Name)
 
-	err := cp.exports.Update(export.Name, func(old *cpstore.Export) *cpstore.Export {
+	resp, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
+	if err != nil {
+		return err
+	}
+	if resp.Action != event.AllowAll {
+		cp.logger.Warnf("Access policies deny creating export '%s'.", export.Name)
+		return nil
+	}
+
+	err = cp.exports.Update(export.Name, func(old *cpstore.Export) *cpstore.Export {
 		return export
 	})
 	if err != nil {
@@ -180,6 +209,8 @@ func (cp *Instance) DeleteExport(name string) (*cpstore.Export, error) {
 		// practically impossible
 		return export, err
 	}
+
+	cp.policyDecider.DeleteExport(name)
 
 	return export, nil
 }
@@ -276,6 +307,15 @@ func (cp *Instance) GetAllImports() []*cpstore.Import {
 func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 	cp.logger.Infof("Creating binding '%s'->'%s'.", binding.Import, binding.Peer)
 
+	action, err := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
+	if err != nil {
+		return err
+	}
+	if action != event.Allow {
+		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
+		return nil
+	}
+
 	if cp.initialized {
 		if err := cp.bindings.Create(binding); err != nil {
 			return err
@@ -289,7 +329,16 @@ func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 func (cp *Instance) UpdateBinding(binding *cpstore.Binding) error {
 	cp.logger.Infof("Updating binding '%s'->'%s'.", binding.Import, binding.Peer)
 
-	err := cp.bindings.Update(binding, func(old *cpstore.Binding) *cpstore.Binding {
+	action, err := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
+	if err != nil {
+		return err
+	}
+	if action != event.Allow {
+		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
+		return nil
+	}
+
+	err = cp.bindings.Update(binding, func(old *cpstore.Binding) *cpstore.Binding {
 		return binding
 	})
 	if err != nil {
@@ -308,6 +357,9 @@ func (cp *Instance) GetBindings(imp string) []*cpstore.Binding {
 // DeleteBinding removes a binding of an imported service to a remote exported service.
 func (cp *Instance) DeleteBinding(binding *cpstore.Binding) (*cpstore.Binding, error) {
 	cp.logger.Infof("Deleting binding '%s'->'%s'.", binding.Import, binding.Peer)
+
+	cp.policyDecider.DeleteBinding(&api.Binding{Spec: binding.BindingSpec})
+
 	return cp.bindings.Delete(binding)
 }
 
@@ -315,6 +367,56 @@ func (cp *Instance) DeleteBinding(binding *cpstore.Binding) (*cpstore.Binding, e
 func (cp *Instance) GetAllBindings() []*cpstore.Binding {
 	cp.logger.Info("Listing all bindings.")
 	return cp.bindings.GetAll()
+}
+
+// CreateAccessPolicy creates an access policy to allow/deny specific connections.
+func (cp *Instance) CreateAccessPolicy(policy *cpstore.AccessPolicy) error {
+	cp.logger.Infof("Creating access policy '%s'.", policy.Spec.Blob)
+
+	if cp.initialized {
+		if err := cp.policies.Create(policy); err != nil {
+			return err
+		}
+	}
+
+	return cp.policyDecider.AddAccessPolicy(&api.Policy{Spec: policy.Spec})
+}
+
+// UpdateAccessPolicy updates an access policy to allow/deny specific connections.
+func (cp *Instance) UpdateAccessPolicy(policy *cpstore.AccessPolicy) error {
+	cp.logger.Infof("Updating access policy '%s'.", policy.Spec.Blob)
+
+	err := cp.policies.Update(policy.Name, func(old *cpstore.AccessPolicy) *cpstore.AccessPolicy {
+		return policy
+	})
+	if err != nil {
+		return err
+	}
+
+	return cp.policyDecider.AddAccessPolicy(&api.Policy{Spec: policy.Spec})
+}
+
+// DeleteAccessPolicy removes an access policy to allow/deny specific connections.
+func (cp *Instance) DeleteAccessPolicy(policy *cpstore.AccessPolicy) (*cpstore.AccessPolicy, error) {
+	cp.logger.Infof("Deleting access policy '%s'.", policy.Spec.Blob)
+
+	if err := cp.policyDecider.DeleteAccessPolicy(&api.Policy{Spec: policy.Spec}); err != nil {
+		return nil, err
+	}
+
+	return cp.policies.Delete(policy.Name)
+}
+
+// GetAccessPolicy returns an access policy with the given name.
+func (cp *Instance) GetAccessPolicy(name string) *cpstore.AccessPolicy {
+	cp.logger.Infof("Getting access policy '%s'.", name)
+	return cp.policies.Get(name)
+}
+
+// GetAllAccessPolicies returns the list of all AccessPolicies.
+func (cp *Instance) GetAllAccessPolicies() []*cpstore.AccessPolicy {
+	cp.logger.Info("Listing all access policies.")
+	return cp.policies.GetAll()
 }
 
 // GetXDSClusterManager returns the xDS cluster manager.
@@ -358,6 +460,13 @@ func (cp *Instance) init() error {
 	// add bindings
 	for _, binding := range cp.GetAllBindings() {
 		if err := cp.CreateBinding(binding); err != nil {
+			return err
+		}
+	}
+
+	// add policies
+	for _, policy := range cp.GetAllAccessPolicies() {
+		if err := cp.CreateAccessPolicy(policy); err != nil {
 			return err
 		}
 	}
@@ -406,32 +515,40 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, kubeC
 	if err != nil {
 		return nil, fmt.Errorf("cannot load exports from store: %v", err)
 	}
-	logger.Infof("Loaded %d exports.", peers.Len())
+	logger.Infof("Loaded %d exports.", exports.Len())
 
 	imports, err := cpstore.NewImports(storeManager)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load imports from store: %v", err)
 	}
-	logger.Infof("Loaded %d imports.", peers.Len())
+	logger.Infof("Loaded %d imports.", imports.Len())
 
 	bindings, err := cpstore.NewBindings(storeManager)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load bindings from store: %v", err)
 	}
-	logger.Infof("Loaded %d bindings.", peers.Len())
+	logger.Infof("Loaded %d bindings.", bindings.Len())
+
+	policies, err := cpstore.NewAccessPolicies(storeManager)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load access policies from store: %v", err)
+	}
+	logger.Infof("Loaded %d access policies.", policies.Len())
 
 	cp := &Instance{
-		peerTLS:     peerTLS,
-		peerClient:  make(map[string]*client),
-		peers:       peers,
-		exports:     exports,
-		imports:     imports,
-		bindings:    bindings,
-		xdsManager:  newXDSManager(),
-		ports:       newPortManager(),
-		kubeClient:  kubeClient,
-		initialized: false,
-		logger:      logger,
+		peerTLS:       peerTLS,
+		peerClient:    make(map[string]*client),
+		peers:         peers,
+		exports:       exports,
+		imports:       imports,
+		bindings:      bindings,
+		policies:      policies,
+		xdsManager:    newXDSManager(),
+		ports:         newPortManager(),
+		policyDecider: policyengine.NewPolicyHandler(),
+		kubeClient:    kubeClient,
+		initialized:   false,
+		logger:        logger,
 	}
 
 	// initialize instance

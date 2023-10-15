@@ -36,6 +36,12 @@ func (s *Server) addAPIHandlers() {
 		Handler:       &bindingHandler{cp: s.cp},
 		DeleteByValue: true,
 	})
+
+	s.AddObjectHandlers(&rest.ServerObjectSpec{
+		BasePath:      "/policies",
+		Handler:       &accessPolicyHandler{cp: s.cp},
+		DeleteByValue: true,
+	})
 }
 
 type peerHandler struct {
@@ -300,4 +306,56 @@ func (h *bindingHandler) Delete(object any) (any, error) {
 // List all bindings.
 func (h *bindingHandler) List() (any, error) {
 	return bindingsToAPI(h.cp.GetAllBindings()), nil
+}
+
+type accessPolicyHandler struct {
+	cp *controlplane.Instance
+}
+
+// Decode an access policy.
+func (h *accessPolicyHandler) Decode(data []byte) (any, error) {
+	var policy api.Policy
+	if err := json.Unmarshal(data, &policy); err != nil {
+		return nil, fmt.Errorf("cannot decode access policy: %v", err)
+	}
+
+	if len(policy.Spec.Blob) == 0 {
+		return nil, fmt.Errorf("empty spec blob")
+	}
+
+	return store.NewAccessPolicy(&policy), nil
+}
+
+// Create an access policy.
+func (h *accessPolicyHandler) Create(object any) error {
+	return h.cp.CreateAccessPolicy(object.(*store.AccessPolicy))
+}
+
+// Update an access policy.
+func (h *accessPolicyHandler) Update(object any) error {
+	return h.cp.UpdateAccessPolicy(object.(*store.AccessPolicy))
+}
+
+func accessPoliciesToAPI(policies []*store.AccessPolicy) []*api.Policy {
+	apiPolicies := make([]*api.Policy, len(policies))
+	for i, policy := range policies {
+		apiPolicies[i] = &api.Policy{Name: policy.Name, Spec: policy.Spec}
+	}
+	return apiPolicies
+}
+
+// Delete an access policy.
+func (h *accessPolicyHandler) Delete(object any) (any, error) {
+	return h.cp.DeleteAccessPolicy(object.(*store.AccessPolicy))
+}
+
+// Get an access policy.
+func (h *accessPolicyHandler) Get(name string) (any, error) {
+	asSlice := []*store.AccessPolicy{h.cp.GetAccessPolicy(name)}
+	return accessPoliciesToAPI(asSlice), nil
+}
+
+// List all access policies.
+func (h *accessPolicyHandler) List() (any, error) {
+	return accessPoliciesToAPI(h.cp.GetAllAccessPolicies()), nil
 }

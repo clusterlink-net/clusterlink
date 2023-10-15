@@ -5,13 +5,16 @@
 package policyengine
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 
+	"github.com/clusterlink-net/clusterlink/pkg/api"
 	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
@@ -36,8 +39,27 @@ const (
 var plog = logrus.WithField("component", "PolicyEngine")
 var MyPolicyHandler PolicyHandler
 
+type PolicyDecider interface {
+	AddLBPolicy(lbPolicy *LBPolicy) error
+	DeleteLBPolicy(lbPolicy *LBPolicy) error
+
+	AddAccessPolicy(policy *api.Policy) error
+	DeleteAccessPolicy(policy *api.Policy) error
+
+	AuthorizeAndRouteConnection(connReq *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error)
+
+	AddPeer(peer *api.Peer)
+	DeletePeer(name string)
+
+	AddBinding(imp *api.Binding) (event.Action, error)
+	DeleteBinding(imp *api.Binding)
+
+	AddExport(exp *api.Export) (event.ExposeRequestResp, error)
+	DeleteExport(name string)
+}
+
 type MbgState struct {
-	mbgPeers *[]string
+	mbgPeers []string
 }
 
 type PolicyHandler struct {
@@ -97,21 +119,21 @@ func exists(slice []string, entry string) (int, bool) {
 }
 
 func (pH *PolicyHandler) addPeer(peerMbg string) {
-	_, exist := exists(*pH.mbgState.mbgPeers, peerMbg)
+	_, exist := exists(pH.mbgState.mbgPeers, peerMbg)
 	if exist {
 		return
 	}
-	*pH.mbgState.mbgPeers = append(*pH.mbgState.mbgPeers, peerMbg)
+	pH.mbgState.mbgPeers = append(pH.mbgState.mbgPeers, peerMbg)
 	plog.Infof("Added Peer %+v", pH.mbgState.mbgPeers)
 }
 
 func (pH *PolicyHandler) removePeer(peerMbg string) {
-	index, exist := exists(*pH.mbgState.mbgPeers, peerMbg)
+	index, exist := exists(pH.mbgState.mbgPeers, peerMbg)
 	if !exist {
 		return
 	}
-	*pH.mbgState.mbgPeers = append((*pH.mbgState.mbgPeers)[:index], (*pH.mbgState.mbgPeers)[index+1:]...)
-	plog.Infof("Removed Peer(%s, %d) %+v", peerMbg, index, *pH.mbgState.mbgPeers)
+	pH.mbgState.mbgPeers = append(pH.mbgState.mbgPeers[:index], pH.mbgState.mbgPeers[index+1:]...)
+	plog.Infof("Removed Peer(%s, %d) %+v", peerMbg, index, pH.mbgState.mbgPeers)
 }
 
 func getServiceAttrs(serviceName, peer string) policytypes.WorkloadAttrs {
@@ -130,26 +152,26 @@ func getServiceAttrsForMultiplePeers(serviceName string, peers []string) []polic
 	return res
 }
 
-func (pH *PolicyHandler) decideIncomingConnection(requestAttr *event.ConnectionRequestAttr) event.Action {
+func (pH *PolicyHandler) decideIncomingConnection(requestAttr *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {
 	src := getServiceAttrs(requestAttr.SrcService, requestAttr.OtherMbg)
 	dest := getServiceAttrs(requestAttr.DstService, "")
 	decisions, err := pH.connectivityPDP.Decide(src, []policytypes.WorkloadAttrs{dest})
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
-		return event.Deny
+		return event.ConnectionRequestResp{Action: event.Deny}, err
 	}
 	if decisions[0].Decision == policytypes.PolicyDecisionAllow {
-		return event.Allow
+		return event.ConnectionRequestResp{Action: event.Allow}, nil
 	}
-	return event.Deny
+	return event.ConnectionRequestResp{Action: event.Deny}, nil
 }
 
-func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionRequestAttr) (event.Action, string) {
+func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {
 	// Get a list of MBGs for the service
 	mbgList, err := pH.loadBalancer.GetTargetMbgs(requestAttr.DstService)
-	if err != nil {
-		plog.Errorf("error getting target peers: %v", err)
-		return event.Deny, ""
+	if err != nil || len(mbgList) == 0 {
+		plog.Errorf("error getting target peers for service %s: %v", requestAttr.DstService, err)
+		return event.ConnectionRequestResp{Action: event.Deny}, nil // this can be caused by a user typo - so only log this error
 	}
 
 	src := getServiceAttrs(requestAttr.SrcService, "")
@@ -157,7 +179,7 @@ func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionR
 	decisions, err := pH.connectivityPDP.Decide(src, dsts)
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
-		return event.Deny, ""
+		return event.ConnectionRequestResp{Action: event.Deny}, err
 	}
 
 	allowedMbgs := []string{}
@@ -167,12 +189,17 @@ func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionR
 		}
 	}
 
+	if len(allowedMbgs) == 0 {
+		plog.Infof("access policies deny connections to service %s in all peers", requestAttr.DstService)
+		return event.ConnectionRequestResp{Action: event.Deny}, nil
+	}
+
 	// Perform load-balancing using the filtered mbgList
 	targetMbg, err := pH.loadBalancer.LookupWith(requestAttr.SrcService, requestAttr.DstService, allowedMbgs)
 	if err != nil {
-		return event.Deny, ""
+		return event.ConnectionRequestResp{Action: event.Deny}, err
 	}
-	return event.Allow, targetMbg
+	return event.ConnectionRequestResp{Action: event.Allow, TargetMbg: targetMbg}, nil
 }
 
 func (pH *PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Request) {
@@ -182,25 +209,34 @@ func (pH *PolicyHandler) newConnectionRequest(w http.ResponseWriter, r *http.Req
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	plog.Infof("New connection request : %+v", requestAttr)
 
-	var action event.Action
-	var targetMbg string
-	var bitrate int
-	if requestAttr.Direction == event.Incoming {
-		action = pH.decideIncomingConnection(&requestAttr)
-	} else if requestAttr.Direction == event.Outgoing {
-		action, targetMbg = pH.decideOutgoingConnection(&requestAttr)
+	resp, err := pH.AuthorizeAndRouteConnection(&requestAttr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-
-	plog.Infof("Response : %+v", event.ConnectionRequestResp{Action: action, TargetMbg: targetMbg, BitRate: bitrate})
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(event.ConnectionRequestResp{Action: action, TargetMbg: targetMbg, BitRate: bitrate}); err != nil {
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		plog.Errorf("Error happened in JSON encode. Err: %s", err)
 		return
 	}
+}
+
+func (pH *PolicyHandler) AuthorizeAndRouteConnection(connReq *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {
+	plog.Infof("New connection request : %+v", connReq)
+
+	var resp event.ConnectionRequestResp
+	var err error
+	if connReq.Direction == event.Incoming {
+		resp, err = pH.decideIncomingConnection(connReq)
+	} else if connReq.Direction == event.Outgoing {
+		resp, err = pH.decideOutgoingConnection(connReq)
+	}
+
+	plog.Infof("Response : %+v", resp)
+	return resp, err
 }
 
 func (pH *PolicyHandler) addPeerRequest(w http.ResponseWriter, r *http.Request) {
@@ -236,6 +272,15 @@ func (pH *PolicyHandler) removePeerRequest(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
+func (pH *PolicyHandler) AddPeer(peer *api.Peer) {
+	pH.addPeer(peer.Name)
+}
+
+func (pH *PolicyHandler) DeletePeer(name string) {
+	pH.removePeer(name)
+	pH.loadBalancer.RemoveMbgFromServiceMap(name)
+}
+
 func (pH *PolicyHandler) newRemoteService(w http.ResponseWriter, r *http.Request) {
 	var requestAttr event.NewRemoteServiceAttr
 	err := json.NewDecoder(r.Body).Decode(&requestAttr)
@@ -268,6 +313,15 @@ func (pH *PolicyHandler) removeRemoteServiceRequest(w http.ResponseWriter, r *ht
 	w.WriteHeader(http.StatusOK)
 }
 
+func (pH *PolicyHandler) AddBinding(binding *api.Binding) (event.Action, error) {
+	pH.loadBalancer.AddToServiceMap(binding.Spec.Import, binding.Spec.Peer)
+	return event.Allow, nil
+}
+
+func (pH *PolicyHandler) DeleteBinding(binding *api.Binding) {
+	pH.loadBalancer.RemoveDestService(binding.Spec.Import, binding.Spec.Peer)
+}
+
 func (pH *PolicyHandler) exposeRequest(w http.ResponseWriter, r *http.Request) {
 	var requestAttr event.ExposeRequestAttr
 	err := json.NewDecoder(r.Body).Decode(&requestAttr)
@@ -280,10 +334,17 @@ func (pH *PolicyHandler) exposeRequest(w http.ResponseWriter, r *http.Request) {
 	// Currently, request is always allowed
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(event.ExposeRequestResp{Action: event.AllowAll, TargetMbgs: *pH.mbgState.mbgPeers}); err != nil {
+	if err := json.NewEncoder(w).Encode(event.ExposeRequestResp{Action: event.AllowAll, TargetMbgs: pH.mbgState.mbgPeers}); err != nil {
 		plog.Errorf("Error happened in JSON encode. Err: %s", err)
 		return
 	}
+}
+
+func (pH *PolicyHandler) AddExport(_ *api.Export) (event.ExposeRequestResp, error) {
+	return event.ExposeRequestResp{Action: event.AllowAll, TargetMbgs: pH.mbgState.mbgPeers}, nil
+}
+
+func (pH *PolicyHandler) DeleteExport(_ string) {
 }
 
 func (pH *PolicyHandler) getConnPoliciesReq(w http.ResponseWriter, _ *http.Request) {
@@ -299,31 +360,27 @@ func (pH *PolicyHandler) getConnPoliciesReq(w http.ResponseWriter, _ *http.Reque
 }
 
 func (pH *PolicyHandler) addConnPolicyReq(w http.ResponseWriter, r *http.Request) {
-	var policy policytypes.ConnectivityPolicy
-	err := json.NewDecoder(r.Body).Decode(&policy)
+	policy, err := connPolicyFromBlob(r.Body)
 	if err != nil {
-		plog.Errorf("failed decoding connectivity policy: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = pH.connectivityPDP.AddOrUpdatePolicy(policy)
+	err = pH.connectivityPDP.AddOrUpdatePolicy(*policy)
 	if err != nil { // policy is syntactically ok, but semantically invalid - 422 is the status to return
 		plog.Errorf("failed adding connectivity policy: %v", err)
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
-	plog.Infof("Added policy : %+v", policy)
+	plog.Infof("Added policy : %+v", *policy)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (pH *PolicyHandler) delConnPolicyReq(w http.ResponseWriter, r *http.Request) {
-	var policy policytypes.ConnectivityPolicy
-	err := json.NewDecoder(r.Body).Decode(&policy)
+	policy, err := connPolicyFromBlob(r.Body)
 	if err != nil {
-		plog.Errorf("failed decoding connectivity policy: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -335,9 +392,45 @@ func (pH *PolicyHandler) delConnPolicyReq(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	plog.Infof("Deleted policy : %+v", policy)
+	plog.Infof("Deleted policy : %+v", *policy)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+}
+
+func connPolicyFromBlob(blob io.Reader) (*policytypes.ConnectivityPolicy, error) {
+	connPolicy := &policytypes.ConnectivityPolicy{}
+	err := json.NewDecoder(blob).Decode(connPolicy)
+	if err != nil {
+		plog.Errorf("failed decoding connectivity policy: %v", err)
+		return nil, err
+	}
+	return connPolicy, nil
+}
+
+func (pH *PolicyHandler) AddLBPolicy(lbPolicy *LBPolicy) error {
+	pH.loadBalancer.SetPolicy(lbPolicy.ServiceSrc, lbPolicy.ServiceDst, lbPolicy.Scheme, lbPolicy.DefaultMbg)
+	return nil
+}
+
+func (pH *PolicyHandler) DeleteLBPolicy(lbPolicy *LBPolicy) error {
+	pH.loadBalancer.deletePolicy(lbPolicy.ServiceSrc, lbPolicy.ServiceDst, lbPolicy.Scheme, lbPolicy.DefaultMbg)
+	return nil
+}
+
+func (pH *PolicyHandler) AddAccessPolicy(policy *api.Policy) error {
+	connPolicy, err := connPolicyFromBlob(bytes.NewReader(policy.Spec.Blob))
+	if err != nil {
+		return err
+	}
+	return pH.connectivityPDP.AddOrUpdatePolicy(*connPolicy)
+}
+
+func (pH *PolicyHandler) DeleteAccessPolicy(policy *api.Policy) error {
+	connPolicy, err := connPolicyFromBlob(bytes.NewReader(policy.Spec.Blob))
+	if err != nil {
+		return err
+	}
+	return pH.connectivityPDP.DeletePolicy(connPolicy.Name, connPolicy.Privileged)
 }
 
 func (pH *PolicyHandler) policyWelcome(w http.ResponseWriter, _ *http.Request) {
@@ -348,9 +441,7 @@ func (pH *PolicyHandler) policyWelcome(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (pH *PolicyHandler) init(router *chi.Mux) {
-	pH.mbgState.mbgPeers = &([]string{})
-	pH.loadBalancer = &LoadBalancer{}
-	pH.loadBalancer.Init()
+	pH.loadBalancer = NewLoadBalancer()
 	pH.connectivityPDP = connectivitypdp.NewPDP()
 
 	routes := pH.Routes(router)
@@ -360,4 +451,11 @@ func (pH *PolicyHandler) init(router *chi.Mux) {
 func StartPolicyDispatcher(router *chi.Mux) {
 	plog.Infof("Policy Engine started")
 	MyPolicyHandler.init(router)
+}
+
+func NewPolicyHandler() PolicyDecider {
+	return &PolicyHandler{
+		loadBalancer:    NewLoadBalancer(),
+		connectivityPDP: connectivitypdp.NewPDP(),
+	}
 }
