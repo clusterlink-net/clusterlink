@@ -107,6 +107,10 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
+	if err := verifyDataplaneType(o.DataplaneType); err != nil {
+		return err
+	}
+
 	peerDirectory := config.PeerDirectory(o.Name)
 	if err := os.Mkdir(peerDirectory, 0755); err != nil {
 		return err
@@ -194,4 +198,16 @@ func verifyNotExists(path string) error {
 	}
 
 	return nil
+}
+
+// verifyDataplaneType checks if the given dataplane type is valid
+func verifyDataplaneType(dType string) error {
+	switch dType {
+	case templates.DataplaneTypeEnvoy:
+		return nil
+	case templates.DataplaneTypeGo:
+		return nil
+	default:
+		return fmt.Errorf("undefined dataplane-type %s", dType)
+	}
 }
