@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"os"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -16,6 +15,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv/bolt"
 	"github.com/clusterlink-net/clusterlink/pkg/util"
+	logutils "github.com/clusterlink-net/clusterlink/pkg/util/log"
 	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
 )
 
@@ -58,28 +58,18 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 // Run the various controlplane servers.
 func (o *Options) Run() error {
 	// set log file
-	if o.LogFile != "" {
-		f, err := os.OpenFile(o.LogFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
-		if err != nil {
-			return fmt.Errorf("unable to open log file: %v", err)
-		}
 
+	f, err := logutils.SetLog(o.LogLevel, o.LogFile)
+	if err != nil {
+		return err
+	}
+	if f != nil {
 		defer func() {
 			if err := f.Close(); err != nil {
 				log.Errorf("Cannot close log file: %v", err)
 			}
 		}()
-
-		log.SetOutput(f)
 	}
-
-	// set log level
-	logLevel, err := log.ParseLevel(o.LogLevel)
-	if err != nil {
-		return fmt.Errorf("unable to set log level: %v", err)
-	}
-	log.SetLevel(logLevel)
-
 	parsedCertData, err := util.ParseTLSFiles(CAFile, CertificateFile, KeyFile)
 	if err != nil {
 		return err
