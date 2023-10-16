@@ -59,8 +59,17 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 func (o *Options) Run() error {
 	// set log file
 
-	logutils.SetLog(o.LogLevel, o.LogFile)
-
+	f, err := logutils.SetLog(o.LogLevel, o.LogFile)
+	if err != nil {
+		return err
+	}
+	if f != nil {
+		defer func() {
+			if err := f.Close(); err != nil {
+				log.Errorf("Cannot close log file: %v", err)
+			}
+		}()
+	}
 	parsedCertData, err := util.ParseTLSFiles(CAFile, CertificateFile, KeyFile)
 	if err != nil {
 		return err

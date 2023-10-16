@@ -153,12 +153,17 @@ func addPolicyEngine(policyengineTarget string, start bool) {
 // createMbg create mbg control plane process
 func createMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, dataplane,
 	caFile, certificateFile, keyFile, logLevel string, logFile bool) {
-
+	var err error
 	if logFile {
-		logutils.SetLog(logLevel, logFileName)
+		_, err = logutils.SetLog(logLevel, logFileName)
 	} else {
-		logutils.SetLog(logLevel, "")
+		_, err = logutils.SetLog(logLevel, "")
 	}
+
+	if err != nil {
+		log.Error(err)
+	}
+
 	store.SetState(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, caFile, certificateFile, keyFile, dataplane)
 
 	// Set chi router
@@ -175,11 +180,17 @@ func createMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalData
 // restoreMbg restore the mbg after a failure in the control plane
 func restoreMbg(logLevel string, logFile, startPolicyEngine bool) {
 	store.UpdateState()
+	var err error
 	if logFile {
-		logutils.SetLog(logLevel, logFileName)
+		_, err = logutils.SetLog(logLevel, logFileName)
 	} else {
-		logutils.SetLog(logLevel, "")
+		_, err = logutils.SetLog(logLevel, "")
 	}
+
+	if err != nil {
+		log.Error(err)
+	}
+
 	if startPolicyEngine {
 		go addPolicyEngine("localhost"+store.GetMyCport().Local, true)
 	}

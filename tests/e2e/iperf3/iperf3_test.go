@@ -37,7 +37,8 @@ var (
 
 // TestIperf3 check e2e iperf3 test
 func TestIperf3(t *testing.T) {
-	logutils.SetLog("info", "")
+	_, err := logutils.SetLog("info", "")
+	require.NoError(t, err)
 	t.Run("Starting Cluster Setup", func(t *testing.T) {
 		err := utils.StartClusterSetup()
 		if err != nil {
@@ -116,6 +117,6 @@ func TestIperf3(t *testing.T) {
 		require.NoError(t, err)
 		log.Printf("%s", output)
 	})
-	err := utils.CleanUp()
+	err = utils.CleanUp()
 	require.NoError(t, err)
 }

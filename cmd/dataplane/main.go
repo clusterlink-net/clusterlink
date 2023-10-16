@@ -34,7 +34,19 @@ func main() {
 	// Parse command-line flags
 	flag.Parse()
 	// Set log file
-	logutils.SetLog(logLevel, logFileName)
+	f, err := logutils.SetLog(logLevel, logFileName)
+	if err != nil {
+		log.Error(err)
+	}
+
+	if f != nil {
+		defer func() {
+			if err := f.Close(); err != nil {
+				log.Errorf("Cannot close log file: %v", err)
+			}
+		}()
+	}
+
 	log.Infof("Dataplane main started")
 
 	if profilePort != 0 {
