@@ -1,7 +1,6 @@
 # Contributing Guide
 
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#introduction)
-
+<!--  TODO Add TOC
 * [New Contributor Guide](#contributing-guide)
   * [Ways to Contribute](#ways-to-contribute)
   * [Find an Issue](#find-an-issue)
@@ -10,22 +9,30 @@
   * [Development Environment Setup](#development-environment-setup)
   * [Sign Your Commits](#sign-your-commits)
   * [Pull Request Checklist](#pull-request-checklist)
+-->
+
+## How to Help
 
 Welcome! We are glad that you want to contribute to our project! 💖
+ We welcome your contributions and participation! If you aren't sure what to expect, we've
+ outlined the contribution process for ClusterLink below, so you feel more comfortable
+ with how things will go.
 
-As you get started, you are in the best position to give us feedback on areas of
-our project that we need help with including:
+If this is your first contribution to ClusterLink, there's a [tutorial](TODO missing link)
+ that walks you through how to set up your developer environment, make a change and
+ test it. Contributions are accepted via a github Pull Request. The process is
+ documented in detail [below](#the-life-of-pi-oops-the-life-of-a-pr)
 
-* Problems found during setting up a new developer environment
-* Gaps in our Quickstart Guide or documentation
-* Bugs in our automation scripts
+## Code of Conduct
 
-If anything doesn't make sense, or doesn't work when you run it, please open a
-bug report and let us know!
+The ClusterLink community is governed by our [Code of Conduct](./CODE_OF_CONDUCT.md)
+ and we expect all contributors to abide by it.
 
 ## Ways to Contribute
 
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#ways-to-contribute)
+There are more ways to help than code contribution. If you have experience in marketing,
+ content creation, technical writing, project management, community management, or other
+ areas we might not be have considered - please reach out!
 
 We welcome many different types of contributions including:
 
@@ -61,52 +68,75 @@ feedback on others’ ideas, and even sharing your own ideas, and experiences.
 
 ## Find an Issue
 
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#find-an-issue)
+If you're new to ClusterLink, you are in the best position to give us feedback on areas of
+our project that we need help with including:
+
+* Problems found during setting up a new developer environment
+* Gaps in our guides or documentation
+* Bugs in our automation scripts
+
+If anything doesn't make sense, or doesn't work when you run it, please open a
+bug report and let us know!
 
 We have good first issues for new contributors and help wanted issues suitable
-for any contributor. [good first issue](TODO) has extra information to
-help you make your first contribution. [help wanted](TODO) are issues
+for any contributor. [good first issue](TODO missing link) has extra information to
+help you make your first contribution. [help wanted](TODO missing link) are issues
 suitable for someone who isn't a core maintainer and is good to move onto after
 your first pull request.
 
 <!-- 
+If your project doesn’t always have issues labeled and ready to find, and you are willing 
+to help find suitable issues, let new contributors know how to ask for something to work 
+on.  
 Sometimes there won’t be any issues with these labels. That’s ok! There is
 likely still something for you to work on. If you want to contribute but you
-don’t know where to start or can't find a suitable issue, you can ⚠️ **explain how people can ask for an issue to work on**.
+don’t know where to start or can't find a suitable issue, you can ⚠️ **explain how people 
+can ask for an issue to work on**.
 -->
 
 Once you see an issue that you'd like to work on, please post a comment saying
 that you want to work on it. Something like "I want to work on this" is fine.
 
-## Ask for Help
+We have a [roadmap](TODO missing link) that will give you a good idea of the larger
+ features that we are working on right now. That may help you decide what you would
+ like to work on after you have tackled an issue or two. If you have a big idea for
+ ClusterLink, you can propose it by creating an issue and marking it `enhancement`.
 
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#ask-for-help)
+## Asking for Help
 
-The best way to reach us with a question when contributing is to ask on:
-
-<!-- ⚠️ **Pick the way(s) that you prefer people ask for help** -->
+All contributors will might get stuck sometimes. The best way to reach us with a question
+ when contributing is to ask on:
 
 * The original github issue
-* The developer mailing list
-* Our Slack channel
+* The [developer mailing list](TODO missing link)
+* Our [Slack channel](TODO missing link)
 
-## Pull Request Lifecycle
+<!-- t them to the proper communication channel but also provide links to relevant
+documentation such as a contributing tutorial, troubleshooting guides, etc.
 
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#pull-request-lifecycle)
+If you are a project that regularly gets contributors who are also new to git or the 
+programming language, considering linking to where they can get help for non-project 
+related questions, such as [ohshitgit](https://ohshitgit.com/), CNCF Slack channels, or 
+community forum like the Gophers or Kubernetes Slack.
+-->
 
-<!-- ⚠️ **Explain your pull request process** -->
+## Development Environment Set-up
 
-## Development Environment Setup
+We have a [tutorial](TODO missing link) that walks you through setting up your developer
+ environment, making a change and testing it.
 
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#development-environment-setup)
+Here are the key steps, if you run into trouble, the tutorial has more details:
 
-<!-- ⚠️ **Explain how to set up a development environment** -->
+1. Install Go version 1.17 or higher.
+1. Clone our repository with `git clone git@github.com:clusterlink-net/clusterlink.git`  
+1. Run `make build` to ensure the code builds fine. This will pull in all needed
+ dependencies.
+1. If you are planning on contributing back to the project, you'll need to fork this repository
+  and clone your fork instead. If you want to synchronize your fork with the main `clsuterlink`
+  repository, we recommend that you add an additional git remote with
+  `git remote add upstream git@github.com:clusterlink-net/clusterlink.git`
 
-## Sign Your Commits
-
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#sign-your-commits)
-
-### DCO
+## Sign Your Commits / DCO
 
 Licensing is important to open source projects. It provides some assurances that
 the software will continue to be available based under the terms that the
@@ -115,28 +145,207 @@ our project's repositories. The [Developer Certificate of Origin
 (DCO)](https://probot.github.io/apps/dco/) is a way to certify that you wrote and
 have the right to contribute the code you are submitting to the project.
 
-You sign-off by adding the following to your commit messages. Your sign-off must
+You sign-off by adding the following to each of your commit messages. Your sign-off must
 match the git user and email associated with the commit.
 
+```txt
     This is my commit message
 
     Signed-off-by: Your Name <your.name@example.com>
+```
 
 Git has a `-s` command line option to do this automatically:
 
-    git commit -s -m 'This is my commit message'
+```sh
+git commit -s -m 'This is my commit message'
+```
 
 If you forgot to do this and have not yet pushed your changes to the remote
-repository, you can amend your commit with the sign-off by running 
+repository, you can amend your commit with the sign-off by running
 
-    git commit --amend -s 
+```sh
+git commit --amend -s 
+```
 
-## Pull Request Checklist
+The PRs DCO check will fail if any of the included commits are not signed or not
+ signed correctly. The DCO failure page has more information on fixing these after
+ code has been pushed.
+
+## Pull Request (PR) Lifecycle
+
+### Scope of a PR
+
+<!-- 
+What kind of pull requests do you prefer: small scope, incremental value or feature complete?
+-->
+When you are ready to start on a unit of work, such as fixing a bug or implementing a
+ feature, create a branch. Each branch (and ultimately each PR) should represent a
+ logical unit of work. If you are doing two different tasks like fixing a bug and
+ refactoring - please do these on different branches and in different PRs. While this
+ is a bit of a hassle for you, it makes your changes much easier to review and faster
+ to accept.
+ Additionally, a change history with focused commits is easier to work with in the future,
+ test failures are easier to localize and interaction between changes is easier to see.
+
+### When to Open a PR
+
+While it's OK to submit a PR directly for problems such as typos or other things where
+the motivation/problem is unambiguous, most PRs should have an associate github issue.
+
+If there isn't an issue for your PR, please make an issue first and explain the problem
+ or motivation for the change you are proposing. When the solution isn't straightforward,
+ then also outline your proposed solution. Your PR will go smoother if the problem and
+ solution are agreed upon before you spend time implementing it.
+
+### Which Branch to Use
+
+Unless the issue specifically mentions a branch, please create your feature branch from `main`.
+
+For example:
+
+```sh
+# Make sure you have the most recent changes to clusterlink-net/clusterlink main
+git checkout main
+git fetch upstream main
+git rebase upstream/main
+
+# Create a branch based on main named MY_FEATURE_BRANCH
+git checkout -b MY_FEATURE_BRANCH main
+```
+
+### The Life of Pi (oops! The Life of a PR)
+
+1. Start on a [unit of work](#scope-of-a-pr) by updating from upstream and then creating
+ a branch off of it. Please use a descriptive name (e.g., `fix-issue-17` or `lb-policy-support`). Please do **not** create dependent branches and always branch from
+ an up-to-date `upstream/main`.
+
+1. You create a draft or WIP pull request at any time. Reviewers will ignore it mostly
+ unless you mention someone and ask for help. Feel free to open one and use the pull
+ request to see if the CI passes. Once you are ready for a review, remove the WIP or
+ click "Ready for Review" and leave a comment that it's ready for review. You may also
+ mark the PR as not ready by assigning the label `do-not-merge/wip` to it.
+ Give the PR a descriptive title, that would be appropriate as a commit message once
+ your work when merged. Include additional information, as appropriate, in the PR
+ description paragraph to explain what you have done.
+ If your PR fixes any issues, the description should refer to it (e.g., "fixes #NNN") or
+ you can associate it using "linked issues". Either of these links your PR to the issue
+ and automatically closes the issue when the PR is accepted.
+ Do **not** use the PR comments to document the code as they will most likely never be
+ seen after the PR is merged. Please **do** make your code self-explanatory. If there is
+ information that is needed by a programmer reading the source code, you should put it in
+ a code comment. This also applies to answering questions from reviewers: it is best done
+ by clarifying the code or add documentation, rather than in the PR comment thread.
+
+1. A reviewer will assign themselves to the pull request. If you don't see anyone
+ assigned after 3 business days, you can leave a comment asking for a review, or ping in
+ slack. Sometimes we have busy days, sick days, weekends and vacations, so a little
+ patience is appreciated! 🙇‍♀️
+
+1. The reviewer will leave feedback.
+
+* `nits``: These are suggestions that you may decide to incorporate into your pull
+ request or not without further comment.
+* Requests for change in the PR contents. These require resolution before the PR is
+ merged.
+* It is okay to clarify if you are being told to make a change or if it is a suggestion.
+
+If you agree with a code review comment and do what it suggests, don't respond in the
+ GitHub code review system. Simply resolve the conversation. Respond if more discussion
+ is needed, such as asking a follow-up question or explaining why you disagree with the
+ suggestion. If the reviewer is asking a question, then usually the best way to answer
+ it is by improving the code or documentation. Answering it only in the code review
+ will not help future programmers after the PR is merged.
+
+Respond to the feedback by making changes in your working copy, committing them, and
+ periodically pushing them to GitHub when the tests pass locally. As soon as you
+ receive feedback, you can start working on it. The reviewer should assign the code
+ review back to you, but they might forget, so don't wait for that.
+
+After you have made the changes (in new commits please!), leave a comment asking the
+ the reviewer to take another look. If 3 business days go by with no review, it is okay
+ to bump. Never force a push with `git push -f` as it might cause loss of code review
+ comments and context associated with previous commits.
+
+After you have addressed all the review feedback, explicitly request a re-review.
+ Do not assume that person will know when you are done. There are many ways to request
+ a re-review:
+
+* Add the reviewer to the PR on Github - this works even if that person has reviewed the
+ pull request before.
+* Assign the pull request to that person, using the “Assignees” list.
+* Write a comment in the conversation in the GitHub pull request.
+
+1. When a pull request has been approved, the reviewer will squash and merge your
+ commits. If you prefer to rebase your own commits, at any time leave a comment on the
+ pull request to let them know that.
+
+1. At this point your changes are available to be included in the next release of
+ ClusterLink! After your first pull request is merged, you will be invited to the
+ Contributors team (TODO create github team) which you may choose to accept (or not).
+ Joining the team lets you have issues in GitHub assigned to you.
+
+### Follow-on PR
+
+A follow-on PR is a pull request that finishes up suggestions from a previous PR.
+
+When the core of your changes are good, and it won't hurt to do more of the changes
+ later, our preference is to merge early, and keep working on it in a subsequent PR.
+ This allows us to start testing out the changes early on, and more importantly helps us
+ avoid pull requests to rely on other pull requests as other developers can immediately
+ start building their work on top of yours.
+
+### How to Get Your PRs Reviewed Quickly
+
+🚧 If you aren't done yet, create a draft pull request or put WIP in the title so that
+ reviewers wait for you to finish before commenting.
+
+1️⃣ Limit your pull request to a single task. Don't tackle multiple unrelated things,
+ especially refactoring. If you need large refactoring for your change, chat with a
+ maintainer first, then do it in a separate PR first without any functionality changes.
+
+🎳 Group related changes into separate commits to make it easier to review.
+
+😅 Make requested changes in new commits. Please don't amend or rebase commits that we
+ have already reviewed.
+
+🚀 We encourage follow-on PRs and a reviewer may let you know in their comment if it is
+ okay for their suggestion to be done in a follow-on PR. You can decide to make the
+ change in the current PR immediately, or agree to tackle it in a reasonable amount of
+ time in a subsequent pull request. If you can't get to it soon, please create an issue
+ and link to it from the pull request comment so that we don't collectively forget.
+
+### PR Checklist
 
 When you submit your pull request, or you push new commits to it, our automated
-systems will run some checks on your new code. We require that your pull request
-passes these checks, but we also have more criteria than just that before we can
-accept and merge it. We recommend that you check the following things locally
-before you submit your code:
+ systems will run some checks on your new code. We require that your pull request
+ passes these checks, but we also have more criteria than just that before we can
+ accept and merge it. We recommend that you check the following things locally
+ before you submit your code:
 
-<!-- ⚠️ **Create a checklist that authors should use before submitting a pull request** -->
+<!-- ⚠️ **Create a checklist that authors should use before submitting a pull request** 
+Being done requires at least the following:
+
+Testing: You have written tests for your feature or bug fix. All the tests pass, both 
+locally and on continuous integration.
+Documentation: You have documented each procedure that you added or modified, and you 
+have updated the user manual if appropriate.
+Completeness: Any change you make is because you discovered a problem. Look for other 
+places that the problem might manifest, such as in code with a similar specification or 
+implementation. Fix them all at once rather than leaving some to be discovered later.
+
+It passes tests: run the following command to run all of the tests locally: make build test lint
+ Impacted code has new or updated tests
+ Documentation created/updated
+ All tests succeed when run by the CI build on a pull request before it is merged
+-->
+
+### Reviewing a PR
+
+This section is for maintainers who are reviewing and merging a pull request. While
+ it is currently incomplete, it does contain a few tips.
+
+TODO
+
+<!--
+The repository owner can prevent incorrect pull request merges. In the repository settings, in the “Merge button” section, disable “Allow merge commits” and “Allow rebase merging”. You might also want to enable “Automatically delete head branches”.
+-->
