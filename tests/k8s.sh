@@ -28,17 +28,17 @@ function test_k8s {
   # create clusterlink objects
   kubectl create -f ./peer1/k8s.yaml
 
+  # start iperf3 server
+  kubectl run iperf-server --image=networkstatic/iperf3 -- iperf3 -s -p 1234
+
   # wait for gwctl pod to run
   kubectl wait --for=condition=ready pod/gwctl
 
   # install iperf3 and jq
   kubectl exec -i gwctl -- apk add iperf3 jq
 
-  # start iperf3 server
-  kubectl exec -i gwctl -- iperf3 -s -D -p 1234
-
   # expose iperf3 server
-  kubectl expose pod gwctl --name=foo --port=80 --target-port=1234
+  kubectl expose pod iperf-server --name=foo --port=80 --target-port=1234
 
   # wait for API server to come up
   kubectl exec -i gwctl -- timeout 30 sh -c 'until gwctl get peer; do sleep 0.1; done > /dev/null 2>&1'
@@ -62,7 +62,7 @@ function test_k8s {
   # wait for imported service socket to come up
   kubectl exec -i gwctl -- timeout 30 sh -c 'until nc -z $0 $1; do sleep 0.1; done' bla 9999
   # wait for iperf server to come up
-  kubectl exec -i gwctl -- timeout 30 sh -c 'until nc -z $0 $1; do sleep 0.1; done' gwctl 1234
+  kubectl wait --for=condition=ready pod/iperf-server
 
   # run iperf client
   kubectl exec -i gwctl -- iperf3 -c bla -p 9999 -t 1
