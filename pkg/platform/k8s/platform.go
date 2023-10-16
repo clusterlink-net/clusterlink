@@ -17,8 +17,8 @@ const (
 
 // Platform represents a k8s platform.
 type Platform struct {
-	endpointReconciler *reconciler
-	serviceReconciler  *reconciler
+	endpointReconciler *Reconciler
+	serviceReconciler  *Reconciler
 	client             client.Client
 	namespace          string
 	logger             *logrus.Entry
