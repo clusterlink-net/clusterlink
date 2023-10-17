@@ -20,7 +20,7 @@ Welcome! We are glad that you want to contribute to our project! 💖
 
 If this is your first contribution to ClusterLink, there's a [tutorial](TODO missing link)
  that walks you through how to set up your developer environment, make a change and
- test it. Contributions are accepted via a github Pull Request. The process is
+ test it. Contributions are accepted via a GitHub Pull Request. The process is
  documented in detail [below](#the-life-of-pi-oops-the-life-of-a-pr)
 
 ## Code of Conduct
@@ -32,7 +32,7 @@ The ClusterLink community is governed by our [Code of Conduct](./CODE_OF_CONDUCT
 
 There are more ways to help than code contribution. If you have experience in marketing,
  content creation, technical writing, project management, community management, or other
- areas we might not be have considered - please reach out!
+ areas we might not have considered - please reach out!
 
 We welcome many different types of contributions including:
 
@@ -69,7 +69,7 @@ feedback on others’ ideas, and even sharing your own ideas, and experiences.
 ## Find an Issue
 
 If you're new to ClusterLink, you are in the best position to give us feedback on areas of
-our project that we need help with including:
+our project that we can improve, including:
 
 * Problems found during setting up a new developer environment
 * Gaps in our guides or documentation
@@ -78,11 +78,10 @@ our project that we need help with including:
 If anything doesn't make sense, or doesn't work when you run it, please open a
 bug report and let us know!
 
-We have good first issues for new contributors and help wanted issues suitable
-for any contributor. [good first issue](TODO missing link) has extra information to
-help you make your first contribution. [help wanted](TODO missing link) are issues
-suitable for someone who isn't a core maintainer and is good to move onto after
-your first pull request.
+We have [good first issues](https://github.com/clusterlink-net/clusterlink/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) for new contributors
+and [help wanted](https://github.com/clusterlink-net/clusterlink/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22) issues suitable for any contributor.
+ "Help wanted" issues are suitable for someone who isn't a core maintainer and are
+ good to move onto after your first pull request.
 
 <!-- 
 If your project doesn’t always have issues labeled and ready to find, and you are willing 
@@ -104,10 +103,10 @@ We have a [roadmap](TODO missing link) that will give you a good idea of the lar
 
 ## Asking for Help
 
-All contributors will might get stuck sometimes. The best way to reach us with a question
+All contributors might get stuck sometimes. The best way to reach us with a question
  when contributing is to ask on:
 
-* The original github issue
+* The original GitHub issue
 * The [developer mailing list](TODO missing link)
 * Our [Slack channel](TODO missing link)
 
@@ -179,7 +178,7 @@ The PRs DCO check will fail if any of the included commits are not signed or not
 What kind of pull requests do you prefer: small scope, incremental value or feature complete?
 -->
 When you are ready to start on a unit of work, such as fixing a bug or implementing a
- feature, create a branch. Each branch (and ultimately each PR) should represent a
+ feature, create a branch on your fork. Each branch (and ultimately each PR) should represent a
  logical unit of work. If you are doing two different tasks like fixing a bug and
  refactoring - please do these on different branches and in different PRs. While this
  is a bit of a hassle for you, it makes your changes much easier to review and faster
@@ -190,7 +189,7 @@ When you are ready to start on a unit of work, such as fixing a bug or implement
 ### When to Open a PR
 
 While it's OK to submit a PR directly for problems such as typos or other things where
-the motivation/problem is unambiguous, most PRs should have an associate github issue.
+the motivation/problem is unambiguous, most PRs should have an associated GitHub issue.
 
 If there isn't an issue for your PR, please make an issue first and explain the problem
  or motivation for the change you are proposing. When the solution isn't straightforward,
@@ -219,13 +218,14 @@ git checkout -b MY_FEATURE_BRANCH main
  a branch off of it. Please use a descriptive name (e.g., `fix-issue-17` or `lb-policy-support`). Please do **not** create dependent branches and always branch from
  an up-to-date `upstream/main`.
 
-1. You create a draft or WIP pull request at any time. Reviewers will ignore it mostly
- unless you mention someone and ask for help. Feel free to open one and use the pull
- request to see if the CI passes. Once you are ready for a review, remove the WIP or
- click "Ready for Review" and leave a comment that it's ready for review. You may also
+1. You can create a draft or WIP pull request at any time. You may also
  mark the PR as not ready by assigning the label `do-not-merge/wip` to it.
+ Reviewers will ignore it mostly unless you mention someone and ask for help.
+ Feel free to open one and use the pull request to see if the CI passes.
+ Once you are ready for a review, remove the WIP or click "Ready for Review" and
+ leave a comment that it's ready for review.
  Give the PR a descriptive title, that would be appropriate as a commit message once
- your work when merged. Include additional information, as appropriate, in the PR
+ your work is merged. Include additional information, as appropriate, in the PR
  description paragraph to explain what you have done.
  If your PR fixes any issues, the description should refer to it (e.g., "fixes #NNN") or
  you can associate it using "linked issues". Either of these links your PR to the issue
@@ -243,7 +243,7 @@ git checkout -b MY_FEATURE_BRANCH main
 
 1. The reviewer will leave feedback.
 
-* `nits``: These are suggestions that you may decide to incorporate into your pull
+* `nits`: These are suggestions that you may decide to incorporate into your pull
  request or not without further comment.
 * Requests for change in the PR contents. These require resolution before the PR is
  merged.
@@ -281,7 +281,7 @@ After you have addressed all the review feedback, explicitly request a re-review
 
 1. At this point your changes are available to be included in the next release of
  ClusterLink! After your first pull request is merged, you will be invited to the
- Contributors team (TODO create github team) which you may choose to accept (or not).
+ Contributors team (TODO create Github team) which you may choose to accept (or not).
  Joining the team lets you have issues in GitHub assigned to you.
 
 ### Follow-on PR
