@@ -4,6 +4,7 @@ set -ex
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 TEST_DIR=$(mktemp -d)
 CLADM=$SCRIPT_DIR/../bin/cl-adm
+DATAPLANE_TYPE="${1:-envoy}"
 
 function clean_up {
   # delete containers
@@ -20,7 +21,7 @@ function clean_up {
 function test_docker {
   # create fabric with a single peer (peer1)
   $CLADM create fabric
-  $CLADM create peer --name peer1
+  $CLADM create peer --name peer1 --dataplane-type $DATAPLANE_TYPE
 
   # start containers
   ./peer1/docker-run.sh

@@ -4,6 +4,7 @@ set -ex
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 TEST_DIR=$(mktemp -d)
 CLADM=$SCRIPT_DIR/../bin/cl-adm
+DATAPLANE_TYPE="${1:-envoy}"
 
 function clean_up {
   kind delete cluster --name peer1
@@ -14,13 +15,13 @@ function clean_up {
 function test_k8s {
   # create fabric with a single peer (peer1)
   $CLADM create fabric
-  $CLADM create peer --name peer1
+  $CLADM create peer --name peer1 --dataplane-type $DATAPLANE_TYPE
 
   # create kind cluster
   kind create cluster --name peer1
 
   # load images to cluster
-  kind load docker-image cl-controlplane cl-dataplane gwctl --name peer1
+  kind load docker-image cl-controlplane cl-dataplane cl-go-dataplane gwctl --name peer1
 
   # configure kubectl
   kubectl config use-context kind-peer1

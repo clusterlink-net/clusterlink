@@ -23,12 +23,15 @@ type PeerOptions struct {
 	Name string
 	// Dataplanes is the number of dataplanes to create.
 	Dataplanes uint16
+	// DataplaneType is the type of dataplane to create (envoy or go-based)
+	DataplaneType string
 }
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
 	fs.Uint16Var(&o.Dataplanes, "dataplanes", 1, "Number of dataplanes.")
+	fs.StringVar(&o.DataplaneType, "dataplane-type", "envoy", "Type of dataplane, Supported values: \"envoy\" (default), \"go\"")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -104,6 +107,10 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
+	if err := verifyDataplaneType(o.DataplaneType); err != nil {
+		return err
+	}
+
 	peerDirectory := config.PeerDirectory(o.Name)
 	if err := os.Mkdir(peerDirectory, 0755); err != nil {
 		return err
@@ -136,8 +143,9 @@ func (o *PeerOptions) Run() error {
 
 	// deployment configuration
 	args, err := templates.Config{
-		Peer:       o.Name,
-		Dataplanes: o.Dataplanes,
+		Peer:          o.Name,
+		Dataplanes:    o.Dataplanes,
+		DataplaneType: o.DataplaneType,
 	}.TemplateArgs()
 	if err != nil {
 		return err
@@ -190,4 +198,16 @@ func verifyNotExists(path string) error {
 	}
 
 	return nil
+}
+
+// verifyDataplaneType checks if the given dataplane type is valid
+func verifyDataplaneType(dType string) error {
+	switch dType {
+	case templates.DataplaneTypeEnvoy:
+		return nil
+	case templates.DataplaneTypeGo:
+		return nil
+	default:
+		return fmt.Errorf("undefined dataplane-type %s", dType)
+	}
 }
