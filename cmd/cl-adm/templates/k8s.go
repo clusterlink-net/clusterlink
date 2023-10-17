@@ -91,7 +91,7 @@ spec:
         - name: cl-controlplane
           image: cl-controlplane
           imagePullPolicy: IfNotPresent
-          args: ["--log-level", "info"]
+          args: ["--log-level", "info", "--platform", "k8s"]
           ports:
             - containerPort: {{.controlplanePort}}
           volumeMounts:
@@ -109,6 +109,11 @@ spec:
               readOnly: true
             - name: cl-controlplane
               mountPath: {{.persistencyDirectoryMountPath}}
+          env:
+            - name: CL-NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -218,7 +223,32 @@ spec:
     app: cl-dataplane
   ports:
     - name: dataplane
-      port: {{.dataplanePort}}`
+      port: {{.dataplanePort}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cl-controlplane
+rules:
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["create", "delete"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cl-controlplane
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cl-controlplane
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: default`
 )
 
 // CreateK8SConfig creates a kubernetes deployment file.
