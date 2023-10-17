@@ -127,7 +127,7 @@ We have a [tutorial](TODO missing link) that walks you through setting up your d
 
 Here are the key steps, if you run into trouble, the tutorial has more details:
 
-1. Install Go version 1.17 or higher.
+1. Install Go version 1.20 or higher.
 1. Clone our repository with `git clone git@github.com:clusterlink-net/clusterlink.git`  
 1. Run `make build` to ensure the code builds fine. This will pull in all needed
  dependencies.
