@@ -9,14 +9,18 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/sirupsen/logrus"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	cpstore "github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-net/clusterlink/pkg/platform"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/store"
 	"github.com/clusterlink-net/clusterlink/pkg/util"
+)
+
+const (
+	dataplaneAppName = "cl-dataplane"
 )
 
 // Instance of a controlplane, where all API servers delegate their requested actions to.
@@ -35,7 +39,7 @@ type Instance struct {
 	xdsManager    *xdsManager
 	ports         *portManager
 	policyDecider policyengine.PolicyDecider
-	kubeClient    *kubernetes.Clientset
+	platform      platform.Platform
 
 	jwkSignKey   jwk.Key
 	jwkVerifyKey jwk.Key
@@ -139,6 +143,10 @@ func (cp *Instance) GetAllPeers() []*cpstore.Peer {
 // CreateExport defines a new route target for ingress dataplane connections.
 func (cp *Instance) CreateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Creating export '%s'.", export.Name)
+	exSvc := export.ExportSpec.ExternalService
+	if (exSvc.Host != "" && exSvc.Port == 0) || (exSvc.Host == "" && exSvc.Port != 0) {
+		return fmt.Errorf("ExternalService (Host: %s ,Port: %d) wasn't set properly", exSvc.Host, exSvc.Port)
+	}
 
 	resp, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
 	if err != nil {
@@ -153,6 +161,11 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 		if err := cp.exports.Create(export); err != nil {
 			return err
 		}
+		// create k8s endpoint and service for external service.
+		if exSvc.Host != "" && exSvc.Port != 0 && cp.initialized {
+			cp.platform.CreateEndpoint(export.Name, exSvc.Host, exSvc.Port)
+			cp.platform.CreateService(export.Name, export.Name, exSvc.Port, exSvc.Port)
+		}
 	}
 
 	if err := cp.xdsManager.AddExport(export); err != nil {
@@ -166,6 +179,10 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 // UpdateExport updates a new route target for ingress dataplane connections.
 func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Updating export '%s'.", export.Name)
+	exSvc := export.ExportSpec.ExternalService
+	if (exSvc.Host != "" && exSvc.Port == 0) || (exSvc.Host == "" && exSvc.Port != 0) {
+		return fmt.Errorf("ExternalService (Host: %s ,Port: %d) wasn't set properly", exSvc.Host, exSvc.Port)
+	}
 
 	resp, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
 	if err != nil {
@@ -181,6 +198,11 @@ func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	})
 	if err != nil {
 		return err
+	}
+	// Update k8s endpoint and service for external service.
+	if exSvc.Host != "" && exSvc.Port != 0 {
+		cp.platform.UpdateEndpoint(export.Name, exSvc.Host, exSvc.Port)
+		cp.platform.UpdateService(export.Name, export.Name, exSvc.Port, exSvc.Port)
 	}
 
 	if err := cp.xdsManager.AddExport(export); err != nil {
@@ -204,6 +226,16 @@ func (cp *Instance) DeleteExport(name string) (*cpstore.Export, error) {
 	export, err := cp.exports.Delete(name)
 	if err != nil {
 		return nil, err
+	}
+
+	// Deleting k8s endpoint and service for external service.
+	exSvc := export.ExportSpec.ExternalService
+	if exSvc.Host != "" && exSvc.Port != 0 {
+		cp.platform.DeleteEndpoint(name)
+		cp.platform.DeleteService(name)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if err := cp.xdsManager.DeleteExport(name); err != nil {
@@ -245,7 +277,10 @@ func (cp *Instance) CreateImport(imp *cpstore.Import) error {
 		return err
 	}
 
-	// TODO: create k8s service using cp.kubeClient
+	// TODO: handle a crash happening between storing an import and creating a service
+	if cp.initialized {
+		cp.platform.CreateService(imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
+	}
 
 	return nil
 }
@@ -267,7 +302,7 @@ func (cp *Instance) UpdateImport(imp *cpstore.Import) error {
 		return err
 	}
 
-	// TODO: update k8s service using cp.kubeClient
+	cp.platform.UpdateService(imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
 
 	return nil
 }
@@ -287,14 +322,15 @@ func (cp *Instance) DeleteImport(name string) (*cpstore.Import, error) {
 		return nil, err
 	}
 
-	// TODO: delete k8s service using cp.kubeClient
-
 	if err := cp.xdsManager.DeleteImport(name); err != nil {
 		// practically impossible
 		return imp, err
 	}
 
 	cp.ports.Release(imp.Port)
+
+	cp.platform.DeleteService(imp.Service.Host)
+
 	return imp, nil
 }
 
@@ -503,7 +539,7 @@ func (cp *Instance) generateJWK() error {
 }
 
 // NewInstance returns a new controlplane instance.
-func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, kubeClient *kubernetes.Clientset) (*Instance, error) {
+func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, platform platform.Platform) (*Instance, error) {
 	logger := logrus.WithField("component", "controlplane")
 
 	peers, err := cpstore.NewPeers(storeManager)
@@ -547,7 +583,7 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, kubeC
 		xdsManager:    newXDSManager(),
 		ports:         newPortManager(),
 		policyDecider: policyengine.NewPolicyHandler(),
-		kubeClient:    kubeClient,
+		platform:      platform,
 		initialized:   false,
 		logger:        logger,
 	}
