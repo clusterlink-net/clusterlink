@@ -165,7 +165,7 @@ func StartClusterLink(name, cPortLocal, manifests string, cPort uint16, cpType s
 			return err
 		}
 
-		err = runCmd("kind load docker-image cl-controlplane cl-dataplane --name=" + name)
+		err = runCmd("kind load docker-image cl-controlplane cl-dataplane cl-go-dataplane --name=" + name)
 		if err != nil {
 			return err
 		}
@@ -194,10 +194,6 @@ func StartClusterLink(name, cPortLocal, manifests string, cPort uint16, cpType s
 			return err
 		}
 
-		err = runCmd("kubectl apply -f " + manifests + "mbg-role.yaml")
-		if err != nil {
-			return err
-		}
 	} else {
 		err = runCmd("kind load docker-image mbg --name=" + name)
 		if err != nil {
