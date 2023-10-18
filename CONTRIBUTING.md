@@ -263,8 +263,23 @@ Respond to the feedback by making changes in your working copy, committing them,
 
 After you have made the changes (in new commits please!), leave a comment asking the
  the reviewer to take another look. If 3 business days go by with no review, it is okay
- to bump. Never force a push with `git push -f` as it might cause loss of code review
- comments and context associated with previous commits.
+ to bump. With the exception of rebasing discussed below, please do **not** force a push
+ with `git push -f` as it might cause loss of code review comments and context associated
+ with previous commits.
+
+When the PR is ready for merging, you may need to rebase your PR on top of the current codebase.
+This can be done via the PR's GitHub Web page or with the CLI as either `git pull --rebase`
+or `git fetch` and `git rebase` from `upstream/main`.
+If there are any conflicts please fix them locally before committing and pushing to the PR branch.
+If you're unsure on how to resolve a conflict, please ask the reviewer for guidance or help.
+This `git push` is the only instance where you are expected to use `-f` or `--force`. Note that
+it might "litter" your commit with unrelated commits done on `main` since the branch was created
+and thus make reviewing more difficult. We therefore strive to [make PR small and reviews quick](#how-to-get-your-prs-reviewed-quickly),
+to avoid too much divergence and merge conflict.
+
+<!--
+The repository owner can prevent incorrect pull request merges. In the repository settings, in the “Merge button” section, disable “Allow merge commits” and “Allow rebase merging”. You might also want to enable “Automatically delete head branches”.
+-->
 
 After you have addressed all the review feedback, explicitly request a re-review.
  Do not assume that person will know when you are done. There are many ways to request
@@ -344,8 +359,16 @@ It passes tests: run the following command to run all of the tests locally: make
 This section is for maintainers who are reviewing and merging a pull request. While
  it is currently incomplete, it does contain a few tips.
 
-TODO
-
-<!--
-The repository owner can prevent incorrect pull request merges. In the repository settings, in the “Merge button” section, disable “Allow merge commits” and “Allow rebase merging”. You might also want to enable “Automatically delete head branches”.
--->
+* If a submitted PR is not likely to be accepted (e.g., complexity, quality, or scope), please
+ let the submitter know so explaining the reasoning (and perhaps what needs to be done in order
+ to get it accepted in different form) and promptly close the PR. There is no point in wasting
+ anyone's time.
+* Clearly communicate your availability and expected review schedule, when possible.
+* Clearly indicate to the submitter which code change comments are suggestions and which are
+ required.
+* Whenever possible, use `Start a review` instead of adding individual comments. This minimizes review
+ emails sent and lets the submitter see the complete feedback at once instead of in piecemeal fashion.
+* Mark files as viewed to keep track of your progress. GitHub can use that to only show modified
+ files on subsequent reviews.
+* Use filtering (e.g., commits since last review) to better focus on the changes made. The PR's
+ `Files` tab will always contain the PR in its entirety.
