@@ -27,7 +27,7 @@ test-prereqs: prereqs
 	@python3 --version || (echo "Please install python3 https://www.python.org/downloads/ "&& exit 1)
 
 .PHONY: precommit format lint
-precommit: format lint
+precommit: format lint copr-fix
 format: fmt
 fmt: format-go tidy-go vet-go
 vet: vet-go
@@ -43,6 +43,9 @@ format-go: tidy-go vet-go ; $(info formatting code...)
 
 vet-go: ; $(info vetting code...)
 	@go vet ./...
+
+copr-fix: ; $(info adding copyright header...)
+	docker run -it --rm -v $(pwd):/github/workspace apache/skywalking-eyes header fix
 
 #------------------------------------------------------
 # Build targets
