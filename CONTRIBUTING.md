@@ -131,7 +131,7 @@ Here are the key steps, if you run into trouble, the tutorial has more details:
 1. Run `make build` to ensure the code builds fine. This will pull in all needed
  dependencies.
 1. If you are planning on contributing back to the project, you'll need to fork this repository
-  and clone your fork instead. If you want to synchronize your fork with the main `clsuterlink`
+  and clone your fork instead. If you want to synchronize your fork with the main `clusterlink`
   repository, we recommend that you add an additional git remote with
   `git remote add upstream git@github.com:clusterlink-net/clusterlink.git`
 
@@ -214,14 +214,18 @@ git checkout -b MY_FEATURE_BRANCH main
 
 ### The Life of Pi (oops! The Life of a PR)
 
-1. Start on a [unit of work](#scope-of-a-pr) by updating from upstream and then creating
+#### Start on a Work Item
+
+Start on a [unit of work](#scope-of-a-pr) by updating from upstream and then creating
  a branch off of it. Please use a descriptive name (e.g., `fix-issue-17` or `lb-policy-support`). Please do **not** create dependent branches and always branch from
  an up-to-date `upstream/main`.
 
-1. You can create a draft or WIP pull request at any time. You may also
+#### Create a PR
+
+You can create a draft or WIP pull request at any time. You may also
  mark the PR as not ready by assigning the label `do-not-merge/wip` to it.
  Reviewers will ignore it mostly unless you mention someone and ask for help.
- Feel free to open one and use the pull request to see if the CI passes.
+ Feel free to open a draft PR just to see if the CI passes.
  Once you are ready for a review, remove the WIP or click "Ready for Review" and
  leave a comment that it's ready for review.
  Give the PR a descriptive title, that would be appropriate as a commit message once
@@ -236,12 +240,14 @@ git checkout -b MY_FEATURE_BRANCH main
  a code comment. This also applies to answering questions from reviewers: it is best done
  by clarifying the code or add documentation, rather than in the PR comment thread.
 
-1. A reviewer will assign themselves to the pull request. If you don't see anyone
+#### PR Review
+
+A reviewer will assign themselves to the pull request. If you don't see anyone
  assigned after 3 business days, you can leave a comment asking for a review, or ping in
  slack. Sometimes we have busy days, sick days, weekends and vacations, so a little
  patience is appreciated! 🙇‍♀️
 
-1. The reviewer will leave feedback.
+The reviewer will leave feedback.
 
 * `nits`: These are suggestions that you may decide to incorporate into your pull
  request or not without further comment.
@@ -290,11 +296,15 @@ After you have addressed all the review feedback, explicitly request a re-review
 * Assign the pull request to that person, using the “Assignees” list.
 * Write a comment in the conversation in the GitHub pull request.
 
-1. When a pull request has been approved, the reviewer will squash and merge your
+#### PR Approval
+
+When a pull request has been approved, the reviewer will squash and merge your
  commits. If you prefer to rebase your own commits, at any time leave a comment on the
  pull request to let them know that.
 
-1. At this point your changes are available to be included in the next release of
+#### PR Merge and Close
+
+At this point your changes are available to be included in the next release of
  ClusterLink! After your first pull request is merged, you will be invited to the
  Contributors team (TODO create Github team) which you may choose to accept (or not).
  Joining the team lets you have issues in GitHub assigned to you.
