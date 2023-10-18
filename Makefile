@@ -26,7 +26,7 @@ test-prereqs: prereqs
 	@kind --version || (echo "Please install kind: https://kind.sigs.k8s.io/docs/user/quick-start/#installation" && exit 1)
 	@python3 --version || (echo "Please install python3 https://www.python.org/downloads/ "&& exit 1)
 
-.PHONY: precommit format lint
+.PHONY: precommit format lint copr-fix
 precommit: format lint
 format: fmt
 fmt: format-go tidy-go vet-go
@@ -44,6 +44,9 @@ format-go: tidy-go vet-go ; $(info formatting code...)
 vet-go: ; $(info vetting code...)
 	@go vet ./...
 
+copr-fix: $(info adding copyright header...)
+	docker run -it --rm -v :/github/workspace apache/skywalking-eyes header fix
+	
 #------------------------------------------------------
 # Build targets
 #------------------------------------------------------
