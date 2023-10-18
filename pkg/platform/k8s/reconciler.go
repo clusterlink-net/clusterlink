@@ -63,10 +63,11 @@ func (r *Reconciler) DeleteResource(obj client.Object) {
 	delete(r.list, obj.GetName())
 }
 
-// func (r *reconciler) reconcile() {
-// 	// TODO -to reconcile the failedList resources
-// }
-
+//	func (r *reconciler) reconcile() {
+//		// TODO -to reconcile the failedList resources
+//	}
+//
+// TODO- use K8s controller-runtime
 // NewReconciler returns reconciler for k8s objects.
 func NewReconciler(cl client.Client) *Reconciler {
 	logger := logrus.WithField("component", "reconciler.k8s")
