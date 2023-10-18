@@ -85,17 +85,15 @@ clean-tests:
 #------------------------------------------------------
 # Run Targets
 #------------------------------------------------------
-CP ?= old
-
 unit-tests:
 	@echo "Running unit tests..."
 	$(GO) test -v -count=1 ./pkg/...  -json -cover | tparse --all
 
 tests-e2e: build docker-build
-	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/connectivity/... --controlplane=$(CP)
+	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/connectivity/... 
 
 tests-iperf3: build docker-build 
-	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/iperf3/... --controlplane=$(CP)
+	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/iperf3/...
 
 run-gwctl:
 	@./bin/gwctl

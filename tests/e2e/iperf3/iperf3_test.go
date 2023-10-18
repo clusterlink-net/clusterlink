@@ -36,7 +36,7 @@ var (
 	gwctl2             *client.Client
 )
 
-var cpType = flag.String("controlplane", "old", "Check which control-plane to use")
+var cpType = flag.String("controlplane", "new", "Check which control-plane to use")
 
 // TestIperf3 check e2e iperf3 test
 func TestIperf3(t *testing.T) {

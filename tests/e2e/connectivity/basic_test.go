@@ -31,7 +31,7 @@ var (
 	gwctl2             *client.Client
 )
 
-var cpType = flag.String("controlplane", "old", "Check which control-plane to use")
+var cpType = flag.String("controlplane", "new", "Check which control-plane to use")
 
 func TestConnectivity(t *testing.T) {
 	t.Run("Starting Cluster Setup", func(t *testing.T) {
