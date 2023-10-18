@@ -264,8 +264,7 @@ If you agree with a code review comment and do what it suggests, don't respond i
 
 Respond to the feedback by making changes in your working copy, committing them, and
  periodically pushing them to GitHub when the tests pass locally. As soon as you
- receive feedback, you can start working on it. The reviewer should assign the code
- review back to you, but they might forget, so don't wait for that.
+ receive feedback, you can start working on it.
 
 After you have made the changes (in new commits please!), leave a comment asking the
  the reviewer to take another look. If 3 business days go by with no review, it is okay
