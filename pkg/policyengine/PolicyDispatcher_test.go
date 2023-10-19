@@ -14,19 +14,13 @@
 package policyengine_test
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"os"
 	"testing"
 
-	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/clusterlink-net/clusterlink/pkg/api"
 	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
@@ -48,186 +42,127 @@ var (
 		From:       []policytypes.WorkloadSetOrSelector{simpleWorkloadSet},
 		To:         []policytypes.WorkloadSetOrSelector{simpleWorkloadSet},
 	}
-
-	server *httptest.Server
-	client *http.Client
 )
-
-func TestMain(m *testing.M) {
-	router := chi.NewRouter()
-	policyengine.StartPolicyDispatcher(router)
-
-	server = httptest.NewServer(router)
-	client = server.Client()
-
-	exitVal := m.Run()
-
-	server.Close()
-	os.Exit(exitVal)
-}
-
-const (
-	jsonEncoding = "application/json"
-)
-
-func TestAddAndGetConnectivityPolicy(t *testing.T) {
-	policyBuf, err := json.Marshal(policy)
-	require.Nil(t, err)
-	resp, err := client.Post(server.URL+policyengine.AccessRoute+policyengine.AddRoute, jsonEncoding, bytes.NewReader(policyBuf))
-	require.Nil(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusCreated, resp.StatusCode)
-
-	resp, err = client.Get(server.URL + policyengine.AccessRoute)
-	require.Nil(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	body, err := io.ReadAll(resp.Body)
-	require.Nil(t, err)
-	expectedBody := fmt.Sprintf("[%s]\n", policyBuf)
-	if !bytes.Equal(body, []byte(expectedBody)) {
-		t.Fatalf("response should be ok, was: %q", string(body))
-	}
-}
 
 func TestAddAndDeleteConnectivityPolicy(t *testing.T) {
+	ph := policyengine.NewPolicyHandler()
 	policyBuf, err := json.Marshal(policy)
 	require.Nil(t, err)
-	resp, err := client.Post(server.URL+policyengine.AccessRoute+policyengine.AddRoute, jsonEncoding, bytes.NewReader(policyBuf))
-	require.Nil(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	apiPolicy := api.Policy{Name: "test", Spec: api.PolicySpec{Blob: policyBuf}}
 
-	resp, err = client.Post(server.URL+policyengine.AccessRoute+policyengine.DelRoute, jsonEncoding, bytes.NewReader(policyBuf))
+	err = ph.AddAccessPolicy(&apiPolicy)
 	require.Nil(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	err = ph.DeleteAccessPolicy(&apiPolicy)
+	require.Nil(t, err)
 
 	// deleting the same policy again should result in a not-found error
-	resp, err = client.Post(server.URL+policyengine.AccessRoute+policyengine.DelRoute, jsonEncoding, bytes.NewReader(policyBuf))
-	require.Nil(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusNotFound, resp.StatusCode)
+	err = ph.DeleteAccessPolicy(&apiPolicy)
+	require.NotNil(t, err)
 }
 
 func TestAddBadPolicy(t *testing.T) {
+	ph := policyengine.NewPolicyHandler()
 	badPolicy := policytypes.ConnectivityPolicy{Name: "bad-policy"}
 	policyBuf, err := json.Marshal(badPolicy)
 	require.Nil(t, err)
-	resp, err := client.Post(server.URL+policyengine.AccessRoute+policyengine.AddRoute, jsonEncoding, bytes.NewReader(policyBuf))
-	require.Nil(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode)
+	apiPolicy := api.Policy{Name: "bad-policy", Spec: api.PolicySpec{Blob: policyBuf}}
+
+	err = ph.AddAccessPolicy(&apiPolicy)
+	require.NotNil(t, err)
 
 	notEvenAPolicy := []byte{'{'} // a malformed json
-	resp, err = client.Post(server.URL+policyengine.AccessRoute+policyengine.AddRoute, jsonEncoding, bytes.NewReader(notEvenAPolicy))
-	require.Nil(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	apiPolicy = api.Policy{Name: "bad-json", Spec: api.PolicySpec{Blob: notEvenAPolicy}}
+
+	err = ph.AddAccessPolicy(&apiPolicy)
+	require.NotNil(t, err)
 }
 
 func TestDeleteMalformedPolicy(t *testing.T) {
+	ph := policyengine.NewPolicyHandler()
 	notEvenAPolicy := []byte{'{'}
-	resp, err := client.Post(server.URL+policyengine.AccessRoute+policyengine.DelRoute, jsonEncoding, bytes.NewReader(notEvenAPolicy))
-	require.Nil(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	apiPolicy := api.Policy{Name: "bad-json", Spec: api.PolicySpec{Blob: notEvenAPolicy}}
+
+	err := ph.DeleteAccessPolicy(&apiPolicy)
+	require.NotNil(t, err)
 }
 
 func TestIncomingConnectionRequests(t *testing.T) {
+	ph := policyengine.NewPolicyHandler()
 	policy2 := policy
 	policy2.To = []policytypes.WorkloadSetOrSelector{{WorkloadSelector: &selectAllSelector}}
-	addPolicy(t, policy2)
+	addPolicy(t, &policy2, ph)
 
 	requestAttr := event.ConnectionRequestAttr{SrcService: svcName, Direction: event.Incoming}
-	connReqResp := sendConnectionRequest(t, &requestAttr)
+	connReqResp, err := ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Equal(t, event.Allow, connReqResp.Action)
+	require.Nil(t, err)
 
 	requestAttr = event.ConnectionRequestAttr{SrcService: badSvcName, Direction: event.Incoming}
-	connReqResp = sendConnectionRequest(t, &requestAttr)
+	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Equal(t, event.Deny, connReqResp.Action)
+	require.Nil(t, err)
 }
 
 func TestOutgoingConnectionRequests(t *testing.T) {
 	const (
-		mbg1 = "mbg1"
-		mbg2 = "mbg2"
+		peer1 = "peer1"
+		peer2 = "peer2"
 	)
 
+	ph := policyengine.NewPolicyHandler()
 	simpleSelector2 := metav1.LabelSelector{MatchLabels: policytypes.WorkloadAttrs{
 		policyengine.ServiceNameLabel: svcName,
-		policyengine.MbgNameLabel:     mbg2}}
+		policyengine.MbgNameLabel:     peer2}}
 	simpleWorkloadSet2 := policytypes.WorkloadSetOrSelector{WorkloadSelector: &simpleSelector2}
 	policy2 := policy
 	policy2.To = []policytypes.WorkloadSetOrSelector{simpleWorkloadSet2}
-	addPolicy(t, policy2)
-	addRemoteSvc(t, svcName, mbg1)
-	addRemoteSvc(t, svcName, mbg2)
+	addPolicy(t, &policy2, ph)
+	addRemoteSvc(t, svcName, peer1, ph)
+	addRemoteSvc(t, svcName, peer2, ph)
 
 	// Should choose between mbg1 and mbg2, but only mbg2 is allowed by the single access policy
 	requestAttr := event.ConnectionRequestAttr{SrcService: svcName, DstService: svcName, Direction: event.Outgoing}
-	connReqResp := sendConnectionRequest(t, &requestAttr)
+	connReqResp, err := ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Equal(t, event.Allow, connReqResp.Action)
-	require.Equal(t, mbg2, connReqResp.TargetMbg)
+	require.Equal(t, peer2, connReqResp.TargetMbg)
+	require.Nil(t, err)
 
 	// Src service does not match the spec of the single access policy
 	requestAttr = event.ConnectionRequestAttr{SrcService: badSvcName, DstService: svcName, Direction: event.Outgoing}
-	connReqResp = sendConnectionRequest(t, &requestAttr)
+	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Equal(t, event.Deny, connReqResp.Action)
+	require.Nil(t, err)
 
 	// Dst service does not match the spec of the single access policy
 	requestAttr = event.ConnectionRequestAttr{SrcService: svcName, DstService: badSvcName, Direction: event.Outgoing}
-	connReqResp = sendConnectionRequest(t, &requestAttr)
+	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Equal(t, event.Deny, connReqResp.Action)
+	require.Nil(t, err)
 
 	// mbg2 is removed as a remote for the requested service, so now the single allow policy does not allow the remaining mbgs
-	removeRemoteSvc(t, svcName, mbg2)
+	removeRemoteSvc(svcName, peer2, ph)
 	requestAttr = event.ConnectionRequestAttr{SrcService: svcName, DstService: svcName, Direction: event.Outgoing}
-	connReqResp = sendConnectionRequest(t, &requestAttr)
+	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Equal(t, event.Deny, connReqResp.Action)
+	require.Nil(t, err)
 }
 
-func addRemoteSvc(t *testing.T, svc, mbg string) {
-	remoteServiceAttr := event.NewRemoteServiceAttr{Service: svc, Mbg: mbg}
-	jsonReq, err := json.Marshal(remoteServiceAttr)
+func addRemoteSvc(t *testing.T, svc, peer string, ph policyengine.PolicyDecider) {
+	ph.AddPeer(&api.Peer{Name: peer}) // just in case it was not already added
+	action, err := ph.AddBinding(&api.Binding{Spec: api.BindingSpec{Import: svc, Peer: peer}})
 	require.Nil(t, err)
-	resp, err := client.Post(server.URL+"/"+event.NewRemoteService, jsonEncoding, bytes.NewReader(jsonReq))
-	require.Nil(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, event.Allow, action)
 }
 
-func removeRemoteSvc(t *testing.T, svc, mbg string) {
-	remoteServiceAttr := event.RemoveRemoteServiceAttr{Service: svc, Mbg: mbg}
-	jsonReq, err := json.Marshal(remoteServiceAttr)
-	require.Nil(t, err)
-	resp, err := client.Post(server.URL+"/"+event.RemoveRemoteService, jsonEncoding, bytes.NewReader(jsonReq))
-	require.Nil(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+func removeRemoteSvc(svc, peer string, ph policyengine.PolicyDecider) {
+	ph.DeleteBinding(&api.Binding{Spec: api.BindingSpec{Import: svc, Peer: peer}})
 }
 
-func addPolicy(t *testing.T, policy policytypes.ConnectivityPolicy) {
+func addPolicy(t *testing.T, policy *policytypes.ConnectivityPolicy, ph policyengine.PolicyDecider) {
 	policyBuf, err := json.Marshal(policy)
 	require.Nil(t, err)
-	resp, err := client.Post(server.URL+policyengine.AccessRoute+policyengine.AddRoute, jsonEncoding, bytes.NewReader(policyBuf))
+	apiPolicy := api.Policy{Name: policy.Name, Spec: api.PolicySpec{Blob: policyBuf}}
+	err = ph.AddAccessPolicy(&apiPolicy)
 	require.Nil(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusCreated, resp.StatusCode)
-}
-
-func sendConnectionRequest(t *testing.T, req *event.ConnectionRequestAttr) event.ConnectionRequestResp {
-	requestBuf, err := json.Marshal(req)
-	require.Nil(t, err)
-	resp, err := client.Post(server.URL+"/"+event.NewConnectionRequest, jsonEncoding, bytes.NewReader(requestBuf))
-	require.Nil(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	body, err := io.ReadAll(resp.Body)
-	require.Nil(t, err)
-	var connReqResp event.ConnectionRequestResp
-	err = json.Unmarshal(body, &connReqResp)
-	require.Nil(t, err)
-	return connReqResp
 }

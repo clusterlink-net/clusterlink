@@ -28,7 +28,6 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 	"github.com/clusterlink-net/clusterlink/pkg/k8s/kubernetes"
 	metrics "github.com/clusterlink-net/clusterlink/pkg/metrics"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	logutils "github.com/clusterlink-net/clusterlink/pkg/util/log"
 	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
 )
@@ -56,9 +55,7 @@ func StartCmd() *cobra.Command {
 			certificateFile, _ := cmd.Flags().GetString("cert")
 			keyFile, _ := cmd.Flags().GetString("key")
 			dataplane, _ := cmd.Flags().GetString("dataplane")
-			startPolicyEngine, _ := cmd.Flags().GetBool("startPolicyEngine")
 			observe, _ := cmd.Flags().GetBool("observe")
-			policyengineTarget, _ := cmd.Flags().GetString("policyengineIp")
 			restore, _ := cmd.Flags().GetBool("restore")
 			logFile, _ := cmd.Flags().GetBool("logFile")
 			logLevel, _ := cmd.Flags().GetString("logLevel")
@@ -81,11 +78,7 @@ func StartCmd() *cobra.Command {
 				}()
 			}
 			if restore {
-				if !startPolicyEngine && policyengineTarget == "" {
-					fmt.Println("Error: Please specify policyengineTarget")
-					os.Exit(1)
-				}
-				restoreMbg(logLevel, logFile, startPolicyEngine)
+				restoreMbg(logLevel, logFile)
 				log.Infof("Restoring MBG")
 				store.PrintState()
 				initializeRuntimeEnv(rtenv)
@@ -95,9 +88,6 @@ func StartCmd() *cobra.Command {
 
 			createMbg(id, ip, cportLocal, cport, localDataPortRange, externalDataPortRange, dataplane,
 				caFile, certificateFile, keyFile, logLevel, logFile)
-			if startPolicyEngine {
-				addPolicyEngine("localhost:"+cportLocal+"/policy", true)
-			}
 			if observe {
 				addMetricsManager("localhost:"+cportLocal+"/metrics", true)
 			}
@@ -153,16 +143,6 @@ func startHealthMonitor() {
 	health.MonitorHeartBeats()
 }
 
-// addPolicyEngine add policy engine server
-func addPolicyEngine(policyengineTarget string, start bool) {
-	store.GetEventManager().AssignPolicyDispatcher(store.GetAddrStart()+policyengineTarget, store.GetHTTPClient())
-	// TODO : Handle different MBG IDs
-	store.SaveState()
-	if start {
-		policyengine.StartPolicyDispatcher(store.GetChiRouter())
-	}
-}
-
 // createMbg create mbg control plane process
 func createMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalDataPortRange, dataplane,
 	caFile, certificateFile, keyFile, logLevel string, logFile bool) {
@@ -191,7 +171,7 @@ func createMbg(id, ip, cportLocal, cportExtern, localDataPortRange, externalData
 }
 
 // restoreMbg restore the mbg after a failure in the control plane
-func restoreMbg(logLevel string, logFile, startPolicyEngine bool) {
+func restoreMbg(logLevel string, logFile bool) {
 	store.UpdateState()
 	var err error
 	if logFile {
@@ -202,10 +182,6 @@ func restoreMbg(logLevel string, logFile, startPolicyEngine bool) {
 
 	if err != nil {
 		log.Error(err)
-	}
-
-	if startPolicyEngine {
-		go addPolicyEngine("localhost"+store.GetMyCport().Local, true)
 	}
 
 	// Set chi router
