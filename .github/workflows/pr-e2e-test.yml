@@ -26,11 +26,6 @@ jobs:
     - name: Build docker images
       run: make docker-build
     - name: Run e2e connectivity test on a kind cluster
-      run: ./tests/k8s.sh
-      timeout-minutes: 10
+      run: go test -p 1 -timeout 10m -v -tags e2e ./tests/e2e/connectivity/basic_test.go
     - name: Run e2e connectivity test on a kind cluster with go dataplane
-      run: ./tests/k8s.sh go
-      timeout-minutes: 10
-    - name: Run end-to-end tests
-      run: make tests-e2e
-      timeout-minutes: 10
+      run: go test -p 1 -timeout 10m -v -tags e2e ./tests/e2e/connectivity/basic_test.go --dataplane=go
