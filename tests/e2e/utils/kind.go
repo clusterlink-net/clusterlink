@@ -163,7 +163,7 @@ func DeleteCluster(name string) error {
 }
 
 // StartClusterLink creates a cluster, and launches clusterlink
-func StartClusterLink(name, cPortLocal, manifests string, cPort uint16, cpType string) error {
+func StartClusterLink(name, cPortLocal, manifests string, cPort uint16, cpType, dpType string) error {
 	certs := "./mtls"
 	cPortStr := strconv.Itoa(int(cPort))
 	clusterIP, err := createCluster(name)
@@ -173,7 +173,7 @@ func StartClusterLink(name, cPortLocal, manifests string, cPort uint16, cpType s
 
 	if cpType == "new" {
 		clAdm := ProjDir + "/bin/cl-adm "
-		err := runCmdInDir(clAdm+" create peer --name "+name, testOutputFolder)
+		err := runCmdInDir(clAdm+" create peer --name "+name+" --dataplane-type "+dpType, testOutputFolder)
 		if err != nil {
 			return err
 		}

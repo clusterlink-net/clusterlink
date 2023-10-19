@@ -60,7 +60,7 @@ func getProjFolder() string {
 }
 
 // StartClusterSetup starts a two cluster setup
-func StartClusterSetup(cpType string) error {
+func StartClusterSetup(cpType, dpType string) error {
 	if cpType == "new" {
 		clAdm := ProjDir + "/bin/cl-adm "
 		// Create test folder
@@ -74,12 +74,12 @@ func StartClusterSetup(cpType string) error {
 			return err
 		}
 	}
-	err := StartClusterLink(gw1Name, cPortLocal, manifests, ControlPort, cpType)
+	err := StartClusterLink(gw1Name, cPortLocal, manifests, ControlPort, cpType, dpType)
 	if err != nil {
 		return err
 	}
 
-	return StartClusterLink(gw2Name, cPortLocal, manifests, ControlPort, cpType)
+	return StartClusterLink(gw2Name, cPortLocal, manifests, ControlPort, cpType, dpType)
 
 }
 

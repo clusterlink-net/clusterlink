@@ -45,10 +45,11 @@ var (
 )
 
 var cpType = flag.String("controlplane", "new", "Check which control-plane to use")
+var dpType = flag.String("dataplane", "envoy", "Check which data-plane to use (go/envoy)")
 
 func TestConnectivity(t *testing.T) {
 	t.Run("Starting Cluster Setup", func(t *testing.T) {
-		err := utils.StartClusterSetup(*cpType)
+		err := utils.StartClusterSetup(*cpType, *dpType)
 		if err != nil {
 			t.Fatalf("Failed to setup cluster")
 		}
