@@ -27,11 +27,9 @@ function clean_up {
 
 function clean_up_with_logs {
   # export logs
-  kind export logs e2e-logs-$DATAPLANE_TYPE --name peer1
+  kind export logs $SCRIPT_DIR/../e2e-logs-$DATAPLANE_TYPE --name peer1
 
   clean_up
-
-  cd -
 }
 function test_k8s {
   # create fabric with a single peer (peer1)
