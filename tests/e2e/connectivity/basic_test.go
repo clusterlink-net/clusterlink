@@ -111,6 +111,7 @@ func TestConnectivity(t *testing.T) {
 	})
 	t.Run("Testing Service Connectivity", func(t *testing.T) {
 		policy, err := utils.GetPolicyFromFile(allowAllPolicyFile)
+		require.Nil(t, err)
 		if *cpType == "new" {
 			err = gwctl1.Policies.Create(policy)
 			require.NoError(t, err)
