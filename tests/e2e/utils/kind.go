@@ -153,11 +153,6 @@ func createCluster(name string) (string, error) {
 		return "", err
 	}
 
-	err = runCmd("kind load docker-image mbg --name=" + name)
-	if err != nil {
-		return "", err
-	}
-
 	ip, err := GetKindIP(name)
 	return ip, err
 }
@@ -168,58 +163,102 @@ func DeleteCluster(name string) error {
 }
 
 // StartClusterLink creates a cluster, and launches clusterlink
-func StartClusterLink(name, cPortLocal, manifests string, cPort uint16) error {
+func StartClusterLink(name, cPortLocal, manifests string, cPort uint16, cpType string) error {
 	certs := "./mtls"
+	cPortStr := strconv.Itoa(int(cPort))
 	clusterIP, err := createCluster(name)
 	if err != nil {
 		return err
 	}
 
-	err = runCmd("kubectl apply -f " + manifests + "mbg-role.yaml")
-	if err != nil {
-		return err
-	}
+	if cpType == "new" {
+		clAdm := ProjDir + "/bin/cl-adm "
+		err := runCmdInDir(clAdm+" create peer --name "+name, testOutputFolder)
+		if err != nil {
+			return err
+		}
 
-	err = runCmd("kubectl create -f " + manifests + "mbg.yaml")
-	if err != nil {
-		return err
-	}
+		err = runCmd("kind load docker-image cl-controlplane cl-dataplane cl-go-dataplane --name=" + name)
+		if err != nil {
+			return err
+		}
 
-	err = runCmd("kubectl create -f " + manifests + "dataplane.yaml")
-	if err != nil {
-		return err
-	}
+		err = runCmd("kubectl apply -f " + testOutputFolder + name + "/k8s.yaml")
+		if err != nil {
+			return err
+		}
 
-	err = IsPodReady("mbg")
-	if err != nil {
-		return err
-	}
+		err = IsPodReady("cl-controlplane")
+		if err != nil {
+			return err
+		}
 
-	gwPod, _ := GetPodNameIP("mbg")
-	err = IsPodReady("dataplane")
-	if err != nil {
-		return err
-	}
+		err = IsPodReady("cl-dataplane")
+		if err != nil {
+			return err
+		}
+		err = runCmd("kubectl delete service cl-dataplane")
+		if err != nil {
+			return err
+		}
 
-	dpPod, _ := GetPodNameIP("dataplane")
-	cPortStr := strconv.Itoa(int(cPort))
-	err = runCmd("kubectl create service nodeport dataplane --tcp=" + cPortLocal + ":" + cPortLocal + " --node-port=" + cPortStr)
-	if err != nil {
-		return err
-	}
+		err = runCmd("kubectl create service nodeport cl-dataplane --tcp=" + cPortLocal + ":" + cPortLocal + " --node-port=" + cPortStr)
+		if err != nil {
+			return err
+		}
 
-	startcmd := gwPod + " -- ./controlplane start --id " + name + " --ip " + clusterIP +
-		" --cport " + cPortStr + " --cportLocal " + cPortLocal + " --certca " + certs + "/ca.crt --cert " +
-		certs + "/" + name + ".crt --key " + certs + "/" + name + ".key"
-	err = runCmdB("kubectl exec -i " + startcmd)
-	if err != nil {
-		return err
-	}
+	} else {
+		err = runCmd("kind load docker-image mbg --name=" + name)
+		if err != nil {
+			return err
+		}
 
-	err = runCmdB("kubectl exec -i " + dpPod + " -- ./dataplane --id " + name + " --certca " + certs + "/ca.crt --cert " +
-		certs + "/" + name + ".crt --key " + certs + "/" + name + ".key")
-	if err != nil {
-		return err
+		err = runCmd("kubectl apply -f " + manifests + "mbg-role.yaml")
+		if err != nil {
+			return err
+		}
+
+		err = runCmd("kubectl create -f " + manifests + "mbg.yaml")
+		if err != nil {
+			return err
+		}
+
+		err = runCmd("kubectl create -f " + manifests + "dataplane.yaml")
+		if err != nil {
+			return err
+		}
+
+		err = IsPodReady("mbg")
+		if err != nil {
+			return err
+		}
+
+		gwPod, _ := GetPodNameIP("mbg")
+		err = IsPodReady("dataplane")
+		if err != nil {
+			return err
+		}
+
+		err = runCmd("kubectl create service nodeport dataplane --tcp=" + cPortLocal + ":" + cPortLocal + " --node-port=" + cPortStr)
+		if err != nil {
+			return err
+		}
+
+		dpPod, _ := GetPodNameIP("dataplane")
+
+		startcmd := gwPod + " -- ./controlplane start --id " + name + " --ip " + clusterIP +
+			" --cport " + cPortStr + " --cportLocal " + cPortLocal + " --certca " + certs + "/ca.crt --cert " +
+			certs + "/" + name + ".crt --key " + certs + "/" + name + ".key"
+		err = runCmdB("kubectl exec -i " + startcmd)
+		if err != nil {
+			return err
+		}
+
+		err = runCmdB("kubectl exec -i " + dpPod + " -- ./dataplane --id " + name + " --certca " + certs + "/ca.crt --cert " +
+			certs + "/" + name + ".crt --key " + certs + "/" + name + ".key")
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
