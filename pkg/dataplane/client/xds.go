@@ -55,13 +55,11 @@ func (x *XDSClient) runFetcher(resourceType string) error {
 		f, err := newFetcher(context.Background(), conn, resourceType, x.dataplane)
 		if err != nil {
 			x.logger.Errorf("Failed to initialize fetcher: %v.", err)
-			time.Sleep(5 * time.Second)
 			continue
 		}
 		x.logger.Infof("Successfully initialized client for %s type.", resourceType)
 		err = f.Run()
 		x.logger.Infof("Fetcher '%s' stopped: %v.", resourceType, err)
-		time.Sleep(5 * time.Second)
 	}
 }
 
