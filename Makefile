@@ -26,7 +26,7 @@ test-prereqs: prereqs
 	@kind --version || (echo "Please install kind: https://kind.sigs.k8s.io/docs/user/quick-start/#installation" && exit 1)
 	@python3 --version || (echo "Please install python3 https://www.python.org/downloads/ "&& exit 1)
 
-.PHONY: precommit format lint
+.PHONY: precommit format lint tests-e2e-k8s
 precommit: format lint copr-fix
 format: fmt
 fmt: format-go tidy-go vet-go
@@ -88,11 +88,8 @@ unit-tests:
 	@echo "Running unit tests..."
 	$(GO) test -v -count=1 ./pkg/...  -json -cover | tparse --all
 
-tests-e2e: build docker-build
-	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/connectivity/... 
-
-tests-iperf3: build docker-build 
-	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/iperf3/...
+tests-e2e-k8s:
+	$(GO) test -p 1 -timeout 30m -v -tags e2e-k8s ./tests/e2e/k8s
 
 run-kind-iperf3:
 	python3 demos/iperf3/kind/simple_test.py
