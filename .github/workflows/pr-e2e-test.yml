@@ -28,6 +28,7 @@ jobs:
     - name: Run e2e connectivity test on a kind cluster
       run: ./tests/k8s.sh
       timeout-minutes: 10
+    - name: upload e2e test logs for envoy dataplane
       uses: actions/upload-artifact@v3
       # For now enabling artifacts always, TODO: Change it to collect artifacts only upon failures
       if: always()
@@ -37,6 +38,7 @@ jobs:
     - name: Run e2e connectivity test on a kind cluster with go dataplane
       run: ./tests/k8s.sh go
       timeout-minutes: 10
+    - name: upload e2e test logs for go dataplane
       uses: actions/upload-artifact@v3
       # For now enabling artifacts always, TODO: Change it to collect artifacts only upon failures
       if: always()
