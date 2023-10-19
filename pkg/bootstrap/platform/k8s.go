@@ -11,16 +11,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package templates
+package platform
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
-	"os"
 	"path/filepath"
 	"text/template"
 
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
+	cpapp "github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
+	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
+	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 )
 
 const (
@@ -264,14 +267,43 @@ subjects:
   namespace: default`
 )
 
-// CreateK8SConfig creates a kubernetes deployment file.
-func CreateK8SConfig(args map[string]interface{}, outDir string) error {
+// K8SConfig returns a kubernetes deployment file.
+func K8SConfig(config *Config) ([]byte, error) {
+	args := map[string]interface{}{
+		"peer":          config.Peer,
+		"dataplanes":    config.Dataplanes,
+		"dataplaneType": config.DataplaneType,
+
+		"dataplaneTypeEnvoy": DataplaneTypeEnvoy,
+
+		"fabricCA":         base64.StdEncoding.EncodeToString(config.FabricCertificate.RawCert()),
+		"peerCA":           base64.StdEncoding.EncodeToString(config.PeerCertificate.RawCert()),
+		"controlplaneCert": base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawCert()),
+		"controlplaneKey":  base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawKey()),
+		"dataplaneCert":    base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawCert()),
+		"dataplaneKey":     base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawKey()),
+		"gwctlCert":        base64.StdEncoding.EncodeToString(config.GWCTLCertificate.RawCert()),
+		"gwctlKey":         base64.StdEncoding.EncodeToString(config.GWCTLCertificate.RawKey()),
+
+		"persistencyDirectoryMountPath": filepath.Dir(cpapp.StoreFile),
+
+		"controlplaneCAMountPath":   cpapp.CAFile,
+		"controlplaneCertMountPath": cpapp.CertificateFile,
+		"controlplaneKeyMountPath":  cpapp.KeyFile,
+
+		"dataplaneCAMountPath":   dpapp.CAFile,
+		"dataplaneCertMountPath": dpapp.CertificateFile,
+		"dataplaneKeyMountPath":  dpapp.KeyFile,
+
+		"controlplanePort": cpapi.ListenPort,
+		"dataplanePort":    dpapi.ListenPort,
+	}
+
 	var k8sConfig bytes.Buffer
 	t := template.Must(template.New("").Parse(k8sTemplate))
 	if err := t.Execute(&k8sConfig, args); err != nil {
-		return fmt.Errorf("cannot create k8s configuration off template: %w", err)
+		return nil, fmt.Errorf("cannot create k8s configuration off template: %w", err)
 	}
 
-	outPath := filepath.Join(outDir, config.K8SYamlFile)
-	return os.WriteFile(outPath, k8sConfig.Bytes(), 0600)
+	return k8sConfig.Bytes(), nil
 }
