@@ -70,6 +70,7 @@ func (d *Dataplane) serveEgressConnections(name string, listener net.Listener) e
 		targetHost, err := d.GetClusterHost(targetPeer)
 		if err != nil {
 			d.logger.Errorf("Unable to get cluster host :%v.", err)
+			conn.Close()
 			continue
 		}
 		tlsConfig := d.parsedCertData.ClientConfig(targetHost)
