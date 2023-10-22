@@ -113,7 +113,7 @@ func (c *Client) SendLBPolicy(serviceSrc, serviceDst string, scheme policyengine
 	default:
 		return fmt.Errorf("unknown command")
 	}
-	jsonReq, err := json.Marshal(policyengine.LBPolicy{ServiceSrc: serviceSrc, ServiceDst: serviceDst, Scheme: scheme, DefaultMbg: gwDest})
+	jsonReq, err := json.Marshal(policyengine.LBPolicy{ServiceSrc: serviceSrc, ServiceDst: serviceDst, Scheme: scheme, DefaultPeer: gwDest})
 	if err != nil {
 		return err
 	}

@@ -11,10 +11,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/**********************************************************/
-/* Package Policy contain all Policies and data structure
-/* related to Policy that can run in mbg
-/**********************************************************/
 package policyengine
 
 import (
@@ -39,18 +35,19 @@ const (
 )
 
 type LBPolicy struct {
-	ServiceSrc string
-	ServiceDst string
-	Scheme     LBScheme
-	DefaultMbg string
+	ServiceSrc  string
+	ServiceDst  string
+	Scheme      LBScheme
+	DefaultPeer string
 }
 
 type ServiceState struct {
 	totalConnections int
-	defaultMbg       string
+	defaultPeer      string
 }
+
 type LoadBalancer struct {
-	ServiceMap      map[string]*[]string                // Service to MBGs
+	ServiceMap      map[string]*[]string                // Service to Peers
 	Policy          map[string](map[string]LBScheme)    // PolicyMap [serviceDst][serviceSrc]Policy
 	ServiceStateMap map[string]map[string]*ServiceState // State of policy Per destination and source
 }
@@ -78,7 +75,7 @@ func (lB *LoadBalancer) SetPolicyReq(w http.ResponseWriter, r *http.Request) {
 	}
 	plog.Infof("Set LB Policy request : %+v", requestAttr)
 
-	lB.SetPolicy(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.Scheme, requestAttr.DefaultMbg)
+	lB.SetPolicy(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.Scheme, requestAttr.DefaultPeer)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -93,7 +90,7 @@ func (lB *LoadBalancer) DeletePolicyReq(w http.ResponseWriter, r *http.Request) 
 	}
 	plog.Infof("Delete LB Policy request : %+v", requestAttr)
 
-	lB.deletePolicy(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.Scheme, requestAttr.DefaultMbg)
+	lB.deletePolicy(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.Scheme, requestAttr.DefaultPeer)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -110,42 +107,42 @@ func (lB *LoadBalancer) GetPolicyReq(w http.ResponseWriter, _ *http.Request) {
 
 /*********************  LodBalancer functions ***************************************************/
 
-func (lB *LoadBalancer) AddToServiceMap(serviceDst string, mbg string) {
-	if mbgs, ok := lB.ServiceMap[serviceDst]; ok {
-		_, exist := exists(*mbgs, mbg)
+func (lB *LoadBalancer) AddToServiceMap(serviceDst string, peer string) {
+	if peers, ok := lB.ServiceMap[serviceDst]; ok {
+		_, exist := exists(*peers, peer)
 		if !exist {
-			*mbgs = append(*mbgs, mbg)
-			lB.ServiceMap[serviceDst] = mbgs
+			*peers = append(*peers, peer)
+			lB.ServiceMap[serviceDst] = peers
 		}
 	} else {
-		lB.ServiceMap[serviceDst] = &([]string{mbg})
+		lB.ServiceMap[serviceDst] = &([]string{peer})
 		lB.ServiceStateMap[serviceDst] = make(map[string]*ServiceState)
-		lB.ServiceStateMap[serviceDst][event.Wildcard] = &ServiceState{totalConnections: 0, defaultMbg: mbg}
+		lB.ServiceStateMap[serviceDst][event.Wildcard] = &ServiceState{totalConnections: 0, defaultPeer: peer}
 	}
 	llog.Infof("Remote serviceDst added %v->[%+v]", serviceDst, *(lB.ServiceMap[serviceDst]))
 }
 
-func (lB *LoadBalancer) RemoveMbgFromServiceMap(mbg string) {
+func (lB *LoadBalancer) RemovePeerFromServiceMap(peer string) {
 	for svc := range lB.ServiceMap {
-		lB.RemoveMbgFromService(svc, mbg)
+		lB.RemovePeerFromService(svc, peer)
 	}
 }
-func (lB *LoadBalancer) RemoveMbgFromService(svc, mbg string) {
-	if mbgs, ok := lB.ServiceMap[svc]; ok {
-		index, exist := exists(*mbgs, mbg)
+func (lB *LoadBalancer) RemovePeerFromService(svc, peer string) {
+	if peers, ok := lB.ServiceMap[svc]; ok {
+		index, exist := exists(*peers, peer)
 		if !exist {
 			return
 		}
-		*mbgs = append((*mbgs)[:index], (*mbgs)[index+1:]...)
-		llog.Infof("MBG removed from service %v->[%+v]", svc, *(lB.ServiceMap[svc]))
+		*peers = append((*peers)[:index], (*peers)[index+1:]...)
+		llog.Infof("Peer removed from service %v->[%+v]", svc, *(lB.ServiceMap[svc]))
 	}
 }
-func (lB *LoadBalancer) SetPolicy(serviceSrc, serviceDst string, policy LBScheme, defaultMbg string) {
-	plog.Infof("Set LB policy %v for serviceSrc %+v serviceDst %+v defaultMbg %+v", policy, serviceSrc, serviceDst, defaultMbg)
+func (lB *LoadBalancer) SetPolicy(serviceSrc, serviceDst string, policy LBScheme, defaultPeer string) {
+	plog.Infof("Set LB policy %v for serviceSrc %+v serviceDst %+v defaultPeer %+v", policy, serviceSrc, serviceDst, defaultPeer)
 
-	if policy == Static && !lB.checkMbgExist(serviceDst, defaultMbg) {
-		llog.Errorf("Remote service  %v is not exist in [%+v]", serviceDst, defaultMbg)
-		defaultMbg = ""
+	if policy == Static && !lB.checkPeerExist(serviceDst, defaultPeer) {
+		llog.Errorf("Remote service  %v is not exist in [%+v]", serviceDst, defaultPeer)
+		defaultPeer = ""
 	}
 
 	if _, ok := lB.Policy[serviceDst]; !ok { // Create default service if destination service is not exist
@@ -154,16 +151,16 @@ func (lB *LoadBalancer) SetPolicy(serviceSrc, serviceDst string, policy LBScheme
 	// start to update policy
 	lB.Policy[serviceDst][serviceSrc] = policy
 	if serviceDst != event.Wildcard { // ServiceStateMap[dst][*] is created only when the remote service is exposed
-		lB.ServiceStateMap[serviceDst][serviceSrc] = &ServiceState{totalConnections: 0, defaultMbg: defaultMbg}
+		lB.ServiceStateMap[serviceDst][serviceSrc] = &ServiceState{totalConnections: 0, defaultPeer: defaultPeer}
 	}
 
-	if serviceDst != event.Wildcard && serviceSrc == event.Wildcard { // for [dst][*] update only defaultMbg
-		lB.ServiceStateMap[serviceDst][serviceSrc].defaultMbg = defaultMbg
+	if serviceDst != event.Wildcard && serviceSrc == event.Wildcard { // for [dst][*] update only defaultPeer
+		lB.ServiceStateMap[serviceDst][serviceSrc].defaultPeer = defaultPeer
 	}
 }
 
-func (lB *LoadBalancer) deletePolicy(serviceSrc, serviceDst string, policy LBScheme, defaultMbg string) {
-	plog.Infof("Delete LB policy %v for serviceSrc %+v serviceDst %+v defaultMbg %+v", policy, serviceSrc, serviceDst, defaultMbg)
+func (lB *LoadBalancer) deletePolicy(serviceSrc, serviceDst string, policy LBScheme, defaultPeer string) {
+	plog.Infof("Delete LB policy %v for serviceSrc %+v serviceDst %+v defaultPeer %+v", policy, serviceSrc, serviceDst, defaultPeer)
 	if _, ok := lB.Policy[serviceDst][serviceSrc]; ok {
 		delete(lB.Policy[serviceDst], serviceSrc)
 		if len(lB.Policy[serviceDst]) == 0 {
@@ -176,9 +173,9 @@ func (lB *LoadBalancer) deletePolicy(serviceSrc, serviceDst string, policy LBSch
 	}
 }
 
-func (lB *LoadBalancer) RemoveDestService(serviceDst, mbg string) {
-	if mbg != "" {
-		lB.RemoveMbgFromService(serviceDst, mbg)
+func (lB *LoadBalancer) RemoveDestService(serviceDst, peer string) {
+	if peer != "" {
+		lB.RemovePeerFromService(serviceDst, peer)
 	} else {
 		delete(lB.ServiceMap, serviceDst)
 	}
@@ -194,51 +191,51 @@ func (lB *LoadBalancer) updateState(serviceSrc, serviceDst string) {
 }
 
 /*********************  Policy functions ***************************************************/
-func (lB *LoadBalancer) LookupRandom(service string, mbgs []string) (string, error) {
-	index := rand.Intn(len(mbgs)) //nolint:gosec // G404: use of weak random is fine for load balancing
-	plog.Infof("LoadBalancer selects index(%d) - target GW %s for service %s", index, mbgs[index], service)
-	return mbgs[index], nil
+func (lB *LoadBalancer) LookupRandom(service string, peers []string) (string, error) {
+	index := rand.Intn(len(peers)) //nolint:gosec // G404: use of weak random is fine for load balancing
+	plog.Infof("LoadBalancer selects index(%d) - target peer %s for service %s", index, peers[index], service)
+	return peers[index], nil
 }
 
-func (lB *LoadBalancer) LookupECMP(service string, mbgs []string) (string, error) {
-	index := lB.ServiceStateMap[service][event.Wildcard].totalConnections % len(mbgs)
-	plog.Infof("LoadBalancer selects index(%d) - target MBG %s", index, mbgs[index])
-	return mbgs[index], nil
+func (lB *LoadBalancer) LookupECMP(service string, peers []string) (string, error) {
+	index := lB.ServiceStateMap[service][event.Wildcard].totalConnections % len(peers)
+	plog.Infof("LoadBalancer selects index(%d) - target peer %s", index, peers[index])
+	return peers[index], nil
 }
 
-func (lB *LoadBalancer) LookupStatic(serviceSrc, serviceDst string, mbgs []string) (string, error) {
-	mbg := lB.getDefaultMbg(serviceSrc, serviceDst)
-	plog.Infof("LookupStatic: serviceSrc %s serviceDst %s selects defaultMbg %s - target MBG %s", serviceSrc, serviceDst, mbg, mbgs)
-	for _, m := range mbgs {
-		if m == mbg {
-			plog.Infof("LoadBalancer selects - target MBG %s", mbg)
-			return mbg, nil
+func (lB *LoadBalancer) LookupStatic(serviceSrc, serviceDst string, peers []string) (string, error) {
+	peer := lB.getDefaultPeer(serviceSrc, serviceDst)
+	plog.Infof("LookupStatic: serviceSrc %s serviceDst %s selects defaultPeer %s - target peer %s", serviceSrc, serviceDst, peer, peers)
+	for _, m := range peers {
+		if m == peer {
+			plog.Infof("LoadBalancer selects - target peer %s", peer)
+			return peer, nil
 		}
 	}
-	plog.Errorf("Falling back to other MBGs due to unavailability of default MBG")
+	plog.Errorf("Falling back to other peers due to unavailability of default peer")
 
-	return lB.LookupRandom(serviceDst, mbgs)
+	return lB.LookupRandom(serviceDst, peers)
 }
 
-func (lB *LoadBalancer) LookupWith(serviceSrc, serviceDst string, mbgs []string) (string, error) {
+func (lB *LoadBalancer) LookupWith(serviceSrc, serviceDst string, peers []string) (string, error) {
 	policy := lB.getPolicy(serviceSrc, serviceDst)
 
 	lB.updateState(serviceSrc, serviceDst)
-	plog.Infof("LoadBalancer lookup for serviceSrc %s serviceDst %s with policy %s with %+v", serviceSrc, serviceDst, policy, mbgs)
+	plog.Infof("LoadBalancer lookup for serviceSrc %s serviceDst %s with policy %s with %+v", serviceSrc, serviceDst, policy, peers)
 
-	if len(mbgs) == 0 {
-		return "", fmt.Errorf("no available target MBG")
+	if len(peers) == 0 {
+		return "", fmt.Errorf("no available target peer")
 	}
 
 	switch policy {
 	case Random:
-		return lB.LookupRandom(serviceDst, mbgs)
+		return lB.LookupRandom(serviceDst, peers)
 	case ECMP:
-		return lB.LookupECMP(serviceDst, mbgs)
+		return lB.LookupECMP(serviceDst, peers)
 	case Static:
-		return lB.LookupStatic(serviceSrc, serviceDst, mbgs)
+		return lB.LookupStatic(serviceSrc, serviceDst, peers)
 	default:
-		return lB.LookupRandom(serviceDst, mbgs)
+		return lB.LookupRandom(serviceDst, peers)
 	}
 }
 func (lB *LoadBalancer) getPolicy(serviceSrc, serviceDst string) LBScheme {
@@ -253,31 +250,31 @@ func (lB *LoadBalancer) getPolicy(serviceSrc, serviceDst string) LBScheme {
 	}
 }
 
-func (lB *LoadBalancer) getDefaultMbg(serviceSrc, serviceDst string) string {
+func (lB *LoadBalancer) getDefaultPeer(serviceSrc, serviceDst string) string {
 	if _, ok := lB.Policy[serviceDst]; ok {
 		if _, ok := lB.Policy[serviceDst][serviceSrc]; ok {
-			return lB.ServiceStateMap[serviceDst][serviceSrc].defaultMbg
+			return lB.ServiceStateMap[serviceDst][serviceSrc].defaultPeer
 		}
-		return lB.ServiceStateMap[serviceDst][event.Wildcard].defaultMbg
+		return lB.ServiceStateMap[serviceDst][event.Wildcard].defaultPeer
 	}
 	plog.Errorf("Lookup policy for destination service (%s) that doesn't exist", serviceDst)
 	return ""
 }
 
-func (lB *LoadBalancer) GetTargetMbgs(service string) ([]string, error) {
-	mbgList := lB.ServiceMap[service]
-	if mbgList == nil {
-		plog.Errorf("Unable to find MBG for %s", service)
-		return []string{}, fmt.Errorf("no available target MBG")
+func (lB *LoadBalancer) GetTargetPeers(service string) ([]string, error) {
+	peerList := lB.ServiceMap[service]
+	if peerList == nil {
+		plog.Errorf("Unable to find peer for %s", service)
+		return []string{}, fmt.Errorf("no available target peer")
 	}
-	return *mbgList, nil
+	return *peerList, nil
 }
 
-func (lB *LoadBalancer) checkMbgExist(service, mbg string) bool {
-	mbgList := lB.ServiceMap[service]
-	if mbgList != nil {
-		for _, val := range *mbgList {
-			if val == mbg {
+func (lB *LoadBalancer) checkPeerExist(service, peer string) bool {
+	peerList := lB.ServiceMap[service]
+	if peerList != nil {
+		for _, val := range *peerList {
+			if val == peer {
 				return true
 			}
 		}

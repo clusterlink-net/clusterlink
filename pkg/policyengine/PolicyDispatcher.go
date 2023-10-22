@@ -11,10 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/**********************************************************/
-/* Package Policy contain all Policies and data structure
-/* related to Policy that can run in mbg
-/**********************************************************/
+// policyengine package handles policies that govern ClusterLink behavior
 package policyengine
 
 import (
@@ -43,7 +40,7 @@ const (
 	DelRoute = "/delete" // Route for deleting policies
 
 	ServiceNameLabel = "clusterlink/metadata.serviceName"
-	MbgNameLabel     = "clusterlink/metadata.gatewayName"
+	GatewayNameLabel = "clusterlink/metadata.gatewayName"
 )
 
 var plog = logrus.WithField("component", "PolicyEngine")
@@ -67,14 +64,10 @@ type PolicyDecider interface {
 	DeleteExport(name string)
 }
 
-type MbgState struct {
-	mbgPeers []string
-}
-
 type PolicyHandler struct {
 	loadBalancer    *LoadBalancer
 	connectivityPDP *connectivitypdp.PDP
-	mbgState        MbgState
+	knownPeers      []string
 }
 
 func NewPolicyHandler() PolicyDecider {
@@ -96,7 +89,7 @@ func exists(slice []string, entry string) (int, bool) {
 func getServiceAttrs(serviceName, peer string) policytypes.WorkloadAttrs {
 	ret := policytypes.WorkloadAttrs{ServiceNameLabel: serviceName}
 	if len(peer) > 0 {
-		ret[MbgNameLabel] = peer
+		ret[GatewayNameLabel] = peer
 	}
 	return ret
 }
@@ -124,39 +117,39 @@ func (pH *PolicyHandler) decideIncomingConnection(requestAttr *event.ConnectionR
 }
 
 func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {
-	// Get a list of MBGs for the service
-	mbgList, err := pH.loadBalancer.GetTargetMbgs(requestAttr.DstService)
-	if err != nil || len(mbgList) == 0 {
+	// Get a list of peers for the service
+	peerList, err := pH.loadBalancer.GetTargetPeers(requestAttr.DstService)
+	if err != nil || len(peerList) == 0 {
 		plog.Errorf("error getting target peers for service %s: %v", requestAttr.DstService, err)
 		return event.ConnectionRequestResp{Action: event.Deny}, nil // this can be caused by a user typo - so only log this error
 	}
 
 	src := getServiceAttrs(requestAttr.SrcService, "")
-	dsts := getServiceAttrsForMultiplePeers(requestAttr.DstService, mbgList)
+	dsts := getServiceAttrsForMultiplePeers(requestAttr.DstService, peerList)
 	decisions, err := pH.connectivityPDP.Decide(src, dsts)
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
 		return event.ConnectionRequestResp{Action: event.Deny}, err
 	}
 
-	allowedMbgs := []string{}
+	allowedPeers := []string{}
 	for _, decision := range decisions {
 		if decision.Decision == policytypes.PolicyDecisionAllow {
-			allowedMbgs = append(allowedMbgs, decision.Destination[MbgNameLabel])
+			allowedPeers = append(allowedPeers, decision.Destination[GatewayNameLabel])
 		}
 	}
 
-	if len(allowedMbgs) == 0 {
+	if len(allowedPeers) == 0 {
 		plog.Infof("access policies deny connections to service %s in all peers", requestAttr.DstService)
 		return event.ConnectionRequestResp{Action: event.Deny}, nil
 	}
 
-	// Perform load-balancing using the filtered mbgList
-	targetMbg, err := pH.loadBalancer.LookupWith(requestAttr.SrcService, requestAttr.DstService, allowedMbgs)
+	// Perform load-balancing using the filtered peer list
+	targetPeer, err := pH.loadBalancer.LookupWith(requestAttr.SrcService, requestAttr.DstService, allowedPeers)
 	if err != nil {
 		return event.ConnectionRequestResp{Action: event.Deny}, err
 	}
-	return event.ConnectionRequestResp{Action: event.Allow, TargetMbg: targetMbg}, nil
+	return event.ConnectionRequestResp{Action: event.Allow, TargetMbg: targetPeer}, nil
 }
 
 func (pH *PolicyHandler) AuthorizeAndRouteConnection(connReq *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {
@@ -175,23 +168,23 @@ func (pH *PolicyHandler) AuthorizeAndRouteConnection(connReq *event.ConnectionRe
 }
 
 func (pH *PolicyHandler) AddPeer(peer *api.Peer) {
-	_, exist := exists(pH.mbgState.mbgPeers, peer.Name)
+	_, exist := exists(pH.knownPeers, peer.Name)
 	if exist {
 		return
 	}
-	pH.mbgState.mbgPeers = append(pH.mbgState.mbgPeers, peer.Name)
-	plog.Infof("Added Peer %+v", pH.mbgState.mbgPeers)
+	pH.knownPeers = append(pH.knownPeers, peer.Name)
+	plog.Infof("Added Peer %+v", pH.knownPeers)
 }
 
 func (pH *PolicyHandler) DeletePeer(name string) {
-	pH.loadBalancer.RemoveMbgFromServiceMap(name)
+	pH.loadBalancer.RemovePeerFromServiceMap(name)
 
-	index, exist := exists(pH.mbgState.mbgPeers, name)
+	index, exist := exists(pH.knownPeers, name)
 	if !exist {
 		return
 	}
-	pH.mbgState.mbgPeers = append(pH.mbgState.mbgPeers[:index], pH.mbgState.mbgPeers[index+1:]...)
-	plog.Infof("Removed Peer(%s, %d) %+v", name, index, pH.mbgState.mbgPeers)
+	pH.knownPeers = append(pH.knownPeers[:index], pH.knownPeers[index+1:]...)
+	plog.Infof("Removed Peer(%s, %d) %+v", name, index, pH.knownPeers)
 
 }
 
@@ -205,7 +198,7 @@ func (pH *PolicyHandler) DeleteBinding(binding *api.Binding) {
 }
 
 func (pH *PolicyHandler) AddExport(_ *api.Export) (event.ExposeRequestResp, error) {
-	return event.ExposeRequestResp{Action: event.AllowAll, TargetMbgs: pH.mbgState.mbgPeers}, nil
+	return event.ExposeRequestResp{Action: event.AllowAll, TargetMbgs: pH.knownPeers}, nil
 }
 
 func (pH *PolicyHandler) DeleteExport(_ string) {
@@ -222,12 +215,12 @@ func connPolicyFromBlob(blob io.Reader) (*policytypes.ConnectivityPolicy, error)
 }
 
 func (pH *PolicyHandler) AddLBPolicy(lbPolicy *LBPolicy) error {
-	pH.loadBalancer.SetPolicy(lbPolicy.ServiceSrc, lbPolicy.ServiceDst, lbPolicy.Scheme, lbPolicy.DefaultMbg)
+	pH.loadBalancer.SetPolicy(lbPolicy.ServiceSrc, lbPolicy.ServiceDst, lbPolicy.Scheme, lbPolicy.DefaultPeer)
 	return nil
 }
 
 func (pH *PolicyHandler) DeleteLBPolicy(lbPolicy *LBPolicy) error {
-	pH.loadBalancer.deletePolicy(lbPolicy.ServiceSrc, lbPolicy.ServiceDst, lbPolicy.Scheme, lbPolicy.DefaultMbg)
+	pH.loadBalancer.deletePolicy(lbPolicy.ServiceSrc, lbPolicy.ServiceDst, lbPolicy.Scheme, lbPolicy.DefaultPeer)
 	return nil
 }
 

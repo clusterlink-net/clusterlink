@@ -113,7 +113,7 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	ph := policyengine.NewPolicyHandler()
 	simpleSelector2 := metav1.LabelSelector{MatchLabels: policytypes.WorkloadAttrs{
 		policyengine.ServiceNameLabel: svcName,
-		policyengine.MbgNameLabel:     peer2}}
+		policyengine.GatewayNameLabel: peer2}}
 	simpleWorkloadSet2 := policytypes.WorkloadSetOrSelector{WorkloadSelector: &simpleSelector2}
 	policy2 := policy
 	policy2.To = []policytypes.WorkloadSetOrSelector{simpleWorkloadSet2}
@@ -121,7 +121,7 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	addRemoteSvc(t, svcName, peer1, ph)
 	addRemoteSvc(t, svcName, peer2, ph)
 
-	// Should choose between mbg1 and mbg2, but only mbg2 is allowed by the single access policy
+	// Should choose between peer1 and peer2, but only peer2 is allowed by the single access policy
 	requestAttr := event.ConnectionRequestAttr{SrcService: svcName, DstService: svcName, Direction: event.Outgoing}
 	connReqResp, err := ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Equal(t, event.Allow, connReqResp.Action)
@@ -140,7 +140,7 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	require.Equal(t, event.Deny, connReqResp.Action)
 	require.Nil(t, err)
 
-	// mbg2 is removed as a remote for the requested service, so now the single allow policy does not allow the remaining mbgs
+	// peer2 is removed as a remote for the requested service, so now the single allow policy does not allow the remaining peers
 	removeRemoteSvc(svcName, peer2, ph)
 	requestAttr = event.ConnectionRequestAttr{SrcService: svcName, DstService: svcName, Direction: event.Outgoing}
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
