@@ -14,12 +14,14 @@
 package k8s
 
 import (
+	"context"
 	"os"
 
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
@@ -30,6 +32,7 @@ const (
 
 // Platform represents a k8s platform.
 type Platform struct {
+	podReconciler      *PodReconciler
 	endpointReconciler *Reconciler
 	serviceReconciler  *Reconciler
 	client             client.Client
@@ -154,6 +157,11 @@ func (p *Platform) DeleteEndpoint(name string) {
 
 }
 
+// GetLabelFromIP return all the labels for specific ip.
+func (p *Platform) GetLabelFromIP(ip string) map[string]string {
+	return p.podReconciler.getLabelFromIP(ip)
+}
+
 // NewPlatform returns a new Kubernetes platform.
 func NewPlatform() (*Platform, error) {
 	logger := logrus.WithField("component", "platform.k8s")
@@ -162,10 +170,28 @@ func NewPlatform() (*Platform, error) {
 		return nil, err
 	}
 
-	cl, err := client.New(cfg, client.Options{})
+	manager, err := ctrl.NewManager(cfg, ctrl.Options{})
 	if err != nil {
 		return nil, err
 	}
+	podReconciler, err := NewPodReconciler(&manager)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ctrl.NewControllerManagedBy(manager).
+		For(&corev1.Pod{}).
+		Complete(podReconciler)
+	if err != nil {
+		return nil, err
+	}
+
+	// Start manger and all the controllers.
+	go func() {
+		if err := manager.Start(context.Background()); err != nil {
+			logger.Error(err, "problem running manager")
+		}
+	}()
 
 	// Get namespace
 	namespace := os.Getenv("CL-NAMESPACE")
@@ -175,9 +201,10 @@ func NewPlatform() (*Platform, error) {
 	}
 
 	return &Platform{
-		client:             cl,
-		serviceReconciler:  NewReconciler(cl),
-		endpointReconciler: NewReconciler(cl),
+		client:             manager.GetClient(),
+		podReconciler:      podReconciler,
+		serviceReconciler:  NewReconciler(manager.GetClient()),
+		endpointReconciler: NewReconciler(manager.GetClient()),
 		namespace:          namespace,
 		logger:             logger,
 	}, nil
