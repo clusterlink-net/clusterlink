@@ -45,7 +45,7 @@ vet-go: ; $(info vetting code...)
 	@go vet ./...
 
 copr-fix: ; $(info adding copyright header...)
-	docker run -it --rm -v $(pwd):/github/workspace apache/skywalking-eyes header fix
+	docker run -it --rm -v $(shell pwd):/github/workspace apache/skywalking-eyes header fix
 
 #------------------------------------------------------
 # Build targets
