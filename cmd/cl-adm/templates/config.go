@@ -91,6 +91,8 @@ func (c Config) TemplateArgs() (map[string]interface{}, error) {
 		"dataplanes":    c.Dataplanes,
 		"dataplaneType": c.DataplaneType,
 
+		"dataplaneTypeEnvoy": DataplaneTypeEnvoy,
+
 		"fabricCA":         base64.StdEncoding.EncodeToString(fabricCA),
 		"peerCA":           base64.StdEncoding.EncodeToString(peerCA),
 		"controlplaneCert": base64.StdEncoding.EncodeToString(controlplaneCert),
