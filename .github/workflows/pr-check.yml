@@ -28,10 +28,8 @@ jobs:
         with:
           version: v1.54.2
           skip-pkg-cache: true
-      - name: Build binaries
-        run: make build
+
   unit-tests:
-    needs: static-checks-and-build
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -49,4 +47,3 @@ jobs:
       run: make build
     - name: run unit tests
       run: make unit-tests
-    
