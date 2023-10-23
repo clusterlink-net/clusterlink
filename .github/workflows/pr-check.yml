@@ -1,6 +1,11 @@
 name: PR check
 run-name: "PR #${{ github.event.number }} check (${{ github.sha }})"
-on: [pull_request]
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
 jobs:
   static-checks-and-build:
     runs-on: ubuntu-22.04
