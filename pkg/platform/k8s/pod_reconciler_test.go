@@ -43,7 +43,8 @@ func TestPodReconciler(t *testing.T) {
 	ctx := context.Background()
 	podReconciler := &PodReconciler{
 		Client:  client,
-		ipToPod: make(map[string]metav1.ObjectMeta),
+		ipToPod: make(map[string]types.NamespacedName),
+		podList: make(map[types.NamespacedName]podInfo),
 		logger:  logger,
 	}
 	req := ctrl.Request{NamespacedName: types.NamespacedName{
@@ -58,7 +59,7 @@ func TestPodReconciler(t *testing.T) {
 	require.NoError(t, err)
 	_, err = podReconciler.Reconcile(ctx, req)
 	require.NoError(t, err)
-	actualLabels := podReconciler.ipToPod[TestPodIP].Labels[TestPodKeyLabel]
+	actualLabels := podReconciler.getLabelsFromIP(TestPodIP)[TestPodKeyLabel]
 	expectedLabels := createLabel
 	require.Equal(t, expectedLabels, actualLabels, "Labels should be equal")
 
@@ -69,7 +70,7 @@ func TestPodReconciler(t *testing.T) {
 	require.NoError(t, err)
 	_, err = podReconciler.Reconcile(ctx, req)
 	require.NoError(t, err)
-	actualLabels = podReconciler.ipToPod[TestPodIP].Labels[TestPodKeyLabel]
+	actualLabels = podReconciler.getLabelsFromIP(TestPodIP)[TestPodKeyLabel]
 	expectedLabels = updateLabel
 	require.Equal(t, expectedLabels, actualLabels, "Labels should be equal")
 
@@ -79,6 +80,8 @@ func TestPodReconciler(t *testing.T) {
 	_, err = podReconciler.Reconcile(ctx, req)
 	require.NoError(t, err)
 	require.Empty(t, podReconciler.ipToPod, "ipToPod map should be empty")
+	require.Empty(t, podReconciler.podList, "podList map should be empty")
+
 }
 
 func getFakeClient(initObjs ...client.Object) (client.WithWatch, error) {

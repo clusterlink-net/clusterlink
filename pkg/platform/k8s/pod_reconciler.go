@@ -19,15 +19,22 @@ import (
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type podInfo struct {
+	name      string
+	namespace string
+	labels    map[string]string
+}
+
 // PodReconciler contain information on the clusters pods.
 type PodReconciler struct {
 	client.Client
-	ipToPod map[string]metav1.ObjectMeta
+	ipToPod map[string]types.NamespacedName
+	podList map[types.NamespacedName]podInfo
 	logger  *logrus.Entry
 }
 
@@ -37,7 +44,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	if err := r.Get(ctx, req.NamespacedName, &pod); err != nil {
 		if apierrors.IsNotFound(err) {
 			// the pod was deleted.
-			r.deletePod(req.NamespacedName.Name, req.NamespacedName.Namespace)
+			r.deletePod(req.NamespacedName)
 			return ctrl.Result{}, nil
 		}
 		r.logger.Error(err, "unable to fetch Pod")
@@ -49,28 +56,33 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 }
 
 // deletePod deletes pod to ipToPod list.
-func (r *PodReconciler) deletePod(name, namespace string) {
+func (r *PodReconciler) deletePod(podID types.NamespacedName) {
+	delete(r.podList, podID)
 	for key, pod := range r.ipToPod {
-		if pod.Name == name && pod.Namespace == namespace {
+		if pod.Name == podID.Name && pod.Namespace == podID.Namespace {
 			delete(r.ipToPod, key)
 		}
 	}
 }
 
-// updatePod adds or updates pod to ipToPod list.
+// updatePod adds or updates pod to ipToPod and podList.
 func (r *PodReconciler) updatePod(pod corev1.Pod) {
+	podID := types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}
+	r.podList[podID] = podInfo{name: pod.Name, namespace: pod.Namespace, labels: pod.Labels}
 	for _, ip := range pod.Status.PodIPs {
 		// ignoring host-networked Pod IPs
 		if ip.IP != pod.Status.HostIP {
-			r.ipToPod[ip.IP] = pod.ObjectMeta
+			r.ipToPod[ip.IP] = podID
 		}
 	}
 }
 
-// getLabelFromIP return all the labels for specific ip.
-func (r *PodReconciler) getLabelFromIP(ip string) map[string]string {
-	if p, ok := r.ipToPod[ip]; ok {
-		return p.Labels
+// getLabelsFromIP return all the labels for specific ip.
+func (r *PodReconciler) getLabelsFromIP(ip string) map[string]string {
+	if p, ipExsit := r.ipToPod[ip]; ipExsit {
+		if pInfo, podExist := r.podList[p]; podExist {
+			return pInfo.labels
+		}
 	}
 	return nil
 }
@@ -87,7 +99,8 @@ func NewPodReconciler(mgr *ctrl.Manager) (*PodReconciler, error) {
 	logger := logrus.WithField("component", "platform.k8s.podReconciler")
 	r := PodReconciler{
 		Client:  (*mgr).GetClient(),
-		ipToPod: make(map[string]metav1.ObjectMeta),
+		ipToPod: make(map[string]types.NamespacedName),
+		podList: make(map[types.NamespacedName]podInfo),
 		logger:  logger,
 	}
 

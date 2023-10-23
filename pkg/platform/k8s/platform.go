@@ -157,9 +157,9 @@ func (p *Platform) DeleteEndpoint(name string) {
 
 }
 
-// GetLabelFromIP return all the labels for specific ip.
-func (p *Platform) GetLabelFromIP(ip string) map[string]string {
-	return p.podReconciler.getLabelFromIP(ip)
+// GetLabelsFromIP return all the labels for specific ip.
+func (p *Platform) GetLabelsFromIP(ip string) map[string]string {
+	return p.podReconciler.getLabelsFromIP(ip)
 }
 
 // NewPlatform returns a new Kubernetes platform.
