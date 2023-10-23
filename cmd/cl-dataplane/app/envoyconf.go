@@ -40,6 +40,10 @@ dynamic_resources:
     grpc_services:
     - envoy_grpc:
         cluster_name: {{.controlplaneGRPCCluster}}
+        retry_policy:
+          retry_back_off:
+            base_interval: 0.5s
+            max_interval: 1s
   lds_config:
     resource_api_version: V3
     initial_fetch_timeout: 1s
