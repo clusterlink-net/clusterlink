@@ -248,7 +248,7 @@ rules:
   verbs: ["create", "delete"]
 - apiGroups: [""]
   resources: ["pods"]
-  verbs: ["list"]
+  verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

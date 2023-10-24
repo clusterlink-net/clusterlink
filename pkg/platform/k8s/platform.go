@@ -14,12 +14,14 @@
 package k8s
 
 import (
+	"context"
 	"os"
 
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
@@ -30,6 +32,7 @@ const (
 
 // Platform represents a k8s platform.
 type Platform struct {
+	podReconciler      *PodReconciler
 	endpointReconciler *Reconciler
 	serviceReconciler  *Reconciler
 	client             client.Client
@@ -38,9 +41,9 @@ type Platform struct {
 }
 
 // CreateService creates a service.
-func (d *Platform) CreateService(name, targetApp string, port, targetPort uint16) {
+func (p *Platform) CreateService(name, targetApp string, port, targetPort uint16) {
 	serviceSpec := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: d.namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: p.namespace},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
@@ -53,23 +56,23 @@ func (d *Platform) CreateService(name, targetApp string, port, targetPort uint16
 			Selector: map[string]string{"app": targetApp},
 		},
 	}
-	d.logger.Infof("Creating K8s service at %s:%d.", name, port)
-	go d.serviceReconciler.CreateResource(serviceSpec)
+	p.logger.Infof("Creating K8s service at %s:%d.", name, port)
+	go p.serviceReconciler.CreateResource(serviceSpec)
 }
 
 // DeleteService deletes a service.
-func (d *Platform) DeleteService(name string) {
+func (p *Platform) DeleteService(name string) {
 	serviceSpec := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: d.namespace}}
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: p.namespace}}
 
-	d.logger.Infof("Deleting K8s service %s.", name)
-	go d.serviceReconciler.DeleteResource(serviceSpec)
+	p.logger.Infof("Deleting K8s service %s.", name)
+	go p.serviceReconciler.DeleteResource(serviceSpec)
 }
 
 // UpdateService updates a service.
-func (d *Platform) UpdateService(name, targetApp string, port, targetPort uint16) {
+func (p *Platform) UpdateService(name, targetApp string, port, targetPort uint16) {
 	serviceSpec := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: d.namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: p.namespace},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
@@ -83,17 +86,17 @@ func (d *Platform) UpdateService(name, targetApp string, port, targetPort uint16
 		},
 	}
 
-	d.logger.Infof("Updating K8s service at %s:%d.", name, port)
-	go d.serviceReconciler.UpdateResource(serviceSpec)
+	p.logger.Infof("Updating K8s service at %s:%d.", name, port)
+	go p.serviceReconciler.UpdateResource(serviceSpec)
 
 }
 
 // CreateEndpoint creates a K8s endpoint.
-func (d *Platform) CreateEndpoint(name, targetIP string, targetPort uint16) {
+func (p *Platform) CreateEndpoint(name, targetIP string, targetPort uint16) {
 	endpointSpec := &corev1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: d.namespace,
+			Namespace: p.namespace,
 		},
 		Subsets: []corev1.EndpointSubset{
 			{
@@ -111,17 +114,17 @@ func (d *Platform) CreateEndpoint(name, targetIP string, targetPort uint16) {
 		},
 	}
 
-	d.logger.Infof("Creating K8s endPoint at %s:%d that connected to external IP: %s:%d.", name, targetPort, targetIP, targetPort)
-	go d.endpointReconciler.CreateResource(endpointSpec)
+	p.logger.Infof("Creating K8s endPoint at %s:%d that connected to external IP: %s:%d.", name, targetPort, targetIP, targetPort)
+	go p.endpointReconciler.CreateResource(endpointSpec)
 
 }
 
 // UpdateEndpoint creates a K8s endpoint.
-func (d *Platform) UpdateEndpoint(name, targetIP string, targetPort uint16) {
+func (p *Platform) UpdateEndpoint(name, targetIP string, targetPort uint16) {
 	endpointSpec := &corev1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: d.namespace,
+			Namespace: p.namespace,
 		},
 		Subsets: []corev1.EndpointSubset{
 			{
@@ -139,19 +142,24 @@ func (d *Platform) UpdateEndpoint(name, targetIP string, targetPort uint16) {
 		},
 	}
 
-	d.logger.Infof("Updating K8s endPoint at %s:%d to external host: %s:%d.", name, targetPort, targetIP, targetPort)
-	go d.endpointReconciler.UpdateResource(endpointSpec)
+	p.logger.Infof("Updating K8s endPoint at %s:%d to external host: %s:%d.", name, targetPort, targetIP, targetPort)
+	go p.endpointReconciler.UpdateResource(endpointSpec)
 
 }
 
 // DeleteEndpoint deletes a k8s endpoint.
-func (d *Platform) DeleteEndpoint(name string) {
+func (p *Platform) DeleteEndpoint(name string) {
 	endpointSpec := &corev1.Endpoints{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: d.namespace}}
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: p.namespace}}
 
-	d.logger.Infof("Deleting K8s endPoint %s.", name)
-	go d.endpointReconciler.DeleteResource(endpointSpec)
+	p.logger.Infof("Deleting K8s endPoint %s.", name)
+	go p.endpointReconciler.DeleteResource(endpointSpec)
 
+}
+
+// GetLabelsFromIP return all the labels for specific ip.
+func (p *Platform) GetLabelsFromIP(ip string) map[string]string {
+	return p.podReconciler.getLabelsFromIP(ip)
 }
 
 // NewPlatform returns a new Kubernetes platform.
@@ -162,10 +170,28 @@ func NewPlatform() (*Platform, error) {
 		return nil, err
 	}
 
-	cl, err := client.New(cfg, client.Options{})
+	manager, err := ctrl.NewManager(cfg, ctrl.Options{})
 	if err != nil {
 		return nil, err
 	}
+	podReconciler, err := NewPodReconciler(&manager)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ctrl.NewControllerManagedBy(manager).
+		For(&corev1.Pod{}).
+		Complete(podReconciler)
+	if err != nil {
+		return nil, err
+	}
+
+	// Start manger and all the controllers.
+	go func() {
+		if err := manager.Start(context.Background()); err != nil {
+			logger.Error(err, "problem running manager")
+		}
+	}()
 
 	// Get namespace
 	namespace := os.Getenv("CL-NAMESPACE")
@@ -175,9 +201,10 @@ func NewPlatform() (*Platform, error) {
 	}
 
 	return &Platform{
-		client:             cl,
-		serviceReconciler:  NewReconciler(cl),
-		endpointReconciler: NewReconciler(cl),
+		client:             manager.GetClient(),
+		podReconciler:      podReconciler,
+		serviceReconciler:  NewReconciler(manager.GetClient()),
+		endpointReconciler: NewReconciler(manager.GetClient()),
 		namespace:          namespace,
 		logger:             logger,
 	}, nil
