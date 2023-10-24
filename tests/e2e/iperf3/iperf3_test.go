@@ -14,13 +14,12 @@
 // ###############################################################
 // Name: Simple iperf3  test
 // Desc: create 2 kind clusters :
-// 1) MBG and iperf3 client
-// 2) MBG and iperf3 server
+// 1) Gateway and iperf3 client
+// 2) Gateway and iperf3 server
 // ##############################################################
 package iperf3_test
 
 import (
-	"flag"
 	"log"
 	"strconv"
 	"testing"
@@ -35,8 +34,8 @@ import (
 )
 
 const (
-	gw1Name        = "mbg1"
-	gw2Name        = "mbg2"
+	gw1Name        = "gw1"
+	gw2Name        = "gw2"
 	srcSvc         = "iperf3-client"
 	destSvc        = "iperf3-server"
 	destPort       = uint16(5000)
@@ -49,14 +48,12 @@ var (
 	gwctl2             *client.Client
 )
 
-var cpType = flag.String("controlplane", "new", "Check which control-plane to use")
-
 // TestIperf3 check e2e iperf3 test
 func TestIperf3(t *testing.T) {
 	_, err := logutils.SetLog("info", "")
 	require.NoError(t, err)
 	t.Run("Starting Cluster Setup", func(t *testing.T) {
-		err := utils.StartClusterSetup(*cpType)
+		err := utils.StartClusterSetup()
 		if err != nil {
 			t.Fatalf("Failed to setup cluster")
 		}
@@ -70,11 +67,11 @@ func TestIperf3(t *testing.T) {
 			t.Fatalf("Failed to LaunchApp iperf3 server mlabbe/iperf3")
 		}
 
-		gwctl1, err = utils.GetClient(gw1Name, *cpType)
+		gwctl1, err = utils.GetClient(gw1Name)
 		if err != nil {
 			t.Fatalf("Failed to get Client")
 		}
-		gwctl2, err = utils.GetClient(gw2Name, *cpType)
+		gwctl2, err = utils.GetClient(gw2Name)
 		if err != nil {
 			t.Fatalf("Failed to get Client")
 		}
@@ -114,26 +111,18 @@ func TestIperf3(t *testing.T) {
 	t.Run("Testing policy", func(t *testing.T) {
 		policy, err := utils.GetPolicyFromFile(allowAllPolicyFile)
 		require.NoError(t, err)
-		if *cpType == "new" {
-			err = gwctl1.Policies.Create(policy)
-			require.NoError(t, err)
-			err = gwctl2.Policies.Create(policy)
-			require.NoError(t, err)
-		} else {
-			err = gwctl1.SendAccessPolicy(policy, client.Add)
-			require.NoError(t, err)
-			err = gwctl2.SendAccessPolicy(policy, client.Add)
-			require.NoError(t, err)
-		}
-
+		err = gwctl1.Policies.Create(policy)
+		require.NoError(t, err)
+		err = gwctl2.Policies.Create(policy)
+		require.NoError(t, err)
 	})
 	t.Run("Testing Service Connectivity", func(t *testing.T) {
-		mbg2Ip, _ := utils.GetKindIP(gw2Name)
+		gw2Ip, _ := utils.GetKindIP(gw2Name)
 		err := utils.UseKindCluster(gw1Name)
 		require.NoError(t, err)
 		iperf3Pod, _ := utils.GetPodNameIP(srcSvc)
 		log.Println("Direct test")
-		output, err := utils.GetOutput("kubectl exec -i " + iperf3Pod + " -- iperf3 -c " + mbg2Ip + " -p " + kindDirectPort)
+		output, err := utils.GetOutput("kubectl exec -i " + iperf3Pod + " -- iperf3 -c " + gw2Ip + " -p " + kindDirectPort)
 		require.NoError(t, err)
 		log.Printf("%s", output)
 		log.Println("Test using the GWs")
