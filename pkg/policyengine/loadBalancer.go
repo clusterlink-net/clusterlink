@@ -57,8 +57,8 @@ func NewLoadBalancer() *LoadBalancer {
 		ServiceStateMap: make(map[string](map[string]*ServiceState)),
 	}
 
-	lb.ServiceStateMap[event.Wildcard] = make(map[string]*ServiceState)
 	lb.Scheme[event.Wildcard] = map[string]LBScheme{event.Wildcard: Random} // default policy
+	lb.ServiceStateMap[event.Wildcard] = map[string]*ServiceState{event.Wildcard: {}}
 	return lb
 }
 
@@ -116,9 +116,6 @@ func (lB *LoadBalancer) SetPolicy(lbPolicy *LBPolicy) error {
 		lB.ServiceStateMap[serviceDst][serviceSrc] = &ServiceState{totalConnections: 0, defaultPeer: defaultPeer}
 	}
 
-	if serviceDst != event.Wildcard && serviceSrc == event.Wildcard { // for [dst][*] update only defaultPeer
-		lB.ServiceStateMap[serviceDst][serviceSrc].defaultPeer = defaultPeer
-	}
 	return nil
 }
 
@@ -151,13 +148,12 @@ func (lB *LoadBalancer) RemoveDestService(serviceDst, peer string) {
 }
 
 func (lB *LoadBalancer) updateState(serviceSrc, serviceDst string) {
-	if _, ok := lB.Scheme[serviceDst][serviceSrc]; ok {
+	if _, ok := lB.ServiceStateMap[serviceDst][serviceSrc]; ok {
 		lB.ServiceStateMap[serviceDst][serviceSrc].totalConnections++
 	}
-	if _, ok := lB.Scheme[event.Wildcard][serviceSrc]; ok && serviceDst == event.Wildcard {
-		lB.ServiceStateMap[event.Wildcard][serviceSrc].totalConnections++
+	if _, ok := lB.ServiceStateMap[serviceDst][event.Wildcard]; ok {
+		lB.ServiceStateMap[serviceDst][event.Wildcard].totalConnections++ // may not exist if dst is not imported yet
 	}
-	lB.ServiceStateMap[serviceDst][event.Wildcard].totalConnections++ // always exist
 }
 
 /*********************  Policy functions ***************************************************/
@@ -222,8 +218,8 @@ func (lB *LoadBalancer) getScheme(serviceSrc, serviceDst string) LBScheme {
 }
 
 func (lB *LoadBalancer) getDefaultPeer(serviceSrc, serviceDst string) string {
-	if _, ok := lB.Scheme[serviceDst]; ok {
-		if _, ok := lB.Scheme[serviceDst][serviceSrc]; ok {
+	if _, ok := lB.ServiceStateMap[serviceDst]; ok {
+		if _, ok := lB.ServiceStateMap[serviceDst][serviceSrc]; ok {
 			return lB.ServiceStateMap[serviceDst][serviceSrc].defaultPeer
 		}
 		return lB.ServiceStateMap[serviceDst][event.Wildcard].defaultPeer
