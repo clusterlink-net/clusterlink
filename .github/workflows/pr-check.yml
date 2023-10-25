@@ -47,7 +47,7 @@ jobs:
     - name: setup tparse
       run:  go install github.com/mfridman/tparse@latest
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: run build
       run: make build
     - name: run unit tests
