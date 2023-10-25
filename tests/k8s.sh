@@ -25,6 +25,12 @@ function clean_up {
   cd -
 }
 
+function clean_up_with_logs {
+  # export logs
+  kind export logs $SCRIPT_DIR/../e2e-logs-$DATAPLANE_TYPE --name peer1
+
+  clean_up
+}
 function test_k8s {
   # create fabric with a single peer (peer1)
   $CLADM create fabric
@@ -82,7 +88,7 @@ function test_k8s {
 cd $TEST_DIR
 clean_up
 
-trap clean_up INT TERM EXIT
+trap clean_up_with_logs INT TERM EXIT
 
 cd $TEST_DIR
 test_k8s
