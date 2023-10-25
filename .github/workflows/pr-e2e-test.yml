@@ -14,15 +14,15 @@ jobs:
         
     steps:
     - name: Set up Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go }}
     - name: Install kind
-      uses: helm/kind-action@v1.5.0
+      uses: helm/kind-action@v1.8.0
       with:
         install_only: true
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Run build
       run: make build
     - name: Build docker images
