@@ -21,4 +21,5 @@ type Platform interface {
 	CreateEndpoint(name, targetIP string, targetPort uint16)
 	UpdateEndpoint(name, targetIP string, targetPort uint16)
 	DeleteEndpoint(name string)
+	GetLabelsFromIP(ip string) map[string]string
 }
