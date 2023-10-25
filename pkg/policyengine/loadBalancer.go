@@ -14,10 +14,8 @@
 package policyengine
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
-	"net/http"
 
 	"github.com/sirupsen/logrus"
 
@@ -64,48 +62,6 @@ func NewLoadBalancer() *LoadBalancer {
 	lb.Policy[event.Wildcard][event.Wildcard] = Random // default policy
 	return lb
 }
-
-/*********************  HTTP functions ***************************************************/
-func (lB *LoadBalancer) SetPolicyReq(w http.ResponseWriter, r *http.Request) {
-	var requestAttr LBPolicy
-	err := json.NewDecoder(r.Body).Decode(&requestAttr)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	plog.Infof("Set LB Policy request : %+v", requestAttr)
-
-	lB.SetPolicy(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.Scheme, requestAttr.DefaultPeer)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-}
-
-func (lB *LoadBalancer) DeletePolicyReq(w http.ResponseWriter, r *http.Request) {
-	var requestAttr LBPolicy
-	err := json.NewDecoder(r.Body).Decode(&requestAttr)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	plog.Infof("Delete LB Policy request : %+v", requestAttr)
-
-	lB.deletePolicy(requestAttr.ServiceSrc, requestAttr.ServiceDst, requestAttr.Scheme, requestAttr.DefaultPeer)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-}
-
-func (lB *LoadBalancer) GetPolicyReq(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(lB.Policy); err != nil {
-		plog.Errorf("Error happened in JSON encode. Err: %s", err)
-		return
-	}
-}
-
-/*********************  LodBalancer functions ***************************************************/
 
 func (lB *LoadBalancer) AddToServiceMap(serviceDst string, peer string) {
 	if peers, ok := lB.ServiceMap[serviceDst]; ok {
