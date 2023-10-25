@@ -14,7 +14,6 @@
 package connectivity
 
 import (
-	"flag"
 	"strconv"
 	"strings"
 	"testing"
@@ -29,8 +28,8 @@ import (
 )
 
 const (
-	gw1Name       = "mbg1"
-	gw2Name       = "mbg2"
+	gw1Name       = "gw1"
+	gw2Name       = "gw2"
 	curlClient    = "curl-client"
 	pingerService = "pinger-server"
 	pingerPort    = uint16(3000)
@@ -44,11 +43,9 @@ var (
 	gwctl2             *client.Client
 )
 
-var cpType = flag.String("controlplane", "new", "Check which control-plane to use")
-
 func TestConnectivity(t *testing.T) {
 	t.Run("Starting Cluster Setup", func(t *testing.T) {
-		err := utils.StartClusterSetup(*cpType)
+		err := utils.StartClusterSetup()
 		if err != nil {
 			t.Fatalf("Failed to setup cluster")
 		}
@@ -67,11 +64,11 @@ func TestConnectivity(t *testing.T) {
 			t.Fatalf("Failed to CreateK8sService")
 		}
 
-		gwctl1, err = utils.GetClient(gw1Name, *cpType)
+		gwctl1, err = utils.GetClient(gw1Name)
 		if err != nil {
 			t.Fatalf("Failed to get Client")
 		}
-		gwctl2, err = utils.GetClient(gw2Name, *cpType)
+		gwctl2, err = utils.GetClient(gw2Name)
 		if err != nil {
 			t.Fatalf("Failed to get Client")
 		}
@@ -111,17 +108,11 @@ func TestConnectivity(t *testing.T) {
 	})
 	t.Run("Testing Service Connectivity", func(t *testing.T) {
 		policy, err := utils.GetPolicyFromFile(allowAllPolicyFile)
-		if *cpType == "new" {
-			err = gwctl1.Policies.Create(policy)
-			require.NoError(t, err)
-			err = gwctl2.Policies.Create(policy)
-			require.NoError(t, err)
-		} else {
-			err = gwctl1.SendAccessPolicy(policy, client.Add)
-			require.NoError(t, err)
-			err = gwctl2.SendAccessPolicy(policy, client.Add)
-			require.NoError(t, err)
-		}
+		require.Nil(t, err)
+		err = gwctl1.Policies.Create(policy)
+		require.NoError(t, err)
+		err = gwctl2.Policies.Create(policy)
+		require.NoError(t, err)
 
 		err = utils.UseKindCluster(gw2Name)
 		require.NoError(t, err)
