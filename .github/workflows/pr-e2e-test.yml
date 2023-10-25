@@ -1,5 +1,7 @@
 name: PR check - e2e tests
 on:
+  push:
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 

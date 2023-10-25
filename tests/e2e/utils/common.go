@@ -32,14 +32,9 @@ import (
 )
 
 const (
-	gw1crt  = "mbg1.crt"
-	gw1key  = "mbg1.key"
-	gw1Name = "mbg1"
-	gw2crt  = "mbg2.crt"
-	gw2key  = "mbg2.key"
-	gw2Name = "mbg2"
+	gw1Name = "gw1"
+	gw2Name = "gw2"
 
-	caCrt       = "ca.crt"
 	ControlPort = uint16(30443)
 	cPortLocal  = "443"
 	pingerPort  = uint16(3000)
@@ -47,8 +42,6 @@ const (
 
 var (
 	testOutputFolder = ProjDir + "/bin/tests/e2e/"
-	mtlsFolder       = ProjDir + "/tests/e2e/utils/testdata/mtls/"
-	manifests        = ProjDir + "/tests/e2e/utils/testdata/manifests/"
 )
 
 // ProjDir is the current directory of the project
@@ -60,42 +53,38 @@ func getProjFolder() string {
 }
 
 // StartClusterSetup starts a two cluster setup
-func StartClusterSetup(cpType string) error {
-	if cpType == "new" {
-		clAdm := ProjDir + "/bin/cl-adm "
-		// Create test folder
-		err := createFolder(testOutputFolder)
-		if err != nil {
-			return err
-		}
+func StartClusterSetup() error {
 
-		err = runCmdInDir(clAdm+" create fabric", testOutputFolder)
-		if err != nil {
-			return err
-		}
-	}
-	err := StartClusterLink(gw1Name, cPortLocal, manifests, ControlPort, cpType)
+	clAdm := ProjDir + "/bin/cl-adm "
+	// Create test folder
+	err := createFolder(testOutputFolder)
 	if err != nil {
 		return err
 	}
 
-	return StartClusterLink(gw2Name, cPortLocal, manifests, ControlPort, cpType)
+	err = runCmdInDir(clAdm+" create fabric", testOutputFolder)
+	if err != nil {
+		return err
+	}
+
+	err = StartClusterLink(gw1Name, cPortLocal, ControlPort)
+	if err != nil {
+		return err
+	}
+
+	return StartClusterLink(gw2Name, cPortLocal, ControlPort)
 
 }
 
 // GetClient returns a gwctl client given a cluster name
-func GetClient(name, cpType string) (*client.Client, error) {
+func GetClient(name string) (*client.Client, error) {
 	var parsedCertData *util.ParsedCertData
 	gwIP, err := GetKindIP(name)
 	if err != nil {
 		return nil, err
 	}
-	if cpType == "new" {
-		parsedCertData, err = util.ParseTLSFiles(testOutputFolder+"/cert.pem", testOutputFolder+name+"/gwctl/cert.pem", testOutputFolder+name+"/gwctl/key.pem")
-	} else {
-		parsedCertData, err = util.ParseTLSFiles(mtlsFolder+caCrt, mtlsFolder+gw1crt, mtlsFolder+gw1key)
-	}
 
+	parsedCertData, err = util.ParseTLSFiles(testOutputFolder+"/cert.pem", testOutputFolder+name+"/gwctl/cert.pem", testOutputFolder+name+"/gwctl/key.pem")
 	if err != nil {
 		log.Error(err)
 		return nil, err
