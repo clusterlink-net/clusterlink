@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  static-checks-and-build:
+  static-checks:
     runs-on: ubuntu-22.04
     steps:
       - name: Check out repository code
