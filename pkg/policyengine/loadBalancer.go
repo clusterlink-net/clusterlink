@@ -124,6 +124,11 @@ func (lB *LoadBalancer) DeletePolicy(lbPolicy *LBPolicy) error {
 
 	serviceSrc := lbPolicy.ServiceSrc
 	serviceDst := lbPolicy.ServiceDst
+
+	if serviceSrc == event.Wildcard && serviceDst == event.Wildcard {
+		return fmt.Errorf("default policy cannot be deleted")
+	}
+
 	if _, ok := lB.Scheme[serviceDst][serviceSrc]; ok {
 		delete(lB.Scheme[serviceDst], serviceSrc)
 		if len(lB.Scheme[serviceDst]) == 0 {
