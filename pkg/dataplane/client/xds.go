@@ -40,6 +40,7 @@ type XDSClient struct {
 	lock               sync.Mutex
 	errors             map[string]error
 	logger             *logrus.Entry
+	clustersReady      chan bool
 }
 
 func (x *XDSClient) runFetcher(resourceType string) error {
@@ -47,21 +48,28 @@ func (x *XDSClient) runFetcher(resourceType string) error {
 		conn, err := grpc.Dial(x.controlplaneTarget, grpc.WithTransportCredentials(credentials.NewTLS(x.tlsConfig)))
 		if err != nil {
 			x.logger.Errorf("Failed to dial controlplane xDS server: %v.", err)
-			time.Sleep(5 * time.Second)
+			time.Sleep(1 * time.Second)
 			continue
 		}
-		x.logger.Infof("Successfully connected to the controlplane xDS server.")
 
 		f, err := newFetcher(context.Background(), conn, resourceType, x.dataplane)
 		if err != nil {
-			x.logger.Errorf("Failed to initialize fetcher: %v.", err)
-			time.Sleep(5 * time.Second)
+			x.logger.Errorf("Failed to initialize %s fetcher: %v.", resourceType, err)
 			continue
 		}
 		x.logger.Infof("Successfully initialized client for %s type.", resourceType)
+
+		// If the resource type is listener, it shouldn't run until the cluster fetcher is running
+		switch resourceType {
+		case resource.ClusterType:
+			x.clustersReady <- true
+		case resource.ListenerType:
+			<-x.clustersReady
+			x.logger.Infof("Done waiting for cluster fetcher")
+		}
+		x.logger.Infof("Starting to run %s fetcher.", resourceType)
 		err = f.Run()
 		x.logger.Infof("Fetcher '%s' stopped: %v.", resourceType, err)
-		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -100,5 +108,6 @@ func NewXDSClient(dataplane *server.Dataplane, controlplaneTarget string, tlsCon
 		controlplaneTarget: controlplaneTarget,
 		tlsConfig:          tlsConfig,
 		errors:             make(map[string]error),
-		logger:             logrus.WithField("component", "xds.client")}
+		logger:             logrus.WithField("component", "xds.client"),
+		clustersReady:      make(chan bool, 1)}
 }

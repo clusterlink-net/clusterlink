@@ -14,15 +14,15 @@ jobs:
         
     steps:
     - name: Set up Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go }}
     - name: Install kind
-      uses: helm/kind-action@v1.5.0
+      uses: helm/kind-action@v1.8.0
       with:
         install_only: true
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Run build
       run: make build
     - name: Build docker images
@@ -30,10 +30,23 @@ jobs:
     - name: Run e2e connectivity test on a kind cluster
       run: ./tests/k8s.sh
       timeout-minutes: 10
-# TODO: uncomment after resolving https://github.com/clusterlink-net/clusterlink/issues/94
-#    - name: Run e2e connectivity test on a kind cluster with go dataplane
-#      run: ./tests/k8s.sh go
-#      timeout-minutes: 10
+    - name: upload e2e test logs for envoy dataplane
+      uses: actions/upload-artifact@v3
+      # For now enabling artifacts always, TODO: Change it to collect artifacts only upon failures
+      if: always()
+      with:
+        name: e2e-logs-envoy
+        path: e2e-logs-envoy
+    - name: Run e2e connectivity test on a kind cluster with go dataplane
+      run: ./tests/k8s.sh go
+      timeout-minutes: 10
+    - name: upload e2e test logs for go dataplane
+      uses: actions/upload-artifact@v3
+      # For now enabling artifacts always, TODO: Change it to collect artifacts only upon failures
+      if: always()
+      with:
+        name: e2e-logs-go
+        path: e2e-logs-go
     - name: Run end-to-end tests
       run: make tests-e2e
       timeout-minutes: 10
