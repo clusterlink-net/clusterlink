@@ -55,6 +55,12 @@ func (s *Server) addAPIHandlers() {
 		Handler:       &accessPolicyHandler{cp: s.cp},
 		DeleteByValue: true,
 	})
+
+	s.AddObjectHandlers(&rest.ServerObjectSpec{
+		BasePath:      "/lbpolicies",
+		Handler:       &lbPolicyHandler{cp: s.cp},
+		DeleteByValue: true,
+	})
 }
 
 type peerHandler struct {
@@ -371,4 +377,56 @@ func (h *accessPolicyHandler) Get(name string) (any, error) {
 // List all access policies.
 func (h *accessPolicyHandler) List() (any, error) {
 	return accessPoliciesToAPI(h.cp.GetAllAccessPolicies()), nil
+}
+
+type lbPolicyHandler struct {
+	cp *controlplane.Instance
+}
+
+// Decode a load-balancing policy.
+func (h *lbPolicyHandler) Decode(data []byte) (any, error) {
+	var policy api.Policy
+	if err := json.Unmarshal(data, &policy); err != nil {
+		return nil, fmt.Errorf("cannot decode load-balancing policy: %v", err)
+	}
+
+	if len(policy.Spec.Blob) == 0 {
+		return nil, fmt.Errorf("empty spec blob")
+	}
+
+	return store.NewLBPolicy(&policy), nil
+}
+
+// Create a load-balancing policy.
+func (h *lbPolicyHandler) Create(object any) error {
+	return h.cp.CreateLBPolicy(object.(*store.LBPolicy))
+}
+
+// Update an load-balancing policy.
+func (h *lbPolicyHandler) Update(object any) error {
+	return h.cp.UpdateLBPolicy(object.(*store.LBPolicy))
+}
+
+func lbPoliciesToAPI(policies []*store.LBPolicy) []*api.Policy {
+	apiPolicies := make([]*api.Policy, len(policies))
+	for i, policy := range policies {
+		apiPolicies[i] = &api.Policy{Name: policy.Name, Spec: policy.Spec}
+	}
+	return apiPolicies
+}
+
+// Delete a load-balancing policy.
+func (h *lbPolicyHandler) Delete(object any) (any, error) {
+	return h.cp.DeleteLBPolicy(object.(*store.LBPolicy))
+}
+
+// Get an load-balancing policy.
+func (h *lbPolicyHandler) Get(name string) (any, error) {
+	asSlice := []*store.LBPolicy{h.cp.GetLBPolicy(name)}
+	return lbPoliciesToAPI(asSlice), nil
+}
+
+// List all load-balancing policies.
+func (h *lbPolicyHandler) List() (any, error) {
+	return lbPoliciesToAPI(h.cp.GetAllLBPolicies()), nil
 }

@@ -40,11 +40,12 @@ const (
 type Instance struct {
 	peerTLS *util.ParsedCertData
 
-	peers    *cpstore.Peers
-	exports  *cpstore.Exports
-	imports  *cpstore.Imports
-	bindings *cpstore.Bindings
-	policies *cpstore.AccessPolicies
+	peers      *cpstore.Peers
+	exports    *cpstore.Exports
+	imports    *cpstore.Imports
+	bindings   *cpstore.Bindings
+	policies   *cpstore.AccessPolicies
+	lbpolicies *cpstore.LBPolicies
 
 	peerLock   sync.RWMutex
 	peerClient map[string]*client
@@ -469,6 +470,56 @@ func (cp *Instance) GetAllAccessPolicies() []*cpstore.AccessPolicy {
 	return cp.policies.GetAll()
 }
 
+// CreateLBPolicy creates a load-balancing policy to set a load-balancing scheme for specific connections.
+func (cp *Instance) CreateLBPolicy(policy *cpstore.LBPolicy) error {
+	cp.logger.Infof("Creating load-balancing policy '%s'.", policy.Spec.Blob)
+
+	if cp.initialized {
+		if err := cp.lbpolicies.Create(policy); err != nil {
+			return err
+		}
+	}
+
+	return cp.policyDecider.AddLBPolicy(&api.Policy{Spec: policy.Spec})
+}
+
+// UpdateLBPolicy updates a load-balancing policy.
+func (cp *Instance) UpdateLBPolicy(policy *cpstore.LBPolicy) error {
+	cp.logger.Infof("Updating load-balancing policy '%s'.", policy.Spec.Blob)
+
+	err := cp.lbpolicies.Update(policy.Name, func(old *cpstore.LBPolicy) *cpstore.LBPolicy {
+		return policy
+	})
+	if err != nil {
+		return err
+	}
+
+	return cp.policyDecider.AddLBPolicy(&api.Policy{Spec: policy.Spec})
+}
+
+// DeleteLBPolicy removes a load-balancing policy.
+func (cp *Instance) DeleteLBPolicy(policy *cpstore.LBPolicy) (*cpstore.LBPolicy, error) {
+	cp.logger.Infof("Deleting load-balancing policy '%s'.", policy.Spec.Blob)
+
+	if err := cp.policyDecider.DeleteLBPolicy(&api.Policy{Spec: policy.Spec}); err != nil {
+		return nil, err
+	}
+
+	return cp.lbpolicies.Delete(policy.Name)
+}
+
+// GetLBPolicy returns a load-balancing policy with the given name.
+func (cp *Instance) GetLBPolicy(name string) *cpstore.LBPolicy {
+	cp.logger.Infof("Getting load-balancing policy '%s'.", name)
+	return cp.lbpolicies.Get(name)
+}
+
+// GetAllLBPolicies returns the list of all load-balancing Policies.p
+func (cp *Instance) GetAllLBPolicies() []*cpstore.LBPolicy {
+	cp.logger.Info("Listing all load-balancing policies.")
+	return cp.lbpolicies.GetAll()
+}
+
 // GetXDSClusterManager returns the xDS cluster manager.
 func (cp *Instance) GetXDSClusterManager() cache.Cache {
 	return cp.xdsManager.clusters
@@ -514,9 +565,16 @@ func (cp *Instance) init() error {
 		}
 	}
 
-	// add policies
+	// add access policies
 	for _, policy := range cp.GetAllAccessPolicies() {
 		if err := cp.CreateAccessPolicy(policy); err != nil {
+			return err
+		}
+	}
+
+	// add load-balancing policies
+	for _, policy := range cp.GetAllLBPolicies() {
+		if err := cp.CreateLBPolicy(policy); err != nil {
 			return err
 		}
 	}
@@ -585,6 +643,12 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, platf
 	}
 	logger.Infof("Loaded %d access policies.", policies.Len())
 
+	lbpolicies, err := cpstore.NewLBPolicies(storeManager)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load load-balancing policies from store: %v", err)
+	}
+	logger.Infof("Loaded %d load-balancing policies.", policies.Len())
+
 	cp := &Instance{
 		peerTLS:       peerTLS,
 		peerClient:    make(map[string]*client),
@@ -593,6 +657,7 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, platf
 		imports:       imports,
 		bindings:      bindings,
 		policies:      policies,
+		lbpolicies:    lbpolicies,
 		xdsManager:    newXDSManager(),
 		ports:         newPortManager(),
 		policyDecider: policyengine.NewPolicyHandler(),
