@@ -111,9 +111,9 @@ func TestIperf3(t *testing.T) {
 	t.Run("Testing policy", func(t *testing.T) {
 		policy, err := utils.GetPolicyFromFile(allowAllPolicyFile)
 		require.NoError(t, err)
-		err = gwctl1.Policies.Create(policy)
+		err = gwctl1.AccessPolicies.Create(policy)
 		require.NoError(t, err)
-		err = gwctl2.Policies.Create(policy)
+		err = gwctl2.AccessPolicies.Create(policy)
 		require.NoError(t, err)
 	})
 	t.Run("Testing Service Connectivity", func(t *testing.T) {
