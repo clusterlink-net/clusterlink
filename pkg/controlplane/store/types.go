@@ -23,12 +23,14 @@ const (
 	importStoreName       = "import"
 	bindingStoreName      = "binding"
 	accessPolicyStoreName = "accessPolicy"
+	lbPolicyStoreName     = "lbPolicy"
 
 	bindingStructVersion      = 1
 	exportStructVersion       = 1
 	importStructVersion       = 1
 	peerStructVersion         = 1
 	accessPolicyStructVersion = 1
+	lbPolicyStructVersion     = 1
 )
 
 // Peer represents a remote peer.
@@ -112,6 +114,21 @@ type AccessPolicy struct {
 // NewAccessPolicy creates a new access policy
 func NewAccessPolicy(policy *api.Policy) *AccessPolicy {
 	return &AccessPolicy{
+		Policy:  *policy,
+		Version: accessPolicyStructVersion,
+	}
+}
+
+// LBPolicy specifies the load-balancing scheme for specific connections
+type LBPolicy struct {
+	api.Policy
+	// Version of the struct when object was created.
+	Version uint32
+}
+
+// NewLBPolicy creates a new load-balancing policy
+func NewLBPolicy(policy *api.Policy) *LBPolicy {
+	return &LBPolicy{
 		Policy:  *policy,
 		Version: accessPolicyStructVersion,
 	}
