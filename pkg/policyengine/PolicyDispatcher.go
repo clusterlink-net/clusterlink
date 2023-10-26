@@ -46,8 +46,8 @@ const (
 var plog = logrus.WithField("component", "PolicyEngine")
 
 type PolicyDecider interface {
-	AddLBPolicy(lbPolicy *LBPolicy) error
-	DeleteLBPolicy(lbPolicy *LBPolicy) error
+	AddLBPolicy(policy *api.Policy) error
+	DeleteLBPolicy(policy *api.Policy) error
 
 	AddAccessPolicy(policy *api.Policy) error
 	DeleteAccessPolicy(policy *api.Policy) error
@@ -214,11 +214,29 @@ func connPolicyFromBlob(blob io.Reader) (*policytypes.ConnectivityPolicy, error)
 	return connPolicy, nil
 }
 
-func (pH *PolicyHandler) AddLBPolicy(lbPolicy *LBPolicy) error {
+func lbPolicyFromBlob(blob io.Reader) (*LBPolicy, error) {
+	lbPolicy := &LBPolicy{}
+	err := json.NewDecoder(blob).Decode(lbPolicy)
+	if err != nil {
+		plog.Errorf("failed decoding load-balancing policy: %v", err)
+		return nil, err
+	}
+	return lbPolicy, nil
+}
+
+func (pH *PolicyHandler) AddLBPolicy(policy *api.Policy) error {
+	lbPolicy, err := lbPolicyFromBlob(bytes.NewReader(policy.Spec.Blob))
+	if err != nil {
+		return err
+	}
 	return pH.loadBalancer.SetPolicy(lbPolicy)
 }
 
-func (pH *PolicyHandler) DeleteLBPolicy(lbPolicy *LBPolicy) error {
+func (pH *PolicyHandler) DeleteLBPolicy(policy *api.Policy) error {
+	lbPolicy, err := lbPolicyFromBlob(bytes.NewReader(policy.Spec.Blob))
+	if err != nil {
+		return err
+	}
 	return pH.loadBalancer.DeletePolicy(lbPolicy)
 }
 
