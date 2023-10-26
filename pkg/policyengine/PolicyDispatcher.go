@@ -215,13 +215,11 @@ func connPolicyFromBlob(blob io.Reader) (*policytypes.ConnectivityPolicy, error)
 }
 
 func (pH *PolicyHandler) AddLBPolicy(lbPolicy *LBPolicy) error {
-	pH.loadBalancer.SetPolicy(lbPolicy.ServiceSrc, lbPolicy.ServiceDst, lbPolicy.Scheme, lbPolicy.DefaultPeer)
-	return nil
+	return pH.loadBalancer.SetPolicy(lbPolicy)
 }
 
 func (pH *PolicyHandler) DeleteLBPolicy(lbPolicy *LBPolicy) error {
-	pH.loadBalancer.deletePolicy(lbPolicy.ServiceSrc, lbPolicy.ServiceDst, lbPolicy.Scheme, lbPolicy.DefaultPeer)
-	return nil
+	return pH.loadBalancer.DeletePolicy(lbPolicy)
 }
 
 func (pH *PolicyHandler) AddAccessPolicy(policy *api.Policy) error {

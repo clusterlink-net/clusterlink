@@ -105,11 +105,6 @@ func TestIncomingConnectionRequests(t *testing.T) {
 }
 
 func TestOutgoingConnectionRequests(t *testing.T) {
-	const (
-		peer1 = "peer1"
-		peer2 = "peer2"
-	)
-
 	ph := policyengine.NewPolicyHandler()
 	simpleSelector2 := metav1.LabelSelector{MatchLabels: policytypes.WorkloadAttrs{
 		policyengine.ServiceNameLabel: svcName,
@@ -146,6 +141,36 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Equal(t, event.Deny, connReqResp.Action)
 	require.Nil(t, err)
+}
+
+func TestLoadBalancer(t *testing.T) {
+	ph := policyengine.NewPolicyHandler()
+	addRemoteSvc(t, svcName, peer1, ph)
+	addRemoteSvc(t, svcName, peer2, ph)
+	addPolicy(t, &policy, ph)
+
+	lbPolicy := policyengine.LBPolicy{ServiceSrc: svcName, ServiceDst: svcName, Scheme: policyengine.Static, DefaultPeer: peer1}
+	err := ph.AddLBPolicy(&lbPolicy)
+	require.Nil(t, err)
+
+	requestAttr := event.ConnectionRequestAttr{SrcService: svcName, DstService: svcName, Direction: event.Outgoing}
+	connReqResp, err := ph.AuthorizeAndRouteConnection(&requestAttr)
+	require.Nil(t, err)
+	require.Equal(t, event.Allow, connReqResp.Action)
+	require.Equal(t, peer1, connReqResp.TargetMbg) // LB policy requires this request to be served by peer1
+
+	err = ph.DeleteLBPolicy(&lbPolicy) // LB policy is deleted - the random default policy now takes effect
+	require.Nil(t, err)
+	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
+	require.Nil(t, err)
+	require.Equal(t, event.Allow, connReqResp.Action)
+	require.Contains(t, []string{peer1, peer2}, connReqResp.TargetMbg)
+
+	ph.DeletePeer(peer1) // peer1 is deleted, so all requests should go to peer2
+	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
+	require.Nil(t, err)
+	require.Equal(t, event.Allow, connReqResp.Action)
+	require.Equal(t, peer2, connReqResp.TargetMbg)
 }
 
 func addRemoteSvc(t *testing.T, svc, peer string, ph policyengine.PolicyDecider) {
