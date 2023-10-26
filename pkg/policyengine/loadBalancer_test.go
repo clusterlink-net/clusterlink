@@ -49,6 +49,9 @@ func repeatLookups(t *testing.T, lb *policyengine.LoadBalancer, srcSvc, dstSvc s
 		targetPeer, err := lb.LookupWith(srcSvc, dstSvc, peers)
 		require.Nil(t, err)
 		res[targetPeer] = true
+		if len(res) == len(peers) { // All legal peers appeared in lookup
+			break
+		}
 	}
 	return res
 }
