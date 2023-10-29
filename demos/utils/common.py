@@ -11,7 +11,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os,time,json
+import os
+import shutil
+import time
 import subprocess as sp
 from colorama import Fore
 from colorama import Style
@@ -44,14 +46,6 @@ def getPodNameApp(app):
     podName=sp.getoutput(cmd)
     return podName
 
-def getPodName(prefix):
-    podName=sp.getoutput(f'kubectl get pods -o name | fgrep {prefix}| cut -d\'/\' -f2')
-    return podName
-
-def getPodIp(name):
-    name=getPodName(name)
-    podIp=sp.getoutput(f"kubectl get pod {name}"+" --template '{{.status.podIP}}'")
-    return podIp
 
 def runcmd(cmd):
     print(f'{Fore.YELLOW}{cmd} {Style.RESET_ALL}')
