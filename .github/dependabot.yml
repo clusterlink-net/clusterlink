@@ -12,14 +12,14 @@ updates:
     groups:
       k8s:
         patterns:
-          - "@k8s.io/*"
-          - "@sigs.k8s.io/*"
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
       cli:
         patterns:
-          - "@github.com/spf13/"
+          - "github.com/spf13/*"
       grpc-go:
         patterns:
-          - "@google.golang.org/"
+          - "google.golang.org/*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
