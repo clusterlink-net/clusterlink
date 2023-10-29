@@ -17,93 +17,62 @@ import time
 import subprocess as sp
 from colorama import Fore
 from colorama import Style
+from demos.utils.k8s import waitPod
 
-proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-folMfst=f"{proj_dir}/config/manifests"
+ProjDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+clAdm    = ProjDir + "/bin/cl-adm "
+folMfst=f"{ProjDir}/config/manifests"
 
-def waitPod(name, namespace="default"):
-    time.sleep(2) #Initial start
-    podStatus=""
-    while("Running" not in podStatus):
-        #cmd=f"kubectl get pods -l app={name} -o jsonpath" + "=\'{.items[0].status.containerStatuses[0].ready}\'"
-        cmd=f"kubectl get pods -l app={name} -n {namespace} "+ '--no-headers -o custom-columns=":status.phase"'
-        print(cmd)
-        podStatus =sp.getoutput(cmd)
-        if ("Running" not in podStatus):
-            print (f"Waiting for pod {name} in namespace {namespace} to start current status: {podStatus}")
-            time.sleep(7)
-        else:
-            time.sleep(5)
-            break
+# Init Functions
+# createFabric creates fabric certificates using cl-adm
+def createFabric(dir):
+    createFolder(dir)
+    runcmdDir(f"{clAdm} create fabric",dir)
 
-def getPodNameIp(app):
-    podName = getPodNameApp(app)
-    podIp   =  getPodIp(podName)  
-    return podName, podIp
+# createFabric creates peer certificates and yaml and deploys it to the cluster. 
+def createGw(name,dir):
+    runcmdDir(f"{clAdm} create peer --name {name}",dir)
+    runcmd(f"kubectl apply -f {dir}/{name}/k8s.yaml")
+    waitPod("cl-controlplane")
+    waitPod("cl-dataplane")
+    waitPod("gwctl")
+ 
+# startGwctl sets gwctl configuration
+def startGwctl(name,geIP, gwPort, testOutputFolder):
+    runcmd(f'gwctl init --id {name} --gwIP {geIP} --gwPort {gwPort}  --dataplane mtls\
+        --certca {testOutputFolder}/cert.pem --cert {testOutputFolder}/{name}/gwctl/cert.pem --key {testOutputFolder}/{name}/gwctl/key.pem') 
 
-def getPodNameApp(app):
-    cmd=f"kubectl get pods -l app={app} "+'-o jsonpath="{.items[0].metadata.name}"'
-    podName=sp.getoutput(cmd)
-    return podName
-
-
+# Log Functions
+# runcmd runs os system command.
 def runcmd(cmd):
     print(f'{Fore.YELLOW}{cmd} {Style.RESET_ALL}')
-    #sp.Popen(cmd,shell=True)
     os.system(cmd)
     
+# runcmdDir runs os system command in specific directory.
+def runcmdDir(cmd,dir):
+    print(f'{Fore.YELLOW}{cmd} {Style.RESET_ALL}')
+    sp.run(cmd, shell=True, cwd=dir, check=True)
+
+# runcmdb runs os system command in the background.        
 def runcmdb(cmd):
     print(f'{Fore.YELLOW}{cmd} {Style.RESET_ALL}')
     #sp.Popen(cmd,shell=True)
     os.system(cmd + ' &')
-    time.sleep(7)
 
+# printHeader runs os system command in the background.        
 def printHeader(msg):
     print(f'{Fore.GREEN}{msg} {Style.RESET_ALL}')
-    #print(msg)
 
-def getMbgPorts(podMbg, destSvc):
-    mbgJson =sp.getoutput(f' kubectl exec -i {podMbg} -- cat ./root/.mbg/mbgApp')
-    mbgJson=json.loads(mbgJson)
-    localPort =(mbgJson["Connections"][destSvc]["Local"]).split(":")[1]
-    externalPort =(mbgJson["Connections"][destSvc]["External"]).split(":")[1]
-    print(f"Service nodeport will use local Port: {localPort} and externalPort:{externalPort}")
-    return localPort, externalPort
+# createFolder creates folder.        
+def createFolder(name):
+    if os.path.exists(name):
+        shutil.rmtree(name)    
+    os.makedirs(name) 
 
-def buildMbg(name):
-    runcmd(f"kubectl apply -f {folMfst}/mbg/mbg-role.yaml")
-    runcmd(f"kubectl create -f {folMfst}/mbg/mbg.yaml")
-    runcmd(f"kubectl create -f {folMfst}/mbg/dataplane.yaml")
-    waitPod("mbg")
-    podMbg, mbgIp= getPodNameIp("mbg")
-    return podMbg, mbgIp
-
-def buildMbgctl(name):
-    runcmd(f"kubectl create -f {folMfst}/gwctl/gwctl.yaml")
-    waitPod("gwctl")
-    name,ip= getPodNameIp("gwctl")
-    return name, ip 
-
-#Creating k8s service for svc name
-def createMbgK8sService(appName,svcName, namespace, port):
-    podMbg= getPodName("mbg-deployment")        
-    mbgLocalPort, _ = getMbgPorts(podMbg, appName)
-    runcmd(f"kubectl delete service {svcName} -n {namespace}")
-    runcmd(f"kubectl create service clusterip {svcName} -n {namespace} --tcp={port}:{mbgLocalPort}")
-    runcmd(f"kubectl patch service {svcName} -n {namespace} -p "+  "\'{\"spec\":{\"selector\":{\"app\": \"mbg\"}}}\'") #replacing app name
-    #runcmd(f"kubectl create endpoints {svcName} --namespace={namespace} --addreses=mbg.{mbgNS}.:{mbgLocalPort}")
-
-def createK8sService(name, namespace, port, targetPort):
-    runcmd(f"kubectl delete service {name} -n {namespace}")
-    runcmd(f"kubectl create service clusterip {name} -n {namespace} --tcp={port}:{targetPort}")
-    
-def clean_cluster():
-    runcmd(f'kubectl delete --all deployments')
-    runcmd(f'kubectl delete --all svc')
-
+# app cluster contains the application service information.
 class app:
     def __init__(self, name, namespace, host, port):  
-        self.name       = name
-        self.namespace  = namespace
-        self.host     = host
-        self.port       = port
+        self.name      = name
+        self.namespace = namespace
+        self.host      = host
+        self.port      = port

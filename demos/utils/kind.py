@@ -14,14 +14,16 @@
 import json,os
 import subprocess as sp
 from demos.utils.manifests.kind.flannel.create_cni_bridge import createCniBridge,createKindCfgForflunnel
-from demos.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodNameIp, getMbgPorts,buildMbg,buildMbgctl,getPodIp,proj_dir
+from demos.utils.common import runcmd, createGw, printHeader, ProjDir
+from demos.utils.k8s import waitPod
 
+# BuildKindCluster builds kind cluster.
 def BuildKindCluster(name, cni="default", cfg="" ):
     #Set config file
     cfgFlag = f" --config {cfg}" if cfg != "" else  ""
-    cfgFlag = f" --config {proj_dir}/demos/utils/manifests/kind/calico/calico-config.yaml" if (cfg == "" and cni== "calico")  else cfgFlag
+    cfgFlag = f" --config {ProjDir}/demos/utils/manifests/kind/calico/calico-config.yaml" if (cfg == "" and cni== "calico")  else cfgFlag
     if  cni == "flannel" and cfg =="":
-        cfgFlag = f" --config {proj_dir}/bin/plugins/flannel-config.yaml"
+        cfgFlag = f" --config {ProjDir}/bin/plugins/flannel-config.yaml"
         createCniBridge()
         createKindCfgForflunnel()
 
@@ -32,43 +34,35 @@ def BuildKindCluster(name, cni="default", cfg="" ):
         runcmd("kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/tigera-operator.yaml")
         runcmd("kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/custom-resources.yaml")
 
-    runcmd(f"kind load docker-image mbg --name={name}")
-    mbgIp=getKindIp(name)
-    return mbgIp
+    ip=getKindIp(name)
+    return ip
 
+# useKindCluster set the context for the input kind cluster.
 def useKindCluster(name):
     os.system(f'kubectl config use-context kind-{name}')
 
+# getKindIp get Kind cluster IP.
 def getKindIp(name):
+    useKindCluster(name)
     clJson=json.loads(sp.getoutput(f' kubectl get nodes -o json'))
     ip = clJson["items"][0]["status"]["addresses"][0]["address"]
     return ip
 
-def startGwctl(gwctlName, mbgIP, mbgcPort, dataplane, gwctlcrt):
-    runcmd(f'gwctl init --id {gwctlName} --gwIP {mbgIP} --gwPort {mbgcPort}  --dataplane {dataplane} {gwctlcrt} ')
+# loadService loads image to cluster, deploy it and wait until pod is ready.
+def loadService(name, gwName, image, yaml, namespace="default"):
+    printHeader(f"Create {name} (client) service in {gwName}")
+    useKindCluster(gwName)
+    runcmd(f"kind load docker-image {image} --name={gwName}")
+    runcmd(f"kubectl create -f {yaml}")
+    waitPod(name,namespace)
 
-def startKindClusterMbg(mbgName, gwctlName, mbgcPortLocal, mbgcPort, mbgDataPort,dataplane, mbgcrtFlags, gwctlLocal=True, runInfg=False, cni="default", logFile=True):
-    os.system(f"kind delete cluster --name={mbgName}")
-    ###first Mbg
-    printHeader(f"\n\nStart building {mbgName}")
-    mbgKindIp           = BuildKindCluster(mbgName,cni)
-    podMbg, podMbgIp    = buildMbg(mbgName)
-    podDataPlane, _= getPodNameIp("dataplane")
-
-    runcmd(f"kubectl create service nodeport dataplane --tcp={mbgcPortLocal}:{mbgcPortLocal} --node-port={mbgcPort}")
+# startKindCluster build Kind cluster and deploy Clusterlink.
+def startKindCluster(name, testOutputFolder, cni="default"):
+    os.system(f"kind delete cluster --name={name}")
+    printHeader(f"\n\nStart building {name}")
+    BuildKindCluster(name,cni)
+    runcmd(f"kind load docker-image cl-controlplane cl-dataplane cl-go-dataplane gwctl --name={name}")
+    createGw(name,testOutputFolder)
     
-    printHeader(f"\n\nStart {mbgName} (along with PolicyEngine)")
-    startcmd= f'{podMbg} -- ./controlplane start --id "{mbgName}" --ip {mbgKindIp} --cport {mbgcPort} --cportLocal {mbgcPortLocal}  --externalDataPortRange {mbgDataPort}\
-    --dataplane {dataplane} {mbgcrtFlags} --startPolicyEngine={True} --observe={True} --logFile={logFile}'
-
-    if runInfg:
-        runcmd("kubectl exec -it " + startcmd)
-        runcmd(f"kubectl exec -it {podDataPlane} -- ./dataplane --id {mbgName} --dataplane {dataplane} {mbgcrtFlags}")
-    else:
-        runcmdb("kubectl exec -i " + startcmd)
-        runcmdb(f"kubectl exec -i {podDataPlane} -- ./dataplane --id {mbgName} --dataplane {dataplane} {mbgcrtFlags}")
-
-    if gwctlLocal:
-        gwctlPod, gwctlIp = buildMbgctl(gwctlName)
-        runcmdb(f'kubectl exec -i {gwctlPod} -- ./gwctl init --id {gwctlName} --gwIP {podMbgIp} --gwPort {mbgcPortLocal} --dataplane {dataplane} {mbgcrtFlags} ')
-
+    runcmd("kubectl delete service cl-dataplane")
+    runcmd("kubectl create service nodeport cl-dataplane --tcp=443:443 --node-port=30443")
