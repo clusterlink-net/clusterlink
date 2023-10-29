@@ -40,6 +40,10 @@ Over time, we hope that you feel comfortable voicing your opinions, giving
 feedback on others’ ideas, and even sharing your own ideas, and experiences.
 -->
 
+## Pull Request Workflow
+
+We follow [GitHub's Standard Fork & Pull Request Workflow](https://gist.github.com/Chaser324/ce0505fbed06b947d962)
+
 ## Bug Reports
 
 First, please [search the ClusterLink repository](https://github.com/clusterlink-net/clusterlink/issues)
@@ -69,20 +73,20 @@ If the proposal is new and no one has opened pull request yet, you may open eith
  code for a pull request, best to open an issue first and get feedback before investing time and effort.
 
 If possible, make a pull request as small as possible, or submit multiple pull request to complete a
-feature. Smaller means: easier to understand and review. This in turn means things can be merged
-faster.
+ feature. Smaller means: easier to understand and review. This in turn means things can be merged
+ faster.
 
 ## New Contributors
 
 If you're new to ClusterLink, you are in the best position to give us feedback on areas of
-our project that we can improve, including:
+ our project that we can improve, including:
 
 * Problems found during setting up a new developer environment
 * Gaps in our guides or documentation
 * Bugs in our automation scripts
 
-If anything doesn't make sense, or doesn't work when you run it, please open a
-bug report and let us know!
+If something doesn't make sense, or doesn't work when you run it, please open a
+ bug report and let us know!
 
 We have [good first issues](https://github.com/clusterlink-net/clusterlink/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) for new contributors
  and [help wanted](https://github.com/clusterlink-net/clusterlink/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22)
