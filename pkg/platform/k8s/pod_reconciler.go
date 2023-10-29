@@ -15,6 +15,7 @@ package k8s
 
 import (
 	"context"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -33,6 +34,7 @@ type podInfo struct {
 // PodReconciler contain information on the clusters pods.
 type PodReconciler struct {
 	client.Client
+	lock    sync.RWMutex
 	ipToPod map[string]types.NamespacedName
 	podList map[types.NamespacedName]podInfo
 	logger  *logrus.Entry
@@ -57,6 +59,9 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 // deletePod deletes pod to ipToPod list.
 func (r *PodReconciler) deletePod(podID types.NamespacedName) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	delete(r.podList, podID)
 	for key, pod := range r.ipToPod {
 		if pod.Name == podID.Name && pod.Namespace == podID.Namespace {
@@ -67,6 +72,9 @@ func (r *PodReconciler) deletePod(podID types.NamespacedName) {
 
 // updatePod adds or updates pod to ipToPod and podList.
 func (r *PodReconciler) updatePod(pod corev1.Pod) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	podID := types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}
 	r.podList[podID] = podInfo{name: pod.Name, namespace: pod.Namespace, labels: pod.Labels}
 	for _, ip := range pod.Status.PodIPs {
@@ -79,6 +87,9 @@ func (r *PodReconciler) updatePod(pod corev1.Pod) {
 
 // getLabelsFromIP return all the labels for specific ip.
 func (r *PodReconciler) getLabelsFromIP(ip string) map[string]string {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
 	if p, ipExsit := r.ipToPod[ip]; ipExsit {
 		if pInfo, podExist := r.podList[p]; podExist {
 			return pInfo.labels
