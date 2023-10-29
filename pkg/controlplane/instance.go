@@ -44,8 +44,8 @@ type Instance struct {
 	exports    *cpstore.Exports
 	imports    *cpstore.Imports
 	bindings   *cpstore.Bindings
-	policies   *cpstore.AccessPolicies
-	lbpolicies *cpstore.LBPolicies
+	acPolicies *cpstore.AccessPolicies
+	lbPolicies *cpstore.LBPolicies
 
 	peerLock   sync.RWMutex
 	peerClient map[string]*client
@@ -425,7 +425,7 @@ func (cp *Instance) CreateAccessPolicy(policy *cpstore.AccessPolicy) error {
 	cp.logger.Infof("Creating access policy '%s'.", policy.Spec.Blob)
 
 	if cp.initialized {
-		if err := cp.policies.Create(policy); err != nil {
+		if err := cp.acPolicies.Create(policy); err != nil {
 			return err
 		}
 	}
@@ -437,7 +437,7 @@ func (cp *Instance) CreateAccessPolicy(policy *cpstore.AccessPolicy) error {
 func (cp *Instance) UpdateAccessPolicy(policy *cpstore.AccessPolicy) error {
 	cp.logger.Infof("Updating access policy '%s'.", policy.Spec.Blob)
 
-	err := cp.policies.Update(policy.Name, func(old *cpstore.AccessPolicy) *cpstore.AccessPolicy {
+	err := cp.acPolicies.Update(policy.Name, func(old *cpstore.AccessPolicy) *cpstore.AccessPolicy {
 		return policy
 	})
 	if err != nil {
@@ -455,19 +455,19 @@ func (cp *Instance) DeleteAccessPolicy(policy *cpstore.AccessPolicy) (*cpstore.A
 		return nil, err
 	}
 
-	return cp.policies.Delete(policy.Name)
+	return cp.acPolicies.Delete(policy.Name)
 }
 
 // GetAccessPolicy returns an access policy with the given name.
 func (cp *Instance) GetAccessPolicy(name string) *cpstore.AccessPolicy {
 	cp.logger.Infof("Getting access policy '%s'.", name)
-	return cp.policies.Get(name)
+	return cp.acPolicies.Get(name)
 }
 
 // GetAllAccessPolicies returns the list of all AccessPolicies.
 func (cp *Instance) GetAllAccessPolicies() []*cpstore.AccessPolicy {
 	cp.logger.Info("Listing all access policies.")
-	return cp.policies.GetAll()
+	return cp.acPolicies.GetAll()
 }
 
 // CreateLBPolicy creates a load-balancing policy to set a load-balancing scheme for specific connections.
@@ -475,7 +475,7 @@ func (cp *Instance) CreateLBPolicy(policy *cpstore.LBPolicy) error {
 	cp.logger.Infof("Creating load-balancing policy '%s'.", policy.Spec.Blob)
 
 	if cp.initialized {
-		if err := cp.lbpolicies.Create(policy); err != nil {
+		if err := cp.lbPolicies.Create(policy); err != nil {
 			return err
 		}
 	}
@@ -487,7 +487,7 @@ func (cp *Instance) CreateLBPolicy(policy *cpstore.LBPolicy) error {
 func (cp *Instance) UpdateLBPolicy(policy *cpstore.LBPolicy) error {
 	cp.logger.Infof("Updating load-balancing policy '%s'.", policy.Spec.Blob)
 
-	err := cp.lbpolicies.Update(policy.Name, func(old *cpstore.LBPolicy) *cpstore.LBPolicy {
+	err := cp.lbPolicies.Update(policy.Name, func(old *cpstore.LBPolicy) *cpstore.LBPolicy {
 		return policy
 	})
 	if err != nil {
@@ -505,19 +505,19 @@ func (cp *Instance) DeleteLBPolicy(policy *cpstore.LBPolicy) (*cpstore.LBPolicy,
 		return nil, err
 	}
 
-	return cp.lbpolicies.Delete(policy.Name)
+	return cp.lbPolicies.Delete(policy.Name)
 }
 
 // GetLBPolicy returns a load-balancing policy with the given name.
 func (cp *Instance) GetLBPolicy(name string) *cpstore.LBPolicy {
 	cp.logger.Infof("Getting load-balancing policy '%s'.", name)
-	return cp.lbpolicies.Get(name)
+	return cp.lbPolicies.Get(name)
 }
 
 // GetAllLBPolicies returns the list of all load-balancing Policies.p
 func (cp *Instance) GetAllLBPolicies() []*cpstore.LBPolicy {
 	cp.logger.Info("Listing all load-balancing policies.")
-	return cp.lbpolicies.GetAll()
+	return cp.lbPolicies.GetAll()
 }
 
 // GetXDSClusterManager returns the xDS cluster manager.
@@ -637,17 +637,17 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, platf
 	}
 	logger.Infof("Loaded %d bindings.", bindings.Len())
 
-	policies, err := cpstore.NewAccessPolicies(storeManager)
+	acPolicies, err := cpstore.NewAccessPolicies(storeManager)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load access policies from store: %v", err)
 	}
-	logger.Infof("Loaded %d access policies.", policies.Len())
+	logger.Infof("Loaded %d access policies.", acPolicies.Len())
 
-	lbpolicies, err := cpstore.NewLBPolicies(storeManager)
+	lbPolicies, err := cpstore.NewLBPolicies(storeManager)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load load-balancing policies from store: %v", err)
 	}
-	logger.Infof("Loaded %d load-balancing policies.", policies.Len())
+	logger.Infof("Loaded %d load-balancing policies.", acPolicies.Len())
 
 	cp := &Instance{
 		peerTLS:       peerTLS,
@@ -656,8 +656,8 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, platf
 		exports:       exports,
 		imports:       imports,
 		bindings:      bindings,
-		policies:      policies,
-		lbpolicies:    lbpolicies,
+		acPolicies:    acPolicies,
+		lbPolicies:    lbPolicies,
 		xdsManager:    newXDSManager(),
 		ports:         newPortManager(),
 		policyDecider: policyengine.NewPolicyHandler(),
