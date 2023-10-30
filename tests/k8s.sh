@@ -40,10 +40,16 @@ function test_k8s {
   kind create cluster --name peer1
 
   # load images to cluster
-  kind load docker-image cl-controlplane cl-dataplane cl-go-dataplane gwctl --name peer1
+  kind load docker-image cl-controlplane --name peer1
+  kind load docker-image cl-dataplane --name peer1
+  kind load docker-image cl-go-dataplane --name peer1
+  kind load docker-image gwctl --name peer1
 
   # configure kubectl
   kubectl config use-context kind-peer1
+
+  # wait for service account to be created
+  timeout 30 sh -c 'until kubectl -n default get serviceaccount default -o name; do sleep 0.1; done > /dev/null 2>&1'
 
   # create clusterlink objects
   kubectl create -f ./peer1/k8s.yaml
@@ -55,7 +61,7 @@ function test_k8s {
   kubectl wait --for=condition=ready pod/gwctl
 
   # install iperf3 and jq
-  kubectl exec -i gwctl -- apk add iperf3 jq
+  kubectl exec -i gwctl -- timeout 30 sh -c 'until apk add iperf3 jq; do sleep 0.1; done > /dev/null 2>&1'
 
   # expose iperf3 server
   kubectl expose pod iperf-server --name=foo --port=80 --target-port=1234
@@ -82,7 +88,7 @@ function test_k8s {
   kubectl wait --for=condition=ready pod/iperf-server
 
   # run iperf client
-  kubectl exec -i gwctl -- iperf3 -c bla -p 9999 -t 1
+  kubectl exec -i gwctl -- timeout 30 sh -c 'until iperf3 -c bla -p 9999 -t 1; do sleep 0.1; done > /dev/null 2>&1'
 }
 
 cd $TEST_DIR
