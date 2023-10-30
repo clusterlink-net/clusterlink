@@ -52,7 +52,7 @@ func (c *Controller) Run() error {
 	// start server listeners
 	for listenAddress, server := range c.servers {
 		if err := server.Listen(listenAddress); err != nil {
-			return fmt.Errorf("unable to create listener for server '%s' on %s: %v",
+			return fmt.Errorf("unable to create listener for server '%s' on %s: %w",
 				server.Name(), listenAddress, err)
 		}
 	}
@@ -121,7 +121,7 @@ func (c *Controller) Run() error {
 	for server, err := range c.errors {
 		if err != nil {
 			errs = append(errs, fmt.Errorf(
-				"error running server '%s': %v", server.Name(), err))
+				"error running server '%s': %w", server.Name(), err))
 		}
 	}
 	return errors.Join(errs...)
@@ -135,7 +135,7 @@ func (c *Controller) Stop() error {
 	for _, server := range c.servers {
 		if err := server.Stop(); err != nil {
 			errs = append(errs, fmt.Errorf(
-				"unable to stop server '%s': %v", server.Name(), err))
+				"unable to stop server '%s': %w", server.Name(), err))
 		}
 	}
 
@@ -150,7 +150,7 @@ func (c *Controller) GracefulStop() error {
 	for _, server := range c.servers {
 		if err := server.GracefulStop(); err != nil {
 			errs = append(errs, fmt.Errorf(
-				"unable to gracefully stop server '%s': %v", server.Name(), err))
+				"unable to gracefully stop server '%s': %w", server.Name(), err))
 		}
 	}
 

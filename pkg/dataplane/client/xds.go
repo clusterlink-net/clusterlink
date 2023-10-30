@@ -95,7 +95,7 @@ func (x *XDSClient) Run() error {
 	for resource, err := range x.errors {
 		if err != nil {
 			errs = append(errs, fmt.Errorf(
-				"error running fetcher '%s': %v", resource, err))
+				"error running fetcher '%s': %w", resource, err))
 		}
 	}
 

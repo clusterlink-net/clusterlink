@@ -274,7 +274,7 @@ func (cp *Instance) CreateImport(imp *cpstore.Import) error {
 
 	port, err := cp.ports.Lease(imp.Port)
 	if err != nil {
-		return fmt.Errorf("cannot generate listening port: %v", err)
+		return fmt.Errorf("cannot generate listening port: %w", err)
 	}
 
 	imp.Port = port
@@ -534,7 +534,7 @@ func (cp *Instance) GetXDSListenerManager() cache.Cache {
 func (cp *Instance) init() error {
 	// generate the JWK key
 	if err := cp.generateJWK(); err != nil {
-		return fmt.Errorf("unable to generate JWK key: %v", err)
+		return fmt.Errorf("unable to generate JWK key: %w", err)
 	}
 
 	// add peers
@@ -591,17 +591,17 @@ func (cp *Instance) generateJWK() error {
 	// generate RSA key-pair
 	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return fmt.Errorf("unable to generate RSA keys: %v", err)
+		return fmt.Errorf("unable to generate RSA keys: %w", err)
 	}
 
 	jwkSignKey, err := jwk.New(rsaKey)
 	if err != nil {
-		return fmt.Errorf("unable to create JWK signing key: %v", err)
+		return fmt.Errorf("unable to create JWK signing key: %w", err)
 	}
 
 	jwkVerifyKey, err := jwk.New(rsaKey.PublicKey)
 	if err != nil {
-		return fmt.Errorf("unable to create JWK verifing key: %v", err)
+		return fmt.Errorf("unable to create JWK verifing key: %w", err)
 	}
 
 	cp.jwkSignKey = jwkSignKey
@@ -615,19 +615,19 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, platf
 
 	peers, err := cpstore.NewPeers(storeManager)
 	if err != nil {
-		return nil, fmt.Errorf("cannot load peers from store: %v", err)
+		return nil, fmt.Errorf("cannot load peers from store: %w", err)
 	}
 	logger.Infof("Loaded %d peers.", peers.Len())
 
 	exports, err := cpstore.NewExports(storeManager)
 	if err != nil {
-		return nil, fmt.Errorf("cannot load exports from store: %v", err)
+		return nil, fmt.Errorf("cannot load exports from store: %w", err)
 	}
 	logger.Infof("Loaded %d exports.", exports.Len())
 
 	imports, err := cpstore.NewImports(storeManager)
 	if err != nil {
-		return nil, fmt.Errorf("cannot load imports from store: %v", err)
+		return nil, fmt.Errorf("cannot load imports from store: %w", err)
 	}
 	logger.Infof("Loaded %d imports.", imports.Len())
 
@@ -639,7 +639,7 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, platf
 
 	acPolicies, err := cpstore.NewAccessPolicies(storeManager)
 	if err != nil {
-		return nil, fmt.Errorf("cannot load access policies from store: %v", err)
+		return nil, fmt.Errorf("cannot load access policies from store: %w", err)
 	}
 	logger.Infof("Loaded %d access policies.", acPolicies.Len())
 
