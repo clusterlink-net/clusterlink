@@ -18,16 +18,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/templates"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"golang.org/x/net/idna"
 
 	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/util"
+	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
+	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 )
 
 // PeerOptions contains everything necessary to create and run a 'create peer' subcommand.
@@ -52,62 +49,69 @@ func (o *PeerOptions) RequiredFlags() []string {
 	return []string{"name"}
 }
 
-func (o *PeerOptions) createControlplane() error {
-	if err := os.Mkdir(config.ControlplaneDirectory(o.Name), 0755); err != nil {
+func (o *PeerOptions) saveCertificate(cert *bootstrap.Certificate, outDirectory string) error {
+	// save certificate to file
+	err := os.WriteFile(filepath.Join(outDirectory, config.CertificateFileName), cert.RawCert(), 0600)
+	if err != nil {
 		return err
 	}
 
-	// create certificate
-	peerDirectory := config.PeerDirectory(o.Name)
-	controlplaneDirectory := config.ControlplaneDirectory(o.Name)
-	return util.CreateCertificate(&util.CertificateConfig{
-		Name:              "cl-controlplane",
-		IsServer:          true,
-		IsClient:          true,
-		DNSNames:          []string{o.Name, api.GRPCServerName(o.Name)},
-		CAPath:            filepath.Join(peerDirectory, config.CertificateFileName),
-		CAKeyPath:         filepath.Join(peerDirectory, config.PrivateKeyFileName),
-		CertOutPath:       filepath.Join(controlplaneDirectory, config.CertificateFileName),
-		PrivateKeyOutPath: filepath.Join(controlplaneDirectory, config.PrivateKeyFileName),
-	})
+	// save private key to file
+	return os.WriteFile(filepath.Join(outDirectory, config.PrivateKeyFileName), cert.RawKey(), 0600)
 }
 
-func (o *PeerOptions) createDataplane() error {
-	if err := os.Mkdir(config.DataplaneDirectory(o.Name), 0755); err != nil {
-		return err
+func (o *PeerOptions) createControlplane(peerCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
+	cert, err := bootstrap.CreateControlplaneCertificate(o.Name, peerCert)
+	if err != nil {
+		return nil, err
 	}
 
-	// create certificate
-	peerDirectory := config.PeerDirectory(o.Name)
-	dataplaneDirectory := config.DataplaneDirectory(o.Name)
-	return util.CreateCertificate(&util.CertificateConfig{
-		Name:              "dataplane",
-		IsServer:          true,
-		IsClient:          true,
-		DNSNames:          []string{dpapi.DataplaneServerName(o.Name)},
-		CAPath:            filepath.Join(peerDirectory, config.CertificateFileName),
-		CAKeyPath:         filepath.Join(peerDirectory, config.PrivateKeyFileName),
-		CertOutPath:       filepath.Join(dataplaneDirectory, config.CertificateFileName),
-		PrivateKeyOutPath: filepath.Join(dataplaneDirectory, config.PrivateKeyFileName),
-	})
+	outDirectory := config.ControlplaneDirectory(o.Name)
+	if err := os.Mkdir(outDirectory, 0755); err != nil {
+		return nil, err
+	}
+
+	if err := o.saveCertificate(cert, outDirectory); err != nil {
+		return nil, err
+	}
+
+	return cert, nil
 }
 
-func (o *PeerOptions) createGWCTL() error {
-	if err := os.Mkdir(config.GWCTLDirectory(o.Name), 0755); err != nil {
-		return err
+func (o *PeerOptions) createDataplane(peerCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
+	cert, err := bootstrap.CreateDataplaneCertificate(o.Name, peerCert)
+	if err != nil {
+		return nil, err
 	}
 
-	// create certificate
-	peerDirectory := config.PeerDirectory(o.Name)
-	gwctlDirectory := config.GWCTLDirectory(o.Name)
-	return util.CreateCertificate(&util.CertificateConfig{
-		Name:              "gwctl",
-		IsClient:          true,
-		CAPath:            filepath.Join(peerDirectory, config.CertificateFileName),
-		CAKeyPath:         filepath.Join(peerDirectory, config.PrivateKeyFileName),
-		CertOutPath:       filepath.Join(gwctlDirectory, config.CertificateFileName),
-		PrivateKeyOutPath: filepath.Join(gwctlDirectory, config.PrivateKeyFileName),
-	})
+	outDirectory := config.DataplaneDirectory(o.Name)
+	if err := os.Mkdir(outDirectory, 0755); err != nil {
+		return nil, err
+	}
+
+	if err := o.saveCertificate(cert, outDirectory); err != nil {
+		return nil, err
+	}
+
+	return cert, nil
+}
+
+func (o *PeerOptions) createGWCTL(peerCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
+	cert, err := bootstrap.CreateGWCTLCertificate(peerCert)
+	if err != nil {
+		return nil, err
+	}
+
+	outDirectory := config.GWCTLDirectory(o.Name)
+	if err := os.Mkdir(outDirectory, 0755); err != nil {
+		return nil, err
+	}
+
+	if err := o.saveCertificate(cert, outDirectory); err != nil {
+		return nil, err
+	}
+
+	return cert, nil
 }
 
 // Run the 'create peer' subcommand.
@@ -124,53 +128,70 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
+	// read fabric certificate
+	rawFabricCert, err := os.ReadFile(config.CertificateFileName)
+	if err != nil {
+		return err
+	}
+
+	// read fabric key
+	rawFabricKey, err := os.ReadFile(config.PrivateKeyFileName)
+	if err != nil {
+		return err
+	}
+
+	fabricCert, err := bootstrap.CertificateFromRaw(rawFabricCert, rawFabricKey)
+	if err != nil {
+		return err
+	}
+
 	peerDirectory := config.PeerDirectory(o.Name)
 	if err := os.Mkdir(peerDirectory, 0755); err != nil {
 		return err
 	}
 
-	err := util.CreateCertificate(&util.CertificateConfig{
-		Name:              o.Name,
-		IsCA:              true,
-		DNSNames:          []string{o.Name},
-		CAPath:            config.CertificateFileName,
-		CAKeyPath:         config.PrivateKeyFileName,
-		CertOutPath:       filepath.Join(peerDirectory, config.CertificateFileName),
-		PrivateKeyOutPath: filepath.Join(peerDirectory, config.PrivateKeyFileName),
+	peerCertificate, err := bootstrap.CreatePeerCertificate(o.Name, fabricCert)
+	if err != nil {
+		return err
+	}
+
+	err = o.saveCertificate(peerCertificate, config.PeerDirectory(o.Name))
+	if err != nil {
+		return err
+	}
+
+	controlplaneCert, err := o.createControlplane(peerCertificate)
+	if err != nil {
+		return err
+	}
+
+	dataplaneCert, err := o.createDataplane(peerCertificate)
+	if err != nil {
+		return err
+	}
+
+	gwctlCert, err := o.createGWCTL(peerCertificate)
+	if err != nil {
+		return err
+	}
+
+	// create k8s deployment yaml
+	k8sConfig, err := platform.K8SConfig(&platform.Config{
+		Peer:                    o.Name,
+		FabricCertificate:       fabricCert,
+		PeerCertificate:         peerCertificate,
+		ControlplaneCertificate: controlplaneCert,
+		DataplaneCertificate:    dataplaneCert,
+		GWCTLCertificate:        gwctlCert,
+		Dataplanes:              o.Dataplanes,
+		DataplaneType:           o.DataplaneType,
 	})
 	if err != nil {
 		return err
 	}
 
-	if err := o.createControlplane(); err != nil {
-		return err
-	}
-
-	if err := o.createDataplane(); err != nil {
-		return err
-	}
-
-	if err := o.createGWCTL(); err != nil {
-		return err
-	}
-
-	// deployment configuration
-	args, err := templates.Config{
-		Peer:          o.Name,
-		Dataplanes:    o.Dataplanes,
-		DataplaneType: o.DataplaneType,
-	}.TemplateArgs()
-	if err != nil {
-		return err
-	}
-
-	// create docker run script
-	if err := templates.CreateDockerRunScripts(args, peerDirectory); err != nil {
-		return err
-	}
-
-	// create k8s deployment yaml
-	return templates.CreateK8SConfig(args, peerDirectory)
+	outPath := filepath.Join(peerDirectory, config.K8SYamlFile)
+	return os.WriteFile(outPath, k8sConfig, 0600)
 }
 
 // NewCmdCreatePeer returns a cobra.Command to run the 'create peer' subcommand.
@@ -216,9 +237,9 @@ func verifyNotExists(path string) error {
 // verifyDataplaneType checks if the given dataplane type is valid
 func verifyDataplaneType(dType string) error {
 	switch dType {
-	case templates.DataplaneTypeEnvoy:
+	case platform.DataplaneTypeEnvoy:
 		return nil
-	case templates.DataplaneTypeGo:
+	case platform.DataplaneTypeGo:
 		return nil
 	default:
 		return fmt.Errorf("undefined dataplane-type %s", dType)
