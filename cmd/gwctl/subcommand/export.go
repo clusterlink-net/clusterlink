@@ -79,7 +79,7 @@ func (o *exportCreateOptions) run() error {
 			return fmt.Errorf("missing host in address")
 		}
 
-		exPortInt, err := strconv.Atoi(exPort)
+		exPortInt, err := strconv.ParseUint(exPort, 10, 16)
 		if err != nil {
 			return err
 		}
