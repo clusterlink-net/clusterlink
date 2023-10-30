@@ -1,36 +1,19 @@
 # Contributing Guide
 
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#introduction)
+Welcome! We gladly accept contributions and encourage you to get involved in making
+ ClusterLink the best it can be! 💖
 
-* [New Contributor Guide](#contributing-guide)
-  * [Ways to Contribute](#ways-to-contribute)
-  * [Find an Issue](#find-an-issue)
-  * [Ask for Help](#ask-for-help)
-  * [Pull Request Lifecycle](#pull-request-lifecycle)
-  * [Development Environment Setup](#development-environment-setup)
-  * [Sign Your Commits](#sign-your-commits)
-  * [Pull Request Checklist](#pull-request-checklist)
+## Code of Conduct
 
-Welcome! We are glad that you want to contribute to our project! 💖
-
-As you get started, you are in the best position to give us feedback on areas of
-our project that we need help with including:
-
-* Problems found during setting up a new developer environment
-* Gaps in our Quickstart Guide or documentation
-* Bugs in our automation scripts
-
-If anything doesn't make sense, or doesn't work when you run it, please open a
-bug report and let us know!
+The ClusterLink community is governed by our [Code of Conduct](./CODE_OF_CONDUCT.md)
+ and we expect all contributors to abide by it.
 
 ## Ways to Contribute
-
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#ways-to-contribute)
 
 We welcome many different types of contributions including:
 
 * New features
-* Builds, CI/CD
+* Builds, CI/CD enhancements
 * Bug fixes
 * Documentation
 * Issue Triage
@@ -47,8 +30,6 @@ together. -->
 <!--
 ### Come to Meetings
 
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#come-to-meetings)
-
 Absolutely everyone is welcome to come to any of our meetings. You never need an
 invite to join us. In fact, we want you to join us, even if you don’t have
 anything you feel like you want to contribute. Just being there is enough!
@@ -59,15 +40,59 @@ Over time, we hope that you feel comfortable voicing your opinions, giving
 feedback on others’ ideas, and even sharing your own ideas, and experiences.
 -->
 
-## Find an Issue
+## Pull Request Workflow
 
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#find-an-issue)
+We follow [GitHub's Standard Fork & Pull Request Workflow](https://gist.github.com/Chaser324/ce0505fbed06b947d962)
 
-We have good first issues for new contributors and help wanted issues suitable
-for any contributor. [good first issue](TODO) has extra information to
-help you make your first contribution. [help wanted](TODO) are issues
-suitable for someone who isn't a core maintainer and is good to move onto after
-your first pull request.
+## Bug Reports
+
+First, please [search the ClusterLink repository](https://github.com/clusterlink-net/clusterlink/issues)
+ with different keywords to ensure your bug is not already reported.
+
+If not, [open an issue](https://github.com/clusterlink-net/clusterlink/issues/new), providing as
+ much details as possible so we can understand and reproduce the problematic behavior. It is easiest
+ to pinpoint the root cause when you write clear, concise instructions to reproduce the behavior.
+ The more detailed and specific you are, the faster we will be able to help you. Check out [How to
+ Report Bugs Effectively](https://www.chiark.greenend.org.uk/~sgtatham/bugs.html).
+
+Please be kind. :smile: Remember that ClusterLink is work in progress and comes at no cost to you.
+
+## Minor Improvements and New Tests
+
+Submit [pull requests](https://github.com/clusterlink-net/clusterlink/pulls) at any time. Make
+ sure to write tests to assert your change is working properly and is thoroughly covered.
+
+## New Features
+
+As with bug reports, please [search](https://github.com/clusterlink-net/clusterlink/issues) with
+ a variety of keywords to ensure your suggestion/proposal is new. Please also check for existing pull
+ requests to see if someone is already working on this. We want to avoid duplication of effort.
+
+If the proposal is new and no one has opened pull request yet, you may open either an issue or a
+ pull request for discussion and feedback. If you are going to spend significant time implementing
+ code for a pull request, best to open an issue first and get feedback before investing time and effort.
+
+If possible, make a pull request as small as possible, or submit multiple pull request to complete a
+ feature. Smaller means: easier to understand and review. This in turn means things can be merged
+ faster.
+
+## New Contributors
+
+If you're new to ClusterLink, you are in the best position to give us feedback on areas of
+ our project that we can improve, including:
+
+* Problems found during setting up a new developer environment
+* Gaps in our guides or documentation
+* Bugs in our automation scripts
+
+If something doesn't make sense, or doesn't work when you run it, please open a
+ bug report and let us know!
+
+We have [good first issues](https://github.com/clusterlink-net/clusterlink/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) for new contributors
+ and [help wanted](https://github.com/clusterlink-net/clusterlink/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22)
+ issues suitable for any contributor.
+ "Help wanted" issues are suitable for someone who isn't a core maintainer and are good to move onto
+ after your first pull request.
 
 <!-- 
 Sometimes there won’t be any issues with these labels. That’s ok! There is
@@ -75,68 +100,38 @@ likely still something for you to work on. If you want to contribute but you
 don’t know where to start or can't find a suitable issue, you can ⚠️ **explain how people can ask for an issue to work on**.
 -->
 
-Once you see an issue that you'd like to work on, please post a comment saying
-that you want to work on it. Something like "I want to work on this" is fine.
+We have a [roadmap](./README.md#roadmap) that will give you a good idea of the larger
+ features that we are working on right now. That may help you decide what you would
+ like to work on after you have tackled an issue or two. If you have a big idea for
+ ClusterLink, you can propose it by creating an issue and marking it `enhancement`.
 
 ## Ask for Help
 
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#ask-for-help)
+All contributors might get stuck sometimes. The best way to reach us with a question
+ when contributing is to ask on:
 
-The best way to reach us with a question when contributing is to ask on:
+* The original GitHub issue
+* The [developer mailing list](TODO missing link)
+* Our [Slack channel](TODO missing link)
 
-<!-- ⚠️ **Pick the way(s) that you prefer people ask for help** -->
-
-* The original github issue
-* The developer mailing list
-* Our Slack channel
-
-## Pull Request Lifecycle
-
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#pull-request-lifecycle)
-
-<!-- ⚠️ **Explain your pull request process** -->
-
-## Development Environment Setup
-
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#development-environment-setup)
-
-<!-- ⚠️ **Explain how to set up a development environment** -->
-
-## Sign Your Commits
-
-[Instructions](https://contribute.cncf.io/maintainers/github/templates/required/contributing/#sign-your-commits)
-
-### DCO
+## Developer Certificate of Origin
 
 Licensing is important to open source projects. It provides some assurances that
-the software will continue to be available based under the terms that the
-author(s) desired. We require that contributors sign off on commits submitted to
-our project's repositories. The [Developer Certificate of Origin
-(DCO)](https://probot.github.io/apps/dco/) is a way to certify that you wrote and
-have the right to contribute the code you are submitting to the project.
+ the software will continue to be available based under the terms that the
+ author(s) desired. As required by the CNCF's [charter](https://github.com/cncf/foundation/blob/master/charter.md#11-ip-policy),
+ all new code contributions must be accompanied by a
+ [Developer Certificate of Origin (DCO)](https://developercertificate.org/). ClusterLink uses
+ the [DCO App](https://github.com/apps/dco) to enforce the DCO on pull requests.
 
-You sign-off by adding the following to your commit messages. Your sign-off must
-match the git user and email associated with the commit.
+You may use git option `-s` to append automatically to the `Sign-off-by` line to your commit messages:
 
-    This is my commit message
+```sh
+git commit -s
+```
 
-    Signed-off-by: Your Name <your.name@example.com>
+Your sign-off must match the git user and email associated with the commit.
 
-Git has a `-s` command line option to do this automatically:
-
-    git commit -s -m 'This is my commit message'
-
-If you forgot to do this and have not yet pushed your changes to the remote
-repository, you can amend your commit with the sign-off by running 
-
-    git commit --amend -s 
-
-## Pull Request Checklist
-
-When you submit your pull request, or you push new commits to it, our automated
-systems will run some checks on your new code. We require that your pull request
-passes these checks, but we also have more criteria than just that before we can
-accept and merge it. We recommend that you check the following things locally
-before you submit your code:
-
-<!-- ⚠️ **Create a checklist that authors should use before submitting a pull request** -->
+<!-- 
+Developer workflow (e.g., environment set up, creating PRs, commit messages, etc)
+are covered in a separate document
+-->
