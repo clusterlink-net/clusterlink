@@ -24,22 +24,22 @@ import (
 func ParseTLSFiles(ca, cert, key string) (*ParsedCertData, error) {
 	rawCA, err := os.ReadFile(ca)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read CA file '%s': %v", ca, err)
+		return nil, fmt.Errorf("unable to read CA file '%s': %w", ca, err)
 	}
 
 	rawCertificate, err := os.ReadFile(cert)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read certificate file: %v", err)
+		return nil, fmt.Errorf("unable to read certificate file: %w", err)
 	}
 
 	rawPrivateKey, err := os.ReadFile(key)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read private key file: %v", err)
+		return nil, fmt.Errorf("unable to read private key file: %w", err)
 	}
 
 	certificate, err := tls.X509KeyPair(rawCertificate, rawPrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse certificate keypair: %v", err)
+		return nil, fmt.Errorf("unable to parse certificate keypair: %w", err)
 	}
 
 	caCertPool := x509.NewCertPool()
@@ -49,7 +49,7 @@ func ParseTLSFiles(ca, cert, key string) (*ParsedCertData, error) {
 
 	x509cert, err := x509.ParseCertificate(certificate.Certificate[0])
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse x509 certificate: %v", err)
+		return nil, fmt.Errorf("unable to parse x509 certificate: %w", err)
 	}
 
 	return &ParsedCertData{

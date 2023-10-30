@@ -50,7 +50,7 @@ func (d *Dataplane) StartSNIServer(dataplaneServerAddress string) error {
 	d.logger.Infof("SNI proxy starting at %s.", dataplaneListenAddress)
 	err := sniProxy.Listen(dataplaneListenAddress)
 	if err != nil {
-		return fmt.Errorf("unable to create listener for server on %s: %v",
+		return fmt.Errorf("unable to create listener for server on %s: %w",
 			dataplaneListenAddress, err)
 	}
 	return sniProxy.Serve()
@@ -129,16 +129,16 @@ func (d *Dataplane) hijackConn(w http.ResponseWriter) (net.Conn, error) {
 	// Hijack the connection
 	peerConn, _, err := hj.Hijack()
 	if err != nil {
-		return nil, fmt.Errorf("hijacking failed: %v", err)
+		return nil, fmt.Errorf("hijacking failed: %w", err)
 	}
 
 	if err = peerConn.SetDeadline(time.Time{}); err != nil {
-		return nil, fmt.Errorf("failed to clear deadlines on connection: %v", err)
+		return nil, fmt.Errorf("failed to clear deadlines on connection: %w", err)
 	}
 
 	if _, err := peerConn.Write([]byte{}); err != nil {
 		_ = peerConn.Close() // close the connection ignoring errors
-		return nil, fmt.Errorf("failed to write to connection: %v", err)
+		return nil, fmt.Errorf("failed to write to connection: %w", err)
 	}
 
 	fmt.Fprintf(peerConn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n")

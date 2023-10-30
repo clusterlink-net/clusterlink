@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package util
+package bootstrap
 
 import (
 	"bytes"
@@ -23,12 +23,21 @@ import (
 	"fmt"
 	"math/big"
 	mathrand "math/rand"
-	"os"
 	"time"
 )
 
-// CertificateConfig holds a configuration for creating a new signed certificate.
-type CertificateConfig struct {
+type certificate struct {
+	parent *certificate
+
+	cert *x509.Certificate
+	key  *rsa.PrivateKey
+
+	certPEM []byte
+	keyPEM  []byte
+}
+
+// certificateConfig holds a configuration for creating a new signed certificate.
+type certificateConfig struct {
 	// Name is the common name that will be used in the certificate.
 	Name string
 
@@ -42,24 +51,17 @@ type CertificateConfig struct {
 	// For a CA certificate, these are the permitted DNS names.
 	DNSNames []string
 
-	// CAPath is the path to the CA certificate that will sign the certificate.
-	// If empty, certificate will self-sign.
-	CAPath string
-	// CAKeyPath is the path to the private key of the CA that will sign the certificate.
-	CAKeyPath string
-
-	// CertOutPath is the path where the certificate will be saved to.
-	CertOutPath string
-	// CertOutPath is the path where the private key will be saved to.
-	PrivateKeyOutPath string
+	// Parent certificate that will sign the certificate.
+	// If nil, certificate will self-sign.
+	Parent *certificate
 }
 
-// CreateCertificate creates a signed certificate.
-func CreateCertificate(config *CertificateConfig) error {
+// createCertificate creates a signed certificate.
+func createCertificate(config *certificateConfig) (*certificate, error) {
 	// generate key pair
 	key, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// RNG for generating certificate serial number.
@@ -94,38 +96,9 @@ func CreateCertificate(config *CertificateConfig) error {
 	var ca *x509.Certificate
 	var caKey *rsa.PrivateKey
 
-	if config.CAPath != "" {
-		// load CA certificate
-		rawCA, err := os.ReadFile(config.CAPath)
-		if err != nil {
-			return err
-		}
-
-		block, _ := pem.Decode(rawCA)
-		if block == nil {
-			return fmt.Errorf("CA certificate file is not in PEM format")
-		}
-
-		ca, err = x509.ParseCertificate(block.Bytes)
-		if err != nil {
-			return err
-		}
-
-		// load CA key
-		rawCAKey, err := os.ReadFile(config.CAKeyPath)
-		if err != nil {
-			return err
-		}
-
-		block, _ = pem.Decode(rawCAKey)
-		if block == nil {
-			return fmt.Errorf("CA key file is not in PEM format")
-		}
-
-		caKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
-		if err != nil {
-			return err
-		}
+	if config.Parent != nil {
+		ca = config.Parent.cert
+		caKey = config.Parent.key
 	} else {
 		ca = cert
 		caKey = key
@@ -134,51 +107,70 @@ func CreateCertificate(config *CertificateConfig) error {
 	// sign certificate
 	certBytes, err := x509.CreateCertificate(rand.Reader, cert, ca, &key.PublicKey, caKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// PEM encode the private key
-	keyPEM := new(bytes.Buffer)
-	err = pem.Encode(keyPEM, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key),
-	})
-	if err != nil {
-		return err
-	}
-
-	// PEM encode the certificate
+	// PEM encode certificate
 	certPEM := new(bytes.Buffer)
 	err = pem.Encode(certPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: certBytes,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if ca != cert {
-		// append CA certificate
-		err = pem.Encode(certPEM, &pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: ca.Raw,
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	// save private key to file
-	err = os.WriteFile(config.PrivateKeyOutPath, keyPEM.Bytes(), 0600)
+	// PEM encode private key
+	keyPEM := new(bytes.Buffer)
+	err = pem.Encode(keyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(key),
+	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// save certificate to file
-	err = os.WriteFile(config.CertOutPath, certPEM.Bytes(), 0600)
+	signedCert, err := x509.ParseCertificate(certBytes)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &certificate{
+		parent:  config.Parent,
+		cert:    signedCert,
+		key:     key,
+		certPEM: certPEM.Bytes(),
+		keyPEM:  keyPEM.Bytes(),
+	}, nil
+}
+
+// certificateFromRaw initializes a certificate from raw data.
+func certificateFromRaw(certPEM, keyPEM []byte) (*certificate, error) {
+	block, _ := pem.Decode(keyPEM)
+	if block == nil {
+		return nil, fmt.Errorf("key is not in PEM format")
+	}
+
+	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ = pem.Decode(certPEM)
+	if block == nil {
+		return nil, fmt.Errorf("certificate is not in PEM format")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &certificate{
+		parent:  nil,
+		cert:    cert,
+		key:     key,
+		certPEM: certPEM,
+		keyPEM:  keyPEM,
+	}, nil
 }

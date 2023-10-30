@@ -105,7 +105,7 @@ func (cp *Instance) AuthorizeEgress(req *EgressAuthorizationRequest) (*EgressAut
 
 	serverResp, err := client.Authorize(&api.AuthorizationRequest{Service: req.Import})
 	if err != nil {
-		return nil, fmt.Errorf("unable to get access token from peer: %v", err)
+		return nil, fmt.Errorf("unable to get access token from peer: %w", err)
 	}
 
 	resp := &EgressAuthorizationResponse{
@@ -152,13 +152,13 @@ func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest) (*Ingress
 		Claim(api.ExportNameJWTClaim, export.Name).
 		Build()
 	if err != nil {
-		return nil, fmt.Errorf("unable to generate access token: %v", err)
+		return nil, fmt.Errorf("unable to generate access token: %w", err)
 	}
 
 	// sign access token
 	signed, err := jwt.Sign(token, jwtSignatureAlgorithm, cp.jwkSignKey)
 	if err != nil {
-		return nil, fmt.Errorf("unable to sign access token: %v", err)
+		return nil, fmt.Errorf("unable to sign access token: %w", err)
 	}
 	resp.AccessToken = string(signed)
 
