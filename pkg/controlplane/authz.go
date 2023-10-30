@@ -168,7 +168,7 @@ func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest) (*Ingress
 // ParseAuthorizationHeader verifies an access token for an ingress dataplane connection.
 // On success, returns the parsed target cluster name.
 func (cp *Instance) ParseAuthorizationHeader(token string) (string, error) {
-	cp.logger.Infof("Parsing access token: %s.", token)
+	cp.logger.Info("Parsing access token.")
 
 	parsedToken, err := jwt.ParseString(
 		token, jwt.WithVerify(jwtSignatureAlgorithm, cp.jwkVerifyKey), jwt.WithValidate(true))
