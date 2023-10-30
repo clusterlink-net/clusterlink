@@ -106,15 +106,15 @@ func (lB *LoadBalancer) SetPolicy(lbPolicy *LBPolicy) error {
 		return err
 	}
 
-	if _, ok := lB.Scheme[serviceDst]; !ok { // Create default service if destination service is not exist
+	if _, ok := lB.Scheme[serviceDst]; !ok {
 		lB.Scheme[serviceDst] = make(map[string]LBScheme)
 	}
-	// start to update policy
 	lB.Scheme[serviceDst][serviceSrc] = scheme
 
-	if serviceDst != event.Wildcard { // ServiceStateMap[dst][*] is created only when the remote service is exposed
-		lB.ServiceStateMap[serviceDst][serviceSrc] = &ServiceState{totalConnections: 0, defaultPeer: defaultPeer}
+	if _, ok := lB.ServiceStateMap[serviceDst]; !ok {
+		lB.ServiceStateMap[serviceDst] = make(map[string]*ServiceState)
 	}
+	lB.ServiceStateMap[serviceDst][serviceSrc] = &ServiceState{totalConnections: 0, defaultPeer: defaultPeer}
 
 	return nil
 }

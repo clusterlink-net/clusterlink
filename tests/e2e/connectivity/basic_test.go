@@ -109,9 +109,9 @@ func TestConnectivity(t *testing.T) {
 	t.Run("Testing Service Connectivity", func(t *testing.T) {
 		policy, err := utils.GetPolicyFromFile(allowAllPolicyFile)
 		require.Nil(t, err)
-		err = gwctl1.Policies.Create(policy)
+		err = gwctl1.AccessPolicies.Create(policy)
 		require.NoError(t, err)
-		err = gwctl2.Policies.Create(policy)
+		err = gwctl2.AccessPolicies.Create(policy)
 		require.NoError(t, err)
 
 		err = utils.UseKindCluster(gw2Name)

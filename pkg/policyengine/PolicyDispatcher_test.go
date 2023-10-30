@@ -150,7 +150,10 @@ func TestLoadBalancer(t *testing.T) {
 	addPolicy(t, &policy, ph)
 
 	lbPolicy := policyengine.LBPolicy{ServiceSrc: svcName, ServiceDst: svcName, Scheme: policyengine.Static, DefaultPeer: peer1}
-	err := ph.AddLBPolicy(&lbPolicy)
+	policyBuf, err := json.Marshal(lbPolicy)
+	require.Nil(t, err)
+	apiLBPolicy := api.Policy{Name: policy.Name, Spec: api.PolicySpec{Blob: policyBuf}}
+	err = ph.AddLBPolicy(&apiLBPolicy)
 	require.Nil(t, err)
 
 	requestAttr := event.ConnectionRequestAttr{SrcService: svcName, DstService: svcName, Direction: event.Outgoing}
@@ -159,7 +162,7 @@ func TestLoadBalancer(t *testing.T) {
 	require.Equal(t, event.Allow, connReqResp.Action)
 	require.Equal(t, peer1, connReqResp.TargetMbg) // LB policy requires this request to be served by peer1
 
-	err = ph.DeleteLBPolicy(&lbPolicy) // LB policy is deleted - the random default policy now takes effect
+	err = ph.DeleteLBPolicy(&apiLBPolicy) // LB policy is deleted - the random default policy now takes effect
 	require.Nil(t, err)
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
@@ -171,6 +174,18 @@ func TestLoadBalancer(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, event.Allow, connReqResp.Action)
 	require.Equal(t, peer2, connReqResp.TargetMbg)
+}
+
+func TestBadLBPolicy(t *testing.T) {
+	ph := policyengine.NewPolicyHandler()
+	notEvenAPolicy := []byte{'{'}
+	apiPolicy := api.Policy{Name: "bad-json", Spec: api.PolicySpec{Blob: notEvenAPolicy}}
+
+	err := ph.AddLBPolicy(&apiPolicy)
+	require.NotNil(t, err)
+
+	err = ph.DeleteLBPolicy(&apiPolicy)
+	require.NotNil(t, err)
 }
 
 func addRemoteSvc(t *testing.T, svc, peer string, ph policyengine.PolicyDecider) {

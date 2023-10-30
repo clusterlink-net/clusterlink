@@ -16,11 +16,9 @@ package client
 import (
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/util/jsonapi"
 	"github.com/clusterlink-net/clusterlink/pkg/util/rest"
 )
@@ -37,8 +35,10 @@ type Client struct {
 	Imports *rest.Client
 	// Bindings client.
 	Bindings *rest.Client
-	// Policies client.
-	Policies *rest.Client
+	// Access policies client.
+	AccessPolicies *rest.Client
+	// Load-balancing policies client.
+	LBPolicies *rest.Client
 }
 
 // New returns a new client.
@@ -70,70 +70,19 @@ func New(host string, port uint16, tlsConfig *tls.Config) *Client {
 			SampleObject: []api.Binding{},
 			SampleList:   []api.Binding{},
 		}),
-		Policies: rest.NewClient(&rest.Config{
+		AccessPolicies: rest.NewClient(&rest.Config{
 			Client:       client,
 			BasePath:     "/policies",
 			SampleObject: api.Policy{},
 			SampleList:   []api.Policy{},
 		}),
+		LBPolicies: rest.NewClient(&rest.Config{
+			Client:       client,
+			BasePath:     "/lbpolicies",
+			SampleObject: api.Policy{},
+			SampleList:   []api.Policy{},
+		}),
 	}
-}
-
-// Const for Add or Del policy- TODO remove it when the new policy engine is integrated
-const (
-	Add int = iota
-	Del
-)
-
-// TODO: delete when old controlplane is no longer active
-// SendAccessPolicy sends the policy engine a request to add, update (using add) or delete an access policy
-func (c *Client) SendAccessPolicy(policy api.Policy, command int) error {
-	path := policyengine.PolicyRoute + policyengine.AccessRoute
-	switch command {
-	case Add:
-		path += policyengine.AddRoute
-	case Del:
-		path += policyengine.DelRoute
-	default:
-		return fmt.Errorf("unknown command")
-	}
-
-	_, err := c.client.Post(path, policy.Spec.Blob)
-	return err
-}
-
-// SendLBPolicy sends an LB request to the GW.
-func (c *Client) SendLBPolicy(serviceSrc, serviceDst string, scheme policyengine.LBScheme, gwDest string, command int) error {
-	path := policyengine.PolicyRoute + policyengine.LbRoute
-	switch command {
-	case Add:
-		path += policyengine.AddRoute
-	case Del:
-		path += policyengine.DelRoute
-	default:
-		return fmt.Errorf("unknown command")
-	}
-	jsonReq, err := json.Marshal(policyengine.LBPolicy{ServiceSrc: serviceSrc, ServiceDst: serviceDst, Scheme: scheme, DefaultPeer: gwDest})
-	if err != nil {
-		return err
-	}
-	_, err = c.client.Post(path, jsonReq)
-	return err
-}
-
-// GetLBPolicies sends an LB get request to the GW.
-func (c *Client) GetLBPolicies() (map[string]map[string]policyengine.LBScheme, error) {
-	var policies map[string]map[string]policyengine.LBScheme
-	path := policyengine.PolicyRoute + policyengine.LbRoute
-	resp, err := c.client.Get(path)
-	if err != nil {
-		return make(map[string]map[string]policyengine.LBScheme), err
-	}
-
-	if err := json.Unmarshal(resp.Body, &policies); err != nil {
-		return make(map[string]map[string]policyengine.LBScheme), err
-	}
-	return policies, nil
 }
 
 func (c *Client) GetMetrics() (map[string]event.ConnectionStatusAttr, error) {
