@@ -61,7 +61,7 @@ type remoteServerAuthorizationResponse struct {
 func (c *client) Authorize(req *api.AuthorizationRequest) (*remoteServerAuthorizationResponse, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
-		return nil, fmt.Errorf("unable to serialize authorization request: %v", err)
+		return nil, fmt.Errorf("unable to serialize authorization request: %w", err)
 	}
 
 	var serverResp *jsonapi.Response
@@ -96,7 +96,7 @@ func (c *client) Authorize(req *api.AuthorizationRequest) (*remoteServerAuthoriz
 
 	var authResp api.AuthorizationResponse
 	if err := json.Unmarshal(serverResp.Body, &authResp); err != nil {
-		return nil, fmt.Errorf("unable to parse server response: %v", err)
+		return nil, fmt.Errorf("unable to parse server response: %w", err)
 	}
 
 	resp.Allowed = true

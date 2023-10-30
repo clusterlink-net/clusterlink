@@ -39,7 +39,7 @@ func SetLog(logLevel string, logFileName string) (*os.File, error) {
 		f, err := os.OpenFile(logFileFullPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0600)
 		fmt.Printf("Creating log file: %v\n", logFileFullPath)
 		if err != nil {
-			return nil, fmt.Errorf("error opening log file: %v", err.Error())
+			return nil, fmt.Errorf("error opening log file: %w", err)
 		}
 		// assign it to the standard logger
 		logrus.SetOutput(f)

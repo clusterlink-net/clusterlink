@@ -122,7 +122,7 @@ func (o *stateGetOptions) run() error {
 
 	sJSON, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
-		return fmt.Errorf("error: %v", err.Error())
+		return fmt.Errorf("error: %w", err)
 	}
 
 	fmt.Println(string(sJSON))
@@ -166,11 +166,11 @@ func (o *allGetOptions) run() error {
 		fmt.Printf("%s:\n", name)
 		d, err := o.List()
 		if err != nil {
-			return fmt.Errorf("error: %v", err.Error())
+			return fmt.Errorf("error: %w", err)
 		}
 		sJSON, err := json.Marshal(d)
 		if err != nil {
-			return fmt.Errorf("error: %v", err.Error())
+			return fmt.Errorf("error: %w", err)
 		}
 		fmt.Println(string(sJSON))
 	}

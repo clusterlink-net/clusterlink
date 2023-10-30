@@ -92,7 +92,7 @@ func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *u
 	tlsConfig := parsedCertData.ClientConfig(cpapi.GRPCServerName(peerName))
 	xdsClient := dpclient.NewXDSClient(dataplane, controlplaneTarget, tlsConfig)
 	err := xdsClient.Run()
-	return fmt.Errorf("xDS Client stopped: %v", err)
+	return fmt.Errorf("xDS Client stopped: %w", err)
 }
 
 // Run the dataplane.
@@ -101,7 +101,7 @@ func (o *Options) Run() error {
 	if o.LogFile != "" {
 		f, err := os.OpenFile(o.LogFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 		if err != nil {
-			return fmt.Errorf("unable to open log file: %v", err)
+			return fmt.Errorf("unable to open log file: %w", err)
 		}
 
 		defer func() {
@@ -116,7 +116,7 @@ func (o *Options) Run() error {
 	// set log level
 	logLevel, err := log.ParseLevel(o.LogLevel)
 	if err != nil {
-		return fmt.Errorf("unable to set log level: %v", err)
+		return fmt.Errorf("unable to set log level: %w", err)
 	}
 	log.SetLevel(logLevel)
 
