@@ -269,7 +269,7 @@ func CreateK8SConfig(args map[string]interface{}, outDir string) error {
 	var k8sConfig bytes.Buffer
 	t := template.Must(template.New("").Parse(k8sTemplate))
 	if err := t.Execute(&k8sConfig, args); err != nil {
-		return fmt.Errorf("cannot create k8s configuration off template: %v", err)
+		return fmt.Errorf("cannot create k8s configuration off template: %w", err)
 	}
 
 	outPath := filepath.Join(outDir, config.K8SYamlFile)

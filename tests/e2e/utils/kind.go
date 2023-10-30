@@ -36,12 +36,12 @@ func createClientset() (*kubernetes.Clientset, error) {
 
 	if err != nil {
 		log.Errorf("failed to create Kubernetes API client: %v", err)
-		return nil, fmt.Errorf("failed to create Kubernetes API client: %v", err)
+		return nil, fmt.Errorf("failed to create Kubernetes API client: %w", err)
 	}
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Errorf("failed to create Kubernetes API client: %v", err)
-		return nil, fmt.Errorf("failed to create Kubernetes API client: %v", err)
+		return nil, fmt.Errorf("failed to create Kubernetes API client: %w", err)
 	}
 	return clientset, nil
 }
@@ -51,7 +51,7 @@ func IsPodReady(name string) error {
 	namespace := "default"
 	clientset, err := createClientset()
 	if err != nil {
-		return fmt.Errorf("failed to create Kubernetes API client: %v", err)
+		return fmt.Errorf("failed to create Kubernetes API client: %w", err)
 	}
 
 	listOptions := metav1.ListOptions{

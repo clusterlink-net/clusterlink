@@ -106,7 +106,7 @@ func Open(path string) (*Store, error) {
 	// open
 	db, err := bbolt.Open(path, 0666, nil)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open store: %v", err)
+		return nil, fmt.Errorf("unable to open store: %w", err)
 	}
 
 	// create the single bucket we use (if does not exist)
@@ -115,7 +115,7 @@ func Open(path string) (*Store, error) {
 		return err
 	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to create bucket: %v", err)
+		return nil, fmt.Errorf("unable to create bucket: %w", err)
 	}
 
 	return &Store{

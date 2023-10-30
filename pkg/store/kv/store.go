@@ -46,7 +46,7 @@ func (s *ObjectStore) Create(name string, value any) error {
 	// serialize
 	encoded, err := json.Marshal(value)
 	if err != nil {
-		return fmt.Errorf("unable to serialize object: %v", err)
+		return fmt.Errorf("unable to serialize object: %w", err)
 	}
 
 	// persist to store
@@ -69,13 +69,13 @@ func (s *ObjectStore) Update(name string, mutator func(any) any) error {
 		// de-serialize old value
 		decoded := reflect.New(s.objectType).Interface()
 		if err := json.Unmarshal(value, decoded); err != nil {
-			return nil, fmt.Errorf("unable to decode value for object '%s': %v", name, err)
+			return nil, fmt.Errorf("unable to decode value for object '%s': %w", name, err)
 		}
 
 		// serialize mutated value
 		encoded, err := json.Marshal(mutator(decoded))
 		if err != nil {
-			return nil, fmt.Errorf("unable to serialize mutated object '%s': %v", name, err)
+			return nil, fmt.Errorf("unable to serialize mutated object '%s': %w", name, err)
 		}
 
 		return encoded, nil
@@ -106,7 +106,7 @@ func (s *ObjectStore) GetAll() ([]any, error) {
 
 		decoded := reflect.New(s.objectType).Interface()
 		if err := json.Unmarshal(value, decoded); err != nil {
-			return fmt.Errorf("unable to decode object for key %v: %v", key, err)
+			return fmt.Errorf("unable to decode object for key %v: %w", key, err)
 		}
 
 		objects = append(objects, decoded)

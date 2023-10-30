@@ -46,12 +46,12 @@ type Client struct {
 func (c *Client) Create(object any) error {
 	encoded, err := json.Marshal(object)
 	if err != nil {
-		return fmt.Errorf("unable to encode object: %v", err)
+		return fmt.Errorf("unable to encode object: %w", err)
 	}
 
 	resp, err := c.client.Post(c.basePath, encoded)
 	if err != nil {
-		return fmt.Errorf("unable to create object: %v", err)
+		return fmt.Errorf("unable to create object: %w", err)
 	}
 
 	if resp.Status != http.StatusCreated {
@@ -66,12 +66,12 @@ func (c *Client) Create(object any) error {
 func (c *Client) Update(object any) error {
 	encoded, err := json.Marshal(object)
 	if err != nil {
-		return fmt.Errorf("unable to encode object: %v", err)
+		return fmt.Errorf("unable to encode object: %w", err)
 	}
 
 	resp, err := c.client.Put(c.basePath, encoded)
 	if err != nil {
-		return fmt.Errorf("unable to update object: %v", err)
+		return fmt.Errorf("unable to update object: %w", err)
 	}
 
 	if resp.Status != http.StatusNoContent {
@@ -86,7 +86,7 @@ func (c *Client) Update(object any) error {
 func (c *Client) Get(name string) (any, error) {
 	resp, err := c.client.Get(c.basePath + "/" + name)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get object: %v", err)
+		return nil, fmt.Errorf("unable to get object: %w", err)
 	}
 
 	if resp.Status != http.StatusOK {
@@ -96,7 +96,7 @@ func (c *Client) Get(name string) (any, error) {
 
 	decoded := reflect.New(c.objectType).Interface()
 	if err := json.Unmarshal(resp.Body, decoded); err != nil {
-		return nil, fmt.Errorf("unable to decode object %v: %v", decoded, err)
+		return nil, fmt.Errorf("unable to decode object %v: %w", decoded, err)
 	}
 
 	return decoded, nil
@@ -114,14 +114,14 @@ func (c *Client) Delete(object any) error {
 		// delete by object
 		encoded, err := json.Marshal(object)
 		if err != nil {
-			return fmt.Errorf("cannot encode object: %v", err)
+			return fmt.Errorf("cannot encode object: %w", err)
 		}
 		body = encoded
 	}
 
 	resp, err := c.client.Delete(path, body)
 	if err != nil {
-		return fmt.Errorf("unable to delete object: %v", err)
+		return fmt.Errorf("unable to delete object: %w", err)
 	}
 
 	if resp.Status != http.StatusNoContent {
@@ -136,7 +136,7 @@ func (c *Client) Delete(object any) error {
 func (c *Client) List() (any, error) {
 	resp, err := c.client.Get(c.basePath)
 	if err != nil {
-		return nil, fmt.Errorf("unable to list objects: %v", err)
+		return nil, fmt.Errorf("unable to list objects: %w", err)
 	}
 
 	if resp.Status != http.StatusOK {
@@ -146,7 +146,7 @@ func (c *Client) List() (any, error) {
 
 	decoded := reflect.New(c.listType).Interface()
 	if err := json.Unmarshal(resp.Body, decoded); err != nil {
-		return nil, fmt.Errorf("unable to decode object list %v: %v", decoded, err)
+		return nil, fmt.Errorf("unable to decode object list %v: %w", decoded, err)
 	}
 
 	return decoded, nil

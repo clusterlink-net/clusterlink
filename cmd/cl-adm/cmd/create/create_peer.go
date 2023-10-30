@@ -113,7 +113,7 @@ func (o *PeerOptions) createGWCTL() error {
 // Run the 'create peer' subcommand.
 func (o *PeerOptions) Run() error {
 	if _, err := idna.Lookup.ToASCII(o.Name); err != nil {
-		return fmt.Errorf("peer name is not a valid DNS name: %v", err)
+		return fmt.Errorf("peer name is not a valid DNS name: %w", err)
 	}
 
 	if err := verifyNotExists(o.Name); err != nil {

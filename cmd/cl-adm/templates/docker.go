@@ -74,7 +74,7 @@ func CreateDockerRunScripts(args map[string]interface{}, outDir string) error {
 	var dockerRunScript bytes.Buffer
 	t := template.Must(template.New("").Parse(dockerRunTemplate))
 	if err := t.Execute(&dockerRunScript, args); err != nil {
-		return fmt.Errorf("cannot create docker run script off template: %v", err)
+		return fmt.Errorf("cannot create docker run script off template: %w", err)
 	}
 
 	outPath := filepath.Join(outDir, config.DockerRunFile)
