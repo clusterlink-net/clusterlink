@@ -17,7 +17,6 @@ package policyengine
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 
 	"github.com/sirupsen/logrus"
 
@@ -46,8 +45,8 @@ const (
 var plog = logrus.WithField("component", "PolicyEngine")
 
 type PolicyDecider interface {
-	AddLBPolicy(lbPolicy *LBPolicy) error
-	DeleteLBPolicy(lbPolicy *LBPolicy) error
+	AddLBPolicy(policy *api.Policy) error
+	DeleteLBPolicy(policy *api.Policy) error
 
 	AddAccessPolicy(policy *api.Policy) error
 	DeleteAccessPolicy(policy *api.Policy) error
@@ -204,9 +203,11 @@ func (pH *PolicyHandler) AddExport(_ *api.Export) (event.ExposeRequestResp, erro
 func (pH *PolicyHandler) DeleteExport(_ string) {
 }
 
-func connPolicyFromBlob(blob io.Reader) (*policytypes.ConnectivityPolicy, error) {
+// connPolicyFromBlob unmarshals a ConnectivityPolicy object encoded as json in a byte array
+func connPolicyFromBlob(blob []byte) (*policytypes.ConnectivityPolicy, error) {
+	bReader := bytes.NewReader(blob)
 	connPolicy := &policytypes.ConnectivityPolicy{}
-	err := json.NewDecoder(blob).Decode(connPolicy)
+	err := json.NewDecoder(bReader).Decode(connPolicy)
 	if err != nil {
 		plog.Errorf("failed decoding connectivity policy: %v", err)
 		return nil, err
@@ -214,16 +215,36 @@ func connPolicyFromBlob(blob io.Reader) (*policytypes.ConnectivityPolicy, error)
 	return connPolicy, nil
 }
 
-func (pH *PolicyHandler) AddLBPolicy(lbPolicy *LBPolicy) error {
+// lbPolicyFromBlob unmarshals an LBPolicy object encoded as json in a byte array
+func lbPolicyFromBlob(blob []byte) (*LBPolicy, error) {
+	bReader := bytes.NewReader(blob)
+	lbPolicy := &LBPolicy{}
+	err := json.NewDecoder(bReader).Decode(lbPolicy)
+	if err != nil {
+		plog.Errorf("failed decoding load-balancing policy: %v", err)
+		return nil, err
+	}
+	return lbPolicy, nil
+}
+
+func (pH *PolicyHandler) AddLBPolicy(policy *api.Policy) error {
+	lbPolicy, err := lbPolicyFromBlob(policy.Spec.Blob)
+	if err != nil {
+		return err
+	}
 	return pH.loadBalancer.SetPolicy(lbPolicy)
 }
 
-func (pH *PolicyHandler) DeleteLBPolicy(lbPolicy *LBPolicy) error {
+func (pH *PolicyHandler) DeleteLBPolicy(policy *api.Policy) error {
+	lbPolicy, err := lbPolicyFromBlob(policy.Spec.Blob)
+	if err != nil {
+		return err
+	}
 	return pH.loadBalancer.DeletePolicy(lbPolicy)
 }
 
 func (pH *PolicyHandler) AddAccessPolicy(policy *api.Policy) error {
-	connPolicy, err := connPolicyFromBlob(bytes.NewReader(policy.Spec.Blob))
+	connPolicy, err := connPolicyFromBlob(policy.Spec.Blob)
 	if err != nil {
 		return err
 	}
@@ -231,7 +252,7 @@ func (pH *PolicyHandler) AddAccessPolicy(policy *api.Policy) error {
 }
 
 func (pH *PolicyHandler) DeleteAccessPolicy(policy *api.Policy) error {
-	connPolicy, err := connPolicyFromBlob(bytes.NewReader(policy.Spec.Blob))
+	connPolicy, err := connPolicyFromBlob(policy.Spec.Blob)
 	if err != nil {
 		return err
 	}

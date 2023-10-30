@@ -24,7 +24,6 @@ import (
 	"github.com/clusterlink-net/clusterlink/cmd/gwctl/config"
 	cmdutil "github.com/clusterlink-net/clusterlink/cmd/util"
 	"github.com/clusterlink-net/clusterlink/pkg/api"
-	"github.com/clusterlink-net/clusterlink/pkg/client"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 )
 
@@ -75,13 +74,24 @@ func (o *policyCreateOptions) run() error {
 	}
 	switch o.pType {
 	case policyengine.LbType:
-		return g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.LBScheme(o.policy), o.gwDest, client.Add)
+		policy, err := lbPolicyFromParams(o.serviceSrc, o.serviceDst, o.policy, o.gwDest)
+		if err != nil {
+			return err
+		}
+		err = g.LBPolicies.Create(policy)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Load-balancing policy created successfully\n")
+		return nil
+
 	case policyengine.AccessType:
 		policy, err := policyFromFile(o.policyFile)
 		if err != nil {
 			return err
 		}
-		err = g.Policies.Create(policy)
+		err = g.AccessPolicies.Create(policy)
 		if err != nil {
 			return err
 		}
@@ -106,6 +116,21 @@ func policyFromFile(filename string) (api.Policy, error) {
 	}
 	policy.Spec.Blob = fileBuf
 	return policy, nil
+}
+
+func lbPolicyFromParams(serviceSrc, serviceDst, scheme, defaultPeer string) (api.Policy, error) {
+	lbPolicy := policyengine.LBPolicy{
+		ServiceSrc:  serviceSrc,
+		ServiceDst:  serviceDst,
+		Scheme:      policyengine.LBScheme(scheme),
+		DefaultPeer: defaultPeer,
+	}
+	blob, err := json.Marshal(lbPolicy)
+	if err != nil {
+		return api.Policy{}, fmt.Errorf("error marshaling a load-balancing policy: %w", err)
+	}
+	policyName := fmt.Sprintf("%s%%%s", serviceSrc, serviceDst)
+	return api.Policy{Name: policyName, Spec: api.PolicySpec{Blob: blob}}, nil
 }
 
 // PolicyDeleteOptions is the command line options for 'delete policy'
@@ -155,13 +180,24 @@ func (o *policyDeleteOptions) run() error {
 	}
 	switch o.pType {
 	case policyengine.LbType:
-		err = g.SendLBPolicy(o.serviceSrc, o.serviceDst, policyengine.LBScheme(o.policy), o.gwDest, client.Del)
+		policy, err := lbPolicyFromParams(o.serviceSrc, o.serviceDst, o.policy, o.gwDest)
+		if err != nil {
+			return err
+		}
+		err = g.LBPolicies.Delete(policy)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Load-balancing policy was deleted successfully\n")
+		return nil
+
 	case policyengine.AccessType:
 		policy, err := policyFromFile(o.policyFile)
 		if err != nil {
 			return err
 		}
-		err = g.Policies.Delete(policy)
+		err = g.AccessPolicies.Delete(policy)
 		if err != nil {
 			return err
 		}
@@ -171,7 +207,6 @@ func (o *policyDeleteOptions) run() error {
 	default:
 		return fmt.Errorf("unknown policy type")
 	}
-	return err
 }
 
 // PolicyGetOptions is the command line options for 'get policy'
@@ -207,9 +242,7 @@ func (o *policyGetOptions) run() error {
 		return err
 	}
 
-	// TODO: Get Load-balancing policies
-
-	accessPolicies, err := g.Policies.List()
+	accessPolicies, err := g.AccessPolicies.List()
 	if err != nil {
 		return err
 	}
@@ -218,5 +251,16 @@ func (o *policyGetOptions) run() error {
 	for d, policy := range *accessPolicies.(*[]api.Policy) {
 		fmt.Printf("Access policy %d: %s\n", d, policy.Name)
 	}
+
+	lbPolicies, err := g.LBPolicies.List()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("\nLoad balancing policies\n")
+	for d, policy := range *lbPolicies.(*[]api.Policy) {
+		fmt.Printf("Load-balancing policy %d: %s\n", d, policy.Name)
+	}
+
 	return nil
 }
