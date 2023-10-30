@@ -9,6 +9,17 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+    groups:
+      k8s:
+        patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+      cli:
+        patterns:
+          - "github.com/spf13/*"
+      grpc-go:
+        patterns:
+          - "google.golang.org/*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
