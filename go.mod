@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/envoyproxy/go-control-plane v0.11.1
-	github.com/go-chi/chi v1.5.4
+	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.4.0
 	github.com/lestrrat-go/jwx v1.2.26
 	github.com/sirupsen/logrus v1.9.0
