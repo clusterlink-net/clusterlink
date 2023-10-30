@@ -16,9 +16,9 @@ require (
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0
 	inet.af/tcpproxy v0.0.0-20221017015627-91f861402626
-	k8s.io/api v0.28.1
+	k8s.io/api v0.28.3
 	k8s.io/apimachinery v0.28.3
-	k8s.io/client-go v0.28.1
+	k8s.io/client-go v0.28.3
 	sigs.k8s.io/controller-runtime v0.16.2
 )
 
