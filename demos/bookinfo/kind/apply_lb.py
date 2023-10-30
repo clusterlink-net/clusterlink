@@ -12,56 +12,51 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os,time
-import subprocess as sp
+import os
 import sys
 import argparse
 
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{proj_dir}')
+from demos.utils.common import runcmd, printHeader
+from demos.utils.k8s import getPodName
+from demos.utils.kind import useKindCluster
 
 srcSvc1  = "productpage"
 srcSvc2  = "productpage2"
 destSvc  = "reviews"
     
-    
-def applyPolicy(mbg, gwctlName, type):
-    useKindCluster(mbg)
+def applyPolicy(name, type):
+    useKindCluster(name)
     gwctlPod=getPodName("gwctl")
     if type == "ecmp":
         printHeader(f"Set Ecmp poilicy")          
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy --type lb --serviceDst {destSvc} --gwDest mbg2 --policy ecmp')
+        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl create policy --type lb --serviceDst {destSvc} --gwDest peer2 --policy ecmp')
     elif type == "same":
-        printHeader(f"Set same policy to all services")          
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy  --type lb --serviceDst {destSvc} --gwDest mbg2 --policy static')
+        printHeader("Set same policy to all services")          
+        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl create policy  --type lb --serviceDst {destSvc} --gwDest peer2 --policy static')
     elif type == "diff":
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} --gwDest mbg2 --policy static')
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} --gwDest mbg3 --policy static')
+        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl create policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} --gwDest peer2 --policy static')
+        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl create policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} --gwDest peer3 --policy static')
     elif type == "show":
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl get policy --myid {gwctlName}')
+        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl get policy ')
     elif type == "clean":
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl delete policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl delete policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl delete policy --type lb --serviceDst {destSvc}')
-
-
-
-from demos.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName
-from demos.utils.kind.kindAux import useKindCluster
+        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl delete policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} ')
+        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl delete policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
+        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl delete policy --type lb --serviceDst {destSvc}')
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
-    parser.add_argument('-m','--mbg', help='Either mbg1/mbg2/mbg3', required=False, default="mbg1")
+    parser.add_argument('-p','--peer', help='Either peer1/peer2/peer3', required=False, default="peer1")
     parser.add_argument('-t','--type', help='Either ecmp/same/diff/clean/show', required=False, default="ecmp")
 
     args = vars(parser.parse_args())
 
-    mbg = args["mbg"]
+    peer = args["peer"]
     type = args["type"]
-    gwctlName     = "gwctl"+ mbg[-1]
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
 
-    applyPolicy(mbg, gwctlName, type)
+    applyPolicy(peer, type)
     

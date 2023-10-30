@@ -76,7 +76,6 @@ push-image:
 
 install:
 	cp ./bin/gwctl /usr/local/bin/
-	cp ./bin/dataplane /usr/local/bin/
 
 clean-tests:
 	kind delete cluster --name=mbg1
@@ -95,36 +94,16 @@ tests-e2e: build docker-build
 tests-iperf3: build docker-build 
 	$(GO) test -p 1 -timeout 30m -v -tags e2e ./tests/e2e/iperf3/...
 
-run-gwctl:
-	@./bin/gwctl
-
-run-controlplane:
-	@./bin/controlplane
-
-run-dataplane:
-	@./bin/dataplane
-
 run-kind-iperf3:
-	python3 demos/iperf3/kind/simple_test.py -d mtls
+	python3 demos/iperf3/kind/simple_test.py
 
 run-kind-bookinfo:
-	python3 demos/bookinfo/kind/test.py -d mtls
+	python3 demos/bookinfo/kind/test.py
 
 #------------------------------------------------------
 # Clean targets
 #------------------------------------------------------
-clean-kind-iperf3:
-	kind delete cluster --name=mbg1
-	kind delete cluster --name=mbg2
-	kind delete cluster --name=mbg3
-	kind delete cluster --name=host-cluster
-	kind delete cluster --name=dest-cluster
-
-clean-kind-bookinfo:
-	kind delete cluster --name=mbg1
-	kind delete cluster --name=mbg2
-	kind delete cluster --name=mbg3
-	kind delete cluster --name=product-cluster
-	kind delete cluster --name=review-cluster
-
-clean-kind: clean-kind-iperf3 clean-kind-bookinfo
+clean-kind:
+	kind delete cluster --name=peer1
+	kind delete cluster --name=peer2
+	kind delete cluster --name=peer3
