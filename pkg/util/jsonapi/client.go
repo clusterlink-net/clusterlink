@@ -73,7 +73,7 @@ func (c *Client) do(method, path string, body []byte) (*Response, error) {
 
 	req, err := http.NewRequest(method, c.serverURL+path, bytes.NewBuffer(body))
 	if err != nil {
-		return nil, fmt.Errorf("unable to create http request: %v", err)
+		return nil, fmt.Errorf("unable to create http request: %w", err)
 	}
 
 	if body != nil {
@@ -82,7 +82,7 @@ func (c *Client) do(method, path string, body []byte) (*Response, error) {
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("unable to perform http request: %v", err)
+		return nil, fmt.Errorf("unable to perform http request: %w", err)
 	}
 
 	defer func() {
@@ -93,7 +93,7 @@ func (c *Client) do(method, path string, body []byte) (*Response, error) {
 
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read response body: %v", err)
+		return nil, fmt.Errorf("unable to read response body: %w", err)
 	}
 
 	requestLogger.WithField("body-length", len(body)).Debugf("Received response: %d.", resp.StatusCode)

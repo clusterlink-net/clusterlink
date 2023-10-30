@@ -69,7 +69,7 @@ func (o *Options) runEnvoy(peerName, dataplaneID string) error {
 	var envoyConf bytes.Buffer
 	t := template.Must(template.New("").Parse(envoyConfigurationTemplate))
 	if err := t.Execute(&envoyConf, envoyConfArgs); err != nil {
-		return fmt.Errorf("cannot create Envoy configuration off template: %v", err)
+		return fmt.Errorf("cannot create Envoy configuration off template: %w", err)
 	}
 
 	args := []string{

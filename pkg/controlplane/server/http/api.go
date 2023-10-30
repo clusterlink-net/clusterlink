@@ -71,7 +71,7 @@ type peerHandler struct {
 func (h *peerHandler) Decode(data []byte) (any, error) {
 	var peer api.Peer
 	if err := json.Unmarshal(data, &peer); err != nil {
-		return nil, fmt.Errorf("cannot decode peer: %v", err)
+		return nil, fmt.Errorf("cannot decode peer: %w", err)
 	}
 
 	if peer.Name == "" {
@@ -140,7 +140,7 @@ type exportHandler struct {
 func (h *exportHandler) Decode(data []byte) (any, error) {
 	var export api.Export
 	if err := json.Unmarshal(data, &export); err != nil {
-		return nil, fmt.Errorf("cannot decode export: %v", err)
+		return nil, fmt.Errorf("cannot decode export: %w", err)
 	}
 
 	if export.Name == "" {
@@ -207,7 +207,7 @@ type importHandler struct {
 func (h *importHandler) Decode(data []byte) (any, error) {
 	var imp api.Import
 	if err := json.Unmarshal(data, &imp); err != nil {
-		return nil, fmt.Errorf("cannot decode import: %v", err)
+		return nil, fmt.Errorf("cannot decode import: %w", err)
 	}
 
 	if imp.Name == "" {
@@ -280,7 +280,7 @@ type bindingHandler struct {
 func (h *bindingHandler) Decode(data []byte) (any, error) {
 	var binding api.Binding
 	if err := json.Unmarshal(data, &binding); err != nil {
-		return nil, fmt.Errorf("cannot decode binding: %v", err)
+		return nil, fmt.Errorf("cannot decode binding: %w", err)
 	}
 
 	if binding.Spec.Import == "" {
@@ -335,7 +335,7 @@ type accessPolicyHandler struct {
 func (h *accessPolicyHandler) Decode(data []byte) (any, error) {
 	var policy api.Policy
 	if err := json.Unmarshal(data, &policy); err != nil {
-		return nil, fmt.Errorf("cannot decode access policy: %v", err)
+		return nil, fmt.Errorf("cannot decode access policy: %w", err)
 	}
 
 	if len(policy.Spec.Blob) == 0 {

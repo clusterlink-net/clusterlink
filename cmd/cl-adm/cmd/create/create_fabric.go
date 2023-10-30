@@ -14,10 +14,12 @@
 package create
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
 
 	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/util"
+	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
 )
 
 // NewCmdCreateFabric returns a cobra.Command to run the 'create fabric' subcommand.
@@ -28,12 +30,19 @@ func NewCmdCreateFabric() *cobra.Command {
 		Long:  `Create a fabric`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return util.CreateCertificate(&util.CertificateConfig{
-				Name:              "root",
-				IsCA:              true,
-				CertOutPath:       config.CertificateFileName,
-				PrivateKeyOutPath: config.PrivateKeyFileName,
-			})
+			fabricCert, err := bootstrap.CreateFabricCertificate()
+			if err != nil {
+				return err
+			}
+
+			// save certificate to file
+			err = os.WriteFile(config.CertificateFileName, fabricCert.RawCert(), 0600)
+			if err != nil {
+				return err
+			}
+
+			// save private key to file
+			return os.WriteFile(config.PrivateKeyFileName, fabricCert.RawKey(), 0600)
 		},
 	}
 }
