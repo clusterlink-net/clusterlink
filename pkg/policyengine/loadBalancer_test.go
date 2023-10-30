@@ -49,6 +49,9 @@ func repeatLookups(t *testing.T, lb *policyengine.LoadBalancer, srcSvc, dstSvc s
 		targetPeer, err := lb.LookupWith(srcSvc, dstSvc, peers)
 		require.Nil(t, err)
 		res[targetPeer] = true
+		if len(res) == len(peers) { // All legal peers appeared in lookup
+			break
+		}
 	}
 	return res
 }
@@ -243,6 +246,30 @@ func TestLookupBeforeImport(t *testing.T) {
 	targetPeer, err = lb.LookupWith(svc1, event.Wildcard, []string{peer1, peer2})
 	require.Nil(t, err)
 	require.NotEmpty(t, targetPeer)
+
+	targetPeer, err = lb.LookupWith(event.Wildcard, svc1, []string{peer1, peer2})
+	require.Nil(t, err)
+	require.NotEmpty(t, targetPeer)
+}
+
+func TestAddPolicyBeforeImport(t *testing.T) {
+	lb := policyengine.NewLoadBalancer()
+
+	policy := policyengine.LBPolicy{ServiceSrc: event.Wildcard, ServiceDst: event.Wildcard, Scheme: policyengine.ECMP}
+	err := lb.SetPolicy(&policy)
+	require.Nil(t, err)
+
+	policy = policyengine.LBPolicy{ServiceSrc: svc1, ServiceDst: event.Wildcard, Scheme: policyengine.ECMP}
+	err = lb.SetPolicy(&policy)
+	require.Nil(t, err)
+
+	policy = policyengine.LBPolicy{ServiceSrc: event.Wildcard, ServiceDst: svc2, Scheme: policyengine.ECMP}
+	err = lb.SetPolicy(&policy)
+	require.Nil(t, err)
+
+	policy = policyengine.LBPolicy{ServiceSrc: svc1, ServiceDst: svc2, Scheme: policyengine.ECMP}
+	err = lb.SetPolicy(&policy)
+	require.Nil(t, err)
 }
 
 func TestDeletingDefaultPolicy(t *testing.T) {
