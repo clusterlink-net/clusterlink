@@ -56,7 +56,6 @@ def runcmdDir(cmd,dir):
 # runcmdb runs os system command in the background.        
 def runcmdb(cmd):
     print(f'{Fore.YELLOW}{cmd} {Style.RESET_ALL}')
-    #sp.Popen(cmd,shell=True)
     os.system(cmd + ' &')
 
 # printHeader runs os system command in the background.        
