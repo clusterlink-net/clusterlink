@@ -24,6 +24,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials"
 
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/server"
@@ -45,7 +46,13 @@ type XDSClient struct {
 
 func (x *XDSClient) runFetcher(resourceType string) error {
 	for {
-		conn, err := grpc.Dial(x.controlplaneTarget, grpc.WithTransportCredentials(credentials.NewTLS(x.tlsConfig)))
+		conn, err := grpc.Dial(
+			x.controlplaneTarget,
+			grpc.WithTransportCredentials(credentials.NewTLS(x.tlsConfig)),
+			grpc.WithConnectParams(grpc.ConnectParams{
+				Backoff:           backoff.DefaultConfig,
+				MinConnectTimeout: time.Second,
+			}))
 		if err != nil {
 			x.logger.Errorf("Failed to dial controlplane xDS server: %v.", err)
 			time.Sleep(1 * time.Second)
