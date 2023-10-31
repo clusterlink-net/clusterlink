@@ -17,6 +17,7 @@ import (
 	"context"
 	"os"
 
+	logrusr "github.com/bombsimon/logrusr/v4"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -165,6 +166,8 @@ func (p *Platform) GetLabelsFromIP(ip string) map[string]string {
 // NewPlatform returns a new Kubernetes platform.
 func NewPlatform() (*Platform, error) {
 	logger := logrus.WithField("component", "platform.k8s")
+	ctrl.SetLogger(logrusr.New(logrus.WithField("component", "k8s.controller-runtime")))
+
 	cfg, err := config.GetConfig()
 	if err != nil {
 		return nil, err
