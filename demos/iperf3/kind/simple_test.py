@@ -13,132 +13,94 @@
 # limitations under the License.
 
 ################################################################
-#Name: Simple iperf3  test
-#Desc: create 2 kind clusters :
-# 1) MBG and iperf3 client
-# 2) MBG and iperf3 server    
+# Name: Simple iperf3  test
+# Desc: create 2 kind clusters :
+# 1) GW and iperf3 client
+# 2) GW and iperf3 server    
 ###############################################################
-import os,time
-import subprocess as sp
+import os
 import sys
-import argparse
-
 
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{proj_dir}')
 
-from demos.utils.mbgAux import runcmd, runcmdb, printHeader, waitPod, getPodName, getMbgPorts,buildMbg,buildMbgctl,getPodIp,getPodNameIp
-from demos.iperf3.kind.connect_mbgs import connectMbgs
-from demos.iperf3.kind.iperf3_service_create import setIperf3client, setIperf3Server
-from demos.iperf3.kind.iperf3_service_import import importService
-from demos.iperf3.kind.iperf3_service_get import getService
-from demos.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
-from demos.iperf3.kind.apply_policy import applyAccessPolicy
+from demos.utils.common import runcmd, createFabric, printHeader, startGwctl
+from demos.utils.kind import startKindCluster,useKindCluster, getKindIp,loadService
 
-from demos.utils.kind.kindAux import useKindCluster, getKindIp,startKindClusterMbg,startGwctl
+from demos.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
+
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Description of your program')
-    parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="mtls")
-    parser.add_argument('-c','--cni', help='Which cni to use default(kindnet)/flannel/calico/diff (different cni for each cluster)', required=False, default="default")
-
-    args = vars(parser.parse_args())
-
     printHeader("\n\nStart Kind Test\n\n")
     printHeader("Start pre-setting")
 
-    dataplane = args["dataplane"]
-    cni = args["cni"]
-    crtFol   = f"{proj_dir}/demos/utils/mtls"
-    #MBG1 parameters 
-    mbg1DataPort    = "30001"
-    mbg1cPort       = "30443"
-    mbg1cPortLocal  = 443
-    mbg1crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
-    gwctl1crt    = f"--certca {crtFol}/ca.crt --cert {crtFol}/mbg1.crt --key {crtFol}/mbg1.key"  if dataplane =="mtls" else ""
-    mbg1Name        = "mbg1"
-    gwctl1Name     = "gwctl1"
-    mbg1cni         = cni 
-    srcSvc          = "iperf3-client"
-
+    # GW parameters 
+    gwPort           = "30443"
+    gw1Name          = "peer1"
+    gw2Name          = "peer2"
+    srcSvc           = "iperf3-client"
+    destSvc          = "iperf3-server"
+    destPort         = 5000
+    iperf3DirectPort = "30001"
     
-    #MBG2 parameters 
-    mbg2DataPort    = "30001"
-    mbg2cPort       = "30443"
-    mbg2cPortLocal  = 443
-    mbg2crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
-    gwctl2crt    = f"--certca {crtFol}/ca.crt --cert {crtFol}/mbg2.crt --key {crtFol}/mbg2.key"  if dataplane =="mtls" else ""
-    mbg2Name        = "mbg2"
-    gwctl2Name     = "gwctl2"
-    mbg2cni         = "flannel" if cni == "diff" else cni
-    destSvc         = "iperf3-server"
-    destPort        = 5000
-    kindDestPort    = "30001"
-    
-        
-    #folders
+    # Folders
     folCl=f"{proj_dir}/demos/iperf3/testdata/manifests/iperf3-client"
     folSv=f"{proj_dir}/demos/iperf3/testdata/manifests/iperf3-server"
+    testOutputFolder = f"{proj_dir}/bin/tests/iperf3"
 
-    #files
+    # Policy
     allowAllPolicy=f"{proj_dir}/pkg/policyengine/policytypes/examples/allowAll.json"
     
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
     
-    ### clean 
-    print(f"Clean old kinds")
-    os.system("make clean-kind-iperf3")
-    
     ### build docker environment 
-    os.system("make build")
-    os.system("sudo make install")
-
     printHeader(f"Build docker image")
     os.system("make docker-build")
+    os.system("sudo make install")
     
-    
-    ### Build MBG in Kind clusters environment 
-    startKindClusterMbg(mbg1Name, gwctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags, cni=mbg1cni)        
-    startKindClusterMbg(mbg2Name, gwctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort, dataplane ,mbg2crtFlags, cni=mbg2cni)        
+    ### Build Kind clusters environment 
+    createFabric(testOutputFolder)
+    startKindCluster(gw1Name, testOutputFolder)        
+    startKindCluster(gw2Name, testOutputFolder)        
       
-    ###get mbg parameters
-    useKindCluster(mbg1Name)
-    mbg1Ip               = getKindIp(mbg1Name)
-    useKindCluster(mbg2Name)
-    mbg2Ip               = getKindIp(mbg2Name)
+    ###get Gateways parameters
+    gw1Ip = getKindIp(gw1Name)
+    gw2Ip = getKindIp(gw2Name)
    
     # Start gwctl
-    startGwctl(gwctl1Name, mbg1Ip, mbg1cPort, dataplane, gwctl1crt)
-    startGwctl(gwctl2Name, mbg2Ip, mbg2cPort, dataplane, gwctl2crt)
+    startGwctl(gw1Name, gw1Ip, gwPort, testOutputFolder)
+    startGwctl(gw2Name, gw2Ip, gwPort, testOutputFolder)
     
-    # Add MBG Peer
-    printHeader("Add MBG1 peer to MBG2")
-    connectMbgs(gwctl1Name, mbg2Name, mbg2Ip, mbg2cPort)
-    printHeader("Add MBG2 peer to MBG1")
-    connectMbgs(gwctl2Name, mbg1Name, mbg1Ip, mbg1cPort)
+    # Create peers
+    printHeader("Create peers")
+    runcmd(f'gwctl create peer --myid {gw1Name} --name {gw2Name} --host {gw2Ip} --port {gwPort}')
+    runcmd(f'gwctl create peer --myid {gw2Name} --name {gw1Name} --host {gw1Ip} --port {gwPort}')
     
-    # Set service iperf3-client in MBG1
-    setIperf3client(mbg1Name, gwctl1Name, srcSvc)
-    
-    # Set service iperf3-server in MBG2
-    setIperf3Server(mbg2Name, gwctl2Name,destSvc)
+    # Set service iperf3-client in gw1
+    loadService(srcSvc,gw1Name, "mlabbe/iperf3",f"{folCl}/iperf3-client.yaml" )
+    runcmd(f'gwctl create export --myid {gw1Name} --name {srcSvc} --host {srcSvc} --port {destPort}')
+
+    # Set service iperf3-server in gw2
+    loadService(destSvc,gw2Name, "mlabbe/iperf3",f"{folSv}/iperf3.yaml" )
+    runcmd(f"kubectl create service nodeport {destSvc} --tcp={destPort}:{destPort} --node-port={iperf3DirectPort}")
+    runcmd(f'gwctl create export --myid {gw2Name} --name {destSvc} --host {destSvc} --port {destPort}')
 
     #Import destination service
-    importService(mbg1Name, gwctl1Name, destSvc,destPort, mbg2Name)
+    printHeader(f"\n\nStart Importing {destSvc} service to {gw1Name}")
+    runcmd(f'gwctl --myid {gw1Name} create import --name {destSvc} --host {destSvc} --port {destPort}')
+    printHeader(f"\n\nStart binding {destSvc} service to {gw1Name}")
+    runcmd(f'gwctl --myid {gw1Name} create binding --import {destSvc} --peer {gw2Name}')
 
-    #Get services
-    getService(gwctl1Name, destSvc)
     #Add policy
-    applyAccessPolicy(mbg1Name, gwctl1Name, allowAllPolicy)
-    applyAccessPolicy(mbg2Name, gwctl2Name, allowAllPolicy)
+    printHeader("Applying policies")
+    runcmd(f'gwctl --myid {gw1Name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gw2Name} create policy --type access --policyFile {allowAllPolicy}')
+    
     #Testing
     printHeader("\n\nStart Iperf3 testing")
-    useKindCluster(mbg2Name)
-    waitPod("iperf3-server")
-    # Test MBG1
-    directTestIperf3(mbg1Name, srcSvc, mbg2Ip, kindDestPort)
-    testIperf3Client(mbg1Name, srcSvc, destSvc,    destPort)
+    directTestIperf3(gw1Name, srcSvc, gw2Ip, iperf3DirectPort)
+    testIperf3Client(gw1Name, srcSvc, destSvc, destPort)
 
 
