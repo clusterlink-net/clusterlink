@@ -15,6 +15,7 @@ package sniproxy
 
 import (
 	"net"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"inet.af/tcpproxy"
@@ -36,7 +37,9 @@ type Server struct {
 func (s *Server) Serve() error {
 	listenAddress := s.GetAddress()
 	for sni, targetAddress := range s.routes {
-		s.server.AddSNIRoute(listenAddress, sni, tcpproxy.To(targetAddress))
+		target := tcpproxy.To(targetAddress)
+		target.DialTimeout = 100 * time.Millisecond
+		s.server.AddSNIRoute(listenAddress, sni, target)
 	}
 
 	return s.server.Run()
