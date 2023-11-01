@@ -1,5 +1,5 @@
 # Scenario with iPerf3 Connectivity between 2 clusters
-In this test we check iPerf3 connectivity between different Kind cluster using ClustrLink.  
+In this test we check iPerf3 connectivity between different Kind cluster using ClusterLink.  
 This setup use two Kind clusters- 
 1) Cluster 1 - contains the gateway (Control-plane/Data-plane) and iPerf3 client.
 2) Cluster 2 - contains the gateway (Control-plane/Data-plane) and iPerf3 server.
@@ -21,7 +21,7 @@ Install local control (gwctl) for the gateway:
 
     sudo make install
 
-### Step 2: Create Kind clusters with Clusterlink gateway
+### Step 2: Create Kind clusters with ClusterLink gateway
 In this step, we build the Kind cluster with the gateway image.
 Create certificates and deployments files:
 1) Create folder for all deployments and yaml files:
@@ -49,7 +49,7 @@ Build the first Kind cluster with gateway, and iperf3-client:
         kind create cluster --name=peer1
         kind load docker-image cl-controlplane cl-dataplane cl-go-dataplane gwctl --name=peer1
 
-2) Deploy Clustrelink gateway deployment:
+2) Deploy ClusterLink gateway deployment:
 
         kubectl apply -f $TEST_DIR/peer1/k8s.yaml
 
