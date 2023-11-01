@@ -75,6 +75,7 @@ func NewPolicyHandler() PolicyDecider {
 	return &PolicyHandler{
 		loadBalancer:    NewLoadBalancer(),
 		connectivityPDP: connectivitypdp.NewPDP(),
+		enabledPeers:    map[string]bool{},
 	}
 }
 
@@ -90,6 +91,16 @@ func getServiceAttrsForMultiplePeers(serviceName string, peers []string) []polic
 	res := []policytypes.WorkloadAttrs{}
 	for _, peer := range peers {
 		res = append(res, getServiceAttrs(serviceName, peer))
+	}
+	return res
+}
+
+func (pH *PolicyHandler) filterOutDisabledPeers(peers []string) []string {
+	res := []string{}
+	for _, peer := range peers {
+		if pH.enabledPeers[peer] {
+			res = append(res, peer)
+		}
 	}
 	return res
 }
@@ -116,6 +127,8 @@ func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionR
 		return event.ConnectionRequestResp{Action: event.Deny}, nil // this can be caused by a user typo - so only log this error
 	}
 
+	peerList = pH.filterOutDisabledPeers(peerList)
+
 	src := getServiceAttrs(requestAttr.SrcService, "")
 	dsts := getServiceAttrsForMultiplePeers(requestAttr.DstService, peerList)
 	decisions, err := pH.connectivityPDP.Decide(src, dsts)
@@ -127,7 +140,7 @@ func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionR
 	allowedPeers := []string{}
 	for _, decision := range decisions {
 		dstPeer := decision.Destination[GatewayNameLabel]
-		if decision.Decision == policytypes.PolicyDecisionAllow && pH.enabledPeers[dstPeer] {
+		if decision.Decision == policytypes.PolicyDecisionAllow {
 			allowedPeers = append(allowedPeers, dstPeer)
 		}
 	}
