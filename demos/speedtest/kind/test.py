@@ -32,7 +32,7 @@ if __name__ == "__main__":
     printHeader("\n\nStart Kind Test\n\n")
     printHeader("Start pre-setting")
     
-    folman   = f"{proj_dir}/demos/speedtest/manifests/"
+    folman   = f"{proj_dir}/demos/speedtest/testdata/manifests/"
     crtFol   = f"{proj_dir}/demos/utils/mtls"
     testOutputFolder = f"{proj_dir}/bin/tests/speedtest" 
     cni       = args["cni"]
