@@ -1,0 +1,19 @@
+{
+    "name": "deny-from-gw",
+    "privileged": true,
+    "action": "deny",
+    "from": [
+        {
+            "workloadSelector": {
+                "matchLabels": {
+                    "clusterlink/metadata.gatewayName": "peer3"
+                }
+            }
+        }
+    ],
+    "to": [
+        {
+            "workloadSelector": {}
+        }
+    ]
+}

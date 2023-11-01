@@ -12,87 +12,65 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-##############################################################################################
-# Name: Bookinfo
-# Info: support bookinfo application with gwctl inside the clusters 
-#       In this we create three kind clusters
-#       1) MBG1- contain mbg, gwctl,product and details microservices (bookinfo services)
-#       2) MBG2- contain mbg, gwctl, review-v2 and rating microservices (bookinfo services)
-#       3) MBG3- contain mbg, gwctl, review-v3 and rating microservices (bookinfo services)
-##############################################################################################
-
-import os,time
-import subprocess as sp
+import os
 import sys
-import argparse
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{proj_dir}')
 
-from demos.utils.mbgAux import runcmd, printHeader, getPodNameIp
-from demos.utils.kind.kindAux import useKindCluster,getKindIp
-
-
+from demos.utils.common import runcmd, printHeader
+from demos.utils.kind import useKindCluster, getKindIp
+from demos.utils.k8s import getPodNameIp
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Description of your program')
-
+    allowAllPolicy =f"{proj_dir}/pkg/policyengine/policytypes/examples/allowAll.json"
     srcSvc1         = "firefox"
     srcSvc2         = "firefox2"
     destSvc         = "openspeedtest"
-
-    mbg1Name        = "mbg1"
-    mbg2Name        = "mbg2"
-    mbg3Name        = "mbg3"
-    gwctl1Name     = "gwctl1"
-    gwctl2Name     = "gwctl2"
-    gwctl3Name     = "gwctl3"
-
+    gw1Name        = "peer1"
+    gw2Name        = "peer2"
+    gw3Name        = "peer3"
 
     print(f'Working directory {proj_dir}')
     os.chdir(proj_dir)
 
-    ###get mbg parameters
-    useKindCluster(mbg1Name)
-    mbg1Pod, _           = getPodNameIp("mbg")
-    mbg1Ip               = getKindIp("mbg1")
-    gwctl1Pod, gwctl1Ip= getPodNameIp("gwctl")
-    useKindCluster(mbg2Name)
-    mbg2Pod, _            = getPodNameIp("mbg")
+    ###get gw parameters
+    gw1Ip                = getKindIp(gw1Name)
+    gwctl1Pod, gwctl1Ip = getPodNameIp("gwctl")
+    gw2Ip                = getKindIp(gw2Name)
     gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
-    mbg2Ip                =getKindIp(mbg2Name)
-    useKindCluster(mbg3Name)
-    mbg3Pod, _            = getPodNameIp("mbg")
-    mbg3Ip                = getKindIp("mbg3")
+    gw3Ip                = getKindIp(gw3Name)
     gwctl3Pod, gwctl3Ip = getPodNameIp("gwctl")
-
-
 
     #Import service
     printHeader(f"\n\nStart import svc {destSvc}")
-    useKindCluster(mbg1Name)    
-    runcmd(f'gwctl create import --myid {gwctl1Name} --name {destSvc} --host {destSvc} --port 3000')
-    useKindCluster(mbg3Name)    
-    runcmd(f'gwctl create import --myid {gwctl3Name} --name {destSvc} --host {destSvc} --port 3000')
+    useKindCluster(gw1Name)    
+    runcmd(f'gwctl create import --myid {gw1Name} --name {destSvc} --host {destSvc} --port 3000')
+    useKindCluster(gw3Name)    
+    runcmd(f'gwctl create import --myid {gw3Name} --name {destSvc} --host {destSvc} --port 3000')
     #Set K8s network services
-    printHeader("\n\nStart binding service {destSvc}")
-    useKindCluster(mbg1Name)
-    runcmd(f'gwctl create binding --myid {gwctl1Name} --import {destSvc} --peer {mbg2Name}')
-    useKindCluster(mbg3Name)
-    runcmd(f'gwctl create binding --myid {gwctl3Name} --import {destSvc} --peer {mbg2Name}')
+    printHeader(f"\n\nStart binding service {destSvc}")
+    useKindCluster(gw1Name)
+    runcmd(f'gwctl create binding --myid {gw1Name} --import {destSvc} --peer {gw2Name}')
+    useKindCluster(gw3Name)
+    runcmd(f'gwctl create binding --myid {gw3Name} --import {destSvc} --peer {gw2Name}')
     
     printHeader("\n\nStart get service GW1")
-    runcmd(f'gwctl get import  --myid {gwctl1Name} ')
+    runcmd(f'gwctl get import  --myid {gw1Name} ')
     printHeader("\n\nStart get service GW3")
-    runcmd(f'gwctl get import  --myid {gwctl3Name} ')
+    runcmd(f'gwctl get import  --myid {gw3Name} ')
 
-
+    #Add policy
+    printHeader("Applying policies")
+    runcmd(f'gwctl --myid {gw1Name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gw2Name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gw3Name} create policy --type access --policyFile {allowAllPolicy}')
+    
     #Firefox communications
     printHeader(f"Firefox urls")
-    print(f"To use the mbg1 firefox client, run the command:\n    firefox http://{mbg1Ip}:30000/")
-    print(f"To use the first mbg3 firefox client, run the command:\n    firefox http://{mbg3Ip}:30000/")
-    print(f"To use the second mbg3 firefox client, run the command:\n   firefox http://{mbg3Ip}:30000/")
-    
+    print(f"To use the gw1 firefox client, run the command:\n    firefox http://{gw1Ip}:30000/")
+    print(f"To use the first gw3 firefox client, run the command:\n    firefox http://{gw3Ip}:30000/")
+    print(f"To use the second gw3 firefox client, run the command:\n   firefox http://{gw3Ip}:30001/")    
     print(f"The OpenSpeedTest url: http://{destSvc}:3000/ ")
 
 
