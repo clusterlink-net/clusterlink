@@ -14,23 +14,14 @@ Before settling on the `ClusterLink` name. the code base was previously develope
 
 ## What Is ClusterLink?
 
-<!-- Mission Statement -->
-<!-- More information about crafting your mission statement with examples -->
-<!-- https://contribute.cncf.io/maintainers/governance/charter/ -->
-
-<!-- [TODO: PROJECTNAME] is a [TODO: Type of Tool] that [TODO: Functions it
-performs].  [TODO: Reasons why these are needed and valuable].  [TODO:
-Implementation, strategy and architecture].
-
-[TODO: Additional paragraph describing your project (optional)] -->
-
 The ClusterLink project simplifies the connection between application services that are
-located in different domains, networks, and cloud infrastructures.
+ located in different domains, networks, and cloud infrastructures.
 
 For more details, see the document: [ClusterLink extended abstract](docs/ClusteLink.pdf).
 
 ClusterLink deploys a gateway into each location, facilitating the configuration and
-access to multi-cloud services.
+ access to multi-cloud services.
+
 The ClusterLink gateway contains the following components:
 
 1. ```Control Plane``` is responsible for maintaining the internal state of the gateway,
@@ -63,31 +54,37 @@ The ClusterLink APIs use the following entities for configuring cross cluster co
 
 ## Getting Started
 
-<!-- Include enough details to get started using, or at least building, the
-project here and link to other docs with more detail as needed.  Depending on
-the nature of the project and its current development status, this might
-include:
-* quick installation/build instructions
-* a few simple examples of use
-* basic prerequisites
--->
+### Building ClusteLink
 
-WIP; combine with sections below. Some details should probably be moved into their own documents.
+<!-- We have a [tutorial](TODO missing link) that walks you through setting up your developer
+ environment, making a change and testing it.-->
+
+Here are the key steps for setting up your developer environment, making a change and testing it:
+
+1. Install Go version 1.20 or higher.
+1. Clone our repository with `git clone git@github.com:clusterlink-net/clusterlink.git`.
+1. Run `make test-prereqs` and manually install any missing required development tools.
+1. Run `make build` to ensure the code builds fine. This will pull in all needed
+ dependencies.
+1. If you are planning on contributing back to the project, please see our
+ [contribution guide](CONTRIBUTING.md).
 
 ### How to setup and run ClusterLink
 
 ClusterLink can be set up and run on different environments: local environment (Kind),
-Bare-metal environment, or cloud environment.
+ Bare-metal environment, or cloud environment.
 
 #### Run ClusterLink in local environment (Kind)
 
 ClusterLink can run in any K8s environment, such as Kind.
-To run the ClusterLink in a Kind environment, follow one of the examples:
+ To run the ClusterLink in a Kind environment, follow one of the examples:
 
 1. Performance example - Run iPerf3 test between iPerf3 client and server using ClusterLink
  components. This example is used for performance measuring. Instructions can be found
  [Here](demos/iperf3/kind/README.md).
-1. Application example - Run the BookInfo application in different clusters using ClusterLink components. This example demonstrates communication distributed applications (in different clusters) with different policies.Instructions can be found [Here](demos/bookinfo/kind/README.md).
+1. Application example - Run the BookInfo application in different clusters using ClusterLink
+ components. This example demonstrates communication distributed applications (in different
+ clusters) with different policies.Instructions can be found [Here](demos/bookinfo/kind/README.md).
 
 #### Run ClusterLink in Bare-metal environment with 2 hosts
 
@@ -98,36 +95,30 @@ TBD
 TBD
 
 ## Contributing
-<!-- Template: https://github.com/cncf/project-template/blob/main/CONTRIBUTING.md -->
 
 Our project welcomes contributions from any member of our community. To get
- started contributing, please see our [Contributor Guide](./CONTRIBUTING.md).
+ started contributing, please see our [Contributor Guide](CONTRIBUTING.md).
 
 ## Scope
-<!-- If this section is too long, you might consider moving it to a SCOPE.md -->
-<!-- More information about creating your scope with links to examples -->
-<!-- https://contribute.cncf.io/maintainers/governance/charter/ -->
 
 ### In Scope
 
 ClusterLink is intended to [TODO: Core functionality]. As such, the
-project will implement or has implemented:
+ project will implement or has implemented:
 
-- [TODO: High-level Item 1]
-- [TODO: High-level Item 2]
-- [TODO: High-level Item 3]
+- Remote Service sharing
+- Extending private Cloud service endpoints to remote sites
+- Centralized management (future)
 
 ### Out of Scope
 
 ClusterLink will be used in a cloud native environment with other
-tools. The following specific functionality will therefore not be incorporated:
+ tools. The following specific functionality will therefore not be incorporated:
 
-- [TODO: Excluded function 1]
-- [TODO: Excluded function 2]
-
-ClusterLink implements [TODO: List of major features, existing or planned],
- through [TODO: Implementation requirements/language/architecture/etc.]. It will
- not cover [TODO: short list of excluded items]
+- Certificate management: ClusterLink uses certificates and trust bundles provided to
+ it. It does not manage certificate lifetimes, rotation, etc. - these are delegated to
+- Enabling IP level connectivity
+- Pod to Pod communications
 
 ## Communications
 
@@ -137,25 +128,26 @@ ClusterLink implements [TODO: List of major features, existing or planned],
  link to a publicly-readable calendar so that prospective contributors know when and 
  where to engage with you. -->
 
-[TODO: Details (with links) to meetings, mailing lists, Slack, and any other communication channels]
-
-- User Mailing List:
-- Developer Mailing List:
+- [User Mailing List](https://groups.google.com/g/clusterlink-users)
+- [Developer Mailing List](https://groups.google.com/g/clusterlink-dev)
+<!--
 - Slack Channel:
 - Public Meeting Schedule and Links:
 - Social Media:
 - Other Channel(s), If Any:
+ -->
 
+<!--
 ## Resources
 
 [TODO: Add links to other helpful information (roadmap, docs, website, etc.)]
+-->
 
 ## License
 
-<!-- Template: https://github.com/cncf/project-template/blob/main/LICENSE -->
-This project is licensed under [TODO: Add name of license and link to your LICENSE file]
+This project is licensed under [Apache License, v2.0](LICENSE).
+ Code contributions require [Developer Certificate of Originality](CONTRIBUTING.md#developer-certificate-of-origin).
 
-## Conduct
+## Code of Conduct
 
-<!-- Template: https://github.com/cncf/project-template/blob/main/CODE_OF_CONDUCT.md -->
-We follow the CNCF Code of Conduct [TODO: Insert link to your CODE_OF_CONDUCT.md file].
+We follow the [CNCF Code of Conduct](CODE_OF_CONDUCT.md).
