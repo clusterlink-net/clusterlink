@@ -79,12 +79,18 @@ func (cp *Instance) AuthorizeEgress(req *EgressAuthorizationRequest) (*EgressAut
 		return nil, fmt.Errorf("no bindings found for import '%s'", req.Import)
 	}
 
-	// TODO: get k8s attributes using cp.kubeClient
 	connReq := eventmanager.ConnectionRequestAttr{DstService: req.Import, Direction: eventmanager.Outgoing}
+	srcLabels := cp.platform.GetLabelsFromIP(req.IP)
+	if src, ok := srcLabels["app"]; ok { // TODO: Add support for labels other than just the "app" key.
+		cp.logger.Infof("Received egress authorization srcLabels[app]: %v.", srcLabels["app"])
+		connReq.SrcService = src
+	}
+
 	authResp, err := cp.policyDecider.AuthorizeAndRouteConnection(&connReq)
 	if err != nil {
 		return nil, err
 	}
+
 	if authResp.Action != eventmanager.Allow {
 		return &EgressAuthorizationResponse{Allowed: false}, nil
 	}
@@ -122,7 +128,7 @@ func (cp *Instance) AuthorizeEgress(req *EgressAuthorizationRequest) (*EgressAut
 }
 
 // AuthorizeIngress authorizes a request for accessing an exported service.
-func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest) (*IngressAuthorizationResponse, error) {
+func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest, peer string) (*IngressAuthorizationResponse, error) {
 	cp.logger.Infof("Received ingress authorization request: %v.", req)
 
 	resp := &IngressAuthorizationResponse{}
@@ -134,7 +140,7 @@ func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest) (*Ingress
 
 	resp.ServiceExists = true
 
-	connReq := eventmanager.ConnectionRequestAttr{DstService: req.Service, Direction: eventmanager.Incoming}
+	connReq := eventmanager.ConnectionRequestAttr{DstService: req.Service, Direction: eventmanager.Incoming, OtherMbg: peer}
 	authResp, err := cp.policyDecider.AuthorizeAndRouteConnection(&connReq)
 	if err != nil {
 		return nil, err

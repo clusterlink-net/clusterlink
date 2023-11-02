@@ -174,6 +174,17 @@ func TestLoadBalancer(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, event.Allow, connReqResp.Action)
 	require.Equal(t, peer2, connReqResp.TargetMbg)
+
+	ph.DeletePeer(peer1) // deleting peer1 again should make no change
+	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
+	require.Nil(t, err)
+	require.Equal(t, event.Allow, connReqResp.Action)
+	require.Equal(t, peer2, connReqResp.TargetMbg)
+
+	ph.DeletePeer(peer2) // deleting peer2 should result in an deny, as there are no available peers left
+	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
+	require.Nil(t, err)
+	require.Equal(t, event.Deny, connReqResp.Action)
 }
 
 func TestBadLBPolicy(t *testing.T) {
@@ -186,6 +197,48 @@ func TestBadLBPolicy(t *testing.T) {
 
 	err = ph.DeleteLBPolicy(&apiPolicy)
 	require.NotNil(t, err)
+}
+
+func TestDisableEnablePeers(t *testing.T) {
+	ph := policyengine.NewPolicyHandler()
+	addRemoteSvc(t, svcName, peer1, ph)
+	addRemoteSvc(t, svcName, peer2, ph)
+	addPolicy(t, &policy, ph)
+
+	lbPolicy := policyengine.LBPolicy{ServiceSrc: svcName, ServiceDst: svcName, Scheme: policyengine.Static, DefaultPeer: peer1}
+	policyBuf, err := json.Marshal(lbPolicy)
+	require.Nil(t, err)
+	apiLBPolicy := api.Policy{Name: policy.Name, Spec: api.PolicySpec{Blob: policyBuf}}
+	err = ph.AddLBPolicy(&apiLBPolicy)
+	require.Nil(t, err)
+
+	requestAttr := event.ConnectionRequestAttr{SrcService: svcName, DstService: svcName, Direction: event.Outgoing}
+	connReqResp, err := ph.AuthorizeAndRouteConnection(&requestAttr)
+	require.Nil(t, err)
+	require.Equal(t, event.Allow, connReqResp.Action)
+	require.Equal(t, peer1, connReqResp.TargetMbg) // LB policy defaults this request to be served by peer1
+
+	ph.DisablePeer(peer1)
+
+	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
+	require.Nil(t, err)
+	require.Equal(t, event.Allow, connReqResp.Action)
+	require.Equal(t, peer2, connReqResp.TargetMbg) // peer1 is now disabled, so peer2 must be used
+
+	ph.DisablePeer(peer2)
+
+	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
+	require.Nil(t, err)
+	require.Equal(t, event.Deny, connReqResp.Action) // no enabled peers - a Deny is returned
+	require.Equal(t, "", connReqResp.TargetMbg)
+
+	ph.EnablePeer(peer1)
+	ph.EnablePeer(peer2)
+
+	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
+	require.Nil(t, err)
+	require.Equal(t, event.Allow, connReqResp.Action)
+	require.Equal(t, peer1, connReqResp.TargetMbg) // peer1 was re-enabled, so it is now chosen again
 }
 
 func addRemoteSvc(t *testing.T, svc, peer string, ph policyengine.PolicyDecider) {

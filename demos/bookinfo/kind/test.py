@@ -16,182 +16,140 @@
 # Name: Bookinfo
 # Info: support bookinfo application with gwctl inside the clusters 
 #       In this we create three kind clusters
-#       1) MBG1- contain mbg, gwctl,product and details microservices (bookinfo services)
-#       2) MBG2- contain mbg, gwctl, review-v2 and rating microservices (bookinfo services)
-#       3) MBG3- contain mbg, gwctl, review-v3 and rating microservices (bookinfo services)
+#       1) cluster1- contain gw, gwctl,product and details microservices (bookinfo services)
+#       2) cluster2- contain gw, gwctl, review-v2 and rating microservices (bookinfo services)
+#       3) cluster3- contain gw, gwctl, review-v3 and rating microservices (bookinfo services)
 ##############################################################################################
 
-import os,time
-import subprocess as sp
+import os
 import sys
-import argparse
 proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{proj_dir}')
 
-from demos.utils.mbgAux import runcmd, runcmdb, printHeader, getPodName, waitPod,getMbgPorts,buildMbg,buildMbgctl,getPodIp,getPodNameIp
-from demos.utils.kind.kindAux import useKindCluster,startKindClusterMbg,getKindIp
-
+from demos.utils.common import runcmd, createFabric, printHeader
+from demos.utils.kind import startKindCluster,useKindCluster, getKindIp,loadService
+from demos.utils.k8s import getPodNameIp,getPodIp
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Description of your program')
-    parser.add_argument('-d','--dataplane', help='choose which dataplane to use mtls/tcp', required=False, default="mtls")
+   printHeader("\n\nStart Kind Test\n\n")
+   printHeader("Start pre-setting")
+   
+   folpdct   = f"{proj_dir}/demos/bookinfo/manifests/product/"
+   folReview = f"{proj_dir}/demos/bookinfo/manifests/review"
+   allowAllPolicy =f"{proj_dir}/pkg/policyengine/policytypes/examples/allowAll.json"
+   testOutputFolder = f"{proj_dir}/bin/tests/bookinfo" 
 
-    parser.add_argument('-src','--src', help='Source service name', required=False)
-    parser.add_argument('-dst','--dest', help='Destination service name', required=False)
-    args = vars(parser.parse_args())
-
-    printHeader("\n\nStart Kind Test\n\n")
-    printHeader("Start pre-setting")
-    
-    folpdct   = f"{proj_dir}/demos/bookinfo/manifests/product/"
-    folReview = f"{proj_dir}/demos/bookinfo/manifests/review"
-    allowAllPolicy =f"{proj_dir}/pkg/policyengine/policytypes/examples/allowAll.json"
-    dataplane = args["dataplane"]
- 
-
-    destSvc         = "reviews"
-    #MBG1 parameters 
-    mbg1DataPort    = "30001"
-    mbg1cPort       = "30443"
-    mbg1cPortLocal  = "443"
-    mbg1Name        = "mbg1"
-    mbg1crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg1.crt --key ./mtls/mbg1.key"  if dataplane =="mtls" else ""
-    gwctl1Name     = "gwctl1"
-    srcSvc1         = "productpage"
-    srcSvc2         = "productpage2"
-    srcK8sSvcPort   = "9080"
-    srcK8sSvcIp     = ":"+srcK8sSvcPort
-    srcDefaultGW    = "10.244.0.1"
-    
-
-    #MBG2 parameters 
-    mbg2DataPort    = "30001"
-    mbg2cPort       = "30443"
-    mbg2cPortLocal  = "443"
-    mbg2crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg2.crt --key ./mtls/mbg2.key"  if dataplane =="mtls" else ""
-    mbg2Name        = "mbg2"
-    gwctl2Name     = "gwctl2"
-    review2DestPort = "30001"
-    review2pod      = "reviews-v2"
-    
-    #MBG3 parameters 
-    mbg3DataPort    = "30001"
-    mbg3cPort       = "30443"
-    mbg3cPortLocal  = "443"
-    mbg3crtFlags    = f"--certca ./mtls/ca.crt --cert ./mtls/mbg3.crt --key ./mtls/mbg3.key"  if dataplane =="mtls" else ""
-    mbg3Name        = "mbg3"
-    gwctl3Name     = "gwctl3"
-    review3DestPort = "30001"
-    review3pod      = "reviews-v3"
-
-    print(f'Working directory {proj_dir}')
-    os.chdir(proj_dir)
-
-    ### clean 
-    print(f"Clean old kinds")
-    os.system("make clean-kind-bookinfo")
-    
-    ### build docker environment 
-    printHeader(f"Build docker image")
-    os.system("make docker-build")
-    
-    ## build Kind clusters environment 
-    startKindClusterMbg(mbg1Name, gwctl1Name, mbg1cPortLocal, mbg1cPort, mbg1DataPort, dataplane ,mbg1crtFlags)        
-    startKindClusterMbg(mbg2Name, gwctl2Name, mbg2cPortLocal, mbg2cPort, mbg2DataPort,dataplane ,mbg2crtFlags)        
-    startKindClusterMbg(mbg3Name, gwctl3Name, mbg3cPortLocal, mbg3cPort, mbg3DataPort,dataplane ,mbg3crtFlags)        
-    
-    ###get mbg parameters
-    useKindCluster(mbg1Name)
-    mbg1Pod, _           = getPodNameIp("mbg")
-    mbg1Ip               = getKindIp("mbg1")
-    gwctl1Pod, gwctl1Ip= getPodNameIp("gwctl")
-    useKindCluster(mbg2Name)
-    mbg2Pod, _            = getPodNameIp("mbg")
-    gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
-    mbg2Ip                =getKindIp(mbg2Name)
-    useKindCluster(mbg3Name)
-    mbg3Pod, _            = getPodNameIp("mbg")
-    mbg3Ip                = getKindIp("mbg3")
-    gwctl3Pod, gwctl3Ip = getPodNameIp("gwctl")
-
-    ###Set mbg1 services
-    useKindCluster(mbg1Name)
-    runcmd(f"kind load docker-image maistra/examples-bookinfo-productpage-v1 --name={mbg1Name}")
-    runcmd(f"kind load docker-image maistra/examples-bookinfo-details-v1:0.12.0 --name={mbg1Name}")
-    runcmd(f"kubectl create -f {folpdct}/product.yaml")
-    runcmd(f"kubectl create -f {folpdct}/product2.yaml")
-    runcmd(f"kubectl create -f {folpdct}/details.yaml")
-    printHeader(f"Add {srcSvc1} {srcSvc2}  services to host cluster")
-    waitPod(srcSvc1)
-    waitPod(srcSvc2)
-    _ , srcSvcIp1 =getPodNameIp(srcSvc1)
-    _ , srcSvcIp2 =getPodNameIp(srcSvc2)
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create export --name {srcSvc1} --port {srcK8sSvcPort}')
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create export --name {srcSvc2} --port {srcK8sSvcPort}')
-
-    
-
-    # Add GW Peers
-    printHeader("Add GW2, GW3 peer to GW1")
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create peer --name {mbg2Name} --host {mbg2Ip} --port {mbg2cPort}')
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create peer --name {mbg3Name} --host {mbg3Ip} --port {mbg3cPort}')
-    printHeader("Add MBG1 peer to MBG2")
-    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl create peer --name {mbg1Name} --host {mbg1Ip} --port {mbg1cPort}')
-    useKindCluster(mbg3Name)
-    printHeader("Add MBG3 peer to MBG1")
-    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl create peer --name {mbg1Name} --host {mbg1Ip} --port {mbg1cPort}')
-
-    
-    ###Set mbg2 service
-    useKindCluster(mbg2Name)
-    runcmd(f"kind load docker-image maistra/examples-bookinfo-reviews-v2 --name={mbg2Name}")
-    runcmd(f"kind load docker-image maistra/examples-bookinfo-ratings-v1:0.12.0 --name={mbg2Name}")
-    runcmd(f"kubectl create -f {folReview}/review-v2.yaml")
-    runcmd(f"kubectl create -f {folReview}/rating.yaml")
-    printHeader(f"Add {destSvc} (server) service to destination cluster")
-    waitPod(destSvc)
-    destSvcReview2Ip = f"{getPodIp(destSvc)}"
-    destSvcReview2Port = f"{srcK8sSvcPort}"
-    runcmd(f'kubectl exec -i {gwctl2Pod} -- ./gwctl create export --name {destSvc} --host {destSvcReview2Ip} --port {destSvcReview2Port}')
-    
-
-    ###Set gwctl3
-    useKindCluster(mbg3Name)
-    runcmd(f"kind load docker-image maistra/examples-bookinfo-reviews-v3 --name={mbg3Name}")
-    runcmd(f"kind load docker-image maistra/examples-bookinfo-ratings-v1:0.12.0 --name={mbg3Name}")
-    runcmd(f"kubectl create -f {folReview}/review-v3.yaml")
-    runcmd(f"kubectl create -f {folReview}/rating.yaml")
-    printHeader(f"Add {destSvc} (server) service to destination cluster")
-    waitPod(destSvc)
-    destSvcReview3Ip = f"{getPodIp(destSvc)}"
-    destSvcReview3Port = f"{srcK8sSvcPort}"
-    runcmd(f'kubectl exec -i {gwctl3Pod} -- ./gwctl create export --name {destSvc} --host {destSvcReview3Ip} --port {destSvcReview3Port}')
-
-    #Import service
-    useKindCluster(mbg1Name)
-    printHeader(f"\n\nStart import svc {destSvc}")
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create import --name {destSvc}  --host {destSvc} --port {srcK8sSvcPort} ')
-    #Import service
-    printHeader(f"\n\nStart binding svc {destSvc}")
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create binding --import {destSvc}  --peer {mbg2Name}')
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl create binding --import {destSvc}  --peer {mbg3Name}')
-    
-    #Get services
-    useKindCluster(mbg1Name)
-    printHeader("\n\nStart get service")
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl get import')
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- ./gwctl get policy')
-    
- # Set policies
-    printHeader(f"\n\nApplying policy file {allowAllPolicy}")
-    useKindCluster(mbg1Name)
-    runcmd(f'gwctl --myid {gwctl1Name} create policy --type access --policyFile {allowAllPolicy}')
-    runcmd(f'gwctl --myid {gwctl2Name} create policy --type access --policyFile {allowAllPolicy}')
-    runcmd(f'gwctl --myid {gwctl3Name} create policy --type access --policyFile {allowAllPolicy}')
+   #GW parameters 
+   gwPort        = "30443"    
+   gwNS          = "default"    
+   gw1Name       = "peer1"
+   gw2Name       = "peer2"
+   gw3Name       = "peer3"
+   reviewSvc       = "reviews"
+   srcSvc1       = "productpage"
+   srcSvc2       = "productpage2"
+   srcK8sSvcPort = "9080"
+   review2pod    = "reviews-v2"
+   review3pod    = "reviews-v3"
 
 
-    print(f"Proctpage1 url: http://{mbg1Ip}:30001/productpage")
-    print(f"Proctpage2 url: http://{mbg1Ip}:30002/productpage")
+
+   print(f'Working directory {proj_dir}')
+   os.chdir(proj_dir)
+
+   ### clean 
+   print(f"Clean old kinds")
+   os.system("make clean-kind-bookinfo")
+   
+   ### build docker environment 
+   printHeader(f"Build docker image")
+   os.system("make docker-build")
+   
+   ## build Kind clusters environment
+   createFabric(testOutputFolder) 
+   startKindCluster(gw1Name, testOutputFolder)        
+   startKindCluster(gw2Name, testOutputFolder)
+   startKindCluster(gw3Name, testOutputFolder)       
+            
+   
+   ###get gw parameters
+   gw1Ip               = getKindIp(gw1Name)
+   gwctl1Pod, gwctl1Ip = getPodNameIp("gwctl")
+   gw2Ip               = getKindIp(gw2Name)
+   gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
+   gw3Ip               = getKindIp(gw3Name)
+   gwctl3Pod, gwctl3Ip = getPodNameIp("gwctl")
+
+   # Add GW Peers
+   printHeader("Add GW2, GW3 peer to GW1")
+   useKindCluster(gw1Name)
+   runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create peer --name {gw2Name} --host {gw2Ip} --port {gwPort}')
+   runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create peer --name {gw3Name} --host {gw3Ip} --port {gwPort}')
+   printHeader("Add gw1 peer to gw2")
+   useKindCluster(gw2Name)
+   runcmd(f'kubectl exec -i {gwctl2Pod} -- gwctl create peer --name {gw1Name} --host {gw1Ip} --port {gwPort}')
+   useKindCluster(gw3Name)
+   printHeader("Add gw3 peer to gw1")
+   runcmd(f'kubectl exec -i {gwctl3Pod} -- gwctl create peer --name {gw1Name} --host {gw1Ip} --port {gwPort}')
+
+   ###Set GW1 services
+   useKindCluster(gw1Name)
+   printHeader(f"Add {srcSvc1} {srcSvc2}  services to host cluster")
+   loadService(srcSvc1, gw1Name, "maistra/examples-bookinfo-productpage-v1",f"{folpdct}/product.yaml")
+   loadService(srcSvc2, gw1Name, "maistra/examples-bookinfo-productpage-v1",f"{folpdct}/product2.yaml")
+   loadService(srcSvc1, gw1Name, "maistra/examples-bookinfo-details-v1:0.12.0",f"{folpdct}/details.yaml")
+
+   runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create export --name {srcSvc1} --host {srcSvc1} --port {srcK8sSvcPort}')
+   runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create export --name {srcSvc2} --host {srcSvc2} --port {srcK8sSvcPort}')
+   
+   ###Set gw2 service
+   useKindCluster(gw2Name)
+   loadService(reviewSvc, gw2Name, "maistra/examples-bookinfo-reviews-v2",f"{folReview}/review-v2.yaml")
+   loadService("ratings", gw2Name, "maistra/examples-bookinfo-ratings-v1:0.12.0",f"{folReview}/rating.yaml")
+   review2Ip = f"{getPodIp(reviewSvc)}"
+   review2Port = f"{srcK8sSvcPort}"
+   runcmd(f'kubectl exec -i {gwctl2Pod} -- gwctl create export --name {reviewSvc} --host {review2Ip} --port {review2Port}')
+   
+
+   ###Set gwctl3
+   useKindCluster(gw3Name)
+   loadService(reviewSvc, gw3Name, "maistra/examples-bookinfo-reviews-v3",f"{folReview}/review-v3.yaml")
+   loadService("ratings", gw3Name, "maistra/examples-bookinfo-ratings-v1:0.12.0",f"{folReview}/rating.yaml")
+   review3Ip = f"{getPodIp(reviewSvc)}"
+   review3Port = f"{srcK8sSvcPort}"
+   runcmd(f'kubectl exec -i {gwctl3Pod} -- gwctl create export --name {reviewSvc} --host {review3Ip} --port {review3Port}')
+
+   #Import service
+   useKindCluster(gw1Name)
+   printHeader(f"\n\nStart import svc {reviewSvc}")
+   runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create import --name {reviewSvc}  --host {reviewSvc} --port {srcK8sSvcPort} ')
+   
+   #Import service
+   printHeader(f"\n\nStart binding svc {reviewSvc}")
+   runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create binding --import {reviewSvc}  --peer {gw2Name}')
+   runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create binding --import {reviewSvc}  --peer {gw3Name}')
+   
+   #Get services
+   useKindCluster(gw1Name)
+   printHeader("\n\nStart get service")
+   runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl get import')
+   runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl get policy')
+   
+   # Set policies
+   printHeader(f"\n\nApplying policy file {allowAllPolicy}")
+   policyFile ="/tmp/allowAll.json"
+   useKindCluster(gw1Name)
+   runcmd(f'kubectl cp {allowAllPolicy} gwctl:{policyFile}')
+   runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create policy --type access --policyFile {policyFile}')
+   useKindCluster(gw2Name)
+   runcmd(f'kubectl cp {allowAllPolicy} gwctl:{policyFile}')
+   runcmd(f'kubectl exec -i {gwctl2Pod} -- gwctl create policy --type access --policyFile {policyFile}')
+   useKindCluster(gw3Name)
+   runcmd(f'kubectl cp {allowAllPolicy} gwctl:{policyFile}')
+   runcmd(f'kubectl exec -i {gwctl3Pod} -- gwctl create policy --type access --policyFile {policyFile}')
+
+   print(f"Proctpage1 url: http://{gw1Ip}:30001/productpage")
+   print(f"Proctpage2 url: http://{gw1Ip}:30002/productpage")
 
 
