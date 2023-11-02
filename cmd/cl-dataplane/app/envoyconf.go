@@ -167,7 +167,6 @@ static_resources:
         typed_config:
           "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
           stat_prefix: hcm-egress
-          skip_xff_append: true
           route_config:
             virtual_hosts:
             - name: egress
@@ -201,7 +200,7 @@ static_resources:
               allowed_headers:
                 patterns:
                 - exact: {{.importHeader}}
-                - exact: {{.ipHeader}}
+                - exact: {{.clientIPHeader}}
           - name: envoy.filters.http.router
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router

@@ -24,7 +24,7 @@ const (
 	// ImportHeader holds the name of the imported service.
 	ImportHeader = "x-import"
 	// ClientIPHeader holds the IP address of the source client.
-	ClientIPHeader = "x-forwarded-for"
+	ClientIPHeader = "x-client-ip"
 
 	// AuthorizationHeader holds a signed token allowing ingress connections to access the dataplane.
 	AuthorizationHeader = "authorization"
