@@ -184,6 +184,11 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, ap
 		d.logger.Infof("Error in TLS connection: %v.", err)
 		return err
 	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("got HTTP %d while trying to establish dataplane connection", resp.StatusCode)
+	}
+
 	d.logger.Infof("Connection established successfully!")
 
 	forward := newForwarder(appConn, peerConn)
