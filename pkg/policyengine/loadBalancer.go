@@ -244,12 +244,15 @@ func (lB *LoadBalancer) GetTargetPeers(service string) ([]string, error) {
 
 func (lB *LoadBalancer) checkPeerExist(service, peer string) bool {
 	peerList := lB.ServiceMap[service]
-	if peerList != nil {
-		for _, val := range peerList {
-			if val == peer {
-				return true
-			}
+	_, exist := exists(peerList, peer)
+	return exist
+}
+
+func exists(slice []string, entry string) (int, bool) {
+	for i, e := range slice {
+		if e == entry {
+			return i, true
 		}
 	}
-	return false
+	return -1, false
 }
