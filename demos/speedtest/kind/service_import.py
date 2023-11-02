@@ -67,7 +67,7 @@ if __name__ == "__main__":
     runcmd(f'gwctl --myid {gw3Name} create policy --type access --policyFile {allowAllPolicy}')
     
     #Firefox communications
-    printHeader(f"Firefox urls")
+    printHeader("Firefox urls")
     print(f"To use the gw1 firefox client, run the command:\n    firefox http://{gw1Ip}:30000/")
     print(f"To use the first gw3 firefox client, run the command:\n    firefox http://{gw3Ip}:30000/")
     print(f"To use the second gw3 firefox client, run the command:\n   firefox http://{gw3Ip}:30001/")    

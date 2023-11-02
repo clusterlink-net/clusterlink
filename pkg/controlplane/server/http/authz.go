@@ -43,7 +43,14 @@ func (s *Server) PeerAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := s.cp.AuthorizeIngress(&controlplane.IngressAuthorizationRequest{Service: req.Service})
+	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 || len(r.TLS.PeerCertificates[0].DNSNames) != 2 ||
+		r.TLS.PeerCertificates[0].DNSNames[0] == "" {
+		http.Error(w, fmt.Errorf("certificate does not contain a valid DNS name for the peer gateway").Error(), http.StatusBadRequest)
+		return
+	}
+
+	peerName := r.TLS.PeerCertificates[0].DNSNames[0]
+	resp, err := s.cp.AuthorizeIngress(&controlplane.IngressAuthorizationRequest{Service: req.Service}, peerName)
 	switch {
 	case err != nil:
 		http.Error(w, err.Error(), http.StatusInternalServerError)

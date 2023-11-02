@@ -128,7 +128,7 @@ func (cp *Instance) AuthorizeEgress(req *EgressAuthorizationRequest) (*EgressAut
 }
 
 // AuthorizeIngress authorizes a request for accessing an exported service.
-func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest) (*IngressAuthorizationResponse, error) {
+func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest, peer string) (*IngressAuthorizationResponse, error) {
 	cp.logger.Infof("Received ingress authorization request: %v.", req)
 
 	resp := &IngressAuthorizationResponse{}
@@ -140,7 +140,7 @@ func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest) (*Ingress
 
 	resp.ServiceExists = true
 
-	connReq := eventmanager.ConnectionRequestAttr{DstService: req.Service, Direction: eventmanager.Incoming}
+	connReq := eventmanager.ConnectionRequestAttr{DstService: req.Service, Direction: eventmanager.Incoming, OtherMbg: peer}
 	authResp, err := cp.policyDecider.AuthorizeAndRouteConnection(&connReq)
 	if err != nil {
 		return nil, err
