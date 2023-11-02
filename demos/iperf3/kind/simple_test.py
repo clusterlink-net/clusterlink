@@ -25,8 +25,7 @@ proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.p
 sys.path.insert(0,f'{proj_dir}')
 
 from demos.utils.common import runcmd, createFabric, printHeader, startGwctl
-from demos.utils.kind import startKindCluster,useKindCluster, getKindIp,loadService
-
+from demos.utils.kind import startKindCluster, getKindIp,loadService
 from demos.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
 
 
@@ -56,7 +55,7 @@ if __name__ == "__main__":
     os.chdir(proj_dir)
     
     ### build docker environment 
-    printHeader(f"Build docker image")
+    printHeader("Build docker image")
     os.system("make docker-build")
     os.system("sudo make install")
     
@@ -73,18 +72,17 @@ if __name__ == "__main__":
     startGwctl(gw1Name, gw1Ip, gwPort, testOutputFolder)
     startGwctl(gw2Name, gw2Ip, gwPort, testOutputFolder)
     
+    # Create iPerf3 micto-services
+    loadService(srcSvc,gw1Name, "mlabbe/iperf3",f"{folCl}/iperf3-client.yaml" )
+    loadService(destSvc,gw2Name, "mlabbe/iperf3",f"{folSv}/iperf3.yaml" )
+    
     # Create peers
     printHeader("Create peers")
     runcmd(f'gwctl create peer --myid {gw1Name} --name {gw2Name} --host {gw2Ip} --port {gwPort}')
     runcmd(f'gwctl create peer --myid {gw2Name} --name {gw1Name} --host {gw1Ip} --port {gwPort}')
     
-    # Set service iperf3-client in gw1
-    loadService(srcSvc,gw1Name, "mlabbe/iperf3",f"{folCl}/iperf3-client.yaml" )
+    # Create exports
     runcmd(f'gwctl create export --myid {gw1Name} --name {srcSvc} --host {srcSvc} --port {destPort}')
-
-    # Set service iperf3-server in gw2
-    loadService(destSvc,gw2Name, "mlabbe/iperf3",f"{folSv}/iperf3.yaml" )
-    runcmd(f"kubectl create service nodeport {destSvc} --tcp={destPort}:{destPort} --node-port={iperf3DirectPort}")
     runcmd(f'gwctl create export --myid {gw2Name} --name {destSvc} --host {destSvc} --port {destPort}')
 
     #Import destination service

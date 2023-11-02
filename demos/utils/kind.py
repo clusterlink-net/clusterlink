@@ -11,7 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json,os
+import json
+import os
 import subprocess as sp
 from demos.utils.manifests.kind.flannel.create_cni_bridge import createCniBridge,createKindCfgForflunnel
 from demos.utils.common import runcmd, createGw, printHeader, ProjDir
@@ -44,7 +45,7 @@ def useKindCluster(name):
 # getKindIp get Kind cluster IP.
 def getKindIp(name):
     useKindCluster(name)
-    clJson=json.loads(sp.getoutput(f' kubectl get nodes -o json'))
+    clJson=json.loads(sp.getoutput('kubectl get nodes -o json'))
     ip = clJson["items"][0]["status"]["addresses"][0]["address"]
     return ip
 
