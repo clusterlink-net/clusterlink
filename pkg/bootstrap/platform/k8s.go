@@ -106,8 +106,8 @@ spec:
       containers:
         - name: cl-controlplane
           image: cl-controlplane
-          imagePullPolicy: IfNotPresent
           args: ["--log-level", "info", "--platform", "k8s"]
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: {{.controlplanePort}}
           volumeMounts:
@@ -157,8 +157,8 @@ spec:
       containers:
         - name: dataplane
           {{ if (eq .dataplaneType .dataplaneTypeEnvoy) }}image: cl-dataplane{{ else }}image: cl-go-dataplane{{ end }}
+          args: ["--log-level", "info", "--controlplane-host", "cl-controlplane"]
           imagePullPolicy: IfNotPresent
-          args: ["--controlplane-host", "cl-controlplane", "--log-level", "info"]
           ports:
             - containerPort: {{.dataplanePort}}
           volumeMounts:
