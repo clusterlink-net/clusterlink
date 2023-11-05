@@ -29,9 +29,17 @@ def createFabric(dir):
     createFolder(dir)
     runcmdDir(f"{clAdm} create fabric",dir)
 
-# createFabric creates peer certificates and yaml and deploys it to the cluster. 
-def createGw(name,dir):
-    runcmdDir(f"{clAdm} create peer --name {name}",dir)
+# createGw creates peer certificates and yaml and deploys it to the cluster. 
+def createGw(name, dir, logLevel="info",dataplane="envoy"):
+    createPeer(name, dir, logLevel, dataplane)
+    applyPeer(name, dir)
+
+# createPeer creates peer certificates and yaml
+def createPeer(name, dir, logLevel="info", dataplane="envoy"):
+    runcmdDir(f"{clAdm} create peer --name {name} --log-level {logLevel} --dataplane-type {dataplane}",dir)
+    
+# applyPeer deploys the peer certificates and yaml to the cluster. 
+def applyPeer(name,dir):
     runcmd(f"kubectl apply -f {dir}/{name}/k8s.yaml")
     waitPod("cl-controlplane")
     waitPod("cl-dataplane")
@@ -39,8 +47,8 @@ def createGw(name,dir):
  
 # startGwctl sets gwctl configuration
 def startGwctl(name,geIP, gwPort, testOutputFolder):
-    runcmd(f'gwctl init --id {name} --gwIP {geIP} --gwPort {gwPort}  --dataplane mtls\
-        --certca {testOutputFolder}/cert.pem --cert {testOutputFolder}/{name}/gwctl/cert.pem --key {testOutputFolder}/{name}/gwctl/key.pem') 
+    runcmd(f'gwctl init --id {name} --gwIP {geIP} --gwPort {gwPort}  --dataplane mtls \
+    --certca {testOutputFolder}/cert.pem --cert {testOutputFolder}/{name}/gwctl/cert.pem --key {testOutputFolder}/{name}/gwctl/key.pem') 
 
 # Log Functions
 # runcmd runs os system command.
