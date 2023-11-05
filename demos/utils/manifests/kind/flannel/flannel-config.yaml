@@ -10,7 +10,7 @@ nodes:
 
 - role: control-plane
   extraMounts:
-  - hostPath: <mbg-agent-path>/bin/plugins/bin 
+  - hostPath: <gw-agent-path>/bin/plugins/bin 
     containerPath: /opt/cni/bin
 
 networking:

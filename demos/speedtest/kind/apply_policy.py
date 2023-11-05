@@ -16,14 +16,14 @@ import os
 import sys
 import argparse
 
-proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
-sys.path.insert(0,f'{proj_dir}')
+projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
+sys.path.insert(0,f'{projDir}')
 from demos.utils.common import runcmd, printHeader
 
 srcSvc   = "firefox"
 destSvc  = "openspeedtest"
-denyIAccessPolicy=f"{proj_dir}/demos/speedtest/testdata/policy/denyToSpeedtest.json"
-denyGw3Policy=f"{proj_dir}/demos/speedtest/testdata/policy/denyFromGw.json"    
+denyIAccessPolicy=f"{projDir}/demos/speedtest/testdata/policy/denyToSpeedtest.json"
+denyGw3Policy=f"{projDir}/demos/speedtest/testdata/policy/denyFromGw.json"    
 
 def applyAccessPolicy(gw, policyFile):
     printHeader(f"\n\nApplying policy file {policyFile} to {gw}")
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     type = args["type"]
 
 
-    print(f'Working directory {proj_dir}')
-    os.chdir(proj_dir)
+    print(f'Working directory {projDir}')
+    os.chdir(projDir)
 
     applyPolicy(gw, type)

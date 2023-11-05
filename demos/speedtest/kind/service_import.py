@@ -14,63 +14,65 @@
 
 import os
 import sys
-proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
-sys.path.insert(0,f'{proj_dir}')
+projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
+sys.path.insert(0,f'{projDir}')
 
 from demos.utils.common import runcmd, printHeader
-from demos.utils.kind import useKindCluster, getKindIp
+from demos.utils.kind import cluster
 from demos.utils.k8s import getPodNameIp
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
-    allowAllPolicy =f"{proj_dir}/pkg/policyengine/policytypes/examples/allowAll.json"
-    srcSvc1         = "firefox"
-    srcSvc2         = "firefox2"
-    destSvc         = "openspeedtest"
-    gw1Name        = "peer1"
-    gw2Name        = "peer2"
-    gw3Name        = "peer3"
-
-    print(f'Working directory {proj_dir}')
-    os.chdir(proj_dir)
+    srcSvc1        = "firefox"
+    srcSvc2        = "firefox2"
+    destSvc        = "openspeedtest"
+    gw1            = cluster(name="peer1")
+    gw2            = cluster(name="peer2")
+    gw3            = cluster(name="peer3")
+    allowAllPolicy = f"{projDir}/pkg/policyengine/policytypes/examples/allowAll.json"
+    
+    print(f'Working directory {projDir}')
+    os.chdir(projDir)
 
     ###get gw parameters
-    gw1Ip                = getKindIp(gw1Name)
+    gw1.useCluster()
+    gw1.setKindIp()
     gwctl1Pod, gwctl1Ip = getPodNameIp("gwctl")
-    gw2Ip                = getKindIp(gw2Name)
+    gw2.useCluster()
     gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
-    gw3Ip                = getKindIp(gw3Name)
+    gw3.useCluster()
+    gw3.setKindIp()
     gwctl3Pod, gwctl3Ip = getPodNameIp("gwctl")
 
     #Import service
     printHeader(f"\n\nStart import svc {destSvc}")
-    useKindCluster(gw1Name)    
-    runcmd(f'gwctl create import --myid {gw1Name} --name {destSvc} --host {destSvc} --port 3000')
-    useKindCluster(gw3Name)    
-    runcmd(f'gwctl create import --myid {gw3Name} --name {destSvc} --host {destSvc} --port 3000')
+    gw1.useCluster()    
+    runcmd(f'gwctl create import --myid {gw1.name} --name {destSvc} --host {destSvc} --port 3000')
+    gw3.useCluster()     
+    runcmd(f'gwctl create import --myid {gw3.name} --name {destSvc} --host {destSvc} --port 3000')
     #Set K8s network services
     printHeader(f"\n\nStart binding service {destSvc}")
-    useKindCluster(gw1Name)
-    runcmd(f'gwctl create binding --myid {gw1Name} --import {destSvc} --peer {gw2Name}')
-    useKindCluster(gw3Name)
-    runcmd(f'gwctl create binding --myid {gw3Name} --import {destSvc} --peer {gw2Name}')
+    gw1.useCluster()  
+    runcmd(f'gwctl create binding --myid {gw1.name} --import {destSvc} --peer {gw2.name}')
+    gw3.useCluster()  
+    runcmd(f'gwctl create binding --myid {gw3.name} --import {destSvc} --peer {gw2.name}')
     
     printHeader("\n\nStart get service GW1")
-    runcmd(f'gwctl get import  --myid {gw1Name} ')
+    runcmd(f'gwctl get import --myid {gw1.name} ')
     printHeader("\n\nStart get service GW3")
-    runcmd(f'gwctl get import  --myid {gw3Name} ')
+    runcmd(f'gwctl get import --myid {gw3.name} ')
 
     #Add policy
     printHeader("Applying policies")
-    runcmd(f'gwctl --myid {gw1Name} create policy --type access --policyFile {allowAllPolicy}')
-    runcmd(f'gwctl --myid {gw2Name} create policy --type access --policyFile {allowAllPolicy}')
-    runcmd(f'gwctl --myid {gw3Name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gw1.name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gw2.name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {gw3.name} create policy --type access --policyFile {allowAllPolicy}')
     
     #Firefox communications
     printHeader("Firefox urls")
-    print(f"To use the gw1 firefox client, run the command:\n    firefox http://{gw1Ip}:30000/")
-    print(f"To use the first gw3 firefox client, run the command:\n    firefox http://{gw3Ip}:30000/")
-    print(f"To use the second gw3 firefox client, run the command:\n   firefox http://{gw3Ip}:30001/")    
+    print(f"To use the gw1 firefox client, run the command:\n    firefox http://{gw1.ip}:30000/")
+    print(f"To use the first gw3 firefox client, run the command:\n    firefox http://{gw3.ip}:30000/")
+    print(f"To use the second gw3 firefox client, run the command:\n   firefox http://{gw3.ip}:30001/")    
     print(f"The OpenSpeedTest url: http://{destSvc}:3000/ ")
 
 
