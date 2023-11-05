@@ -39,6 +39,7 @@ header:
     - "**/Dockerfile"
     - "**/dockerfile"
     - "**/Containerfile.*"
+    - "hack/*.sh"
     - "**/Makefile"
     - "**/assets/languages.yaml"
     - "**/assets/assets.gen.go"
