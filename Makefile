@@ -14,18 +14,16 @@ clean: ; $(info cleaning previous builds...)	@
 # Setup Targets
 #------------------------------------------------------
 
-prereqs: 											## Verify that required utilities are installed
-	@echo -- $@ for MBG Project--
-	@go version || (echo "Please install GOLANG: https://go.dev/doc/install" && exit 1)
+#-- development tooling --
+.PHONY: prereqs prereqs-force
 
-test-prereqs: prereqs
-	@which goimports || (echo "Please install goimports: https://pkg.go.dev/golang.org/x/tools/cmd/goimports" && exit 1)
-	$(GO) install github.com/mfridman/tparse@latest
-	@kubectl version --client || (echo "Please install kubectl: https://kubernetes.io/docs/tasks/tools/" && exit 1)
-	@docker version --format 'Docker v{{.Server.Version}}' || (echo "Please install Docker Engine: https://docs.docker.com/engine/install" && exit 1)
-	@kind --version || (echo "Please install kind: https://kind.sigs.k8s.io/docs/user/quick-start/#installation" && exit 1)
-	@python3 --version || (echo "Please install python3 https://www.python.org/downloads/ "&& exit 1)
+prereqs: ; $(info installing dev tooling...) 
+	./hack/install-devtools.sh
 
+prereqs-force: ; $(info force installing dev tooling...)
+	./hack/install-devtools.sh --force
+
+#-- precommit code checks --
 .PHONY: precommit format lint tests-e2e-k8s
 precommit: format lint copr-fix
 format: fmt
