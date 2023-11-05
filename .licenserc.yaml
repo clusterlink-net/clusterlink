@@ -38,6 +38,7 @@ header:
     - "NOTICE"
     - "**/Dockerfile"
     - "**/dockerfile"
+    - "**/Containerfile.*"
     - "**/Makefile"
     - "**/assets/languages.yaml"
     - "**/assets/assets.gen.go"
