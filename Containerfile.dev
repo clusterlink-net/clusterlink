@@ -1,0 +1,31 @@
+FROM docker.io/library/golang:1.20-bullseye
+
+# To allow installing kubectl
+RUN mkdir /etc/apt/keyrings &&\
+    apt-get install -y apt-transport-https ca-certificates curl &&\
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg &&\
+    echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
+
+RUN apt-get update -qy && \
+    apt-get install --no-install-recommends -qy \
+    ca-certificates \
+    curl \
+    python3 \
+    make \
+    git \
+    docker.io \
+    kubectl \
+    && \
+    apt-get clean
+
+#
+# Install go build tools, and cache go modules.
+#
+COPY ./hack/install-devtools.sh /src/
+COPY go.mod /src/
+COPY go.sum /src/
+RUN cd /src &&\
+    sh -x ./install-devtools.sh &&\
+    go mod download &&\
+    cd / &&\
+    rm -rf /src
