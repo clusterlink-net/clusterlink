@@ -24,7 +24,7 @@ prereqs-force: ; $(info force installing dev tooling...)
 	./hack/install-devtools.sh --force
 
 .dev-container: Containerfile.dev
-	docker build -f Containerfile.dev -t $(IMG) .
+	docker build -f Containerfile.dev -t quay.io/$(IMAGE_ORG)/dev:latest .
 	touch $@
 
 .PHONY: run-dev-container
@@ -33,7 +33,7 @@ run-dev-container: .dev-container
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		-v $(CURDIR):$(CURDIR) \
 		--workdir $(CURDIR) \
-		$(IMG)
+		quay.io/$(IMAGE_ORG)/dev:latest
 
 
 #-- precommit code checks --
