@@ -13,7 +13,6 @@
 
 import os
 import shutil
-import time
 import subprocess as sp
 from colorama import Fore
 from colorama import Style
@@ -45,7 +44,7 @@ def applyPeer(name,dir):
     waitPod("cl-controlplane")
     waitPod("cl-dataplane")
     waitPod("gwctl")
- 
+    
 # startGwctl sets gwctl configuration
 def startGwctl(name,geIP, gwPort, testOutputFolder):
     runcmd(f'gwctl init --id {name} --gwIP {geIP} --gwPort {gwPort}  --dataplane mtls \
