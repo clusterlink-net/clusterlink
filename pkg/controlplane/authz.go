@@ -95,7 +95,7 @@ func (cp *Instance) AuthorizeEgress(req *EgressAuthorizationRequest) (*EgressAut
 		return &EgressAuthorizationResponse{Allowed: false}, nil
 	}
 
-	target := authResp.TargetMbg
+	target := authResp.TargetPeer
 	peer := cp.GetPeer(target)
 	if peer == nil {
 		return nil, fmt.Errorf("peer '%s' does not exist", target)
@@ -140,7 +140,7 @@ func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest, peer stri
 
 	resp.ServiceExists = true
 
-	connReq := eventmanager.ConnectionRequestAttr{DstService: req.Service, Direction: eventmanager.Incoming, OtherMbg: peer}
+	connReq := eventmanager.ConnectionRequestAttr{DstService: req.Service, Direction: eventmanager.Incoming, OtherPeer: peer}
 	authResp, err := cp.policyDecider.AuthorizeAndRouteConnection(&connReq)
 	if err != nil {
 		return nil, err
