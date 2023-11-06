@@ -1,0 +1,6 @@
+{
+    "name": "clusterlink build tools",
+    "build": {
+      "dockerfile": "../Containerfile.dev"
+    }
+}
