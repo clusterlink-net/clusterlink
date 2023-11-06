@@ -106,7 +106,7 @@ func (pH *PolicyHandler) filterOutDisabledPeers(peers []string) []string {
 }
 
 func (pH *PolicyHandler) decideIncomingConnection(requestAttr *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {
-	src := getServiceAttrs(requestAttr.SrcService, requestAttr.OtherMbg)
+	src := getServiceAttrs(requestAttr.SrcService, requestAttr.OtherPeer)
 	dest := getServiceAttrs(requestAttr.DstService, "")
 	decisions, err := pH.connectivityPDP.Decide(src, []policytypes.WorkloadAttrs{dest})
 	if err != nil {
@@ -155,7 +155,7 @@ func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionR
 	if err != nil {
 		return event.ConnectionRequestResp{Action: event.Deny}, err
 	}
-	return event.ConnectionRequestResp{Action: event.Allow, TargetMbg: targetPeer}, nil
+	return event.ConnectionRequestResp{Action: event.Allow, TargetPeer: targetPeer}, nil
 }
 
 func (pH *PolicyHandler) AuthorizeAndRouteConnection(connReq *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {

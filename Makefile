@@ -1,7 +1,7 @@
 SW_VERSION ?= latest
 IMAGE_ORG ?= mcnet
 
-IMAGE_TAG_BASE ?= quay.io/$(IMAGE_ORG)/mbg
+IMAGE_TAG_BASE ?= quay.io/$(IMAGE_ORG)/clusterlink
 IMG ?= $(IMAGE_TAG_BASE):$(SW_VERSION)
 #-----------------------------------------------------------------------------
 # Target: clean
@@ -89,8 +89,8 @@ install:
 	cp ./bin/gwctl /usr/local/bin/
 
 clean-tests:
-	kind delete cluster --name=mbg1
-	kind delete cluster --name=mbg2
+	kind delete cluster --name=peer1
+	kind delete cluster --name=peer2
 
 #------------------------------------------------------
 # Run Targets
