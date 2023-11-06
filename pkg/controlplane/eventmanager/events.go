@@ -88,7 +88,7 @@ type ConnectionStatusAttr struct {
 
 type NewRemoteServiceAttr struct {
 	Service string
-	Peer  	string
+	Peer    string
 }
 
 type RemoveRemoteServiceAttr struct {
