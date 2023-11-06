@@ -37,6 +37,9 @@ type Config struct {
 	Dataplanes uint16
 	// DataplaneType is the type of dataplane to create (envoy or go-based)
 	DataplaneType string
+
+	// LogLevel is the log level.
+	LogLevel string
 }
 
 const (
