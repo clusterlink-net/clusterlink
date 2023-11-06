@@ -88,12 +88,12 @@ type ConnectionStatusAttr struct {
 
 type NewRemoteServiceAttr struct {
 	Service string
-	Peer     string
+	Peer  	string
 }
 
 type RemoveRemoteServiceAttr struct {
 	Service string
-	Peer     string
+	Peer  	string
 }
 
 type NewRemoteServiceResp struct {
@@ -105,7 +105,7 @@ type ExposeRequestAttr struct {
 }
 
 type ExposeRequestResp struct {
-	Action     Action
+	Action     	Action
 	TargetPeers []string
 }
 
