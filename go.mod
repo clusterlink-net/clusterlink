@@ -9,7 +9,7 @@ require (
 	github.com/google/uuid v1.4.0
 	github.com/lestrrat-go/jwx v1.2.26
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
 	go.etcd.io/bbolt v1.3.8
