@@ -20,19 +20,27 @@ import (
 	"time"
 )
 
+// @TODO
+// The placement of version.txt inside this package is not ideal.
+// Unfortunately Go does not allow ".." in embed paths. A possible workaround is to
+// use "go:generate" comment to copy the file from the root to this location (and adding
+// the local version to .gitignore...)
+// An alternative would be to use a go:generate comment with "git describe" to find
+// the latest tag reachable from the current revision..
 var (
-	// SemVer will be the version specified in version.txt file
-	SemVer = strings.TrimSpace(semver)
 	//go:embed version.txt
 	semver string
+	// SemVer will be the version specified in version.txt file
+	SemVer = strings.TrimSpace(semver)
+)
 
-	// Version will be the version tag if the binary is built with "go install url/tool@version".
-	// If the binary is built some other way, it will be "(devel)".
+var (
+	// Version will be the version tag if the binary is built or "(devel)".
 	Version = "unknown"
-	// Revision is taken from the vcs.revision tag in Go 1.18+.
+	// Revision is taken from the vcs.revision tag.
 	Revision = "unknown"
-	// LastCommit is taken from the vcs.time tag in Go 1.18+.
+	// LastCommit is taken from the vcs.time tag.
 	LastCommit time.Time
-	// DirtyBuild is taken from the vcs.modified tag in Go 1.18+.
+	// DirtyBuild is taken from the vcs.modified tag.
 	DirtyBuild = true
 )
