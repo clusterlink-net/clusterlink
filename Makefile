@@ -67,7 +67,7 @@ GOFLAGS :=
 
 build:
 	@echo "Start go build phase"
-	$(GO) build -o ./bin/gwctl ./cmd/gwctl/main.go
+	$(GO) build -o ./bin/gwctl ./cmd/gwctl
 	$(GO) build -o ./bin/cl-controlplane ./cmd/cl-controlplane
 	$(GO) build -o ./bin/cl-dataplane ./cmd/cl-dataplane
 	$(GO) build -o ./bin/cl-go-dataplane ./cmd/cl-go-dataplane
