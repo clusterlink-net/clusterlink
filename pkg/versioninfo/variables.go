@@ -25,8 +25,12 @@ import (
 // Unfortunately Go does not allow ".." in embed paths. A possible workaround is to
 // use "go:generate" comment to copy the file from the root to this location (and adding
 // the local version to .gitignore...)
-// An alternative would be to use a go:generate comment with "git describe" to find
-// the latest tag reachable from the current revision..
+
+// An alternative to using a fixed file, would be to use a go:generate comment with
+// "git describe" (git describe output is something like v1.1-19-g175c485, where v1.1
+// is the most recent annotated tag, 19 is the number of commits since that tag, g stands
+// for "git," and 175c485 is the short commit hash.
+// Build date can also be added to the version with "go:generate date +%F"
 var (
 	//go:embed version.txt
 	semver string
