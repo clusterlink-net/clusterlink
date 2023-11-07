@@ -64,13 +64,13 @@ type ConnectionRequestAttr struct {
 	SrcService string
 	DstService string
 	Direction  Direction
-	OtherPeer   string //Optional: Would not be set if its an outgoing connection
+	OtherPeer  string //Optional: Would not be set if its an outgoing connection
 }
 
 type ConnectionRequestResp struct {
-	Action    Action
+	Action     Action
 	TargetPeer string
-	BitRate   int // Mbps
+	BitRate    int // Mbps
 }
 
 type ConnectionStatusAttr struct {
@@ -93,7 +93,7 @@ type NewRemoteServiceAttr struct {
 
 type RemoveRemoteServiceAttr struct {
 	Service string
-	Peer  	string
+	Peer    string
 }
 
 type NewRemoteServiceResp struct {
@@ -105,7 +105,7 @@ type ExposeRequestAttr struct {
 }
 
 type ExposeRequestResp struct {
-	Action     	Action
+	Action      Action
 	TargetPeers []string
 }
 
