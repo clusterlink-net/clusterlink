@@ -35,13 +35,17 @@ type PeerOptions struct {
 	Dataplanes uint16
 	// DataplaneType is the type of dataplane to create (envoy or go-based)
 	DataplaneType string
+	// LogLevel is the log level.
+	LogLevel string
 }
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
 	fs.Uint16Var(&o.Dataplanes, "dataplanes", 1, "Number of dataplanes.")
-	fs.StringVar(&o.DataplaneType, "dataplane-type", "envoy", "Type of dataplane, Supported values: \"envoy\" (default), \"go\"")
+	fs.StringVar(&o.DataplaneType, "dataplane-type", platform.DataplaneTypeEnvoy, "Type of dataplane, Supported values: \"envoy\" (default), \"go\"")
+	fs.StringVar(&o.LogLevel, "log-level", "info",
+		"The log level. One of fatal, error, warn, info, debug.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -185,6 +189,7 @@ func (o *PeerOptions) Run() error {
 		GWCTLCertificate:        gwctlCert,
 		Dataplanes:              o.Dataplanes,
 		DataplaneType:           o.DataplaneType,
+		LogLevel:                o.LogLevel,
 	})
 	if err != nil {
 		return err

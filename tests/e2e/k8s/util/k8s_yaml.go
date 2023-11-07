@@ -49,6 +49,11 @@ func remove(s, from, to string) (string, error) {
 }
 
 func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
+	logLevel := "info"
+	if os.Getenv("DEBUG") == "1" {
+		logLevel = "debug"
+	}
+
 	k8sYAMLBytes, err := platform.K8SConfig(&platform.Config{
 		Peer:                    p.cluster.Name(),
 		FabricCertificate:       f.cert,
@@ -58,7 +63,9 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 		GWCTLCertificate:        p.gwctlCert,
 		Dataplanes:              cfg.Dataplanes,
 		DataplaneType:           cfg.DataplaneType,
+		LogLevel:                logLevel,
 	})
+
 	if err != nil {
 		return "", err
 	}
@@ -107,18 +114,15 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 		}
 	}
 
-	if os.Getenv("DEBUG") == "1" {
-		// enable debug logging
-		k8sYAML, err = enableControlplaneDebugLogs(k8sYAML)
-		if err != nil {
-			return "", fmt.Errorf("cannot enable controlplane debug logs: %w", err)
+	if (os.Getenv("DEBUG")) == "1" {
+		dpLogLevel := "trace" // More informative than the debug level.
+		if cfg.ExpectLargeDataplaneTraffic && os.Getenv("CICD") == "1" {
+			dpLogLevel = "info"
 		}
 
-		if !cfg.ExpectLargeDataplaneTraffic || os.Getenv("CICD") != "1" {
-			k8sYAML, err = enableDataplaneDebugLogs(k8sYAML)
-			if err != nil {
-				return "", fmt.Errorf("cannot enable dataplane debug logs: %w", err)
-			}
+		k8sYAML, err = changeDataplaneDebugLevel(k8sYAML, dpLogLevel)
+		if err != nil {
+			return "", fmt.Errorf("cannot set dataplane debug level: %w", err)
 		}
 	}
 
@@ -245,18 +249,10 @@ spec:
 	return replaceOnce(yaml, search, "")
 }
 
-func enableControlplaneDebugLogs(yaml string) (string, error) {
-	search := `controlplane
-          args: ["--log-level", "info"`
-	replace := `controlplane
-          args: ["--log-level", "debug"`
-	return replaceOnce(yaml, search, replace)
-}
-
-func enableDataplaneDebugLogs(yaml string) (string, error) {
+func changeDataplaneDebugLevel(yaml, logLevel string) (string, error) {
 	search := `dataplane
-          args: ["--log-level", "info"`
-	replace := `dataplane
           args: ["--log-level", "debug"`
+	replace := `dataplane
+          args: ["--log-level", "` + logLevel + `"`
 	return replaceOnce(yaml, search, replace)
 }

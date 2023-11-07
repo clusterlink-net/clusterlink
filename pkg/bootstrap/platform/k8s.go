@@ -106,7 +106,7 @@ spec:
       containers:
         - name: cl-controlplane
           image: cl-controlplane
-          args: ["--log-level", "info", "--platform", "k8s"]
+          args: ["--log-level", "{{.logLevel}}", "--platform", "k8s"]
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: {{.controlplanePort}}
@@ -157,7 +157,7 @@ spec:
       containers:
         - name: dataplane
           {{ if (eq .dataplaneType .dataplaneTypeEnvoy) }}image: cl-dataplane{{ else }}image: cl-go-dataplane{{ end }}
-          args: ["--log-level", "info", "--controlplane-host", "cl-controlplane"]
+          args: ["--log-level", "{{.logLevel}}", "--controlplane-host", "cl-controlplane"]
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: {{.dataplanePort}}
@@ -273,6 +273,7 @@ func K8SConfig(config *Config) ([]byte, error) {
 		"peer":          config.Peer,
 		"dataplanes":    config.Dataplanes,
 		"dataplaneType": config.DataplaneType,
+		"logLevel":      config.LogLevel,
 
 		"dataplaneTypeEnvoy": DataplaneTypeEnvoy,
 
