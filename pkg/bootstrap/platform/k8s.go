@@ -185,7 +185,7 @@ spec:
   volumes:
     - name: ca
       secret:
-        secretName: cl-fabric
+        secretName: cl-peer
     - name: tls
       secret:
         secretName: gwctl
