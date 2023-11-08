@@ -20,4 +20,9 @@
 bin/
 graphs/
 
+# empty target files (TODO: move all under a directory?)
 .dev-container
+
+# hugo related
+.hugo_build.lock
+public/

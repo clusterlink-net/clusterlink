@@ -18,10 +18,10 @@ clean: ; $(info cleaning previous builds...)	@
 .PHONY: prereqs prereqs-force
 
 prereqs: ; $(info installing dev tooling...) 
-	./hack/install-devtools.sh
+	source ./hack/install-devtools.sh
 
 prereqs-force: ; $(info force installing dev tooling...)
-	./hack/install-devtools.sh --force
+	source ./hack/install-devtools.sh --force
 
 .dev-container: Containerfile.dev
 	docker build -f Containerfile.dev -t quay.io/$(IMAGE_ORG)/dev:latest .
@@ -91,6 +91,22 @@ install:
 clean-tests:
 	kind delete cluster --name=mbg1
 	kind delete cluster --name=mbg2
+
+#------------------------------------------------------
+# documentation and website targets
+#------------------------------------------------------
+.PHONY: docs-serve docs-serve-draft
+
+HUGO ?= HUGO
+
+docs-serve: ; $(info serving website locally...)
+	hugo serve
+
+docs-serve-draft: ; $(info serving documents and drafts locally...)
+	hugo -D serve
+
+docs-build: ; $(info building website...)
+	hugo 
 
 #------------------------------------------------------
 # Run Targets

@@ -4,7 +4,8 @@ set -e
 #-- docker/Python
 # Docker and python can be quite involved to get right (e.g., require sudo,
 # setting up permissions, etc.), so we ask the user to install them manully.
-# The devcontainer will install using apt-get, so that's probably ok for now.
+# The devcontainer will install, as root, using apt-get, so that's probably
+# ok for now.
 if [ -z "$(which docker)" ] || [ "$1" = "--force" ]; then
   echo "please install docker manually (https://docs.docker.com/engine/install/)"
 fi
@@ -14,8 +15,12 @@ if [ -z "$(which python)" ] || [ "$1" = "--force" ]; then
 	echo "please install python3 manually (https://docs.python.org/3/using/index.html)"
 fi
 
-# Go based executables are much easier
-mkdir -p "$(go env GOPATH)/bin"
+# Go based executables are much easier, just need to ensure $GOPATH/bin is available in search path ;-)
+GOBIN="$(go env GOPATH)/bin"
+mkdir -p "$GOBIN"
+if [ -z "$(echo $PATH | grep $GOBIN)" ]; then
+  export PATH="$PATH:$GOBIN"
+fi
 
 #-- kubectl
 VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
@@ -74,4 +79,13 @@ VERSION=latest
 if [ -z "$(which tparse)" ] || [ "$1" = "--force" ]; then
   echo installing tparse "($VERSION)"
   go install "github.com/mfridman/tparse@$VERSION"
+fi
+
+#-- hugo
+# TODO an alternative is to install a binary release, based on architecture and OS
+# (as done for kubectl). Using "go install" is lengthy but builds the correct version
+VERSION=v0.120.3
+if [ -z "$(which hugo)" ] || [ "$1" = "--force" ]; then
+  echo installing hugo "($VERSION)"
+  CGO_ENABLED=1 go install -tags extended "github.com/gohugoio/hugo/@$VERSION"
 fi
