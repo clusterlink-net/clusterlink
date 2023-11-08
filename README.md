@@ -7,11 +7,6 @@ This is an incomplete work in progress, provided in the interest of sharing expe
  The code is pre-alpha quality right now. This means that it shouldn't be used in
  production at all.
 
-Before settling on the `ClusterLink` name. the code base was previously developed as part
- of a "Multi-Border Gateway" concept exploration. You may still find various places in
- code and documentation referring to the old name (directly or using the `MBG` acronym).
- We're in the process of changing all such references.
-
 ## What Is ClusterLink?
 
 The ClusterLink project simplifies the connection between application services that are
