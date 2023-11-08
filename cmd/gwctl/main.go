@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/clusterlink-net/clusterlink/cmd/gwctl/subcommand"
+	"github.com/clusterlink-net/clusterlink/pkg/versioninfo"
 )
 
 func main() {
@@ -28,7 +29,9 @@ func main() {
 		Short: "gwctl is a CLI that sends a control message (REST API) to the gateway",
 		Long: `gwctl CLI is part of the multi-cloud network project,
 		that allow sending control messages (REST API) to publish, connect and update policies for services`,
+		Version: versioninfo.Short(),
 	}
+
 	// Add all commands
 	rootCmd.AddCommand(subcommand.InitCmd()) // init command of Gwctl
 	rootCmd.AddCommand(createCmd())

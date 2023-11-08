@@ -20,10 +20,12 @@ import (
 	"os"
 
 	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
+	"github.com/clusterlink-net/clusterlink/pkg/versioninfo"
 )
 
 func main() {
 	command := app.NewCLControlplaneCommand()
+	command.Version = versioninfo.Short()
 	if err := command.Execute(); err != nil {
 		os.Exit(1)
 	}
