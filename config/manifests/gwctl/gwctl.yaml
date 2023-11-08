@@ -1,0 +1,28 @@
+################################################################
+#Name: gwctl-deployment 
+#Desc: YAML file for creating gwctl for CLI to MBG 
+################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gwctl-deployment
+  labels:
+    app: gwctl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gwctl
+  template:
+    metadata:
+      labels:
+        app: gwctl
+    spec:
+      containers:
+      - name: gwctl
+        image: mbg
+        imagePullPolicy: IfNotPresent
+        command: [ "sleep" ]
+        args: [ "infinity" ]  
+        ports:
+        - containerPort: 50051
