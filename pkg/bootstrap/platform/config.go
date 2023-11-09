@@ -40,6 +40,8 @@ type Config struct {
 
 	// LogLevel is the log level.
 	LogLevel string
+	// ContainerRegistry is the container registry to pull the project images.
+	ContainerRegistry string
 }
 
 const (

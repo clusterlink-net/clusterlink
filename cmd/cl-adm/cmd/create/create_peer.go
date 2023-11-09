@@ -37,6 +37,8 @@ type PeerOptions struct {
 	DataplaneType string
 	// LogLevel is the log level.
 	LogLevel string
+	// ContainerRegistry is the container registry to pull the project images.
+	ContainerRegistry string
 }
 
 // AddFlags adds flags to fs and binds them to options.
@@ -44,8 +46,8 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
 	fs.Uint16Var(&o.Dataplanes, "dataplanes", 1, "Number of dataplanes.")
 	fs.StringVar(&o.DataplaneType, "dataplane-type", platform.DataplaneTypeEnvoy, "Type of dataplane, Supported values: \"envoy\" (default), \"go\"")
-	fs.StringVar(&o.LogLevel, "log-level", "info",
-		"The log level. One of fatal, error, warn, info, debug.")
+	fs.StringVar(&o.LogLevel, "log-level", "info", "The log level. One of fatal, error, warn, info, debug.")
+	fs.StringVar(&o.ContainerRegistry, "container-registry", "ghcr.io/clusterlink-net", "The container registry to pull the project images. If empty will use local registry.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -190,6 +192,7 @@ func (o *PeerOptions) Run() error {
 		Dataplanes:              o.Dataplanes,
 		DataplaneType:           o.DataplaneType,
 		LogLevel:                o.LogLevel,
+		ContainerRegistry:       o.ContainerRegistry,
 	})
 	if err != nil {
 		return err

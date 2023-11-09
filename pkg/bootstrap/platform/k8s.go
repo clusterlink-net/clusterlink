@@ -105,7 +105,7 @@ spec:
             claimName: cl-controlplane
       containers:
         - name: cl-controlplane
-          image: cl-controlplane
+          image: {{.containerRegistry}}cl-controlplane
           args: ["--log-level", "{{.logLevel}}", "--platform", "k8s"]
           imagePullPolicy: IfNotPresent
           ports:
@@ -156,7 +156,7 @@ spec:
             secretName: cl-dataplane
       containers:
         - name: dataplane
-          {{ if (eq .dataplaneType .dataplaneTypeEnvoy) }}image: cl-dataplane{{ else }}image: cl-go-dataplane{{ end }}
+          image: {{.containerRegistry}}{{ if (eq .dataplaneType .dataplaneTypeEnvoy) }}cl-dataplane{{ else }}{{.containerRegistry}}cl-go-dataplane{{ end }}
           args: ["--log-level", "{{.logLevel}}", "--controlplane-host", "cl-controlplane"]
           imagePullPolicy: IfNotPresent
           ports:
@@ -191,7 +191,7 @@ spec:
         secretName: gwctl
   containers:
     - name: gwctl
-      image: gwctl
+      image: {{.containerRegistry}}gwctl
       imagePullPolicy: IfNotPresent
       command: ["/bin/sh"]
       args:
@@ -269,11 +269,17 @@ subjects:
 
 // K8SConfig returns a kubernetes deployment file.
 func K8SConfig(config *Config) ([]byte, error) {
+	containerRegistry := config.ContainerRegistry
+	if containerRegistry != "" {
+		containerRegistry = config.ContainerRegistry + "/"
+	}
+
 	args := map[string]interface{}{
-		"peer":          config.Peer,
-		"dataplanes":    config.Dataplanes,
-		"dataplaneType": config.DataplaneType,
-		"logLevel":      config.LogLevel,
+		"peer":              config.Peer,
+		"dataplanes":        config.Dataplanes,
+		"dataplaneType":     config.DataplaneType,
+		"logLevel":          config.LogLevel,
+		"containerRegistry": containerRegistry,
 
 		"dataplaneTypeEnvoy": DataplaneTypeEnvoy,
 
