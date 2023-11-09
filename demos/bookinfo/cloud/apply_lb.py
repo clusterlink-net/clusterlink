@@ -27,7 +27,7 @@ from demos.utils.cloud import cluster
 srcSvc1  = "productpage"
 srcSvc2  = "productpage2"
 destSvc  = "reviews"
-gwList = { "peer1gcp" : cluster(name="peer1", zone = "us-west1-b"    , platform = "gcp"),  # Oregon
+clList = { "peer1gcp" : cluster(name="peer1", zone = "us-west1-b"    , platform = "gcp"),  # Oregon
             "peer1ibm" : cluster(name="peer1", zone = "sjc04"         , platform = "ibm"), # San jose
             "peer2gcp" : cluster(name="peer2", zone = "us-central1-b" , platform = "gcp"), # Iowa
             "peer2ibm" : cluster(name="peer2", zone = "dal10"         , platform = "ibm"), # Dallas
@@ -44,6 +44,5 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     print(f'Working directory {projDir}')
     os.chdir(projDir)
-    gw = gwList[args["peer"] + args["cloud"]]
-    applyPolicy(gw, args["type"])
-    
+    cl = clList[args["peer"] + args["cloud"]]
+    applyPolicy(cl, args["type"])

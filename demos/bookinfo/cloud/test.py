@@ -27,12 +27,12 @@ from demos.utils.cloud import cluster
 from demos.bookinfo.test import bookInfoDemo
 
 
-gw1gcp = cluster(name="peer1", zone = "us-west1-b"   , platform = "gcp") # Oregon
-gw1ibm = cluster(name="peer1", zone = "sjc04"        , platform = "ibm") # San jose
-gw2gcp = cluster(name="peer2", zone = "us-central1-b", platform = "gcp") # Iowa
-gw2ibm = cluster(name="peer2", zone = "dal10"        , platform = "ibm") # Dallas
-gw3gcp = cluster(name="peer3", zone = "us-east4-b"   , platform = "gcp") # Virginia
-gw3ibm = cluster(name="peer3", zone = "wdc04"        , platform = "ibm") # Washington DC
+cl1gcp = cluster(name="peer1", zone = "us-west1-b"   , platform = "gcp") # Oregon
+cl1ibm = cluster(name="peer1", zone = "sjc04"        , platform = "ibm") # San jose
+cl2gcp = cluster(name="peer2", zone = "us-central1-b", platform = "gcp") # Iowa
+cl2ibm = cluster(name="peer2", zone = "dal10"        , platform = "ibm") # Dallas
+cl3gcp = cluster(name="peer3", zone = "us-east4-b"   , platform = "gcp") # Virginia
+cl3ibm = cluster(name="peer3", zone = "wdc04"        , platform = "ibm") # Washington DC
 testOutputFolder = f"{projDir}/bin/tests/bookinfo" 
 
 if __name__ == "__main__":
@@ -50,30 +50,30 @@ if __name__ == "__main__":
     cloud = args["cloud"]
     dltCluster = args["deleteCluster"]
     machineType = args["machineType"]
-    gw1 = gw1gcp if cloud in ["gcp","diff"] else gw1ibm
-    gw2 = gw2gcp if cloud in ["gcp","diff"] else gw2ibm
-    gw3 = gw3gcp if cloud in ["gcp"]        else gw3ibm
+    cl1 = cl1gcp if cloud in ["gcp","diff"] else cl1ibm
+    cl2 = cl2gcp if cloud in ["gcp","diff"] else cl2ibm
+    cl3 = cl3gcp if cloud in ["gcp"]        else cl3ibm
     print(f'Working directory {projDir}')
     os.chdir(projDir)
     
     if command =="delete":
-        gw1.deleteCluster(runBg=True)
-        gw2.deleteCluster(runBg=True)
-        gw3.deleteCluster()
+        cl1.deleteCluster(runBg=True)
+        cl2.deleteCluster(runBg=True)
+        cl3.deleteCluster()
         exit()
     elif command =="clean":
-        gw1.cleanCluster()
-        gw2.cleanCluster()
-        gw3.cleanCluster()
+        cl1.cleanCluster()
+        cl2.cleanCluster()
+        cl3.cleanCluster()
         exit()
 
     ### build docker environment 
     os.system("make build")
     os.system("sudo make install")
     
-    gw1.machineType = machineType
-    gw2.machineType = machineType
-    gw3.machineType = machineType
-    bookInfoDemo(gw1, gw2, gw3, testOutputFolder, args["logLevel"], args["dataplane"])
-    print(f"Proctpage1 url: http://{gw1.nodeIP}:30001/productpage")
-    print(f"Proctpage2 url: http://{gw1.nodeIP}:30002/productpage")
+    cl1.machineType = machineType
+    cl2.machineType = machineType
+    cl3.machineType = machineType
+    bookInfoDemo(cl1, cl2, cl3, testOutputFolder, args["logLevel"], args["dataplane"])
+    print(f"Productpage1 url: http://{cl1.nodeIP}:30001/productpage")
+    print(f"Productpage2 url: http://{cl1.nodeIP}:30002/productpage")

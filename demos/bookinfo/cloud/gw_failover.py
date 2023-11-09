@@ -22,9 +22,9 @@ sys.path.insert(1,f'{projDir}/demos/utils/cloud/')
 from demos.bookinfo.test import applyFailover
 from demos.utils.cloud import cluster
 
-# gw3 parameters
-gw3gcp = cluster(name="peer3", zone = "us-east4-b"   , platform = "gcp") # Virginia
-gw3ibm = cluster(name="peer3", zone = "wdc04"        , platform = "ibm") # Washington DC
+# cl3 parameters
+cl3gcp = cluster(name="peer3", zone = "us-east4-b"   , platform = "gcp") # Virginia
+cl3ibm = cluster(name="peer3", zone = "wdc04"        , platform = "ibm") # Washington DC
     
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -34,6 +34,6 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     print(f'Working directory {projDir}')
     os.chdir(projDir)
-    gw3 = gw3gcp if args["cloud"] in ["gcp"]        else gw3ibm
-    applyFailover(gw3, args["type"])
+    cl3 = cl3gcp if args["cloud"] in ["gcp"]        else cl3ibm
+    applyFailover(cl3, args["type"])
     

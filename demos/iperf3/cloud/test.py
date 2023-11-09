@@ -23,10 +23,10 @@ from demos.utils.k8s import  getPodNameIp
 from demos.utils.cloud import cluster
 from demos.iperf3.test import iperf3Test
 
-gw1gcp = cluster(name="peer1", zone = "us-west1-b", platform = "gcp") 
-gw1ibm = cluster(name="peer1", zone = "dal10",      platform = "ibm")
-gw2gcp = cluster(name="peer2", zone = "us-west1-b", platform = "gcp")
-gw2ibm = cluster(name="peer2", zone = "dal10",      platform = "ibm")
+cl1gcp = cluster(name="peer1", zone = "us-west1-b", platform = "gcp") 
+cl1ibm = cluster(name="peer1", zone = "dal10",      platform = "ibm")
+cl2gcp = cluster(name="peer2", zone = "us-west1-b", platform = "gcp")
+cl2ibm = cluster(name="peer2", zone = "dal10",      platform = "ibm")
 
 srcSvc           = "iperf3-client"
 destSvc          = "iperf3-server"
@@ -56,19 +56,19 @@ if __name__ == "__main__":
     cloud = args["cloud"]
     dltCluster = args["deleteCluster"]
     machineType = args["machineType"]
-    gw1 = gw1gcp if cloud in ["gcp","diff"] else gw1ibm
-    gw2 = gw2gcp if cloud in ["gcp"]        else gw2ibm
+    cl1 = cl1gcp if cloud in ["gcp","diff"] else cl1ibm
+    cl2 = cl2gcp if cloud in ["gcp"]        else cl2ibm
     print(f'Working directory {projDir}')
     os.chdir(projDir)
     
     if command =="delete":
-        gw1.deleteCluster(runBg=True)
-        gw2.deleteCluster()
+        cl1.deleteCluster(runBg=True)
+        cl2.deleteCluster()
 
         exit()
     elif command =="clean":
-        gw1.cleanCluster()
-        gw2.cleanCluster()
+        cl1.cleanCluster()
+        cl2.cleanCluster()
         exit()
 
     ### build docker environment 
@@ -76,13 +76,13 @@ if __name__ == "__main__":
     os.system("make build")
     os.system("sudo make install")
     
-    gw1.machineType=machineType
-    gw2.machineType=machineType
+    cl1.machineType=machineType
+    cl2.machineType=machineType
     
-    iperf3Test(gw1, gw2, testOutputFolder, args["logLevel"], args["dataplane"])
+    iperf3Test(cl1, cl2, testOutputFolder, args["logLevel"], args["dataplane"])
 
     # iPerf3 test
-    gw1.useCluster()
+    cl1.useCluster()
     podIperf3,_= getPodNameIp(srcSvc)
 
     for i in range(2):
