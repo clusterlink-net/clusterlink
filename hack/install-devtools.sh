@@ -87,7 +87,7 @@ fi
 VERSION=v0.120.3
 if [ -z "$(which hugo)" ] || [ "$1" = "--force" ]; then
   echo installing hugo "($VERSION)"
-  CGO_ENABLED=1 go install -tags extended "github.com/gohugoio/hugo/@$VERSION"
+  CGO_ENABLED=1 go install -tags extended "github.com/gohugoio/hugo@$VERSION"
 fi
 
 # TODO need npm (nodejs also?) and following packages for hugo: autoprefixer, postcss, postcss-cli 
