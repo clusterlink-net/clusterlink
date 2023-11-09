@@ -64,6 +64,7 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 		Dataplanes:              cfg.Dataplanes,
 		DataplaneType:           cfg.DataplaneType,
 		LogLevel:                logLevel,
+		ContainerRegistry:       "",
 	})
 
 	if err != nil {
