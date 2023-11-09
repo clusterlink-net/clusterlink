@@ -63,10 +63,9 @@ class cluster:
     def startCluster(self, testOutputFolder, logLevel="info",dataplane="envoy"):
         self.checkClusterIsReady()
         createPeer(self.name,testOutputFolder, logLevel, dataplane)
-        self.replaceSourceImage(f"{testOutputFolder}/{self.name}/k8s.yaml","ghcr.io/clusterlink-net/")
         applyPeer(self.name,testOutputFolder)
         self.createLoadBalancer()
-        self.nodeIP = getNodeIP()
+        self.nodeIP = getNodeIP(num=1)
     
     # useCluster sets the context for the input kind cluster.
     def useCluster(self):
