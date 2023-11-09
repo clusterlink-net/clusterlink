@@ -64,13 +64,13 @@ type ConnectionRequestAttr struct {
 	SrcService string
 	DstService string
 	Direction  Direction
-	OtherMbg   string //Optional: Would not be set if its an outgoing connection
+	OtherPeer  string //Optional: Would not be set if its an outgoing connection
 }
 
 type ConnectionRequestResp struct {
-	Action    Action
-	TargetMbg string
-	BitRate   int // Mbps
+	Action     Action
+	TargetPeer string
+	BitRate    int // Mbps
 }
 
 type ConnectionStatusAttr struct {
@@ -88,12 +88,12 @@ type ConnectionStatusAttr struct {
 
 type NewRemoteServiceAttr struct {
 	Service string
-	Mbg     string
+	Peer    string
 }
 
 type RemoveRemoteServiceAttr struct {
 	Service string
-	Mbg     string
+	Peer    string
 }
 
 type NewRemoteServiceResp struct {
@@ -105,12 +105,12 @@ type ExposeRequestAttr struct {
 }
 
 type ExposeRequestResp struct {
-	Action     Action
-	TargetMbgs []string
+	Action      Action
+	TargetPeers []string
 }
 
 type AddPeerAttr struct {
-	PeerMbg string
+	Peer string
 }
 
 type AddPeerResp struct {
@@ -118,11 +118,11 @@ type AddPeerResp struct {
 }
 
 type RemovePeerAttr struct {
-	PeerMbg string
+	Peer string
 }
 
 type ServiceListRequestAttr struct {
-	SrcMbg string
+	SrcPeer string
 }
 
 type ServiceListRequestResp struct {
@@ -131,7 +131,7 @@ type ServiceListRequestResp struct {
 }
 
 type ServiceRequestAttr struct {
-	SrcMbg string
+	SrcPeer string
 }
 
 type ServiceRequestResp struct {

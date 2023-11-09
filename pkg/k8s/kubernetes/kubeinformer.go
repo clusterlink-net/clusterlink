@@ -391,10 +391,10 @@ func (k *kubeData) initInformers(client kubernetes.Interface) error {
 }
 
 // CreateService Add support to create a service/NodePort for a target port
-func (k *kubeData) CreateService(serviceName string, port int, targetPort int, namespace, mbgAppName string) error {
+func (k *kubeData) CreateService(serviceName string, port int, targetPort int, namespace, svcAppName string) error {
 	var selectorMap map[string]string
-	if mbgAppName != "" {
-		selectorMap = map[string]string{"app": mbgAppName}
+	if svcAppName != "" {
+		selectorMap = map[string]string{"app": svcAppName}
 	}
 	serviceSpec := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: serviceName},
