@@ -52,7 +52,7 @@ class cluster:
         runcmd(f"kind load docker-image cl-dataplane    --name={self.name}")
         runcmd(f"kind load docker-image cl-go-dataplane --name={self.name}")
         runcmd(f"kind load docker-image gwctl --name={self.name}")
-        createGw(self.name,testOutputFolder,logLevel, dataplane)
+        createGw(self.name, testOutputFolder, logLevel, dataplane, localImage=True)
         self.setKindIp()
         runcmd("kubectl delete service cl-dataplane")
         runcmd("kubectl create service nodeport cl-dataplane --tcp=443:443 --node-port=30443")
