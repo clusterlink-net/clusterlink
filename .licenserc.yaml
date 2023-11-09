@@ -28,6 +28,7 @@ header:
     - "**/*.yml"
     - "**/*.txt"
     - "**/*.json"
+    - "**/*.toml"
     - "**/*.cnf"
     - "**/mtls/*"
     - "**/not_a_yaml"
