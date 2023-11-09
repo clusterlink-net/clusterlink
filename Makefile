@@ -73,7 +73,6 @@ build:
 	$(GO) build -o ./bin/cl-go-dataplane ./cmd/cl-go-dataplane
 	$(GO) build -o ./bin/cl-adm ./cmd/cl-adm
 
-
 docker-build: build
 	docker build --progress=plain --rm --tag cl-controlplane -f ./cmd/cl-controlplane/Dockerfile .
 	docker build --progress=plain --rm --tag cl-dataplane -f ./cmd/cl-dataplane/Dockerfile .
@@ -91,22 +90,6 @@ install:
 clean-tests:
 	kind delete cluster --name=mbg1
 	kind delete cluster --name=mbg2
-
-#------------------------------------------------------
-# documentation and website targets
-#------------------------------------------------------
-.PHONY: docs-serve docs-serve-draft
-
-HUGO ?= HUGO
-
-docs-serve: ; $(info serving website locally...)
-	hugo serve
-
-docs-serve-draft: ; $(info serving documents and drafts locally...)
-	hugo -D serve
-
-docs-build: ; $(info building website...)
-	hugo 
 
 #------------------------------------------------------
 # Run Targets
