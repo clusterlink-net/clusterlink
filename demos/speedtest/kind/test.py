@@ -38,9 +38,9 @@ if __name__ == "__main__":
     cni       = args["cni"]
 
     #GW parameters 
-    gw1         = cluster(name="peer1")
-    gw2         = cluster(name="peer2")
-    gw3         = cluster(name="peer3")
+    cl1         = cluster(name="peer1")
+    cl2         = cluster(name="peer2")
+    cl3         = cluster(name="peer3")
     srcSvc1     = "firefox"
     srcSvc2     = "firefox2"
     srcSvcPort  = 5800
@@ -56,49 +56,49 @@ if __name__ == "__main__":
     os.system("sudo make install")
     if cni == "diff":
         printHeader("Cluster 1: Flannel, Cluster 2: KindNet, Cluster 3: Calico")
-        gw1.cni="flannel"
-        gw3.cni="calico"
+        cl1.cni="flannel"
+        cl3.cni="calico"
     
     # Create Kind clusters environment 
-    gw1.createCluster(runBg=True)        
-    gw2.createCluster(runBg=True)
-    gw3.createCluster(runBg=False)  
+    cl1.createCluster(runBg=True)        
+    cl2.createCluster(runBg=True)
+    cl3.createCluster(runBg=False)  
 
     # Start Kind clusters environment 
     createFabric(testOutputFolder) 
-    gw1.startCluster(testOutputFolder)        
-    gw2.startCluster(testOutputFolder)        
-    gw3.startCluster(testOutputFolder)        
+    cl1.startCluster(testOutputFolder)        
+    cl2.startCluster(testOutputFolder)        
+    cl3.startCluster(testOutputFolder)        
      
     # Start gwctl
-    startGwctl(gw1.name, gw1.ip, gw1.port, testOutputFolder)
-    startGwctl(gw2.name, gw2.ip, gw2.port, testOutputFolder)
-    startGwctl(gw3.name, gw3.ip, gw3.port, testOutputFolder)
+    startGwctl(cl1.name, cl1.ip, cl1.port, testOutputFolder)
+    startGwctl(cl2.name, cl2.ip, cl2.port, testOutputFolder)
+    startGwctl(cl3.name, cl3.ip, cl3.port, testOutputFolder)
 
     # Load services 
-    gw1.useCluster()
-    gw1.loadService(srcSvc1, "jlesage/firefox",f"{folman}/firefox.yaml" )
+    cl1.useCluster()
+    cl1.loadService(srcSvc1, "jlesage/firefox",f"{folman}/firefox.yaml" )
     runcmd(f"kubectl create service nodeport {srcSvc1} --tcp={srcSvcPort}:{srcSvcPort} --node-port=30000")
-    gw2.useCluster()
-    gw2.loadService(destSvc, " openspeedtest/latest",f"{folman}/speedtest.yaml")
-    gw3.useCluster()
-    gw3.loadService(srcSvc1, "jlesage/firefox",f"{folman}/firefox.yaml" )
-    gw3.loadService(srcSvc2, "jlesage/firefox",f"{folman}/firefox2.yaml" )
+    cl2.useCluster()
+    cl2.loadService(destSvc, " openspeedtest/latest",f"{folman}/speedtest.yaml")
+    cl3.useCluster()
+    cl3.loadService(srcSvc1, "jlesage/firefox",f"{folman}/firefox.yaml" )
+    cl3.loadService(srcSvc2, "jlesage/firefox",f"{folman}/firefox2.yaml" )
     runcmd(f"kubectl create service nodeport {srcSvc1} --tcp={srcSvcPort}:{srcSvcPort} --node-port=30000")
     runcmd(f"kubectl create service nodeport {srcSvc2} --tcp={srcSvcPort}:{srcSvcPort} --node-port=30001")
     
     # Add gw Peer
-    printHeader("Add gw2 peer to gw1")
-    runcmd(f'gwctl create peer --myid {gw1.name} --name {gw2.name} --host {gw2.ip} --port {gw2.port}')
-    printHeader("Add gw1, gw3 peer to gw2")
-    runcmd(f'gwctl create peer --myid {gw2.name} --name {gw1.name} --host {gw1.ip} --port {gw1.port}')
-    runcmd(f'gwctl create peer --myid {gw2.name} --name {gw3.name} --host {gw3.ip} --port {gw3.port}')
-    printHeader("Add gw2 peer to gw3")
-    runcmd(f'gwctl create peer --myid {gw3.name} --name {gw2.name} --host {gw2.ip} --port {gw2.port}')
+    printHeader("Add cl2 peer to cl1")
+    runcmd(f'gwctl create peer --myid {cl1.name} --name {cl2.name} --host {cl2.ip} --port {cl2.port}')
+    printHeader("Add cl1, cl3 peer to cl2")
+    runcmd(f'gwctl create peer --myid {cl2.name} --name {cl1.name} --host {cl1.ip} --port {cl1.port}')
+    runcmd(f'gwctl create peer --myid {cl2.name} --name {cl3.name} --host {cl3.ip} --port {cl3.port}')
+    printHeader("Add cl2 peer to cl3")
+    runcmd(f'gwctl create peer --myid {cl3.name} --name {cl2.name} --host {cl2.ip} --port {cl2.port}')
     
     # Set exports
-    runcmd(f'gwctl create export --myid {gw1.name} --name {srcSvc1} --host {srcSvc1} --port {srcSvcPort}')    
-    runcmd(f'gwctl create export --myid {gw2.name} --name {destSvc} --host {destSvc} --port {destSvcPort}')    
-    runcmd(f'gwctl create export --myid {gw3.name} --name {srcSvc1}  --host {srcSvc1} --port {srcSvcPort}')
-    runcmd(f'gwctl create export --myid {gw3.name} --name {srcSvc2}  --host {srcSvc2} --port {srcSvcPort}')
+    runcmd(f'gwctl create export --myid {cl1.name} --name {srcSvc1} --host {srcSvc1} --port {srcSvcPort}')    
+    runcmd(f'gwctl create export --myid {cl2.name} --name {destSvc} --host {destSvc} --port {destSvcPort}')    
+    runcmd(f'gwctl create export --myid {cl3.name} --name {srcSvc1}  --host {srcSvc1} --port {srcSvcPort}')
+    runcmd(f'gwctl create export --myid {cl3.name} --name {srcSvc2}  --host {srcSvc2} --port {srcSvcPort}')
     print("Services created. Run service_import.py")

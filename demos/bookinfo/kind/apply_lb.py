@@ -30,6 +30,5 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     print(f'Working directory {projDir}')
     os.chdir(projDir)
-    gw = cluster(name=args["peer"])
-    applyPolicy(gw, args["type"])
-    
+    cl = cluster(name=args["peer"])
+    applyPolicy(cl, args["type"])

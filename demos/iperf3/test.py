@@ -38,7 +38,7 @@ destSvc          = "iperf3-server"
 destPort         = 5000
 
 # iperf3Test setup two cluster for creating iPerf3 test.
-def iperf3Test(gw1:cluster, gw2:cluster, testOutputFolder,logLevel="info" ,dataplane="envoy"):    
+def iperf3Test(cl1:cluster, cl2:cluster, testOutputFolder,logLevel="info" ,dataplane="envoy"):    
     print(f'Working directory {projDir}')
     os.chdir(projDir)
     
@@ -48,39 +48,39 @@ def iperf3Test(gw1:cluster, gw2:cluster, testOutputFolder,logLevel="info" ,datap
     os.system("sudo make install")
     
     # Create Kind clusters environment 
-    gw1.createCluster(runBg=True)        
-    gw2.createCluster(runBg=False)  
+    cl1.createCluster(runBg=True)        
+    cl2.createCluster(runBg=False)  
     
     # Start Kind clusters environment 
     createFabric(testOutputFolder)
-    gw1.startCluster(testOutputFolder,logLevel, dataplane)        
-    gw2.startCluster(testOutputFolder,logLevel, dataplane)        
+    cl1.startCluster(testOutputFolder,logLevel, dataplane)        
+    cl2.startCluster(testOutputFolder,logLevel, dataplane)        
       
     # Start gwctl
-    startGwctl(gw1.name, gw1.ip, gw1.port, testOutputFolder)
-    startGwctl(gw2.name, gw2.ip, gw2.port, testOutputFolder)
+    startGwctl(cl1.name, cl1.ip, cl1.port, testOutputFolder)
+    startGwctl(cl2.name, cl2.ip, cl2.port, testOutputFolder)
     
     # Create iPerf3 micto-services
-    gw1.loadService(srcSvc, "mlabbe/iperf3",f"{folCl}/iperf3-client.yaml" )
-    gw2.loadService(destSvc, "mlabbe/iperf3",f"{folSv}/iperf3.yaml" )
+    cl1.loadService(srcSvc, "mlabbe/iperf3",f"{folCl}/iperf3-client.yaml" )
+    cl2.loadService(destSvc, "mlabbe/iperf3",f"{folSv}/iperf3.yaml" )
     
     # Create peers
     printHeader("Create peers")
-    runcmd(f'gwctl create peer --myid {gw1.name} --name {gw2.name} --host {gw2.ip} --port {gw1.port}')
-    runcmd(f'gwctl create peer --myid {gw2.name} --name {gw1.name} --host {gw1.ip} --port {gw2.port}')
+    runcmd(f'gwctl create peer --myid {cl1.name} --name {cl2.name} --host {cl2.ip} --port {cl1.port}')
+    runcmd(f'gwctl create peer --myid {cl2.name} --name {cl1.name} --host {cl1.ip} --port {cl2.port}')
     
     # Create exports
-    runcmd(f'gwctl create export --myid {gw1.name} --name {srcSvc} --host {srcSvc} --port {destPort}')
-    runcmd(f'gwctl create export --myid {gw2.name} --name {destSvc} --host {destSvc} --port {destPort}')
+    runcmd(f'gwctl create export --myid {cl1.name} --name {srcSvc} --host {srcSvc} --port {destPort}')
+    runcmd(f'gwctl create export --myid {cl2.name} --name {destSvc} --host {destSvc} --port {destPort}')
 
     #Import destination service
-    printHeader(f"\n\nStart Importing {destSvc} service to {gw1.name}")
-    runcmd(f'gwctl --myid {gw1.name} create import --name {destSvc} --host {destSvc} --port {destPort}')
-    printHeader(f"\n\nStart binding {destSvc} service to {gw1.name}")
-    runcmd(f'gwctl --myid {gw1.name} create binding --import {destSvc} --peer {gw2.name}')
+    printHeader(f"\n\nStart Importing {destSvc} service to {cl1.name}")
+    runcmd(f'gwctl --myid {cl1.name} create import --name {destSvc} --host {destSvc} --port {destPort}')
+    printHeader(f"\n\nStart binding {destSvc} service to {cl1.name}")
+    runcmd(f'gwctl --myid {cl1.name} create binding --import {destSvc} --peer {cl2.name}')
 
     #Add policy
     printHeader("Applying policies")
-    runcmd(f'gwctl --myid {gw1.name} create policy --type access --policyFile {allowAllPolicy}')
-    runcmd(f'gwctl --myid {gw2.name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {cl1.name} create policy --type access --policyFile {allowAllPolicy}')
+    runcmd(f'gwctl --myid {cl2.name} create policy --type access --policyFile {allowAllPolicy}')
     

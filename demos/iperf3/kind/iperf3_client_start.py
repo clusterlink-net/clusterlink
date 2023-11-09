@@ -45,16 +45,16 @@ def iperf3Test(cmd ,blockFlag=False):
         print('iPerf3 Connection Failed')
     print("***************************************")
 
-def testIperf3Client(gw,srcSvc, destSvc,destPort,blockFlag=False):
-    gw.useCluster()
+def testIperf3Client(cl,srcSvc, destSvc,destPort,blockFlag=False):
+    cl.useCluster()
     waitPod("iperf3-client")
     podIperf3= getPodName(srcSvc)
     printHeader("Starting Client Service(iperf3 client1)->peer1->peer2->Dest Service(iperf3 server)")
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {destSvc} -p {destPort}'
     iperf3Test(cmd,blockFlag)
 
-def directTestIperf3(gw, srcSvc, destkindIp, iperf3DestPort):
-    gw.useCluster()
+def directTestIperf3(cl, srcSvc, destkindIp, iperf3DestPort):
+    cl.useCluster()
     waitPod("iperf3-client")
     podIperf3= getPodName(srcSvc)
     printHeader("The Iperf3 test connects directly to the destination")

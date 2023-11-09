@@ -42,11 +42,11 @@ if __name__ == "__main__":
 
    printHeader("\n\nStart Kind Test\n\n")
    #GW parameters 
-   gw1           = cluster(name="peer1")
-   gw2           = cluster(name="peer2")
-   gw3           = cluster(name="peer3")
+   cl1           = cluster(name="peer1")
+   cl2           = cluster(name="peer2")
+   cl3           = cluster(name="peer3")
 
-   bookInfoDemo(gw1, gw2, gw3, testOutputFolder, args["logLevel"], args["dataplane"])
-   print(f"Proctpage1 url: http://{gw1.ip}:30001/productpage")
-   print(f"Proctpage2 url: http://{gw1.ip}:30002/productpage")
+   bookInfoDemo(cl1, cl2, cl3, testOutputFolder, args["logLevel"], args["dataplane"])
+   print(f"Productpage1 url: http://{cl1.ip}:30001/productpage")
+   print(f"Productpage2 url: http://{cl1.ip}:30002/productpage")
 

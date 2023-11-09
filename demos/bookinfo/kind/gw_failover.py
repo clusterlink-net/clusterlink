@@ -28,6 +28,5 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     print(f'Working directory {projDir}')
     os.chdir(projDir)
-    gw3 = cluster(name="peer3")
-    applyFailover(gw3, args["type"])
-    
+    cl3 = cluster(name="peer3")
+    applyFailover(cl3, args["type"])

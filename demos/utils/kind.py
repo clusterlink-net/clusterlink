@@ -77,4 +77,3 @@ class cluster:
     def deleteCluster(self, runBg=False):
         bgFlag= "&" if runBg else ""
         os.system(f"kind delete cluster --name={self.name} {bgFlag}")
-    

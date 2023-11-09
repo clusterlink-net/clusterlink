@@ -23,37 +23,37 @@ from demos.utils.common import runcmd, printHeader
 srcSvc   = "firefox"
 destSvc  = "openspeedtest"
 denyIAccessPolicy=f"{projDir}/demos/speedtest/testdata/policy/denyToSpeedtest.json"
-denyGw3Policy=f"{projDir}/demos/speedtest/testdata/policy/denyFromGw.json"    
+denyCluster3Policy=f"{projDir}/demos/speedtest/testdata/policy/denyFromGw.json"    
 
-def applyAccessPolicy(gw, policyFile):
-    printHeader(f"\n\nApplying policy file {policyFile} to {gw}")
-    runcmd(f'gwctl --myid {gw} create policy --type access --policyFile {policyFile}')
+def applyAccessPolicy(cl, policyFile):
+    printHeader(f"\n\nApplying policy file {policyFile} to {cl}")
+    runcmd(f'gwctl --myid {cl} create policy --type access --policyFile {policyFile}')
 
-def deleteAccessPolicy(gw, policyFile):
-    runcmd(f'gwctl delete policy --myid {gw} --type access --policyFile {policyFile}')
+def deleteAccessPolicy(cl, policyFile):
+    runcmd(f'gwctl delete policy --myid {cl} --type access --policyFile {policyFile}')
     
-def applyPolicy(gw, type):
+def applyPolicy(cl, type):
     if type == "show":
-        printHeader(f"Show Policies in {gw}")
-        runcmd(f'gwctl get policy --myid {gw}')
+        printHeader(f"Show Policies in {cl}")
+        runcmd(f'gwctl get policy --myid {cl}')
         return
     
-    if gw in ["peer1","peer3"]:
+    if cl in ["peer1","peer3"]:
         if type == "deny":
-            printHeader(f"Block Traffic in {gw}")
-            applyAccessPolicy(gw, denyIAccessPolicy)
+            printHeader(f"Block Traffic in {cl}")
+            applyAccessPolicy(cl, denyIAccessPolicy)
         elif type == "allow": # Remove the deny policy
-            printHeader(f"Allow Traffic in {gw}")
-            deleteAccessPolicy(gw, denyIAccessPolicy)
+            printHeader(f"Allow Traffic in {cl}")
+            deleteAccessPolicy(cl, denyIAccessPolicy)
         else:
             print("Unknown command")
-    if gw == "peer2":
+    if cl == "peer2":
         if type == "deny":
-            printHeader(f"Block Traffic in {gw}")
-            applyAccessPolicy(gw, denyGw3Policy)
+            printHeader(f"Block Traffic in {cl}")
+            applyAccessPolicy(cl, denyCluster3Policy)
         elif type == "allow": # Remove the deny policy
-            printHeader(f"Allow Traffic in {gw}")
-            deleteAccessPolicy(gw, denyGw3Policy)
+            printHeader(f"Allow Traffic in {cl}")
+            deleteAccessPolicy(cl, denyCluster3Policy)
         else:
             print("Unknown command")
 
@@ -66,11 +66,11 @@ if __name__ == "__main__":
 
     args = vars(parser.parse_args())
 
-    gw = args["peer"]
+    cl = args["peer"]
     type = args["type"]
 
 
     print(f'Working directory {projDir}')
     os.chdir(projDir)
 
-    applyPolicy(gw, type)
+    applyPolicy(cl, type)

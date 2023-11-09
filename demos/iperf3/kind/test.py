@@ -41,19 +41,19 @@ if __name__ == "__main__":
     printHeader("\n\nStart Kind Test\n\n")
     printHeader("Start pre-setting")
 
-    # GW parameters 
-    gw1= cluster("peer1")
-    gw2= cluster("peer2")
+    # cl parameters 
+    cl1= cluster("peer1")
+    cl2= cluster("peer2")
     srcSvc           = "iperf3-client"
     destSvc          = "iperf3-server"
     destPort         = 5000
     iperf3DirectPort = "30001"
     
     # Setup
-    iperf3Test(gw1, gw2, testOutputFolder, args["logLevel"], args["dataplane"])
+    iperf3Test(cl1, cl2, testOutputFolder, args["logLevel"], args["dataplane"])
     #Testing
     printHeader("\n\nStart Iperf3 testing")
-    directTestIperf3(gw1, srcSvc, gw2.ip, iperf3DirectPort)
-    testIperf3Client(gw1, srcSvc, destSvc, destPort)
+    directTestIperf3(cl1, srcSvc, cl2.ip, iperf3DirectPort)
+    testIperf3Client(cl1, srcSvc, destSvc, destPort)
 
 
