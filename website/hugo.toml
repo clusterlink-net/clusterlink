@@ -1,0 +1,14 @@
+baseURL = 'https://clusterlink.net/'
+languageCode = 'en-us'
+title = 'ClusterLink'
+
+# modules
+[module]
+proxy = "direct"
+[[module.imports]]
+path = "github.com/google/docsy"
+[[module.imports]]
+path = "github.com/google/docsy/dependencies"
+
+# directories
+publishDir = "website/public"
