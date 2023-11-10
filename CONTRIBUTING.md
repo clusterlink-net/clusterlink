@@ -100,7 +100,7 @@ likely still something for you to work on. If you want to contribute but you
 don’t know where to start or can't find a suitable issue, you can ⚠️ **explain how people can ask for an issue to work on**.
 -->
 
-We have a [roadmap](./README.md#roadmap) that will give you a good idea of the larger
+We have a [roadmap](./README.md#scope) that will give you a good idea of the larger
  features that we are working on right now. That may help you decide what you would
  like to work on after you have tackled an issue or two. If you have a big idea for
  ClusterLink, you can propose it by creating an issue and marking it `enhancement`.
