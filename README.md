@@ -98,8 +98,8 @@ Our project welcomes contributions from any member of our community. To get
 
 ### In Scope
 
-ClusterLink is intended to [TODO: Core functionality]. As such, the
- project will implement or has implemented:
+ClusterLink is intended to connect services and applications running in different clusters.
+ As such, the project will implement or has implemented:
 
 - Remote Service sharing
 - Extending private Cloud service endpoints to remote sites
