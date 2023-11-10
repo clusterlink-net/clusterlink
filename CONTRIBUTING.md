@@ -111,8 +111,8 @@ All contributors might get stuck sometimes. The best way to reach us with a ques
  when contributing is to ask on:
 
 * The original GitHub issue
-* The [developer mailing list](TODO missing link)
-* Our [Slack channel](TODO missing link)
+* The [developer mailing list](https://groups.google.com/g/clusterlink-dev/)
+<!-- * Our [Slack channel](TODO missing link) -->
 
 ## Developer Certificate of Origin
 
