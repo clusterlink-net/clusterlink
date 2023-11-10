@@ -17,62 +17,32 @@ import subprocess as sp
 import sys
 import argparse
 
-proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
-sys.path.insert(0,f'{proj_dir}')
-sys.path.insert(1,f'{proj_dir}/demos/utils/cloud/')
+projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
+sys.path.insert(0,f'{projDir}')
+sys.path.insert(1,f'{projDir}/demos/utils/cloud/')
 
-from demos.utils.mbgAux import runcmd,printHeader, getPodName
-from demos.utils.cloud.check_k8s_cluster_ready import connectToCluster
-from demos.utils.cloud.clusterClass import cluster
+from demos.bookinfo.test import applyPolicy
+from demos.utils.cloud import cluster
 
 srcSvc1  = "productpage"
 srcSvc2  = "productpage2"
 destSvc  = "reviews"
-mbglist = { "mbg1gcp" : cluster(name="mbg1", zone = "us-west1-b"    , platform = "gcp", type = "host"),   #Oregon
-            "mbg1ibm" : cluster(name="mbg1", zone = "sjc04"         , platform = "ibm", type = "host"),   #San jose
-            "mbg2gcp" : cluster(name="mbg2", zone = "us-central1-b" , platform = "gcp", type = "target"), #Iowa
-            "mbg2ibm" : cluster(name="mbg2", zone = "dal10"         , platform = "ibm", type = "target"), #Dallas
-            "mbg3gcp" : cluster(name="mbg3", zone = "us-east4-b"    , platform = "gcp", type = "target"), #Virginia
-            "mbg3ibm" : cluster(name="mbg3", zone = "wdc04"         , platform = "ibm", type = "target")} #Washington DC
+clList = { "peer1gcp" : cluster(name="peer1", zone = "us-west1-b"    , platform = "gcp"),  # Oregon
+            "peer1ibm" : cluster(name="peer1", zone = "sjc04"         , platform = "ibm"), # San jose
+            "peer2gcp" : cluster(name="peer2", zone = "us-central1-b" , platform = "gcp"), # Iowa
+            "peer2ibm" : cluster(name="peer2", zone = "dal10"         , platform = "ibm"), # Dallas
+            "peer3gcp" : cluster(name="peer3", zone = "us-east4-b"    , platform = "gcp"), # Virginia
+            "peer3ibm" : cluster(name="peer3", zone = "wdc04"         , platform = "ibm")} # Washington DC
     
-def applyPolicy(mbg, gwctlName, type):
-    connectToCluster(mbg)
-    gwctlPod=getPodName("gwctl")
-    if type == "ecmp":
-        printHeader(f"Set Ecmp poilicy")          
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy --type lb --serviceDst {destSvc}  --policy ecmp')
-    elif type == "same":
-        printHeader(f"Set same policy to all services")          
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy --type lb --serviceDst {destSvc} --gwDest mbg2 --policy static')
-    elif type == "diff":
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} --gwDest mbg2 --policy static')
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl create policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} --gwDest mbg3 --policy static')
-    elif type == "show":
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl get policy --myid {gwctlName}')
-    elif type == "clean":
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl delete policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl delete policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {gwctlPod} -- ./gwctl delete policy --type lb --serviceDst {destSvc}')
-
-
-
-
-
 ############################### MAIN ##########################
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
-    parser.add_argument('-m','--mbg', help='Either mbg1/mbg2/mbg3', required=False, default="mbg1")
-    parser.add_argument('-t','--type', help='Either ecmp/same/diff/show', required=False, default="ecmp")
+    parser.add_argument('-p','--peer', help='Either peer1/peer2/peer3', required=False, default="peer1")
+    parser.add_argument('-t','--type', help='Either ecmp/same/diff/clean/show', required=False, default="ecmp")
     parser.add_argument('-cloud','--cloud', help='Cloud setup using gcp/ibm', required=False, default="gcp")
 
     args = vars(parser.parse_args())
-
-    mbg = mbglist[args["mbg"] + args["cloud"]]
-    type = args["type"]
-    gwctlName     = mbg.name[:-1]+"ctl"+ mbg.name[-1]
-
-    print(f'Working directory {proj_dir}')
-    os.chdir(proj_dir)
-
-    applyPolicy(mbg, gwctlName,type)
-    
+    print(f'Working directory {projDir}')
+    os.chdir(projDir)
+    cl = clList[args["peer"] + args["cloud"]]
+    applyPolicy(cl, args["type"])

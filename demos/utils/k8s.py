@@ -54,9 +54,9 @@ def waitPod(name, namespace="default"):
             time.sleep(5)
             break
 # getNodeIp returns the ip of node the worker is running
-def getNodeIP():
+def getNodeIP(num=0):
     clJson=json.loads(sp.getoutput('kubectl get nodes -o json'))
-    ip = clJson["items"][0]["status"]["addresses"][0]["address"]
+    ip = clJson["items"][0]["status"]["addresses"][num]["address"]
     return ip
 
 # cleanCluster removes all deployments and services 
