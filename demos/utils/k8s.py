@@ -14,6 +14,7 @@
 
 import subprocess as sp
 import time
+import json
 
 # getPodNameIp gets the application pod's name and IP.
 def getPodNameIp(app):
@@ -52,8 +53,15 @@ def waitPod(name, namespace="default"):
         else:
             time.sleep(5)
             break
+# getNodeIp returns the ip of node the worker is running
+def getNodeIP():
+    clJson=json.loads(sp.getoutput('kubectl get nodes -o json'))
+    ip = clJson["items"][0]["status"]["addresses"][0]["address"]
+    return ip
 
 # cleanCluster removes all deployments and services 
 def cleanCluster():
     sp.getoutput('kubectl delete --all deployments')
     sp.getoutput('kubectl delete --all svc')
+    sp.getoutput('kubectl delete --all pods')
+    sp.getoutput('kubectl delete --all pvc')

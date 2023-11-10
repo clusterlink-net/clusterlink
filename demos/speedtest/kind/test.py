@@ -15,11 +15,11 @@
 import os
 import sys
 import argparse
-proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
-sys.path.insert(0,f'{proj_dir}')
+projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
+sys.path.insert(0,f'{projDir}')
 
 from demos.utils.common import runcmd, createFabric, printHeader, startGwctl
-from demos.utils.kind import startKindCluster,useKindCluster, getKindIp,loadService
+from demos.utils.kind import cluster
 from demos.utils.k8s import getPodNameIp
 
 ############################### MAIN ##########################
@@ -32,84 +32,73 @@ if __name__ == "__main__":
     printHeader("\n\nStart Kind Test\n\n")
     printHeader("Start pre-setting")
     
-    folman   = f"{proj_dir}/demos/speedtest/testdata/manifests/"
-    crtFol   = f"{proj_dir}/demos/utils/mtls"
-    testOutputFolder = f"{proj_dir}/bin/tests/speedtest" 
+    folman   = f"{projDir}/demos/speedtest/testdata/manifests/"
+    crtFol   = f"{projDir}/demos/utils/mtls"
+    testOutputFolder = f"{projDir}/bin/tests/speedtest" 
     cni       = args["cni"]
 
     #GW parameters 
-    gwPort      = "30443"    
-    gw1Name     = "peer1"
-    gw2Name     = "peer2"
-    gw3Name     = "peer3"
+    cl1         = cluster(name="peer1")
+    cl2         = cluster(name="peer2")
+    cl3         = cluster(name="peer3")
     srcSvc1     = "firefox"
     srcSvc2     = "firefox2"
     srcSvcPort  = 5800
     destSvc     = "openspeedtest"
     destSvcPort = 3000
     
-    print(f'Working directory {proj_dir}')
-    os.chdir(proj_dir)
+    print(f'Working directory {projDir}')
+    os.chdir(projDir)
     
     ### build environment 
     printHeader("Build docker image")
     os.system("make docker-build")
     os.system("sudo make install")
-
-    ## build Kind clusters environment 
-    createFabric(testOutputFolder) 
     if cni == "diff":
         printHeader("Cluster 1: Flannel, Cluster 2: KindNet, Cluster 3: Calico")
-        startKindCluster(gw1Name, testOutputFolder,cni="flannel")        
-        startKindCluster(gw2Name, testOutputFolder)
-        startKindCluster(gw3Name, testOutputFolder,cni="calico") 
-    else:
-        startKindCluster(gw1Name, testOutputFolder)        
-        startKindCluster(gw2Name, testOutputFolder)
-        startKindCluster(gw3Name, testOutputFolder) 
+        cl1.cni="flannel"
+        cl3.cni="calico"
+    
+    # Create Kind clusters environment 
+    cl1.createCluster(runBg=True)        
+    cl2.createCluster(runBg=True)
+    cl3.createCluster(runBg=False)  
 
-    ###get gw parameters
-    gw1Ip                = getKindIp(gw1Name)
-    gwctl1Pod, gwctl1Ip = getPodNameIp("gwctl")
-    gw2Ip                = getKindIp(gw2Name)
-    gwctl2Pod, gwctl2Ip = getPodNameIp("gwctl")
-    gw3Ip                = getKindIp(gw3Name)
-    gwctl3Pod, gwctl3Ip = getPodNameIp("gwctl")
-
+    # Start Kind clusters environment 
+    createFabric(testOutputFolder) 
+    cl1.startCluster(testOutputFolder)        
+    cl2.startCluster(testOutputFolder)        
+    cl3.startCluster(testOutputFolder)        
+     
     # Start gwctl
-    startGwctl(gw1Name, gw1Ip, gwPort, testOutputFolder)
-    startGwctl(gw2Name, gw2Ip, gwPort, testOutputFolder)
-    startGwctl(gw3Name, gw3Ip, gwPort, testOutputFolder)
+    startGwctl(cl1.name, cl1.ip, cl1.port, testOutputFolder)
+    startGwctl(cl2.name, cl2.ip, cl2.port, testOutputFolder)
+    startGwctl(cl3.name, cl3.ip, cl3.port, testOutputFolder)
 
-    # Add gw Peer
-    useKindCluster(gw1Name)
-    printHeader("Add gw2 peer to gw1")
-    runcmd(f'gwctl create peer --myid {gw1Name} --name {gw2Name} --host {gw2Ip} --port {gwPort}')
-    useKindCluster(gw2Name)
-    printHeader("Add gw1, gw3 peer to gw2")
-    runcmd(f'gwctl create peer --myid {gw2Name} --name {gw1Name} --host {gw1Ip} --port {gwPort}')
-    runcmd(f'gwctl create peer --myid {gw2Name} --name {gw3Name} --host {gw3Ip} --port {gwPort}')
-    useKindCluster(gw3Name)
-    printHeader("Add gw2 peer to gw3")
-    runcmd(f'gwctl create peer --myid {gw3Name} --name {gw2Name} --host {gw2Ip} --port {gwPort}')
-    
-    ###Set gw1 services
-    useKindCluster(gw1Name)
-    loadService(srcSvc1,gw1Name, "jlesage/firefox",f"{folman}/firefox.yaml" )
-    runcmd(f'gwctl create export --myid {gw1Name} --name {srcSvc1} --host {srcSvc1} --port {srcSvcPort}')
+    # Load services 
+    cl1.useCluster()
+    cl1.loadService(srcSvc1, "jlesage/firefox",f"{folman}/firefox.yaml" )
     runcmd(f"kubectl create service nodeport {srcSvc1} --tcp={srcSvcPort}:{srcSvcPort} --node-port=30000")
-    
-    ### Set gw2 service
-    useKindCluster(gw2Name)
-    loadService(destSvc,gw2Name, " openspeedtest/latest",f"{folman}/speedtest.yaml" )
-    runcmd(f'gwctl create export --myid {gw2Name} --name {destSvc} --host {destSvc} --port {destSvcPort}')
-    
-    ### Set gwctl3
-    useKindCluster(gw3Name)
-    loadService(srcSvc1,gw3Name, "jlesage/firefox",f"{folman}/firefox.yaml" )
-    loadService(srcSvc2,gw3Name, "jlesage/firefox",f"{folman}/firefox2.yaml" )
-    runcmd(f'gwctl create export --myid {gw3Name} --name {srcSvc1}  --host {srcSvc1} --port {srcSvcPort}')
-    runcmd(f'gwctl create export --myid {gw3Name} --name {srcSvc2}  --host {srcSvc2} --port {srcSvcPort}')
+    cl2.useCluster()
+    cl2.loadService(destSvc, " openspeedtest/latest",f"{folman}/speedtest.yaml")
+    cl3.useCluster()
+    cl3.loadService(srcSvc1, "jlesage/firefox",f"{folman}/firefox.yaml" )
+    cl3.loadService(srcSvc2, "jlesage/firefox",f"{folman}/firefox2.yaml" )
     runcmd(f"kubectl create service nodeport {srcSvc1} --tcp={srcSvcPort}:{srcSvcPort} --node-port=30000")
     runcmd(f"kubectl create service nodeport {srcSvc2} --tcp={srcSvcPort}:{srcSvcPort} --node-port=30001")
+    
+    # Add gw Peer
+    printHeader("Add cl2 peer to cl1")
+    runcmd(f'gwctl create peer --myid {cl1.name} --name {cl2.name} --host {cl2.ip} --port {cl2.port}')
+    printHeader("Add cl1, cl3 peer to cl2")
+    runcmd(f'gwctl create peer --myid {cl2.name} --name {cl1.name} --host {cl1.ip} --port {cl1.port}')
+    runcmd(f'gwctl create peer --myid {cl2.name} --name {cl3.name} --host {cl3.ip} --port {cl3.port}')
+    printHeader("Add cl2 peer to cl3")
+    runcmd(f'gwctl create peer --myid {cl3.name} --name {cl2.name} --host {cl2.ip} --port {cl2.port}')
+    
+    # Set exports
+    runcmd(f'gwctl create export --myid {cl1.name} --name {srcSvc1} --host {srcSvc1} --port {srcSvcPort}')    
+    runcmd(f'gwctl create export --myid {cl2.name} --name {destSvc} --host {destSvc} --port {destSvcPort}')    
+    runcmd(f'gwctl create export --myid {cl3.name} --name {srcSvc1}  --host {srcSvc1} --port {srcSvcPort}')
+    runcmd(f'gwctl create export --myid {cl3.name} --name {srcSvc2}  --host {srcSvc2} --port {srcSvcPort}')
     print("Services created. Run service_import.py")

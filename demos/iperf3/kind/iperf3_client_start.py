@@ -16,12 +16,11 @@ import os
 import subprocess as sp
 import sys
 
-proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
-sys.path.insert(0,f'{proj_dir}')
+projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
+sys.path.insert(0,f'{projDir}')
 
 from demos.utils.common import printHeader
 from demos.utils.k8s import waitPod, getPodName
-from demos.utils.kind import useKindCluster
 
 def iperf3Test(cmd ,blockFlag=False):
     print(cmd)
@@ -46,16 +45,16 @@ def iperf3Test(cmd ,blockFlag=False):
         print('iPerf3 Connection Failed')
     print("***************************************")
 
-def testIperf3Client(gwName,srcSvc, destSvc,destPort,blockFlag=False):
-    useKindCluster(gwName)
+def testIperf3Client(cl,srcSvc, destSvc,destPort,blockFlag=False):
+    cl.useCluster()
     waitPod("iperf3-client")
     podIperf3= getPodName(srcSvc)
     printHeader("Starting Client Service(iperf3 client1)->peer1->peer2->Dest Service(iperf3 server)")
     cmd = f'kubectl exec -i {podIperf3} --  iperf3 -c {destSvc} -p {destPort}'
     iperf3Test(cmd,blockFlag)
 
-def directTestIperf3(gwName,srcSvc,destkindIp,iperf3DestPort):
-    useKindCluster(gwName)
+def directTestIperf3(cl, srcSvc, destkindIp, iperf3DestPort):
+    cl.useCluster()
     waitPod("iperf3-client")
     podIperf3= getPodName(srcSvc)
     printHeader("The Iperf3 test connects directly to the destination")

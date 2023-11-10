@@ -16,34 +16,10 @@ import os
 import sys
 import argparse
 
-proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
-sys.path.insert(0,f'{proj_dir}')
-from demos.utils.common import runcmd, printHeader
-from demos.utils.k8s import getPodName
-from demos.utils.kind import useKindCluster
-
-srcSvc1  = "productpage"
-srcSvc2  = "productpage2"
-destSvc  = "reviews"
-    
-def applyPolicy(name, type):
-    useKindCluster(name)
-    gwctlPod=getPodName("gwctl")
-    if type == "ecmp":
-        printHeader(f"Set Ecmp poilicy")          
-        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl create policy --type lb --serviceDst {destSvc} --gwDest peer2 --policy ecmp')
-    elif type == "same":
-        printHeader("Set same policy to all services")          
-        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl create policy  --type lb --serviceDst {destSvc} --gwDest peer2 --policy static')
-    elif type == "diff":
-        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl create policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} --gwDest peer2 --policy static')
-        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl create policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} --gwDest peer3 --policy static')
-    elif type == "show":
-        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl get policy ')
-    elif type == "clean":
-        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl delete policy --type lb --serviceSrc {srcSvc2} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl delete policy --type lb --serviceSrc {srcSvc1} --serviceDst {destSvc} ')
-        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl delete policy --type lb --serviceDst {destSvc}')
+projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
+sys.path.insert(0,f'{projDir}')
+from demos.bookinfo.test import applyPolicy
+from demos.utils.kind import cluster
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -52,11 +28,7 @@ if __name__ == "__main__":
     parser.add_argument('-t','--type', help='Either ecmp/same/diff/clean/show', required=False, default="ecmp")
 
     args = vars(parser.parse_args())
-
-    peer = args["peer"]
-    type = args["type"]
-    print(f'Working directory {proj_dir}')
-    os.chdir(proj_dir)
-
-    applyPolicy(peer, type)
-    
+    print(f'Working directory {projDir}')
+    os.chdir(projDir)
+    cl = cluster(name=args["peer"])
+    applyPolicy(cl, args["type"])

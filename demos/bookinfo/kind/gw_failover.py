@@ -16,41 +16,17 @@ import os
 import sys
 import argparse
 
-proj_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
-sys.path.insert(0,f'{proj_dir}')
-
-from demos.utils.common import runcmd, runcmdb, printHeader
-from demos.utils.k8s import getPodName, getPodIp, getPodNameIp
-from demos.utils.kind import useKindCluster, getKindIp
-
-srcSvc1  = "productpage"
-srcSvc2  = "productpage2"
-destSvc  = "reviews"
-gw1Name  = "gw1"
-allowAllPolicy =f"./mtls/allowAll.json"    
-gw3Name        = "peer3"
-testOutputFolder = f"{proj_dir}/bin/tests/bookinfo" 
-
-
-def applyFail(geName, type):
-    useKindCluster(geName)
-    clPod=getPodName("cl-dataplane")
-    print(clPod)
-    if type == "fail":
-        printHeader(f"Failing {geName} network connection")
-        runcmd("kubectl delete service cl-dataplane")
-    elif type == "start":
-        printHeader(f"Restoring {geName} network connection")
-        runcmd("kubectl create service nodeport cl-dataplane --tcp=443:443 --node-port=30443")
+projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
+sys.path.insert(0,f'{projDir}')
+from demos.utils.kind import cluster
+from demos.bookinfo.test import applyFailover
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('-t','--type', help='Either fail/start', required=False, default="fail")
     args = vars(parser.parse_args())
-    type = args["type"]
-    
-    print(f'Working directory {proj_dir}')
-    os.chdir(proj_dir)
-    applyFail(gw3Name, type)
-    
+    print(f'Working directory {projDir}')
+    os.chdir(projDir)
+    cl3 = cluster(name="peer3")
+    applyFailover(cl3, args["type"])
