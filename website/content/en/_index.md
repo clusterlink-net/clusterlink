@@ -1,5 +1,5 @@
 ---
-title: Goldydocs
+title: ClusterLink
 ---
 
 {{< blocks/cover title="Welcome to ClusterLink!" image_anchor="top" height="full" >}}
@@ -13,33 +13,18 @@ title: Goldydocs
 {{< blocks/link-down color="info" >}}
 {{< /blocks/cover >}}
 
-
 {{% blocks/lead color="primary" %}}
 ClusterLink provides ...
 
 {{% /blocks/lead %}}
-
 
 {{% blocks/section color="dark" type="row" %}}
 {{% blocks/feature icon="fa-lightbulb" title="some feature" %}}
 feature description
 {{% /blocks/feature %}}
 
-
 {{% blocks/feature icon="fab fa-github" title="Contributions welcome!" url="https://github.com/clusterlink-net/clusterlink" %}}
 We do a [Pull Request](https://github.com/clusterlink-net/clusterlink/pulls) contributions workflow on **GitHub**. New users are always welcome!
 {{% /blocks/feature %}}
 
-
-{{% blocks/feature icon="fab fa-twitter" title="a little bird!" %}}
-one more feature
-{{% /blocks/feature %}}
-
-
-{{% /blocks/section %}}
-
-
-{{% blocks/section %}}
-This is the second section
-{.h1 .text-center}
 {{% /blocks/section %}}
