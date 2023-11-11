@@ -14,8 +14,12 @@ if [ -z "$(which python)" ] || [ "$1" = "--force" ]; then
 	echo "please install python3 manually (https://docs.python.org/3/using/index.html)"
 fi
 
-# Go based executables are much easier
-mkdir -p "$(go env GOPATH)/bin"
+# Go based executables are much easier, just need to ensure $GOPATH/bin is available in search path ;-)
+GOBIN="$(go env GOPATH)/bin"
+mkdir -p "$GOBIN"
+if [ -z "$(echo $PATH | grep $GOBIN)" ]; then
+  export PATH="$PATH:$GOBIN"
+fi
 
 #-- kubectl
 VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
