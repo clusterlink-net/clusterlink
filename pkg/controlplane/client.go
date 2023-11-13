@@ -39,12 +39,13 @@ const (
 // client for accessing a remote peer.
 type client struct {
 	// jsonapi clients for connecting to the remote peer (one per each gateway)
-	clients    []*jsonapi.Client
-	lastSeen   time.Time
-	active     bool
-	stopSignal chan struct{}
-	lock       sync.RWMutex
-	logger     *logrus.Entry
+	clients            []*jsonapi.Client
+	lastSeen           time.Time
+	active             bool
+	stopSignal         chan struct{}
+	lock               sync.RWMutex
+	logger             *logrus.Entry
+	peerStatusCallback func(bool) // Callback function for notifying changes in peer
 }
 
 // remoteServerAuthorizationResponse represents an authorization response received from a remote controlplane server.
@@ -114,10 +115,16 @@ func (c *client) IsActive() bool {
 // setActive the peer status (active or not).
 func (c *client) setActive(active bool) {
 	c.lock.Lock()
-	defer c.lock.Unlock()
+	activePrevState := c.active
 	c.active = active
 	if active || c.lastSeen.IsZero() {
 		c.lastSeen = time.Now()
+	}
+	c.lock.Unlock()
+
+	// Update other components like the policy engine with the peer status.
+	if active != activePrevState && c.peerStatusCallback != nil {
+		c.peerStatusCallback(active)
 	}
 }
 
@@ -181,6 +188,11 @@ func (c *client) heartbeatMonitor() {
 		// wait till it's time for next heartbeat round
 		<-ticker.C
 	}
+}
+
+// SetPeerStatusCallback set the peerStatusCallback.
+func (c *client) SetPeerStatusCallback(callback func(bool)) {
+	c.peerStatusCallback = callback
 }
 
 // newClient returns a new Peer API client.

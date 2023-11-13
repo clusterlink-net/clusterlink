@@ -87,6 +87,15 @@ func (cp *Instance) CreatePeer(peer *cpstore.Peer) error {
 
 	cp.policyDecider.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
 
+	client.SetPeerStatusCallback(func(isActive bool) {
+		if isActive {
+			cp.policyDecider.EnablePeer(peer.Name)
+			return
+		}
+
+		cp.policyDecider.DisablePeer(peer.Name)
+	})
+
 	return nil
 }
 
