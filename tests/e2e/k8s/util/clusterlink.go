@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"strings"
 	"syscall"
 	"time"
@@ -64,6 +65,7 @@ func (c *ClusterLink) Cluster() *KindCluster {
 func (c *ClusterLink) WaitForControlplaneAPI() error {
 	var err error
 	for t := time.Now(); time.Since(t) < time.Second*60; time.Sleep(time.Millisecond * 100) {
+		var uerr *url.Error
 		_, err = c.client.Peers.List()
 		switch {
 		case err == nil:
@@ -73,6 +75,8 @@ func (c *ClusterLink) WaitForControlplaneAPI() error {
 		case errors.Is(err, syscall.ECONNRESET):
 			continue
 		case errors.Is(err, io.EOF):
+			continue
+		case errors.As(err, &uerr) && uerr.Timeout():
 			continue
 		}
 
