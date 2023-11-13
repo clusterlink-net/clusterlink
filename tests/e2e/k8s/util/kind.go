@@ -15,10 +15,9 @@ package util
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -26,30 +25,19 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/rest"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/e2e-framework/klient"
 	"sigs.k8s.io/e2e-framework/klient/decoder"
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 	"sigs.k8s.io/e2e-framework/support/kind"
+
+	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 )
 
-type ServiceNotFoundError struct{}
-
-func (e ServiceNotFoundError) Error() string {
-	return "service not found"
-}
-
-type ConnectionRefusedError struct{}
-
-func (e ConnectionRefusedError) Error() string {
-	return "connection refused"
-}
-
-type ConnectionResetError struct{}
-
-func (e ConnectionResetError) Error() string {
-	return "connection reset"
-}
+const (
+	// ExportedLogsPath is the path where test logs will be exported.
+	ExportedLogsPath = "/tmp/clusterlink-k8s-tests"
+)
 
 // Service represents a kubernetes service.
 type Service struct {
@@ -87,12 +75,13 @@ type Pod struct {
 type KindCluster struct {
 	AsyncRunner
 
-	created   sync.WaitGroup
-	name      string
-	ip        string
-	cluster   *kind.Cluster
-	resources *resources.Resources
-	rawClient *http.Client
+	created          sync.WaitGroup
+	name             string
+	ip               string
+	cluster          *kind.Cluster
+	resources        *resources.Resources
+	clientset        *kubernetes.Clientset
+	nodeportServices map[string]*map[string]*v1.Service // map[namespace][name]
 }
 
 // Name returns the cluster name.
@@ -150,9 +139,9 @@ func (c *KindCluster) initializeClients() error {
 		return fmt.Errorf("unable to initialize REST client: %w", err)
 	}
 
-	c.rawClient, err = rest.HTTPClientFor(cfg)
+	c.clientset, err = kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return fmt.Errorf("unable to initialize raw REST HTTP client: %w", err)
+		return fmt.Errorf("unable to initialize k8s clientset: %w", err)
 	}
 
 	return nil
@@ -206,9 +195,9 @@ func (c *KindCluster) LoadImage(name string) {
 	})
 }
 
-// ExportLogs exports cluster logs to files under the given path.
-func (c *KindCluster) ExportLogs(path string) error {
-	if err := c.cluster.ExportLogs(context.Background(), path); err != nil {
+// ExportLogs exports cluster logs to files.
+func (c *KindCluster) ExportLogs() error {
+	if err := c.cluster.ExportLogs(context.Background(), ExportedLogsPath); err != nil {
 		return fmt.Errorf("cannot export cluster logs: %w", err)
 	}
 
@@ -323,25 +312,20 @@ func (c *KindCluster) RunPod(podSpec *Pod) (string, error) {
 	}
 
 	// get pod logs
-	url := fmt.Sprintf(
-		"%s/api/v1/namespaces/%s/pods/%s/log?container=%s",
-		c.cluster.KubernetesRestConfig().Host, podSpec.Namespace, podSpec.Name, podSpec.Name)
-	resp, err := c.rawClient.Get(url)
+	logReader, err := c.clientset.CoreV1().Pods(podSpec.Namespace).
+		GetLogs(podSpec.Name, &v1.PodLogOptions{}).
+		Stream(context.Background())
 	if err != nil {
 		return "", fmt.Errorf("cannot get pod logs: %w", err)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(logReader)
 	if err != nil {
-		return "", fmt.Errorf("error reading pod logs: %w", err)
+		return "", fmt.Errorf("cannot read pod logs: %w", err)
 	}
 
-	if err := resp.Body.Close(); err != nil {
-		return "", fmt.Errorf("error closing pod logs stream: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("got HTTP %d when trying to get pod logs: %s", resp.StatusCode, string(body))
+	if err := logReader.Close(); err != nil {
+		return "", fmt.Errorf("cannot close pod logs: %w", err)
 	}
 
 	return string(body), err
@@ -356,6 +340,7 @@ func (c *KindCluster) CreateNamespace(name string) error {
 
 // DeleteNamespace deletes a namespace.
 func (c *KindCluster) DeleteNamespace(name string) error {
+	delete(c.nodeportServices, name)
 	return c.resources.Delete(
 		context.Background(),
 		&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
@@ -369,55 +354,120 @@ func (c *KindCluster) CreateFromYAML(yaml, namespace string) error {
 		decoder.MutateNamespace(namespace))
 }
 
-// AccessService accesses a service, expecting an HTTP 200 response.
-// The response body is returned.
-func (c *KindCluster) AccessService(service *Service) (string, error) {
-	url := fmt.Sprintf(
-		"%s/api/v1/namespaces/%s/services/%s:%d/proxy",
-		c.cluster.KubernetesRestConfig().Host, service.Namespace, service.Name, service.Port)
-
-	resp, err := c.rawClient.Get(url)
+// ExposeNodeport returns a nodeport (uint16) for accessing a given k8s service.
+// The returned nodeport service is cached across subsequent calls.
+func (c *KindCluster) ExposeNodeport(service *Service) (uint16, error) {
+	var k8sService v1.Service
+	err := c.resources.Get(context.Background(), service.Name, service.Namespace, &k8sService)
 	if err != nil {
-		return "", fmt.Errorf("error accessing API server: %w", err)
+		return 0, fmt.Errorf("error getting service: %w", err)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	if int32(service.Port) != k8sService.Spec.Ports[0].Port {
+		return 0, &services.ConnectionRefusedError{}
+	}
+
+	if len(k8sService.Spec.Ports) != 1 {
+		return 0, fmt.Errorf("expected a single port service, but got: %v", k8sService.Spec.Ports)
+	}
+
+	services := c.nodeportServices[service.Namespace]
+	if services == nil {
+		services = &map[string]*v1.Service{}
+		c.nodeportServices[service.Namespace] = services
+	}
+
+	nodeportService := &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "nodeport-" + service.Name,
+			Namespace: service.Namespace,
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Port:       k8sService.Spec.Ports[0].Port,
+				TargetPort: k8sService.Spec.Ports[0].TargetPort,
+			}},
+			Selector: k8sService.Spec.Selector,
+			Type:     v1.ServiceTypeNodePort,
+		},
+	}
+
+	cachedService := (*services)[service.Name]
+	cacheMiss := true
+	switch {
+	case cachedService == nil:
+		err := c.resources.Create(context.Background(), nodeportService)
+		if err != nil {
+			return 0, fmt.Errorf("cannot create nodeport service: %w", err)
+		}
+	case !reflect.DeepEqual(cachedService.Spec.Selector, k8sService.Spec.Selector) ||
+		cachedService.Spec.Ports[0].Port != k8sService.Spec.Ports[0].Port ||
+		cachedService.Spec.Ports[0].TargetPort != k8sService.Spec.Ports[0].TargetPort:
+
+		err := c.resources.Update(context.Background(), nodeportService)
+		if err != nil {
+			return 0, fmt.Errorf("cannot update nodeport service: %w", err)
+		}
+	default:
+		cacheMiss = false
+	}
+
+	if cacheMiss {
+		err := c.resources.Get(
+			context.Background(), nodeportService.Name, nodeportService.Namespace, nodeportService)
+		if err != nil {
+			return 0, fmt.Errorf("error getting service: %w", err)
+		}
+
+		cachedService = nodeportService
+		(*services)[service.Name] = cachedService
+	}
+
+	return uint16(cachedService.Spec.Ports[0].NodePort), nil
+}
+
+// ScaleDeployment updates the number of deployment replicas, and waits for this update to complete.
+func (c *KindCluster) ScaleDeployment(name, namespace string, replicas int32) error {
+	// export logs since pods may be terminated after scale
+	if err := c.ExportLogs(); err != nil {
+		return fmt.Errorf("unable to export logs: %w", err)
+	}
+
+	scale, err := c.clientset.AppsV1().Deployments(namespace).GetScale(
+		context.Background(), name, metav1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("error reading response of API server: %w", err)
+		return fmt.Errorf("unable to get deployment scale: %w", err)
 	}
 
-	if err := resp.Body.Close(); err != nil {
-		return "", fmt.Errorf("error closing API server response: %w", err)
+	scale.Spec.Replicas = replicas
+
+	_, err = c.clientset.AppsV1().Deployments(namespace).UpdateScale(
+		context.Background(), name, scale, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("unable to update deployment scale: %w", err)
 	}
 
-	if resp.StatusCode == http.StatusOK {
-		return string(body), nil
-	}
+	// wait for scale to update
+	for t := time.Now(); time.Since(t) < time.Second*60; time.Sleep(time.Millisecond * 500) {
+		scale, err = c.clientset.AppsV1().Deployments(namespace).GetScale(
+			context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("unable to get deployment scale: %w", err)
+		}
 
-	if resp.StatusCode == http.StatusNotFound {
-		return "", &ServiceNotFoundError{}
-	}
-
-	if resp.StatusCode == http.StatusServiceUnavailable {
-		var status metav1.Status
-		if json.Unmarshal(body, &status) == nil {
-			if strings.HasSuffix(status.Message, "connect: connection refused") {
-				return "", &ConnectionRefusedError{}
-			}
-
-			if strings.HasSuffix(status.Message, "read: connection reset by peer") {
-				return "", &ConnectionResetError{}
-			}
+		if scale.Status.Replicas == replicas {
+			return nil
 		}
 	}
 
-	return "", fmt.Errorf("tried to access service, got HTTP %d: %s", resp.StatusCode, body)
+	return fmt.Errorf("timeout while waiting for deployment scale to update")
 }
 
 // NewKindCluster returns a new yet to be running kind cluster.
 func NewKindCluster(name string) *KindCluster {
 	return &KindCluster{
-		cluster: kind.NewCluster(name),
-		name:    name,
+		cluster:          kind.NewCluster(name),
+		name:             name,
+		nodeportServices: make(map[string]*map[string]*v1.Service),
 	}
 }

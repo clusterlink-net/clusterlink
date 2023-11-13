@@ -23,17 +23,18 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
+	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/httpecho"
+	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/iperf3"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/util"
 )
 
 const (
-	clusterCount     = 3
-	exportedLogsPath = "/tmp/clusterlink-k8s-tests"
+	clusterCount = 3
 )
 
 var images = [...]string{"cl-controlplane", "cl-dataplane", "cl-go-dataplane"}
 
-var iperfService = util.Service{
+var iperf3Service = util.Service{
 	Name:      "iperf3-server",
 	Namespace: v1.NamespaceDefault,
 	Port:      5201,
@@ -43,14 +44,6 @@ var httpEchoService = util.Service{
 	Name:      "http-echo",
 	Namespace: v1.NamespaceDefault,
 	Port:      8080,
-}
-
-func httpEchoPodAndService(echoValue string) *util.PodAndService {
-	return &util.PodAndService{
-		Service: httpEchoService,
-		Image:   "hashicorp/http-echo",
-		Args:    []string{"-listen=:8080", "-text=" + echoValue},
-	}
 }
 
 // TestSuite is a suite for e2e testing on k8s clusters.
@@ -81,10 +74,10 @@ func (s *TestSuite) SetupSuite() {
 	}
 
 	// prepare logs directory
-	if err := os.RemoveAll(exportedLogsPath); err != nil {
+	if err := os.RemoveAll(util.ExportedLogsPath); err != nil {
 		s.T().Fatal(fmt.Errorf("cannot cleanup logs directory: %w", err))
 	}
-	if err := os.MkdirAll(exportedLogsPath, 0755); err != nil {
+	if err := os.MkdirAll(util.ExportedLogsPath, 0755); err != nil {
 		s.T().Fatal(fmt.Errorf("cannot create logs directory: %w", err))
 	}
 
@@ -95,17 +88,13 @@ func (s *TestSuite) SetupSuite() {
 		}
 
 		// create http-echo service which echoes the cluster name
-		err := s.clusters[i].CreatePodAndService(httpEchoPodAndService(s.clusters[i].Name()))
+		err := s.clusters[i].CreatePodAndService(httpecho.ServerPod(httpEchoService, s.clusters[i].Name()))
 		if err != nil {
 			s.T().Fatal(fmt.Errorf("cannot create http-echo service: %w", err))
 		}
 
 		// create iperf3 server service
-		err = s.clusters[i].CreatePodAndService(&util.PodAndService{
-			Service: iperfService,
-			Image:   "networkstatic/iperf3",
-			Args:    []string{"-s", "-p", "5201"},
-		})
+		err = s.clusters[i].CreatePodAndService(iperf3.ServerPod(iperf3Service))
 		if err != nil {
 			s.T().Fatal(fmt.Errorf("cannot create iperf3-server service: %w", err))
 		}
@@ -146,7 +135,7 @@ func (s *TestSuite) exportLogs() {
 	for _, cluster := range s.clusters {
 		runner.Run(func(cluster *util.KindCluster) func() error {
 			return func() error {
-				return cluster.ExportLogs(exportedLogsPath)
+				return cluster.ExportLogs()
 			}
 		}(cluster))
 	}

@@ -19,13 +19,13 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/client"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
+	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 )
 
 // ClusterLink represents a clusterlink instance.
@@ -61,6 +61,11 @@ func (c *ClusterLink) Cluster() *KindCluster {
 	return c.cluster
 }
 
+// Client returns a controlplane API client for this cluster.
+func (c *ClusterLink) Client() *client.Client {
+	return c.client
+}
+
 // WaitForControlplaneAPI waits until the controlplane API server is up.
 func (c *ClusterLink) WaitForControlplaneAPI() error {
 	var err error
@@ -86,8 +91,39 @@ func (c *ClusterLink) WaitForControlplaneAPI() error {
 	return err
 }
 
+// ScaleControlplane scales the controlplane deployment.
+func (c *ClusterLink) ScaleControlplane(replicas int32) error {
+	return c.cluster.ScaleDeployment("cl-controlplane", c.namespace, replicas)
+}
+
+// RestartControlplane restarts the controlplane.
+func (c *ClusterLink) RestartControlplane() error {
+	if err := c.ScaleControlplane(0); err != nil {
+		return err
+	}
+	if err := c.ScaleControlplane(1); err != nil {
+		return err
+	}
+	return c.WaitForControlplaneAPI()
+}
+
+// ScaleDataplane scales the dataplane deployment.
+func (c *ClusterLink) ScaleDataplane(replicas int32) error {
+	return c.cluster.ScaleDeployment("cl-dataplane", c.namespace, replicas)
+}
+
+// RestartDataplane restarts the dataplane.
+func (c *ClusterLink) RestartDataplane() error {
+	if err := c.ScaleDataplane(0); err != nil {
+		return err
+	}
+	return c.ScaleDataplane(1)
+}
+
 // Access a cluster service.
-func (c *ClusterLink) AccessService(service *Service, allowRetry bool) (string, error) {
+func (c *ClusterLink) AccessService(
+	client func(*KindCluster, *Service) (string, error),
+	service *Service, allowRetry bool, expectedError error) (string, error) {
 	if service.Namespace == "" {
 		service.Namespace = c.namespace
 	}
@@ -95,24 +131,26 @@ func (c *ClusterLink) AccessService(service *Service, allowRetry bool) (string, 
 	var data string
 	var err error
 	for t := time.Now(); time.Since(t) < time.Second*60; time.Sleep(time.Millisecond * 500) {
-		data, err = c.cluster.AccessService(service)
-		if !allowRetry {
+		data, err = client(c.cluster, service)
+		if errors.Is(err, expectedError) || !allowRetry {
 			break
 		}
 
 		switch {
-		case errors.Is(err, &ServiceNotFoundError{}):
+		case errors.Is(err, &services.ServiceNotFoundError{}):
 			continue
-		case errors.Is(err, &ConnectionRefusedError{}):
+		case errors.Is(err, &services.ConnectionRefusedError{}):
 			continue
-		case errors.Is(err, &ConnectionResetError{}):
+		case errors.Is(err, &services.ConnectionResetError{}):
+			continue
+		case err == nil && expectedError != nil:
 			continue
 		}
 
 		break
 	}
 
-	return strings.TrimSpace(data), err
+	return data, err
 }
 
 func (c *ClusterLink) CreatePeer(peer *ClusterLink) error {
