@@ -67,7 +67,7 @@ Here are the key steps for setting up your developer environment, making a chang
 ### How to setup and run ClusterLink
 
 ClusterLink can be set up and run on different environments: local environment (Kind),
- Bare-metal environment, or cloud environment.For more details, refer to the [Installation Guide for ClusterLink](docs/Installation.md).
+ Bare-metal environment, or cloud environment. For more details, refer to the [Installation Guide for ClusterLink](docs/Installation.md).
 
 #### Run ClusterLink in local environment (Kind)
 
