@@ -14,22 +14,29 @@ clean: ; $(info cleaning previous builds...)	@
 # Setup Targets
 #------------------------------------------------------
 
+#-- emtpy file directory (used to track build target timestamps --
+dist: ; $(info creating dist directory...)
+	@mkdir -p $@
+
 #-- development tooling --
 .PHONY: prereqs prereqs-force
 
 prereqs: ; $(info installing dev tooling...) 
-	./hack/install-devtools.sh
+	@source ./hack/install-devtools.sh
 
 prereqs-force: ; $(info force installing dev tooling...)
-	./hack/install-devtools.sh --force
+	@source ./hack/install-devtools.sh --force
 
-.dev-container: Containerfile.dev
-	docker build -f Containerfile.dev -t quay.io/$(IMAGE_ORG)/dev:latest .
-	touch $@
+.PHONY: dev-container
+dev-container: dist/.dev-container
+
+dist/.dev-container: Containerfile.dev | dist ; $(info building dev-container...)
+	@docker build -f Containerfile.dev -t quay.io/$(IMAGE_ORG)/dev:latest .
+	@touch $@
 
 .PHONY: run-dev-container
-run-dev-container: .dev-container
-	docker run --rm -it --network bridge \
+run-dev-container: dev-container ; $(info running dev-container...)
+	@docker run --rm -it --network bridge \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		-v $(CURDIR):$(CURDIR) \
 		--workdir $(CURDIR) \
