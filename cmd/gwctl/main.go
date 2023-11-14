@@ -37,6 +37,7 @@ func main() {
 	rootCmd.AddCommand(createCmd())
 	rootCmd.AddCommand(getCmd())
 	rootCmd.AddCommand(deleteCmd())
+	rootCmd.AddCommand(updateCmd())
 	rootCmd.AddCommand(subcommand.ConfigCmd())
 
 	logrus.SetLevel(logrus.WarnLevel)
@@ -78,6 +79,21 @@ func deleteCmd() *cobra.Command {
 	deleteCmd.AddCommand(subcommand.BindingDeleteCmd())
 	deleteCmd.AddCommand(subcommand.PolicyDeleteCmd())
 	return deleteCmd
+}
+
+// updateCmd contains all the update commands of the CLI.
+func updateCmd() *cobra.Command {
+	updateCmd := &cobra.Command{
+		Use:   "update",
+		Short: "Update",
+		Long:  `Update`,
+	}
+	// Add all update commands
+	updateCmd.AddCommand(subcommand.PeerUpdateCmd())
+	updateCmd.AddCommand(subcommand.ExportUpdateCmd())
+	updateCmd.AddCommand(subcommand.ImportUpdateCmd())
+	updateCmd.AddCommand(subcommand.PolicyUpdateCmd())
+	return updateCmd
 }
 
 // getCmd contains all the get commands of the CLI.

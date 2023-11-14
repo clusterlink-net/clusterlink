@@ -24,8 +24,8 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 )
 
-// peerCreateOptions is the command line options for 'create peer'
-type peerCreateOptions struct {
+// peerCreateOptions is the command line options for 'create peer' or 'update peer'.
+type peerOptions struct {
 	myID string
 	name string
 	host string
@@ -34,13 +34,31 @@ type peerCreateOptions struct {
 
 // PeerCreateCmd - create a peer command.
 func PeerCreateCmd() *cobra.Command {
-	o := peerCreateOptions{}
+	o := peerOptions{}
 	cmd := &cobra.Command{
 		Use:   "peer",
 		Short: "Create a peer",
 		Long:  "Create a peer",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return o.run()
+			return o.run(false)
+		},
+	}
+
+	o.addFlags(cmd.Flags())
+	cmdutil.MarkFlagsRequired(cmd, []string{"name", "host", "port"})
+
+	return cmd
+}
+
+// PeerUpdateCmd - update a peer command.
+func PeerUpdateCmd() *cobra.Command {
+	o := peerOptions{}
+	cmd := &cobra.Command{
+		Use:   "peer",
+		Short: "Update a peer",
+		Long:  "Update a peer",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return o.run(true)
 		},
 	}
 
@@ -51,21 +69,26 @@ func PeerCreateCmd() *cobra.Command {
 }
 
 // addFlags registers flags for the CLI.
-func (o *peerCreateOptions) addFlags(fs *pflag.FlagSet) {
+func (o *peerOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
 	fs.StringVar(&o.name, "name", "", "Peer name")
 	fs.StringVar(&o.host, "host", "", "Peer endpoint hostname (IP/DNS)")
 	fs.Uint16Var(&o.port, "port", 0, "Peer endpoint port")
 }
 
-// run performs the execution of the 'create peer' subcommand
-func (o *peerCreateOptions) run() error {
+// run performs the execution of the 'create peer' or 'update peer' subcommand.
+func (o *peerOptions) run(isUpdate bool) error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
-	err = g.Peers.Create(&api.Peer{
+	peerOperation := g.Peers.Create
+	if isUpdate {
+		peerOperation = g.Peers.Update
+	}
+
+	err = peerOperation(&api.Peer{
 		Name: o.name,
 		Spec: api.PeerSpec{
 			Gateways: []api.Endpoint{{
@@ -78,7 +101,6 @@ func (o *peerCreateOptions) run() error {
 		return err
 	}
 
-	fmt.Printf("Peer was created successfully\n")
 	return nil
 }
 
@@ -123,7 +145,6 @@ func (o *peerDeleteOptions) run() error {
 		return err
 	}
 
-	fmt.Printf("Peer was deleted successfully\n")
 	return nil
 }
 

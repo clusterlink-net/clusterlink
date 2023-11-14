@@ -25,8 +25,8 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 )
 
-// importCreateOptions is the command line options for 'create import'
-type importCreateOptions struct {
+// importOptions is the command line options for 'create import' or 'update import'.
+type importOptions struct {
 	myID string
 	name string
 	host string
@@ -35,13 +35,30 @@ type importCreateOptions struct {
 
 // ImportCreateCmd - create an imported service.
 func ImportCreateCmd() *cobra.Command {
-	o := importCreateOptions{}
+	o := importOptions{}
 	cmd := &cobra.Command{
 		Use:   "import",
 		Short: "Create an imported service",
 		Long:  `Create an imported service that can be bounded to other peers`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return o.run()
+			return o.run(false)
+		}}
+
+	o.addFlags(cmd.Flags())
+	cmdutil.MarkFlagsRequired(cmd, []string{"name", "port"})
+
+	return cmd
+}
+
+// ImportUpdateCmd - update an imported service.
+func ImportUpdateCmd() *cobra.Command {
+	o := importOptions{}
+	cmd := &cobra.Command{
+		Use:   "import",
+		Short: "Update an imported service",
+		Long:  `Update an imported service that can be bounded to other peers`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return o.run(true)
 		}}
 
 	o.addFlags(cmd.Flags())
@@ -51,21 +68,26 @@ func ImportCreateCmd() *cobra.Command {
 }
 
 // addFlags registers flags for the CLI.
-func (o *importCreateOptions) addFlags(fs *pflag.FlagSet) {
+func (o *importOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
 	fs.StringVar(&o.name, "name", "", "Imported service name")
 	fs.StringVar(&o.host, "host", "", "Imported service endpoint (IP/DNS), if unspecified, uses the service name")
 	fs.Uint16Var(&o.port, "port", 0, "Imported service port")
 }
 
-// run performs the execution of the 'create import' subcommand
-func (o *importCreateOptions) run() error {
+// run performs the execution of the 'create import' or 'update import' subcommand.
+func (o *importOptions) run(isUpdate bool) error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
-	err = g.Imports.Create(&api.Import{
+	importOperation := g.Imports.Create
+	if isUpdate {
+		importOperation = g.Imports.Update
+	}
+
+	err = importOperation(&api.Import{
 		Name: o.name,
 		Spec: api.ImportSpec{
 			Service: api.Endpoint{
@@ -77,7 +99,6 @@ func (o *importCreateOptions) run() error {
 		return err
 	}
 
-	fmt.Printf("Imported service created successfully\n")
 	return nil
 }
 
@@ -123,7 +144,6 @@ func (o *importDeleteOptions) run() error {
 		return err
 	}
 
-	fmt.Printf("Imported service was deleted successfully\n")
 	return nil
 }
 
