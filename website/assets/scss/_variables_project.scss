@@ -1,0 +1,12 @@
+/*
+Add styles or override variables from the theme here.
+*/
+
+$clusterlink-blue: #419eda;
+$clusterlink-light-blue: lighten($clusterlink-blue, 10%);
+$clusterlink-dark-blue: darken($clusterlink-blue, 20%);
+
+$primary: $clusterlink-dark-blue;
+$secondary: $clusterlink-light-blue;
+
+$enable-rounded: true;
