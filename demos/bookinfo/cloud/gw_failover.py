@@ -21,6 +21,7 @@ sys.path.insert(0,f'{projDir}')
 sys.path.insert(1,f'{projDir}/demos/utils/cloud/')
 from demos.bookinfo.test import applyFailover
 from demos.utils.cloud import cluster
+testOutputFolder = f"{projDir}/bin/tests/bookinfo" 
 
 # cl3 parameters
 cl3gcp = cluster(name="peer3", zone = "us-east4-b"   , platform = "gcp") # Virginia
@@ -35,5 +36,5 @@ if __name__ == "__main__":
     print(f'Working directory {projDir}')
     os.chdir(projDir)
     cl3 = cl3gcp if args["cloud"] in ["gcp"]        else cl3ibm
-    applyFailover(cl3, args["type"])
+    applyFailover(cl3, args["type",testOutputFolder])
     
