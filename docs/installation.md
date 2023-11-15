@@ -1,7 +1,7 @@
 # Installation guide for ClusterLink
 The ClusterLink gateway contains three main components: the control-plane, data-plane, and gwctl (more details can be found [here](../README.md#what-is-clusterlink)).
 
-ClusterLink can be deployed in a local environment (e.g., Kind) or any remote K8s cluster environment (e.g., google GKE, amazon EKS, IBM IKS, etc.).
+ClusterLink can be deployed in any K8s based cluster (e.g., google GKE, amazon EKS, IBM IKS, KIND etc.).
 
 To deploy the ClusterLink gateway in a K8s cluster, follow these steps:
 
@@ -50,13 +50,13 @@ In this step, we generate the ClusterLink certificates and deployment files.
 
 ## 2. Expose the ClusterLink deployment to a public IP
 Create a public IP for accessing the ClusterLink gateway.
-For a local environment (e.g., Kind), create a K8s nodeport service:
+For a testing environment (e.g., KIND), create a K8s nodeport service:
 
         kubectl apply -f $PROJECT_DIR/demos/utils/manifests/kind/cl-svc.yaml
         export PEER1_IP=`kubectl get nodes -o "jsonpath={.items[0].status.addresses[0].address}"`
         export PEER1_PORT=30443
 
-For a remote K8s cluster environment (e.g., google GKE, amazon EKS, IBM IKS, etc.):
+For a operational K8s cluster environment (e.g., google GKE, amazon EKS, IBM IKS, etc.):
 
 1. First, create a K8s LoadBalancer service:
 
