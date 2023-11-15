@@ -20,6 +20,7 @@ projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.pa
 sys.path.insert(0,f'{projDir}')
 from demos.utils.kind import cluster
 from demos.bookinfo.test import applyFailover
+testOutputFolder = f"{projDir}/bin/tests/bookinfo" 
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -29,4 +30,4 @@ if __name__ == "__main__":
     print(f'Working directory {projDir}')
     os.chdir(projDir)
     cl3 = cluster(name="peer3")
-    applyFailover(cl3, args["type"])
+    applyFailover(cl3, args["type"],testOutputFolder)
