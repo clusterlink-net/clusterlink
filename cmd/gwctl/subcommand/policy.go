@@ -27,8 +27,8 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 )
 
-// PolicyCreateOptions is the command line options for 'create policy'
-type policyCreateOptions struct {
+// PolicyOptions is the command line options for 'create policy' or 'update policy'.
+type policyOptions struct {
 	myID       string
 	pType      string
 	serviceSrc string
@@ -40,13 +40,30 @@ type policyCreateOptions struct {
 
 // PolicyCreateCmd - create a new policy - TODO update this command after integration.
 func PolicyCreateCmd() *cobra.Command {
-	o := policyCreateOptions{}
+	o := policyOptions{}
 	cmd := &cobra.Command{
 		Use:   "policy",
-		Short: "Create/replace a policy in the gateway",
-		Long:  `Create/replace a load-balancing policy or an access policy in the gateway.`,
+		Short: "Create a policy in the gateway",
+		Long:  `Create a load-balancing policy or an access policy in the gateway.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return o.run()
+			return o.run(false)
+		},
+	}
+	o.addFlags(cmd.Flags())
+	cmdutil.MarkFlagsRequired(cmd, []string{"type"})
+
+	return cmd
+}
+
+// PolicyUpdateCmd - update a policy - TODO update this command after integration.
+func PolicyUpdateCmd() *cobra.Command {
+	o := policyOptions{}
+	cmd := &cobra.Command{
+		Use:   "policy",
+		Short: "Update a policy in the gateway",
+		Long:  `Update a load-balancing policy or an access policy in the gateway.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return o.run(true)
 		},
 	}
 	o.addFlags(cmd.Flags())
@@ -56,7 +73,7 @@ func PolicyCreateCmd() *cobra.Command {
 }
 
 // addFlags registers flags for the CLI.
-func (o *policyCreateOptions) addFlags(fs *pflag.FlagSet) {
+func (o *policyOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
 	fs.StringVar(&o.pType, "type", "", "Policy agent command (For now: lb, access)")
 	fs.StringVar(&o.serviceSrc, "serviceSrc", "*", "Name of Source Service (* for wildcard)")
@@ -66,8 +83,8 @@ func (o *policyCreateOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.policyFile, "policyFile", "", "File to load access policy from")
 }
 
-// run performs the execution of the 'create policy' subcommand
-func (o *policyCreateOptions) run() error {
+// run performs the execution of the 'create policy' or 'update policy' subcommand.
+func (o *policyOptions) run(isUpdate bool) error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
@@ -78,12 +95,17 @@ func (o *policyCreateOptions) run() error {
 		if err != nil {
 			return err
 		}
-		err = g.LBPolicies.Create(policy)
+
+		lbOperation := g.LBPolicies.Create
+		if isUpdate {
+			lbOperation = g.LBPolicies.Update
+		}
+
+		err = lbOperation(policy)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("Load-balancing policy created successfully\n")
 		return nil
 
 	case policyengine.AccessType:
@@ -91,12 +113,17 @@ func (o *policyCreateOptions) run() error {
 		if err != nil {
 			return err
 		}
-		err = g.AccessPolicies.Create(policy)
+
+		acOperation := g.AccessPolicies.Create
+		if isUpdate {
+			acOperation = g.AccessPolicies.Update
+		}
+
+		err = acOperation(policy)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("Access Policy %s created successfully\n", policy.Name)
 		return nil
 
 	default:
@@ -189,7 +216,6 @@ func (o *policyDeleteOptions) run() error {
 			return err
 		}
 
-		fmt.Printf("Load-balancing policy was deleted successfully\n")
 		return nil
 
 	case policyengine.AccessType:
@@ -202,7 +228,6 @@ func (o *policyDeleteOptions) run() error {
 			return err
 		}
 
-		fmt.Printf("Access policy %s was deleted successfully\n", policy.Name)
 		return nil
 	default:
 		return fmt.Errorf("unknown policy type")
