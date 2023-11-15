@@ -26,7 +26,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 )
 
-// exportCreateOptions is the command line options for 'create export'
+// exportCreateOptions is the command line options for 'create export' or 'update export'.
 type exportCreateOptions struct {
 	myID     string
 	name     string
@@ -43,7 +43,24 @@ func ExportCreateCmd() *cobra.Command {
 		Short: "Create an exported service",
 		Long:  `Create an exported service that can be accessed by other peers`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return o.run()
+			return o.run(false)
+		},
+	}
+
+	o.addFlags(cmd.Flags())
+	cmdutil.MarkFlagsRequired(cmd, []string{"name", "port"})
+	return cmd
+}
+
+// ExportUpdateCmd - Update an exported service.
+func ExportUpdateCmd() *cobra.Command {
+	o := exportCreateOptions{}
+	cmd := &cobra.Command{
+		Use:   "export",
+		Short: "Update an exported service",
+		Long:  `Update an exported service that can be accessed by other peers`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return o.run(true)
 		},
 	}
 
@@ -61,8 +78,8 @@ func (o *exportCreateOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.external, "external", "", "External endpoint <host>:<port, which the exported service will be connected")
 }
 
-// run performs the execution of the 'create export' subcommand
-func (o *exportCreateOptions) run() error {
+// run performs the execution of the 'create export' or 'update export' subcommand.
+func (o *exportCreateOptions) run(isUpdate bool) error {
 	var exEndpoint api.Endpoint
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
@@ -90,7 +107,12 @@ func (o *exportCreateOptions) run() error {
 		}
 	}
 
-	err = g.Exports.Create(&api.Export{
+	exportOperation := g.Exports.Create
+	if isUpdate {
+		exportOperation = g.Exports.Update
+	}
+
+	err = exportOperation(&api.Export{
 		Name: o.name,
 		Spec: api.ExportSpec{
 			Service: api.Endpoint{
@@ -103,7 +125,6 @@ func (o *exportCreateOptions) run() error {
 		return err
 	}
 
-	fmt.Printf("Exported service created successfully\n")
 	return nil
 }
 
@@ -149,7 +170,6 @@ func (o *exportDeleteOptions) run() error {
 		return err
 	}
 
-	fmt.Println("Exported service was deleted successfully")
 	return nil
 }
 
