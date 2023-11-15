@@ -25,6 +25,7 @@ header:
     - "licenses"
     - "**/*.md"
     - "**/*.yaml"
+    - "**/*.toml"
     - "**/*.yml"
     - "**/*.txt"
     - "**/*.json"
@@ -43,6 +44,8 @@ header:
     - "**/Makefile"
     - "**/assets/languages.yaml"
     - "**/assets/assets.gen.go"
+    - "**/*.scss"
+    
 
   comment: on-failure
 
