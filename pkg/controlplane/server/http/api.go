@@ -129,7 +129,7 @@ func (h *peerHandler) List() (any, error) {
 	for i, peer := range peers {
 		apiPeers[i] = peerToAPI(peer)
 	}
-	return peers, nil
+	return apiPeers, nil
 }
 
 type exportHandler struct {
@@ -196,7 +196,7 @@ func (h *exportHandler) List() (any, error) {
 	for i, export := range exports {
 		apiExports[i] = exportToAPI(export)
 	}
-	return exports, nil
+	return apiExports, nil
 }
 
 type importHandler struct {
@@ -269,7 +269,7 @@ func (h *importHandler) List() (any, error) {
 	for i, imp := range imports {
 		apiImports[i] = importToAPI(imp)
 	}
-	return imports, nil
+	return apiImports, nil
 }
 
 type bindingHandler struct {
