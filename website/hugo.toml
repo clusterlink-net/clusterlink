@@ -125,7 +125,7 @@ github_branch= "main"
 # gcs_engine_id = "d72aa9b2712488cc3"
 
 # Enable Lunr.js offline search
-offlineSearch = false
+offlineSearch = true
 
 # Enable syntax highlighting and copy buttons on code blocks with Prism
 prism_syntax_highlighting = false
@@ -139,7 +139,7 @@ footer_about_disable = true
 # Set to false if you don't want to display a logo (/assets/icons/logo.svg) in the top navbar
 navbar_logo = true
 # Set to true if you don't want the top navbar to be translucent when over a `block/cover`, like on the homepage.
-navbar_translucent_over_cover_disable = false
+navbar_translucent_over_cover_disable = true
 # Enable to show the side bar menu in its compact state.
 sidebar_menu_compact = false
 # Set to true to hide the sidebar search box (the top nav search box will still be displayed if search is enabled)
