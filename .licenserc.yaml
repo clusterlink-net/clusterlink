@@ -45,6 +45,7 @@ header:
     - "**/assets/languages.yaml"
     - "**/assets/assets.gen.go"
     - "**/*.scss"
+    - "**/*.svg"
     
 
   comment: on-failure
