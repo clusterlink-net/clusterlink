@@ -139,7 +139,7 @@ footer_about_disable = true
 # Set to false if you don't want to display a logo (/assets/icons/logo.svg) in the top navbar
 navbar_logo = true
 # Set to true if you don't want the top navbar to be translucent when over a `block/cover`, like on the homepage.
-navbar_translucent_over_cover_disable = true
+navbar_translucent_over_cover_disable = false
 # Enable to show the side bar menu in its compact state.
 sidebar_menu_compact = false
 # Set to true to hide the sidebar search box (the top nav search box will still be displayed if search is enabled)
@@ -179,6 +179,25 @@ enable = false
   url = "https://groups.google.com/g/clusterlink-dev/"
   icon = "fa fa-envelope"
   desc = "Discuss development issues around the project"
+
+#-- main menu
+[[menu.main]]
+name = "About"
+weight = 1
+url = "/about/"
+
+[[menu.main]]
+name = "Docs"
+weight = 10
+url = "/docs/"
+pre = "<i class='fa-solid fa-book'></i>"
+
+[[menu.main]]
+name = "GitHub"
+weight = 20
+url = "https://github.com/clusterlink-net/clusterlink/"
+pre = "<i class='fa-brands fa-github'></i>"
+
 
 # hugo module configuration
 [module]
