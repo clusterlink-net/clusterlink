@@ -1,8 +1,7 @@
-SW_VERSION ?= latest
-IMAGE_ORG ?= mcnet
+IMAGE_VERSION ?= latest
+IMAGE_ORG ?= clusterlink-net
+IMAGE_BASE ?= ghcr.io/$(IMAGE_ORG)/
 
-IMAGE_TAG_BASE ?= quay.io/$(IMAGE_ORG)/clusterlink
-IMG ?= $(IMAGE_TAG_BASE):$(SW_VERSION)
 #-----------------------------------------------------------------------------
 # Target: clean
 #-----------------------------------------------------------------------------
@@ -31,7 +30,7 @@ prereqs-force: ; $(info force installing dev tooling...)
 dev-container: dist/.dev-container
 
 dist/.dev-container: Containerfile.dev | dist ; $(info building dev-container...)
-	@docker build -f Containerfile.dev -t quay.io/$(IMAGE_ORG)/dev:latest .
+	@docker build -f Containerfile.dev -t $(IMAGE_BASE)/dev:latest .
 	@touch $@
 
 .PHONY: run-dev-container
@@ -40,7 +39,7 @@ run-dev-container: dev-container ; $(info running dev-container...)
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		-v $(CURDIR):$(CURDIR) \
 		--workdir $(CURDIR) \
-		quay.io/$(IMAGE_ORG)/dev:latest
+		$(IMAGE_BASE)/dev:latest
 
 
 #-- precommit code checks --
@@ -87,10 +86,15 @@ docker-build: build
 	docker build --progress=plain --rm --tag cl-go-dataplane -f ./cmd/cl-go-dataplane/Dockerfile .
 	docker build --progress=plain --rm --tag gwctl -f ./cmd/gwctl/Dockerfile .
 
-build-image:
-	docker build --build-arg SW_VERSION="$(SW_VERSION)" -t ${IMG} .
-push-image:
-	docker push ${IMG}
+push-image: docker-build
+	docker tag cl-dataplane:latest $(IMAGE_BASE)/cl-dataplane:$(IMAGE_VERSION)
+	docker push $(IMAGE_BASE)/cl-dataplane:$(IMAGE_VERSION)
+	docker tag cl-controlplane:latest $(IMAGE_BASE)/cl-controlplane:$(IMAGE_VERSION)
+	docker push $(IMAGE_BASE)/cl-controlplane:$(IMAGE_VERSION)
+	docker tag cl-go-dataplane:latest $(IMAGE_BASE)/cl-go-dataplane:$(IMAGE_VERSION)
+	docker push $(IMAGE_BASE)/cl-go-dataplane:$(IMAGE_VERSION)
+	docker tag cl-gwctl:latest $(IMAGE_BASE)/cl-gwctl:$(IMAGE_VERSION)
+	docker push $(IMAGE_BASE)/cl-gwctl:$(IMAGE_VERSION)
 
 install:
 	cp ./bin/gwctl /usr/local/bin/
