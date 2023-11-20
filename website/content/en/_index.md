@@ -2,13 +2,14 @@
 title: ClusterLink
 ---
 
-{{< blocks/cover image_anchor="top" height="min" color="secondary" >}}
+{{< blocks/cover image_anchor="smart" height="auto" color="secondary" >}}
   <img src="clusterlink.png" class="site-logo" />
-  </p>
-  <a class="btn btn-lg btn-primary me-3 mb-4" href="/docs/">Learn More <i class="fas fa-arrow-alt-circle-right ms-2"></i></a>
-  <a class="btn btn-lg btn-secondary me-3 mb-4" href="https://github.com/clusterlink-net/clusterlink">Download <i class="fab fa-github ms-2 "></i></a>
-  <p class="lead mt-5" color="primary">Securely connecting applications &mdash; across multi-cloud</p>
-  {{< blocks/link-down color="primary" >}}
+  <div class="mx-auto">
+    <a class="btn btn-lg btn-primary mr-3 mb-4" href="/docs/">Learn More <i class="fas fa-arrow-alt-circle-right ml-2"></i></a>
+    <a class="btn btn-lg btn-secondary mr-3 mb-4" href="/docs/getting-started">Get Started <i class="fa-solid fa-person-running ml-2"></i></a>
+   <p class="lead mt-5" color="primary">Securely connecting applications &mdash; across multi-cloud</p>
+  </div>
+  {{< blocks/link-down color="secondary" >}}
 {{< /blocks/cover >}}
 
 
@@ -33,4 +34,22 @@ title: ClusterLink
   {{% blocks/feature icon="fa-solid fa-wifi" title="feature four!" %}}
   feature 4 paragraph
   {{% /blocks/feature %}}
+{{< /blocks/section >}}
+
+
+{{< blocks/section color="secondary" type="row" >}}
+  {{< cardpane >}}
+    <!-- {{< card header="**👓 How-to guides**" >}}
+      Content card 1
+    {{< /card >}} -->
+    {{< card header="**💭 Concepts**" footer="[**View concepts →**]({{< ref concepts >}})" >}}
+    Learn about the background and concepts behind ClusterLink with in-depth explanations. You’ll cover the main concepts and how ClusterLink works, so you have the broader context to use it most effectively.
+    {{< /card >}}
+    {{< card header="**🎓 Tutorials**" footer="[**View available tutorials →**]({{< ref tutorials >}})" >}}
+    Visit the tutorials for guided learning paths to try out ClusterLink and pick up the main concepts. We'll walk you through the steps to get started with ClusterLink and run your first use case.
+    {{< /card >}}
+    {{< card header="**📖 Reference**" footer="[**View reference →**]({{< ref reference >}})" >}}
+    Refer to detailed information on ClusterLink resources, APIs, CLIs, and more. Reference material is useful for looking up specific information about ClusterLink when you need it.
+    {{< /card >}}
+  {{< /cardpane >}}
 {{< /blocks/section >}}

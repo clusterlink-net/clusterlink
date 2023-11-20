@@ -1,0 +1,26 @@
+name:  Image release
+
+on:
+  push:
+    tags:
+      - 'v**'
+
+jobs:
+  build_and_push_to_ghcr:
+    name: Create docker release and publish to ghcr
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version-file: ./go.mod
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build and push ClusterLink images
+      run: make push-image IMAGE_VERSION=${{ github.ref_name }}
