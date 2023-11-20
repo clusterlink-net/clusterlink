@@ -29,7 +29,7 @@ class cluster:
     def createCluster(self, runBg=False):
         os.system(f"kind delete cluster --name={self.name}")
         printHeader(f"\n\nStart building {self.name}")
-        bgFlag = " &" if runBg else ""
+        bgFlag = " &" if runBg and self.cni=="" else ""
         #Set config file
         cfgFlag = f" --config {self.cfgFile}" if self.cfgFile != "" else  ""
         cfgFlag = f" --config {ProjDir}/demos/utils/manifests/kind/calico/calico-config.yaml" if (self.cfgFile == "" and self.cni== "calico")  else cfgFlag
@@ -42,8 +42,8 @@ class cluster:
         if  self.cni == "flannel":
             runcmd("kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml")
         if  self.cni == "calico":
-            runcmd("kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/tigera-operator.yaml")
-            runcmd("kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/custom-resources.yaml")
+            runcmd("kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.4/manifests/tigera-operator.yaml")
+            runcmd("kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.4/manifests/custom-resources.yaml")
 
     # startCluster deploy a Clusterlink gateway.
     def startCluster(self, testOutputFolder, logLevel="info", dataplane="envoy"):
