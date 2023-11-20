@@ -26,7 +26,7 @@ import sys
 projDir = os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__))))
 sys.path.insert(0,f'{projDir}')
 
-from demos.utils.common import runcmd, createFabric, printHeader
+from demos.utils.common import runcmd, createFabric, printHeader,applyPeer
 from demos.utils.kind import cluster
 from demos.utils.k8s import getPodName,getPodIp
 
@@ -159,13 +159,14 @@ def applyPolicy(cl:cluster, type):
         runcmd(f'kubectl exec -i {gwctlPod} -- gwctl delete policy --type lb --serviceSrc {srcSvc1} --serviceDst {reviewSvc} ')
         runcmd(f'kubectl exec -i {gwctlPod} -- gwctl delete policy --type lb --serviceDst {reviewSvc}')
 
-def applyFailover(cl, type):
+def applyFailover(cl:cluster, type, testOutputFolder):
     cl.useCluster()
     clPod=getPodName("cl-dataplane")
     print(clPod)
     if type == "fail":
-        printHeader(f"Failing {cl.name} network connection")
-        runcmd("kubectl delete service cl-dataplane")
+        printHeader(f"Failing {cl.name} dataplane")
+        runcmd("kubectl delete deployment cl-dataplane")
     elif type == "start":
-        printHeader(f"Restoring {cl.name} network connection")
-        runcmd("kubectl create service nodeport cl-dataplane --tcp=443:443 --node-port=30443")
+        printHeader(f"Restoring {cl.name} dataplane")
+        applyPeer(cl.name,testOutputFolder)
+
