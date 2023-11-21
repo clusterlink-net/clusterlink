@@ -187,8 +187,6 @@ func (pH *PolicyHandler) DeletePeer(name string) {
 		return
 	}
 
-	pH.loadBalancer.RemovePeerFromServiceMap(name)
-
 	delete(pH.enabledPeers, name)
 	plog.Infof("Removed Peer %s", name)
 }
