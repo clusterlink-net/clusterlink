@@ -466,14 +466,22 @@ func (cp *Instance) UpdateAccessPolicy(policy *cpstore.AccessPolicy) error {
 }
 
 // DeleteAccessPolicy removes an access policy to allow/deny specific connections.
-func (cp *Instance) DeleteAccessPolicy(policy *cpstore.AccessPolicy) (*cpstore.AccessPolicy, error) {
-	cp.logger.Infof("Deleting access policy '%s'.", policy.Spec.Blob)
+func (cp *Instance) DeleteAccessPolicy(name string) (*cpstore.AccessPolicy, error) {
+	cp.logger.Infof("Deleting access policy '%s'.", name)
 
-	if err := cp.policyDecider.DeleteAccessPolicy(&api.Policy{Spec: policy.Spec}); err != nil {
+	policy, err := cp.acPolicies.Delete(name)
+	if err != nil {
+		return nil, err
+	}
+	if policy == nil {
+		return nil, nil
+	}
+
+	if err := cp.policyDecider.DeleteAccessPolicy(&policy.Policy); err != nil {
 		return nil, err
 	}
 
-	return cp.acPolicies.Delete(policy.Name)
+	return policy, err
 }
 
 // GetAccessPolicy returns an access policy with the given name.
@@ -516,14 +524,22 @@ func (cp *Instance) UpdateLBPolicy(policy *cpstore.LBPolicy) error {
 }
 
 // DeleteLBPolicy removes a load-balancing policy.
-func (cp *Instance) DeleteLBPolicy(policy *cpstore.LBPolicy) (*cpstore.LBPolicy, error) {
-	cp.logger.Infof("Deleting load-balancing policy '%s'.", policy.Spec.Blob)
+func (cp *Instance) DeleteLBPolicy(name string) (*cpstore.LBPolicy, error) {
+	cp.logger.Infof("Deleting load-balancing policy '%s'.", name)
 
-	if err := cp.policyDecider.DeleteLBPolicy(&api.Policy{Spec: policy.Spec}); err != nil {
+	policy, err := cp.lbPolicies.Delete(name)
+	if err != nil {
+		return nil, err
+	}
+	if policy == nil {
+		return nil, nil
+	}
+
+	if err := cp.policyDecider.DeleteLBPolicy(&policy.Policy); err != nil {
 		return nil, err
 	}
 
-	return cp.lbPolicies.Delete(policy.Name)
+	return policy, nil
 }
 
 // GetLBPolicy returns a load-balancing policy with the given name.

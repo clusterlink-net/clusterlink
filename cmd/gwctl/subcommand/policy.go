@@ -211,7 +211,7 @@ func (o *policyDeleteOptions) run() error {
 		if err != nil {
 			return err
 		}
-		err = g.LBPolicies.Delete(policy)
+		err = g.LBPolicies.Delete(policy.Name)
 		if err != nil {
 			return err
 		}
@@ -223,7 +223,7 @@ func (o *policyDeleteOptions) run() error {
 		if err != nil {
 			return err
 		}
-		err = g.AccessPolicies.Delete(policy)
+		err = g.AccessPolicies.Delete(policy.Name)
 		if err != nil {
 			return err
 		}
