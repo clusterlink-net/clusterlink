@@ -114,7 +114,11 @@ func peerToAPI(peer *store.Peer) *api.Peer {
 
 // Get a peer.
 func (h *peerHandler) Get(name string) (any, error) {
-	return peerToAPI(h.cp.GetPeer(name)), nil
+	peer := peerToAPI(h.cp.GetPeer(name))
+	if peer == nil {
+		return nil, nil
+	}
+	return peer, nil
 }
 
 // Delete a peer.
@@ -181,7 +185,11 @@ func exportToAPI(export *store.Export) *api.Export {
 
 // Get an export.
 func (h *exportHandler) Get(name string) (any, error) {
-	return exportToAPI(h.cp.GetExport(name)), nil
+	export := exportToAPI(h.cp.GetExport(name))
+	if export == nil {
+		return nil, nil
+	}
+	return export, nil
 }
 
 // Delete an export.
@@ -254,7 +262,11 @@ func importToAPI(imp *store.Import) *api.Import {
 
 // Get an import.
 func (h *importHandler) Get(name string) (any, error) {
-	return importToAPI(h.cp.GetImport(name)), nil
+	imp := importToAPI(h.cp.GetImport(name))
+	if imp == nil {
+		return nil, nil
+	}
+	return imp, nil
 }
 
 // Delete an import.
