@@ -121,7 +121,7 @@ func (s *Server) update(spec *ServerObjectSpec, w http.ResponseWriter, r *http.R
 			return
 		}
 
-		requestLogger.Errorf("Cannot create object: %v.", err)
+		requestLogger.Errorf("Cannot update object: %v.", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -141,6 +141,9 @@ func (cp *Instance) DeletePeer(name string) (*cpstore.Peer, error) {
 	if err != nil {
 		return nil, err
 	}
+	if peer == nil {
+		return nil, nil
+	}
 
 	cp.peerClient[name].StopMonitor()
 	cp.peerLock.Lock()
@@ -250,6 +253,9 @@ func (cp *Instance) DeleteExport(name string) (*cpstore.Export, error) {
 	if err != nil {
 		return nil, err
 	}
+	if export == nil {
+		return nil, nil
+	}
 
 	// Deleting k8s endpoint and service for external service.
 	exSvc := export.ExportSpec.ExternalService
@@ -343,6 +349,9 @@ func (cp *Instance) DeleteImport(name string) (*cpstore.Import, error) {
 	imp, err := cp.imports.Delete(name)
 	if err != nil {
 		return nil, err
+	}
+	if imp == nil {
+		return nil, nil
 	}
 
 	if err := cp.xdsManager.DeleteImport(name); err != nil {
