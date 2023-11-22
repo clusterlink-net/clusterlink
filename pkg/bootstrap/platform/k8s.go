@@ -248,7 +248,7 @@ metadata:
 rules:
 - apiGroups: [""]
   resources: ["services", "endpoints"]
-  verbs: ["create", "delete"]
+  verbs: ["create", "delete", "update"]
 - apiGroups: [""]
   resources: ["pods"]
   verbs: ["get", "list", "watch"]
