@@ -85,15 +85,15 @@ func (cp *Instance) CreatePeer(peer *cpstore.Peer) error {
 		return err
 	}
 
-	cp.policyDecider.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
+	cp.policyDecider.AddPeer(peer.Name)
 
 	client.SetPeerStatusCallback(func(isActive bool) {
 		if isActive {
-			cp.policyDecider.EnablePeer(peer.Name)
+			cp.policyDecider.AddPeer(peer.Name)
 			return
 		}
 
-		cp.policyDecider.DisablePeer(peer.Name)
+		cp.policyDecider.DeletePeer(peer.Name)
 	})
 
 	return nil
@@ -122,7 +122,7 @@ func (cp *Instance) UpdatePeer(peer *cpstore.Peer) error {
 		return err
 	}
 
-	cp.policyDecider.AddPeer(&api.Peer{Name: peer.Name, Spec: peer.PeerSpec})
+	cp.policyDecider.AddPeer(peer.Name)
 
 	return nil
 }
