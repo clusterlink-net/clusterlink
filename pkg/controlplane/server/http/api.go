@@ -53,13 +53,13 @@ func (s *Server) addAPIHandlers() {
 	s.AddObjectHandlers(&rest.ServerObjectSpec{
 		BasePath:      "/policies",
 		Handler:       &accessPolicyHandler{cp: s.cp},
-		DeleteByValue: true,
+		DeleteByValue: false,
 	})
 
 	s.AddObjectHandlers(&rest.ServerObjectSpec{
 		BasePath:      "/lbpolicies",
 		Handler:       &lbPolicyHandler{cp: s.cp},
-		DeleteByValue: true,
+		DeleteByValue: false,
 	})
 }
 
@@ -367,28 +367,32 @@ func (h *accessPolicyHandler) Update(object any) error {
 	return h.cp.UpdateAccessPolicy(object.(*store.AccessPolicy))
 }
 
-func accessPoliciesToAPI(policies []*store.AccessPolicy) []*api.Policy {
-	apiPolicies := make([]*api.Policy, len(policies))
-	for i, policy := range policies {
-		apiPolicies[i] = &api.Policy{Name: policy.Name, Spec: policy.Spec}
-	}
-	return apiPolicies
+func accessPolicyToAPI(policy *store.AccessPolicy) *api.Policy {
+	return &policy.Policy
 }
 
 // Delete an access policy.
-func (h *accessPolicyHandler) Delete(object any) (any, error) {
-	return h.cp.DeleteAccessPolicy(object.(*store.AccessPolicy))
+func (h *accessPolicyHandler) Delete(name any) (any, error) {
+	return h.cp.DeleteAccessPolicy(name.(string))
 }
 
 // Get an access policy.
 func (h *accessPolicyHandler) Get(name string) (any, error) {
-	asSlice := []*store.AccessPolicy{h.cp.GetAccessPolicy(name)}
-	return accessPoliciesToAPI(asSlice), nil
+	policy := h.cp.GetAccessPolicy(name)
+	if policy == nil {
+		return nil, nil
+	}
+	return accessPolicyToAPI(policy), nil
 }
 
 // List all access policies.
 func (h *accessPolicyHandler) List() (any, error) {
-	return accessPoliciesToAPI(h.cp.GetAllAccessPolicies()), nil
+	policies := h.cp.GetAllAccessPolicies()
+	apiPolicies := make([]*api.Policy, len(policies))
+	for i, policy := range policies {
+		apiPolicies[i] = accessPolicyToAPI(policy)
+	}
+	return apiPolicies, nil
 }
 
 type lbPolicyHandler struct {
@@ -419,26 +423,30 @@ func (h *lbPolicyHandler) Update(object any) error {
 	return h.cp.UpdateLBPolicy(object.(*store.LBPolicy))
 }
 
-func lbPoliciesToAPI(policies []*store.LBPolicy) []*api.Policy {
-	apiPolicies := make([]*api.Policy, len(policies))
-	for i, policy := range policies {
-		apiPolicies[i] = &api.Policy{Name: policy.Name, Spec: policy.Spec}
-	}
-	return apiPolicies
+func lbPolicyToAPI(policy *store.LBPolicy) *api.Policy {
+	return &policy.Policy
 }
 
 // Delete a load-balancing policy.
-func (h *lbPolicyHandler) Delete(object any) (any, error) {
-	return h.cp.DeleteLBPolicy(object.(*store.LBPolicy))
+func (h *lbPolicyHandler) Delete(name any) (any, error) {
+	return h.cp.DeleteLBPolicy(name.(string))
 }
 
 // Get an load-balancing policy.
 func (h *lbPolicyHandler) Get(name string) (any, error) {
-	asSlice := []*store.LBPolicy{h.cp.GetLBPolicy(name)}
-	return lbPoliciesToAPI(asSlice), nil
+	policy := h.cp.GetLBPolicy(name)
+	if policy == nil {
+		return nil, nil
+	}
+	return lbPolicyToAPI(policy), nil
 }
 
 // List all load-balancing policies.
 func (h *lbPolicyHandler) List() (any, error) {
-	return lbPoliciesToAPI(h.cp.GetAllLBPolicies()), nil
+	policies := h.cp.GetAllLBPolicies()
+	apiPolicies := make([]*api.Policy, len(policies))
+	for i, policy := range policies {
+		apiPolicies[i] = lbPolicyToAPI(policy)
+	}
+	return apiPolicies, nil
 }
