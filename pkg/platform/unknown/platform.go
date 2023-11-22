@@ -18,27 +18,23 @@ type Platform struct {
 }
 
 // CreateService creates a service.
-func (p *Platform) CreateService(_, _ string, _, _ uint16) {
+func (p *Platform) CreateService(_, _, _ string, _, _ uint16) {
 }
 
 // UpdateService updates a service.
-func (p *Platform) UpdateService(_, _ string, _, _ uint16) {
+func (p *Platform) UpdateService(_, _, _ string, _, _ uint16) {
 }
 
 // DeleteService deletes a service.
-func (p *Platform) DeleteService(_ string) {
+func (p *Platform) DeleteService(_, _ string) {
 }
 
-// CreateEndpoint creates a endpoint.
-func (p *Platform) CreateEndpoint(_, _ string, _ uint16) {
+// CreateExternalService creates an external service.
+func (p *Platform) CreateExternalService(_, _, _ string, _ uint16) {
 }
 
-// UpdateEndpoint updates a endpoint.
-func (p *Platform) UpdateEndpoint(_, _ string, _ uint16) {
-}
-
-// DeleteEndpoint deletes a endpoint.
-func (p *Platform) DeleteEndpoint(_ string) {
+// UpdateExternalService updates an external service.
+func (p *Platform) UpdateExternalService(_, _, _ string, _ uint16) {
 }
 
 // GetLabelsFromIP return all the labels for specific ip.

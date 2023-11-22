@@ -3,6 +3,7 @@ module github.com/clusterlink-net/clusterlink
 go 1.20
 
 require (
+	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/envoyproxy/go-control-plane v0.11.1
 	github.com/go-chi/chi v4.1.2+incompatible

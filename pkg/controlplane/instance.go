@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"sync"
 
+	valid "github.com/asaskevich/govalidator"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/sirupsen/logrus"
@@ -34,6 +35,7 @@ import (
 
 const (
 	dataplaneAppName = "cl-dataplane"
+	exportPrefix     = "export_"
 )
 
 // Instance of a controlplane, where all API servers delegate their requested actions to.
@@ -169,11 +171,10 @@ func (cp *Instance) GetAllPeers() []*cpstore.Peer {
 // CreateExport defines a new route target for ingress dataplane connections.
 func (cp *Instance) CreateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Creating export '%s'.", export.Name)
-	exSvc := export.ExportSpec.ExternalService
-	if (exSvc.Host != "" && exSvc.Port == 0) || (exSvc.Host == "" && exSvc.Port != 0) {
-		return fmt.Errorf("ExternalService (Host: %s ,Port: %d) wasn't set properly", exSvc.Host, exSvc.Port)
+	eSpec := export.ExportSpec
+	if eSpec.ExternalService != "" && !valid.IsIP(eSpec.ExternalService) && !valid.IsDNSName(eSpec.ExternalService) {
+		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
 	}
-
 	resp, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
 	if err != nil {
 		return err
@@ -187,10 +188,9 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 		if err := cp.exports.Create(export); err != nil {
 			return err
 		}
-		// create k8s endpoint and service for external service.
-		if exSvc.Host != "" && exSvc.Port != 0 && cp.initialized {
-			cp.platform.CreateEndpoint(export.Name, exSvc.Host, exSvc.Port)
-			cp.platform.CreateService(export.Name, export.Name, exSvc.Port, exSvc.Port)
+		// create a k8s external service.
+		if eSpec.ExternalService != "" {
+			cp.platform.CreateExternalService(exportPrefix+export.Name, eSpec.Service.Host, eSpec.ExternalService, eSpec.Service.Port)
 		}
 	}
 
@@ -205,9 +205,9 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 // UpdateExport updates a new route target for ingress dataplane connections.
 func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Updating export '%s'.", export.Name)
-	exSvc := export.ExportSpec.ExternalService
-	if (exSvc.Host != "" && exSvc.Port == 0) || (exSvc.Host == "" && exSvc.Port != 0) {
-		return fmt.Errorf("ExternalService (Host: %s ,Port: %d) wasn't set properly", exSvc.Host, exSvc.Port)
+	eSpec := export.ExportSpec
+	if eSpec.ExternalService != "" && !valid.IsIP(eSpec.ExternalService) && !valid.IsDNSName(eSpec.ExternalService) {
+		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
 	}
 
 	resp, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
@@ -225,10 +225,9 @@ func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	if err != nil {
 		return err
 	}
-	// Update k8s endpoint and service for external service.
-	if exSvc.Host != "" && exSvc.Port != 0 {
-		cp.platform.UpdateEndpoint(export.Name, exSvc.Host, exSvc.Port)
-		cp.platform.UpdateService(export.Name, export.Name, exSvc.Port, exSvc.Port)
+	// Update a k8s external service.
+	if eSpec.ExternalService != "" {
+		cp.platform.UpdateExternalService(exportPrefix+export.Name, eSpec.Service.Host, eSpec.ExternalService, eSpec.Service.Port)
 	}
 
 	if err := cp.xdsManager.AddExport(export); err != nil {
@@ -257,11 +256,9 @@ func (cp *Instance) DeleteExport(name string) (*cpstore.Export, error) {
 		return nil, nil
 	}
 
-	// Deleting k8s endpoint and service for external service.
-	exSvc := export.ExportSpec.ExternalService
-	if exSvc.Host != "" && exSvc.Port != 0 {
-		cp.platform.DeleteEndpoint(name)
-		cp.platform.DeleteService(name)
+	// Deleting a k8s external service.
+	if export.ExportSpec.ExternalService != "" {
+		cp.platform.DeleteService(exportPrefix+name, export.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -308,7 +305,7 @@ func (cp *Instance) CreateImport(imp *cpstore.Import) error {
 
 	// TODO: handle a crash happening between storing an import and creating a service
 	if cp.initialized {
-		cp.platform.CreateService(imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
+		cp.platform.CreateService(imp.Name, imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
 	}
 
 	return nil
@@ -331,7 +328,7 @@ func (cp *Instance) UpdateImport(imp *cpstore.Import) error {
 		return err
 	}
 
-	cp.platform.UpdateService(imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
+	cp.platform.UpdateService(imp.Name, imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
 
 	return nil
 }
@@ -361,7 +358,7 @@ func (cp *Instance) DeleteImport(name string) (*cpstore.Import, error) {
 
 	cp.ports.Release(imp.Port)
 
-	cp.platform.DeleteService(imp.Service.Host)
+	cp.platform.DeleteService(imp.Name, imp.Service.Host)
 
 	return imp, nil
 }
