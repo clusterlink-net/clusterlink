@@ -18,7 +18,6 @@ import (
 	"os"
 
 	logrusr "github.com/bombsimon/logrusr/v4"
-	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +25,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+
+	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
 )
 
 const (

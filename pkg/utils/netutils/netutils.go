@@ -31,7 +31,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// GetConnIP Return connection IP and port
+var dnsPattern = `^[a-zA-Z0-9-]{1,63}(\.[a-zA-Z0-9-]{1,63})*$`
+var dnsRegex = regexp.MustCompile(dnsPattern)
+
+// GetConnIP returns the connection's local IP and port.
 func GetConnIP(c net.Conn) (string, string) {
 	s := strings.Split(c.LocalAddr().String(), ":")
 	ip := s[0]
@@ -46,9 +49,7 @@ func IsIP(str string) bool {
 
 // IsDNS returns true if the input is valid DNS.
 func IsDNS(s string) bool {
-	pattern := `^[a-zA-Z0-9-]{1,63}(\.[a-zA-Z0-9-]{1,63})*$`
-	re := regexp.MustCompile(pattern)
-	return re.MatchString(s)
+	return dnsRegex.MatchString(s)
 }
 
 // Start HTTP server
