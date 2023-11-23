@@ -17,8 +17,8 @@ import (
 	"context"
 	"os"
 
-	valid "github.com/asaskevich/govalidator"
 	logrusr "github.com/bombsimon/logrusr/v4"
+	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,7 +44,7 @@ type Platform struct {
 
 func (p *Platform) setExternalNameService(host, externalName string) *corev1.Service {
 	eName := externalName
-	if valid.IsIP(eName) {
+	if netutils.IsIP(eName) {
 		eName += ".nip.io" // Convert IP to DNS address.
 	}
 

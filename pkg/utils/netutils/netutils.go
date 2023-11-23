@@ -24,18 +24,31 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
-// Return connection IP and port
+// GetConnIP Return connection IP and port
 func GetConnIP(c net.Conn) (string, string) {
 	s := strings.Split(c.LocalAddr().String(), ":")
 	ip := s[0]
 	port := s[1]
 	return ip, port
+}
+
+// IsIP returns true if the input is valid IPv4 or IPv6.
+func IsIP(str string) bool {
+	return net.ParseIP(str) != nil
+}
+
+// IsDNS returns true if the input is valid DNS.
+func IsDNS(s string) bool {
+	pattern := `^[a-zA-Z0-9-]{1,63}(\.[a-zA-Z0-9-]{1,63})*$`
+	re := regexp.MustCompile(pattern)
+	return re.MatchString(s)
 }
 
 // Start HTTP server

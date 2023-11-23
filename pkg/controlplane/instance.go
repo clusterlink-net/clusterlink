@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"sync"
 
-	valid "github.com/asaskevich/govalidator"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/sirupsen/logrus"
@@ -31,6 +30,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/store"
 	"github.com/clusterlink-net/clusterlink/pkg/util"
+	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
 )
 
 const (
@@ -172,7 +172,7 @@ func (cp *Instance) GetAllPeers() []*cpstore.Peer {
 func (cp *Instance) CreateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Creating export '%s'.", export.Name)
 	eSpec := export.ExportSpec
-	if eSpec.ExternalService != "" && !valid.IsIP(eSpec.ExternalService) && !valid.IsDNSName(eSpec.ExternalService) {
+	if eSpec.ExternalService != "" && !netutils.IsIP(eSpec.ExternalService) && !netutils.IsDNS(eSpec.ExternalService) {
 		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
 	}
 	resp, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
@@ -206,7 +206,7 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Updating export '%s'.", export.Name)
 	eSpec := export.ExportSpec
-	if eSpec.ExternalService != "" && !valid.IsIP(eSpec.ExternalService) && !valid.IsDNSName(eSpec.ExternalService) {
+	if eSpec.ExternalService != "" && !netutils.IsIP(eSpec.ExternalService) && !netutils.IsDNS(eSpec.ExternalService) {
 		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
 	}
 
