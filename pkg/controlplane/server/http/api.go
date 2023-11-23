@@ -326,7 +326,11 @@ func bindingsToAPI(bindings []*store.Binding) []*api.Binding {
 
 // Get a binding.
 func (h *bindingHandler) Get(name string) (any, error) {
-	return bindingsToAPI(h.cp.GetBindings(name)), nil
+	binding := bindingsToAPI(h.cp.GetBindings(name))
+	if binding == nil {
+		return nil, nil
+	}
+	return binding, nil
 }
 
 // Delete a binding.
