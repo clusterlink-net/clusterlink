@@ -53,10 +53,8 @@ type PolicyDecider interface {
 
 	AuthorizeAndRouteConnection(connReq *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error)
 
-	AddPeer(peer *api.Peer)
+	AddPeer(name string)
 	DeletePeer(name string)
-	DisablePeer(name string)
-	EnablePeer(name string)
 
 	AddBinding(imp *api.Binding) (event.Action, error)
 	DeleteBinding(imp *api.Binding)
@@ -173,32 +171,14 @@ func (pH *PolicyHandler) AuthorizeAndRouteConnection(connReq *event.ConnectionRe
 	return resp, err
 }
 
-func (pH *PolicyHandler) AddPeer(peer *api.Peer) {
-	if _, exists := pH.enabledPeers[peer.Name]; exists {
-		return
-	}
-
-	pH.enabledPeers[peer.Name] = true
-	plog.Infof("Added Peer %s", peer.Name)
+func (pH *PolicyHandler) AddPeer(name string) {
+	pH.enabledPeers[name] = true
+	plog.Infof("Added Peer %s", name)
 }
 
 func (pH *PolicyHandler) DeletePeer(name string) {
-	if _, exists := pH.enabledPeers[name]; !exists {
-		return
-	}
-
-	pH.loadBalancer.RemovePeerFromServiceMap(name)
-
 	delete(pH.enabledPeers, name)
 	plog.Infof("Removed Peer %s", name)
-}
-
-func (pH *PolicyHandler) DisablePeer(name string) {
-	delete(pH.enabledPeers, name)
-}
-
-func (pH *PolicyHandler) EnablePeer(name string) {
-	pH.enabledPeers[name] = true
 }
 
 func (pH *PolicyHandler) AddBinding(binding *api.Binding) (event.Action, error) {

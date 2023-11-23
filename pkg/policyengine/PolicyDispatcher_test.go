@@ -218,22 +218,22 @@ func TestDisableEnablePeers(t *testing.T) {
 	require.Equal(t, event.Allow, connReqResp.Action)
 	require.Equal(t, peer1, connReqResp.TargetPeer) // LB policy defaults this request to be served by peer1
 
-	ph.DisablePeer(peer1)
+	ph.DeletePeer(peer1)
 
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
 	require.Equal(t, event.Allow, connReqResp.Action)
 	require.Equal(t, peer2, connReqResp.TargetPeer) // peer1 is now disabled, so peer2 must be used
 
-	ph.DisablePeer(peer2)
+	ph.DeletePeer(peer2)
 
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
 	require.Equal(t, event.Deny, connReqResp.Action) // no enabled peers - a Deny is returned
 	require.Equal(t, "", connReqResp.TargetPeer)
 
-	ph.EnablePeer(peer1)
-	ph.EnablePeer(peer2)
+	ph.AddPeer(peer1)
+	ph.AddPeer(peer2)
 
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
@@ -242,7 +242,7 @@ func TestDisableEnablePeers(t *testing.T) {
 }
 
 func addRemoteSvc(t *testing.T, svc, peer string, ph policyengine.PolicyDecider) {
-	ph.AddPeer(&api.Peer{Name: peer}) // just in case it was not already added
+	ph.AddPeer(peer) // just in case it was not already added
 	action, err := ph.AddBinding(&api.Binding{Spec: api.BindingSpec{Import: svc, Peer: peer}})
 	require.Nil(t, err)
 	require.Equal(t, event.Allow, action)
