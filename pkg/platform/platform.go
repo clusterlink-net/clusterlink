@@ -18,7 +18,7 @@ type Platform interface {
 	CreateService(name, host, targetApp string, port, targetPort uint16)
 	UpdateService(name, host, targetApp string, port, targetPort uint16)
 	DeleteService(name, host string)
-	CreateExternalService(name, host, ExternalName string, port uint16)
-	UpdateExternalService(name, host, ExternalName string, port uint16)
+	CreateExternalService(name, host, ExternalName string)
+	UpdateExternalService(name, host, ExternalName string)
 	GetLabelsFromIP(ip string) map[string]string
 }

@@ -30,11 +30,11 @@ func (p *Platform) DeleteService(_, _ string) {
 }
 
 // CreateExternalService creates an external service.
-func (p *Platform) CreateExternalService(_, _, _ string, _ uint16) {
+func (p *Platform) CreateExternalService(_, _, _ string) {
 }
 
 // UpdateExternalService updates an external service.
-func (p *Platform) UpdateExternalService(_, _, _ string, _ uint16) {
+func (p *Platform) UpdateExternalService(_, _, _ string) {
 }
 
 // GetLabelsFromIP return all the labels for specific ip.

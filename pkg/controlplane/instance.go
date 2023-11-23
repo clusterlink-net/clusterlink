@@ -190,7 +190,7 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 		}
 		// create a k8s external service.
 		if eSpec.ExternalService != "" {
-			cp.platform.CreateExternalService(exportPrefix+export.Name, eSpec.Service.Host, eSpec.ExternalService, eSpec.Service.Port)
+			cp.platform.CreateExternalService(exportPrefix+export.Name, eSpec.Service.Host, eSpec.ExternalService)
 		}
 	}
 
@@ -227,7 +227,7 @@ func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	}
 	// Update a k8s external service.
 	if eSpec.ExternalService != "" {
-		cp.platform.UpdateExternalService(exportPrefix+export.Name, eSpec.Service.Host, eSpec.ExternalService, eSpec.Service.Port)
+		cp.platform.UpdateExternalService(exportPrefix+export.Name, eSpec.Service.Host, eSpec.ExternalService)
 	}
 
 	if err := cp.xdsManager.AddExport(export); err != nil {

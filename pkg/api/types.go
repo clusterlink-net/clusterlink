@@ -74,8 +74,8 @@ type ExportSpec struct {
 	Service Endpoint
 	// ExternalService specifies a service located outside of the cluster.
 	// If ExternalService is defined, a new local ExternalName Service will be created,
-	// pointing to the ExternalService. Note that the port value is the same as defined
-	// in the Service field.
+	// pointing to the ExternalService. Note: the external name is just a DNS name mapping
+	// to the Service field, and there is no associated port mapping.
 	ExternalService string
 }
 

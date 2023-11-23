@@ -89,16 +89,16 @@ func (p *Platform) UpdateService(name, host, targetApp string, port, targetPort 
 }
 
 // CreateExternalService creates an external service.
-func (p *Platform) CreateExternalService(name, host, externalName string, port uint16) {
+func (p *Platform) CreateExternalService(name, host, externalName string) {
 	serviceSpec := p.setExternalNameService(host, externalName)
-	p.logger.Infof("Creating Kubernetes service %s of type ExternalName linked to %s:%d.", host, externalName, port)
+	p.logger.Infof("Creating Kubernetes service %s of type ExternalName linked to %s.", host, externalName)
 	go p.serviceReconciler.CreateResource(name, serviceSpec)
 }
 
 // UpdateExternalService updates an external service.
-func (p *Platform) UpdateExternalService(name, host, externalName string, port uint16) {
+func (p *Platform) UpdateExternalService(name, host, externalName string) {
 	serviceSpec := p.setExternalNameService(host, externalName)
-	p.logger.Infof("Updating Kubernetes service %s of type ExternalName linked to %s:%d.", host, externalName, port)
+	p.logger.Infof("Updating Kubernetes service %s of type ExternalName linked to %s.", host, externalName)
 	go p.serviceReconciler.UpdateResource(name, serviceSpec)
 }
 
