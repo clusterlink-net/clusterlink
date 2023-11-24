@@ -1,6 +1,6 @@
 IMAGE_VERSION ?= latest
 IMAGE_ORG ?= clusterlink-net
-IMAGE_BASE ?= ghcr.io/$(IMAGE_ORG)/
+IMAGE_BASE ?= ghcr.io/$(IMAGE_ORG)
 
 #-----------------------------------------------------------------------------
 # Target: clean
@@ -93,8 +93,8 @@ push-image: docker-build
 	docker push $(IMAGE_BASE)/cl-controlplane:$(IMAGE_VERSION)
 	docker tag cl-go-dataplane:latest $(IMAGE_BASE)/cl-go-dataplane:$(IMAGE_VERSION)
 	docker push $(IMAGE_BASE)/cl-go-dataplane:$(IMAGE_VERSION)
-	docker tag cl-gwctl:latest $(IMAGE_BASE)/cl-gwctl:$(IMAGE_VERSION)
-	docker push $(IMAGE_BASE)/cl-gwctl:$(IMAGE_VERSION)
+	docker tag gwctl:latest $(IMAGE_BASE)/gwctl:$(IMAGE_VERSION)
+	docker push $(IMAGE_BASE)/gwctl:$(IMAGE_VERSION)
 
 install:
 	cp ./bin/gwctl /usr/local/bin/

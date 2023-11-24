@@ -15,8 +15,6 @@ package subcommand
 
 import (
 	"fmt"
-	"net"
-	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -80,33 +78,10 @@ func (o *exportCreateOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'create export' or 'update export' subcommand.
 func (o *exportCreateOptions) run(isUpdate bool) error {
-	var exEndpoint api.Endpoint
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
-
-	if o.external != "" {
-		exHost, exPort, err := net.SplitHostPort(o.external)
-		if err != nil {
-			return err
-		}
-
-		if exHost == "" {
-			return fmt.Errorf("missing host in address")
-		}
-
-		exPortInt, err := strconv.ParseUint(exPort, 10, 16)
-		if err != nil {
-			return err
-		}
-
-		exEndpoint = api.Endpoint{
-			Host: exHost,
-			Port: uint16(exPortInt),
-		}
-	}
-
 	exportOperation := g.Exports.Create
 	if isUpdate {
 		exportOperation = g.Exports.Update
@@ -118,7 +93,7 @@ func (o *exportCreateOptions) run(isUpdate bool) error {
 			Service: api.Endpoint{
 				Host: o.host,
 				Port: o.port},
-			ExternalService: exEndpoint,
+			ExternalService: o.external,
 		},
 	})
 	if err != nil {

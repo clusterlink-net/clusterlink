@@ -41,44 +41,56 @@ const (
 )
 
 // CreateResource creates k8s resource.
-func (r *Reconciler) CreateResource(obj client.Object) {
+func (r *Reconciler) CreateResource(name string, obj client.Object) {
 	err := r.client.Create(context.Background(), obj)
 	if err != nil {
 		r.logger.Errorf("error occurred while creating K8s %v %v:", reflect.TypeOf(obj).String(), err)
-		r.failedList[obj.GetName()] = reconcileObj{spec: obj, op: createOp}
+		r.failedList[name] = reconcileObj{spec: obj, op: createOp}
 		return
 	}
 
-	r.list[obj.GetName()] = obj
+	r.list[name] = obj
 }
 
 // UpdateResource updates k8s resource.
-func (r *Reconciler) UpdateResource(obj client.Object) {
-	err := r.client.Update(context.Background(), obj)
-	if err != nil {
-		r.logger.Errorf("error occurred while updating K8s %v %v:", reflect.TypeOf(obj).String(), err)
-		r.failedList[obj.GetName()] = reconcileObj{spec: obj, op: updateOp}
+func (r *Reconciler) UpdateResource(name string, obj client.Object) {
+	if oldObj, ok := r.list[name]; ok {
+		if obj.GetName() == oldObj.GetName() {
+			err := r.client.Update(context.Background(), obj)
+			if err != nil {
+				r.logger.Errorf("error occurred while updating K8s %v %v:", reflect.TypeOf(obj).String(), err)
+				r.failedList[name] = reconcileObj{spec: obj, op: updateOp}
+				return
+			}
+			r.list[name] = obj
+			return
+		}
+
+		r.CreateResource(name, obj)
+		if r.list[name] == obj {
+			// Deleting old resource only if creating the new one was successful.
+			err := r.client.Delete(context.Background(), oldObj)
+			if err != nil {
+				r.logger.Errorf("error occurred while deleting K8s %v %v:", reflect.TypeOf(oldObj).String(), err)
+				r.failedList[name] = reconcileObj{spec: oldObj, op: updateOp}
+			}
+		}
+
 		return
 	}
-
-	r.list[obj.GetName()] = obj
+	r.logger.Errorf("error occurred while updating K8s %v: %v is not exist", reflect.TypeOf(obj).String(), name)
 }
 
 // DeleteResource deletes k8s resource.
-func (r *Reconciler) DeleteResource(obj client.Object) {
+func (r *Reconciler) DeleteResource(name string, obj client.Object) {
 	err := r.client.Delete(context.Background(), obj)
 	if err != nil {
 		r.logger.Errorf("error occurred while deleting K8s %v %v:", reflect.TypeOf(obj).String(), err)
-		r.failedList[obj.GetName()] = reconcileObj{spec: obj, op: updateOp}
-		return
+		r.failedList[name] = reconcileObj{spec: obj, op: updateOp}
 	}
 
-	delete(r.list, obj.GetName())
+	delete(r.list, name)
 }
-
-// func (r *reconciler) reconcile() {
-// 	// TODO -to reconcile the failedList resources
-// }
 
 // NewReconciler returns reconciler for k8s objects.
 func NewReconciler(cl client.Client) *Reconciler {
