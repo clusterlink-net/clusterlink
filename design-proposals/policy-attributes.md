@@ -8,7 +8,7 @@
 
 ## Summary/Abstract
 
-ClusterLink policies apply to communications between workloads.
+ClusterLink policies apply to communications between workloads. [ZN: should we mention services here?]
  Workloads can be identified by a strong (e.g., cryptographic) identity.
  The identity links the workload to a set of attributes, and policies are
  defined on workload attributes. This design proposal defines the initial
@@ -28,11 +28,13 @@ The set of attributes applicable to a communication flow is either determined by
  plane at runtime or derived from the workload's identity document. We can associate two measures
  with each attribute:
 
-- **trustworthiness**, related the level of trust we can place in its derivation (e.g.,
+- **trustworthiness**, related the level of trust we can place in its derivation (e.g., permission-level,
  complexity and skill required in affecting the attribute's value). Ideally, policies make
  judicious use of attributes based on the level of trust and sensitivity of the workloads
  in communication.
 - **usefulness**, relating to the amount of unique context provided by the attribute.
+For example, attributes that set the workload's tier are far more useful than
+arbitrarily-set attributes such as process id or creation timestamp.
 
 ### Impact and desired outcome
 
@@ -89,33 +91,76 @@ The proposal will address following aspects:
 - workload attributes
 - service attributes (fixed set or augmented by user)
 - fabric/site attributes (fixed set or augmented by user)
-- attributes are scoped (e.g., "cl-site:geo", "k8s:ns:, not "geo","ns")
-- attributes are not typed (strings only)
-- trustworthiness varies (let the user / policy write decide what to set in policy)
-- the actual set itself needs to be defined
-- when and how exchanged to allow policy decisions
+- attribute scope
+- attribute type
+- trustworthiness of attributes
+- when and how attributes are retrieved
+- when and how attributes are exchanged to allow policy decisions
 
-### Retrieving attributes
+### General properties of attributes
+- All attributes are key-value pairs.
+- Attributes are scoped. Scope is set in the key prefix (e.g., "cl-site:geo", "k8s:ns:, not "geo","ns").
+- Attributes are not typed - the value in the key-value pair is always a string.
+- Attribute trustworthiness varies (let the user / policy writer decide what to set in policy).
+
+### Retrieving workload attributes
 
 If we assume the following are true:
-
 - K8s apiserver can be trusted
-- authentication/authorization is corrected configured on the K8s api server
+- authentication/authorization is correctly configured on the K8s api server
+- users are isolated in their own namespaces
 
-The following attributes can be used to uniquely define a workload
-
+then the following attributes can be used to uniquely [ZN: do we really need uniqueness?] identify a workload
 - K8s namespace
 - K8s labels
 
-As users are isolated in their own namespaces, it is not possible for an attacker to provision resources in arbitrary namespaces and impersonate another workload. Labels, then, are used to differentiate the different workloads within the namespace. Assuming they are configured correctly by the workload owner, this should be sufficient to uniquely specify workloads safely.
+As users are isolated in their own namespaces, it is not possible for an attacker to provision resources in arbitrary namespaces and impersonate another workload. Labels, then, are used to differentiate between the different workloads within the namespace. Assuming they are configured correctly by the workload owner, this should be sufficient to uniquely specify workloads safely.
+
+### Retrieving service attributes
+Gateways become aware of service attributes during an "add import" action.
+The management layer will make sure all gateways importing the same service, will see an identical set of attributes.
+The gateways exporting this service must also have the exact same set of attributes for the service.
+This hints service attributes are set by the user in a central place and get distributed via management layer.
+
+### Retrieving gateway attributes
+[ZN: Is this part of the gateway's certificate? How do we set it?]
+
+Gateways get to know the attributes of other gateways during an "add peer" action.
+
+### Exchanging attributes between gateways
+We would like to minimize handshake iterations on every connection request.
+To achieve that, all gateways keep the attributes of all other gateways.
+Moreover, all gateways keep the attributes of all imported/exported services.
+This leaves only the workload attributes to be transferred during a connection request, as detailed below.
+
+[ZN: management layer will need a mechanism to allow updating the attributes of gateways/services across the mesh]
+
+**Client side:** The local gateway gets a request from a local workload to connect to a remote service.
+The gateway first extracts workload attributes from the cluster's API server.
+It then merges these attributes with its own gateway attributes to form the set of source attributes.
+The next step is to form a collection of destination attribute sets, one set per remote-service binding.
+Each set of destination attributes contains both the attributes of the remote service
+and the attributes of the remote gateway exposing this service.
+The local gateway can now call the policy engine with the set of source attributes
+and with the collection of sets of destination attributes.
+The access-policy engine will return the set of remote gateways that are allowed to provide the service (if any).
+The load-balancing-policy engine will choose one remote gateway out of this set.
+The local gateway will then send a connection request to the remote gateway.
+
+**Server side:** The gateway on the cluster of the exported service gets a connection request from the client-side gateway.
+The connection request includes the attributes of the requesting workload.
+The server-side gateway merges these attributes with the attributes of the client-side gateway to form the set of source attributes.
+The server-side gateway then merges the attributes of the requested service with its own set of gateway attributes to form the set of destination attributes.
+It can now call the policy engine with the two sets of attributes and get an allow/deny answer.
+
+
+Future: add other attestors.
 
 
 This is where we get down to the specifics of what the proposal actually is. It should
  have enough detail that reviewers can understand exactly what you're proposing, but
  should not include things like API designs or implementation. This section should expand
  on the desired outcome and include details on how to measure success.
-
-Future: add other attestors.
 
 ## Impacts / Key Questions
 
