@@ -99,20 +99,21 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// hijack connection
-	peerConn, err := d.hijackConn(w)
-	if err != nil {
-		d.logger.Errorf("Hijacking failed: %v.", err)
-		http.Error(w, "hijacking failed", http.StatusInternalServerError)
-		return
-	}
-
 	d.logger.Infof("Initiating connection with %s.", serviceTarget)
 
 	appConn, err := net.Dial("tcp", serviceTarget)
 	if err != nil {
 		d.logger.Errorf("Dial to export service failed: %v.", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// hijack connection
+	peerConn, err := d.hijackConn(w)
+	if err != nil {
+		d.logger.Errorf("Hijacking failed: %v.", err)
+		http.Error(w, "hijacking failed", http.StatusInternalServerError)
+		appConn.Close()
 		return
 	}
 
