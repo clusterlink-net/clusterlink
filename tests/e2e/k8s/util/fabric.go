@@ -27,11 +27,6 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/client"
 )
 
-const (
-	minNodePort = uint16(30000)
-	maxNodePort = uint16(32767)
-)
-
 // PeerConfig is a peer configuration
 type PeerConfig struct {
 	// DataplaneType is the dataplane type (envoy / go).
@@ -101,7 +96,6 @@ type Fabric struct {
 	peers         []*peer
 	namespace     string
 	baseNamespace string
-	nodeport      uint16
 }
 
 // CreatePeer creates certificates for a new peer on a given kind cluster.
@@ -149,10 +143,6 @@ func (f *Fabric) SwitchToNewNamespace(name string, appendName bool) error {
 	}
 
 	f.namespace = name
-	f.nodeport++
-	if f.nodeport == maxNodePort {
-		f.nodeport = minNodePort
-	}
 	return nil
 }
 
@@ -167,20 +157,17 @@ func (f *Fabric) deployClusterLink(p *peer, cfg *PeerConfig) (*ClusterLink, erro
 		return nil, fmt.Errorf("cannot generate k8s yaml: %w", err)
 	}
 
-	// wait for default service account to be created
-	for t := time.Now(); time.Since(t) < time.Second*30; time.Sleep(time.Millisecond * 100) {
-		err = p.cluster.resources.Get(context.Background(), "default", f.namespace, &v1.ServiceAccount{})
-		if err != nil {
-			continue
-		}
-	}
-	if err != nil {
-		return nil, fmt.Errorf("error getting default service account: %w", err)
-	}
-
 	if err := p.cluster.CreateFromYAML(k8sYAML, f.namespace); err != nil {
 		return nil, fmt.Errorf("cannot create k8s objects: %w", err)
 	}
+
+	var service v1.Service
+	err = p.cluster.resources.Get(context.Background(), "cl-dataplane", f.namespace, &service)
+	if err != nil {
+		return nil, fmt.Errorf("error getting dataplane service: %w", err)
+	}
+
+	port := uint16(service.Spec.Ports[0].NodePort)
 
 	cert := p.gwctlCert
 	certificate, err := tls.X509KeyPair(cert.RawCert(), cert.RawKey())
@@ -193,7 +180,7 @@ func (f *Fabric) deployClusterLink(p *peer, cfg *PeerConfig) (*ClusterLink, erro
 		return nil, fmt.Errorf("unable to parse peer certificate")
 	}
 
-	c := client.New(p.cluster.IP(), f.nodeport, &tls.Config{
+	c := client.New(p.cluster.IP(), port, &tls.Config{
 		MinVersion:   tls.VersionTLS12,
 		Certificates: []tls.Certificate{certificate},
 		RootCAs:      caCertPool,
@@ -204,7 +191,18 @@ func (f *Fabric) deployClusterLink(p *peer, cfg *PeerConfig) (*ClusterLink, erro
 		cluster:   p.cluster,
 		namespace: f.namespace,
 		client:    c,
-		port:      f.nodeport,
+		port:      port,
+	}
+
+	// wait for default service account to be created
+	for t := time.Now(); time.Since(t) < time.Second*30; time.Sleep(time.Millisecond * 100) {
+		err = p.cluster.resources.Get(context.Background(), "default", f.namespace, &v1.ServiceAccount{})
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("error getting default service account: %w", err)
 	}
 
 	if err := cl.WaitForControlplaneAPI(); err != nil {
@@ -261,7 +259,5 @@ func NewFabric() (*Fabric, error) {
 		return nil, fmt.Errorf("cannot create fabric certificate: %w", err)
 	}
 
-	return &Fabric{
-		cert:     cert,
-		nodeport: minNodePort}, nil
+	return &Fabric{cert: cert}, nil
 }

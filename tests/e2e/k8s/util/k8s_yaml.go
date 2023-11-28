@@ -73,7 +73,7 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 
 	k8sYAML := string(k8sYAMLBytes)
 
-	k8sYAML, err = switchDataplaneServiceToNodeport(k8sYAML, f.nodeport)
+	k8sYAML, err = switchDataplaneServiceToNodeport(k8sYAML)
 	if err != nil {
 		return "", fmt.Errorf("cannot switch dataplane type to nodeport: %w", err)
 	}
@@ -130,16 +130,14 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 	return k8sYAML, nil
 }
 
-func switchDataplaneServiceToNodeport(yaml string, nodeport uint16) (string, error) {
+func switchDataplaneServiceToNodeport(yaml string) (string, error) {
 	search := `
   ports:
     - name: dataplane`
 	replace := `
   type: NodePort
   ports:
-    - name: dataplane
-      nodePort: %d`
-	replace = fmt.Sprintf(replace, nodeport)
+    - name: dataplane`
 	return replaceOnce(yaml, search, replace)
 }
 
