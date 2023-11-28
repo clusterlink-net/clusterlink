@@ -101,7 +101,7 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 
 	d.logger.Infof("Initiating connection with %s.", serviceTarget)
 
-	appConn, err := net.Dial("tcp", serviceTarget)
+	appConn, err := net.DialTimeout("tcp", serviceTarget, time.Second)
 	if err != nil {
 		d.logger.Errorf("Dial to export service failed: %v.", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
