@@ -59,8 +59,10 @@ Not applicable.
 - **Access control based on workload namespace and labels**: as a Service owner, I would
  like to enable enable access to a service based on the source workload namespace and its "role" label
  value, regardless of cluster where the workload is running (e.g., assumes clusters are used as the
- infrastructure and teams are allocated the same namespace across all clusters).
- Labels of workloads running in other namespaces are not trusted.
+ infrastructure and teams are allocated the same namespace across all clusters. As a user I would
+ to enforce an egress policy that allows only workloads from *namespaces I own* on remote clusters and
+ not from namespaces assigned to other users. The labels of workloads running in other namespaces are
+ not trusted).
 
 ## Goals
 
@@ -84,6 +86,15 @@ The following aspects are explicitly excluded and are out of scope in the curren
  is partially addressed by assigning different trustworthiness measures to different attributes.
 
 ## Proposal
+
+Every connection has a source and a destination. While the source is a specific workload instance
+ (e.g., a Pod), the destination is a Service (i.e., collection of instances). Kubernetes does not
+ have an equivalent grouping concept for "clients" as it does for "servers", thus, we assign
+ and process attributes at the workload (specific client instance) and the Service (a collection
+ of potential destinations - actual instance selection is left to Kubernetes mechanism and out of
+ scope). Note that, in the future, we may leverage Kubernetes constructs such as `ReplicaSet` or
+ `Deployment` as a convenience grouping mechanism, though this will not replace the attribute
+ set defined herein.
 
 We propose to have attributes defined at different scope/layer, with each object implicitly assigned
  attributes of containing layer:
@@ -171,14 +182,14 @@ We would like to minimize handshake iterations on every connection request. To a
 
 > ELR: is the above needed? It is a bandwidth optimization (tradeoff state for lower bandwidth). Might
  a compression based solution suffice?
-
 > ZN: management layer will need a mechanism to allow updating the attributes of gateways/services
  across the mesh.
 
 **Client Side:**
 
-1. The local gateway data plane gets a request from a local workload to connect to a remote service.
- The client handle and destination service are passed to the control plane.
+1. The local gateway data plane gets a request from a local workload (client) to connect to a
+ remote service. The client handle (currently its IP address) and destination service are passed
+ to the control plane.
 1. The control plane extracts workload attributes from the cluster's API server. The client's IP address
  is used as a handle to identify the workload.
 1. The control plane merges these attributes with its own (gateway attributes) to form the set of
@@ -259,13 +270,18 @@ The following security considerations are impacted (though not necessarily direc
  some of the exposure.
 - ClusterLink requires elevated permissions to read Pod and Service specification and status
  across multiple namespaces.
-- The "trustworthiness" of attributes is paramount for effective access control.
+- The "trustworthiness" of attributes is paramount for effective policy enforcement, in articular for
+ access control. The trust depends on (1) secure access to the API masters; and (2) effective
+ segregation and confinement of users to specific namespaces. Both of these assumptions are
+ reasonable and expected under normal cluster operation and management.
 - Similarly, the correctness of the policy engine impacts the operation and cross site
  communication.
 - Users may opt-out of ClusterLink access by (1) not importing/exporting Services; (2) ensuring
  strict, default deny, policies are defined; and (3) potentially further locking down access by
  setting appropriate k8s NetworkPolicies on their sensitive Pods, disallowing access from the
  clusterLink namespace.
+- The use of client IP address as the client handle used in retrieving attributes can be subject
+ to impersonation/spoofing in certain cases.
 
 ### Implementation Phases/History
 
