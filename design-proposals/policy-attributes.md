@@ -169,7 +169,8 @@ Gateways learn the attributes associated with other gateways when Peers are adde
 | `cl:service:<attr>` | Service | configuration | user defined Service attributes | do we want to support these initially? |
 | `service:name` | Service | k8s API (or Export/Import?) | Service name | is there a corresponding workload name? For workloads name are randomized, but the name of the "owner object" might be useful? |
 | `k8s:ns` | Workload, Service | k8s API | Kubernetes namespace | |
-| `k8s:label:<name>` | Workload, Service | k8s API | Kubernetes label(s) | the use of standard k8s labels is recommended. Labels describing the application structure (e.g., `app`, `role`, `tier`) could be expressive and flexible |
+| `k8s:sa` | Workload | k8s API | Kubernetes service account name | |
+| `k8s:label:<name>` | Workload, Service | k8s API | Kubernetes label(s) | the use of [common k8s labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/) is recommended. Labels describing the application structure (e.g., `app`, `role`, `tier`) could be expressive and flexible |
 | `k8s:container-image` | Workload | k8s API | Image name | includes repo? Tag? Image SHA only?  what's useful? |
 | `TBD` | TBD | TBD | TODO | ... |
 
