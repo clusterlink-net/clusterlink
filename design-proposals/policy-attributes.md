@@ -8,11 +8,14 @@
 
 ## Summary/Abstract
 
-ClusterLink policies apply to communications between workloads. [ZN: should we mention services here?]
+ClusterLink policies apply to communications between workloads.
  Workloads can be identified by a strong (e.g., cryptographic) identity.
  The identity links the workload to a set of attributes, and policies are
  defined on workload attributes. This design proposal defines the initial
  set of attributes used in policies.
+
+ > ZN: The abstract only mentions workloads, but the notion of services is central to this document.
+ Should we mention services here?
 
 ## Background
 
@@ -55,14 +58,14 @@ Not applicable.
  a policy that, when a Service is provided by several remote locations, only locations with the
  same geography as the source should be considered.
 - **Access control based on cluster identity**: As a Service owner, I would like to allow
- access to a specific service only from another clusters I own.
-- **Access control based on workload namespace and labels**: as a Service owner, I would
- like to enable enable access to a service based on the source workload namespace and its "role" label
+ access to a specific service only from other clusters I own.
+- **Access control based on workload namespace and labels**: As a Service owner, I would
+ like to enable access to a service based on the source workload namespace and its "role" label
  value, regardless of cluster where the workload is running (e.g., assumes clusters are used as the
- infrastructure and teams are allocated the same namespace across all clusters. As a user I would
- to enforce an egress policy that allows only workloads from *namespaces I own* on remote clusters and
- not from namespaces assigned to other users. The labels of workloads running in other namespaces are
- not trusted).
+ infrastructure and teams are allocated the same namespace across all clusters). As a user I would
+ to enforce a policy that only allows egress to services in *namespaces I own* on remote clusters and
+ not to namespaces assigned to other users. The labels of services running in other namespaces are
+ not trusted.
 
 ## Goals
 
@@ -126,28 +129,35 @@ We propose to have attributes defined at different scope/layer, with each object
 ### Workload Attributes
 
 If we assume the following are true:
-
 - Replies from Kubernetes API server can be trusted;
 - authentication/authorization is correctly configured on the Kubernetes API server; and
 - users are isolated in their own namespaces
 
-then the following attributes can be used to identify a workload within a Site:
-
+then the following attributes can be used to identify a workload (K8s Pod) within a Site:
 - K8s namespace
-- K8s labels
+- Other metadata fields, including
+  - Pod labels
+  - Pod name?
+  - Owner reference
+- Pod Spec fields, including
+  - Service Account
+  - Image name
+
+> ZN: How should we set Image name if the Pod runs multiple containers?
 
 As users are isolated in their own namespaces, it is not possible for an attacker to provision
- resources in arbitrary namespaces and impersonate another workload. Labels, then, are used to
+ resources in arbitrary namespaces and impersonate another workload. Labels, then, can be used to
  differentiate between the different workloads within the namespace. Assuming they are configured
  correctly by the workload owner, this should be sufficient to uniquely specify workloads safely.
+ However, functional attributes, such as image name or its Service Account, might be handy as well.
 
 ### Service Attributes
 
 Service attributes are set (or retrieved) when a Service is exported. Remote gateways become aware
  of the Service attributes when a service is first imported. If multiple bindings exist for an Import,
- All bound Services must have fully matching attribute set. A binding is declined when there is a
+ all bound Services must have fully matching attribute set. A binding is declined when there is a
  mismatch between a first and later binding. Ideally, the management layer will ensure all gateways
- importing the same service, will see an identical set of attributes. this also favors that Services
+ importing the same service, will see an identical set of attributes. This also favors that Services
  and Service attributes are set by the user in a central place and get distributed via management layer.
  The exact definition is out of scope of this design.
 
@@ -167,7 +177,7 @@ Gateways learn the attributes associated with other gateways when Peers are adde
 | `site:environment` | Site | configuration | site environment (e.g., production, staging) | mandated or recommended? |
 | `cl:site:<attr>` | Site | configuration | user defined site attributes | do we want to support these initially? |
 | `cl:service:<attr>` | Service | configuration | user defined Service attributes | do we want to support these initially? |
-| `service:name` | Service | k8s API (or Export/Import?) | Service name | is there a corresponding workload name? For workloads name are randomized, but the name of the "owner object" might be useful? |
+| `service:name` | Service | k8s API (or Export/Import?) | Service name | is there a corresponding workload name? For workloads name are randomized, but the name of the "owner object" might be useful? Is there a service namespace?|
 | `k8s:ns` | Workload, Service | k8s API | Kubernetes namespace | |
 | `k8s:sa` | Workload | k8s API | Kubernetes service account name | |
 | `k8s:label:<name>` | Workload, Service | k8s API | Kubernetes label(s) | the use of [common k8s labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/) is recommended. Labels describing the application structure (e.g., `app`, `role`, `tier`) could be expressive and flexible |
@@ -176,15 +186,11 @@ Gateways learn the attributes associated with other gateways when Peers are adde
 
 ### Exchanging Attributes Between Gateways
 
-We would like to minimize handshake iterations on every connection request. To achieve that, all
- gateways keep the attributes of all other gateways. Moreover, all gateways keep the attributes
- of all imported/exported services. This leaves only the workload attributes to be transferred
- during a connection request, as detailed below.
-
-> ELR: is the above needed? It is a bandwidth optimization (tradeoff state for lower bandwidth). Might
- a compression based solution suffice?
-> ZN: management layer will need a mechanism to allow updating the attributes of gateways/services
- across the mesh.
+For simplicity, let's assume that all gateways keep the attributes of all other gateways.
+Moreover, all gateways keep the attributes of all imported/exported services.
+While this assumption allows optimizing bandwidth and simplifies the below description, it is not 
+strictly required. For this assumption to hold, management layer will probably need a mechanism
+to allow updating the attributes of gateways/services across the fabric.
 
 **Client Side:**
 
@@ -251,7 +257,7 @@ TODO
 
 ### Update/Rollback Compatibility
 
-We don't support backward compatibility. All policies and implemenration must be updated to the
+We don't support backward compatibility. All policies and implementations must be updated to the
  adhere to the specification defined by this design.
 
 ### Scalability
