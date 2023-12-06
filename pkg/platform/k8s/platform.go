@@ -35,12 +35,12 @@ const (
 
 // Platform represents a k8s platform.
 type Platform struct {
-	podReconciler      *PodReconciler
-	endpointReconciler *Reconciler
-	serviceReconciler  *Reconciler
-	client             client.Client
-	namespace          string
-	logger             *logrus.Entry
+	podReconciler *PodReconciler
+	//	endpointReconciler *Reconciler
+	serviceReconciler *Reconciler
+	client            client.Client
+	namespace         string
+	logger            *logrus.Entry
 }
 
 func (p *Platform) setExternalNameService(host, externalName string) *corev1.Service {
