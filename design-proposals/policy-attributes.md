@@ -59,7 +59,7 @@ Not applicable.
 - **Access control based on workload namespace and labels**: as a Service owner, I would
  like to enable enable access to a service based on the source workload namespace and its "role" label
  value, regardless of cluster where the workload is running (e.g., assumes clusters are used as the
- infrastructure and teams are allocated the same namespace across all clusters. As a user I would
+ infrastructure and teams are allocated the same namespace across all clusters. As a user, I would like
  to enforce an egress policy that allows only workloads from *namespaces I own* on remote clusters and
  not from namespaces assigned to other users. The labels of workloads running in other namespaces are
  not trusted).
