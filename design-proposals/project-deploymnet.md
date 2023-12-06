@@ -60,8 +60,11 @@ The easiest way to install ClusterLink on the K8s cluster is by using the comman
 
 This command installs the ClusterLink operator and creates the ClusterLink deployment.  
 Alternatively you can do it in steps:
+First, create and deploy the peer certificate:
+    clusterlink create peer --name <name>
+    kubectl create -f ```~/.config/clustrlink/<fabric_name>/<peer_nam>/secret.yaml```
 
-First, create the ClustreLink operator:
+Second, create the ClustreLink operator:
 
     kubectl create -f config/setup/
 
@@ -73,14 +76,15 @@ kind: ClusterLink
 metadata:
   namespace: clusterlink-ns
   name: peer1
+spec:
+  dataplaneType: "envoy"
+  dataplaneReplicates: 1
 EOF
 ```
 The operator will create:
-* Peer certificates.
 * ClusterLink controlplane deployment, including controlplane-pod, controlplane-service, and RBAC roles.  
 * ClusterLink dataplane deployment, including dataplane-pod and dataplane-service.
 * ClusterLink external access point using load-balancer/node-port/gateway-API service.
-
 
 ## Goals
 This design document should:
@@ -103,10 +107,10 @@ The ClusterLink deployment will be done in the following steps, (as described in
 3. Deploy the ClusterLink CRD to the operator, which will create peer certificates, ClusterLink deployments (control plane and data plane), services, and external access point.
 
 ### ClusterLink CRD
-
 The ClusterLink CRD includes the following fields:
-- Api group/version: clusterlink.net/v1alpha1
-- Kind (CRD) : clusterlink
+- Api version: clusterlink.net/v1alpha1
+- Kind: clusterlink
+
 - **Spec Section:**
   
     | Field name | Description | Default value |
