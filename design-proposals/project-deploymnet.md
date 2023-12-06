@@ -85,6 +85,12 @@ The operator will create:
 * ClusterLink controlplane deployment, including controlplane-pod, controlplane-service, and RBAC roles.  
 * ClusterLink dataplane deployment, including dataplane-pod and dataplane-service.
 * ClusterLink external access point using load-balancer/node-port/gateway-API service.
+  
+Overall, the ClusterLink deployment stages are:
+
+<img src="deployment.png" width="800" height="400" alt="ClusterLink Deployment Stages"/>    
+
+
 
 ## Goals
 This design document should:
@@ -115,11 +121,12 @@ The ClusterLink CRD includes the following fields:
   
     | Field name | Description | Default value |
     | ---- | ----- | ------ |
-    |dataplaneType| Types of dataplane supported, with values "go" or "envoy"|"envoy"|
+    |dataplaneType| Types of dataplane, supported values "go" or "envoy"|"envoy"|
     |dataplaneReplicates| Number of dataplane replicas|1|
     |logLevel| Log level severity| "info"|
     |logFile| Path to a file where logs will be written| By default logs will be printed to stderr|
     |image| The container registry to pull the project images. If empty, it will use the local registry| ghcr.io/clusterlink-net.
+    |serviceExposureType| Type of service to expose ClusterLink deployment, supported values: "load-balancer", "API-gateway", "node-port". |load-balancer|
 
 - **Status section:**
 
