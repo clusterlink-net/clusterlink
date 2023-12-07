@@ -14,6 +14,7 @@
 package connectivitypdp_test
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -209,8 +210,8 @@ func addPoliciesFromFile(pdp *connectivitypdp.PDP, filename string) error {
 	for {
 		var policy k8sshim.PrivilegedConnectivityPolicy
 		err := decoder.Decode(&policy)
-		switch err {
-		case nil:
+		switch {
+		case err == nil:
 			switch policy.Kind {
 			case k8sshim.PrivilegedConnectivityPolicyKind:
 				err = pdp.AddOrUpdatePolicy(*policy.ToInternal())
@@ -226,7 +227,7 @@ func addPoliciesFromFile(pdp *connectivitypdp.PDP, filename string) error {
 			default: // TODO: log a warning
 				fmt.Printf("Object kind is not a connectivity policy: %s\n", policy.Kind)
 			}
-		case io.EOF:
+		case errors.Is(err, io.EOF):
 			return nil
 		default:
 			return err
