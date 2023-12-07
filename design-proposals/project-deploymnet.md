@@ -61,6 +61,7 @@ The easiest way to install ClusterLink on the K8s cluster is by using the comman
 This command installs the ClusterLink operator and creates the ClusterLink deployment.  
 Alternatively you can do it in steps:
 First, create and deploy the peer certificate:
+
     clusterlink create peer --name <name>
     kubectl create -f ```~/.config/clustrlink/<fabric_name>/<peer_nam>/secret.yaml```
 
@@ -133,10 +134,9 @@ The ClusterLink CRD includes the following fields:
     Todo
 ## Impacts / Key Questions
 
-- Do we need the ClusterLink CLI? The only command that seems necessary is for fabric certificates.
-- The operator is going to create the peer certificate.
+- Do we need the ClusterLink CLI? The only command that seems necessary is for fabric and peer certificates.
 - We don't use or initialize gwctl anymore.
-- Need to have a security discussion focusing on the varying security levels associated with creating peer certificates and fabric certificates. 
+- Need to have a security discussion focusing on how and who deploys the peer and fabric certificates. 
 
 ## Risks and Mitigations
 
@@ -148,8 +148,10 @@ The assumption in this design document is that there isn't a distinction in the 
 Additionally, the Fabric certificate should be accessible to the k8s operator by passing through k8s secrets during the creation of peer certificates.
 
 ## Future Milestones
+In the first step, the k8s operator will be built and will utilize the current cl-adm implementation to create peer and fabric certificates.  
+The `cl-adm create peer1` command will also generate the files: k8s-secret.yaml (containing all the certificates for the control-plane and data-plane) and clusterlink.yaml (containing the manifests for the cl-operator).  
+The cl-operator will be deployed manually and will use the clusterlink.yaml to deploy the clusterlink components.
 
-In the first step, the k8s operator will be built and will utilize the current cl-adm implementation for creating peer and fabric certificates. 
 In the second step, the deployment process will be as described in the user section.
 
 ## Implementation Details
