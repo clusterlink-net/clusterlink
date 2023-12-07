@@ -664,7 +664,7 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, platf
 
 	bindings, err := cpstore.NewBindings(storeManager)
 	if err != nil {
-		return nil, fmt.Errorf("cannot load bindings from store: %v", err)
+		return nil, fmt.Errorf("cannot load bindings from store: %w", err)
 	}
 	logger.Infof("Loaded %d bindings.", bindings.Len())
 
@@ -676,7 +676,7 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, platf
 
 	lbPolicies, err := cpstore.NewLBPolicies(storeManager)
 	if err != nil {
-		return nil, fmt.Errorf("cannot load load-balancing policies from store: %v", err)
+		return nil, fmt.Errorf("cannot load load-balancing policies from store: %w", err)
 	}
 	logger.Infof("Loaded %d load-balancing policies.", acPolicies.Len())
 

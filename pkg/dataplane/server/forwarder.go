@@ -14,6 +14,7 @@
 package server
 
 import (
+	"errors"
 	"io"
 	"net"
 	"sync"
@@ -57,7 +58,8 @@ func (f *forwarder) peerToWorkload() error {
 		}
 		numBytes, err = f.peerConn.Read(bufData)
 		if err != nil {
-			if err1, ok := err.(net.Error); ok && err1.Timeout() {
+			var netErr net.Error
+			if errors.As(err, &netErr) && netErr.Timeout() {
 				continue
 			}
 			break
@@ -68,7 +70,7 @@ func (f *forwarder) peerToWorkload() error {
 		}
 	}
 	f.closeSignal.Swap(true)
-	if err != io.EOF { // don't log EOF
+	if errors.Is(err, io.EOF) { // don't log EOF
 		return err
 	}
 	return nil
@@ -88,7 +90,8 @@ func (f *forwarder) workloadToPeer() error {
 		}
 		numBytes, err = f.workloadConn.Read(bufData)
 		if err != nil {
-			if err1, ok := err.(net.Error); ok && err1.Timeout() {
+			var netErr net.Error
+			if errors.As(err, &netErr) && netErr.Timeout() {
 				continue
 			}
 			break
@@ -99,7 +102,7 @@ func (f *forwarder) workloadToPeer() error {
 		}
 	}
 	f.closeSignal.Swap(true)
-	if err != io.EOF { // don't log EOF
+	if errors.Is(err, io.EOF) { // don't log EOF
 		return err
 	}
 	return nil
