@@ -22,7 +22,7 @@ By leveraging K8s deployment standards, such as the K8s operator, the objective 
 ### Impact and desired outcome
 
 Implementing this proposal is expected to improve the accessibility and ease of use for Clusterlink users.   
-Aligning the deployment process with K8s standards will particularly benefit use cases involving central control management, such as Multi-Cloud Computing (MCC) or Hybrid Cloud Mesh (HCM).
+Aligning the deployment process with K8s standards will particularly benefit use cases involving central control management.
 
 ### Prior discussion and links
 
@@ -125,9 +125,8 @@ The ClusterLink CRD includes the following fields:
     |dataplaneType| Types of dataplane, supported values "go" or "envoy"|"envoy"|
     |dataplaneReplicates| Number of dataplane replicas|1|
     |logLevel| Log level severity| "info"|
-    |logFile| Path to a file where logs will be written| By default logs will be printed to stderr|
     |image| The container registry to pull the project images. If empty, it will use the local registry| ghcr.io/clusterlink-net.
-    |serviceExposureType| Type of service to expose ClusterLink deployment, supported values: "load-balancer", "API-gateway", "node-port". |load-balancer|
+    |serviceType| Type of service to expose ClusterLink deployment, supported values: "load-balancer", "API-gateway", "node-port". |load-balancer|
 
 - **Status section:**
 
