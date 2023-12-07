@@ -15,6 +15,7 @@ package kv
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -51,7 +52,8 @@ func (s *ObjectStore) Create(name string, value any) error {
 
 	// persist to store
 	if err := s.store.Create(s.kvKey(name), encoded); err != nil {
-		if _, ok := err.(*KeyExistsError); ok {
+		var keyExistsError *KeyExistsError
+		if errors.As(err, &keyExistsError) {
 			return &store.ObjectExistsError{}
 		}
 		return err
@@ -81,7 +83,8 @@ func (s *ObjectStore) Update(name string, mutator func(any) any) error {
 		return encoded, nil
 	})
 	if err != nil {
-		if _, ok := err.(*KeyNotFoundError); ok {
+		var keyNotFoundError *KeyNotFoundError
+		if errors.As(err, &keyNotFoundError) {
 			return &store.ObjectNotFoundError{}
 		}
 		return err

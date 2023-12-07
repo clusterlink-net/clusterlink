@@ -16,6 +16,7 @@ package rest
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"reflect"
@@ -80,7 +81,8 @@ func (s *Server) create(spec *ServerObjectSpec, w http.ResponseWriter, r *http.R
 	}
 
 	if err := spec.Handler.Create(object); err != nil {
-		if _, ok := err.(*store.ObjectExistsError); ok {
+		var objectExistsErr *store.ObjectExistsError
+		if errors.As(err, &objectExistsErr) {
 			requestLogger.Errorf("Object already exists.")
 			http.Error(w, "object already exists", http.StatusBadRequest)
 			return
@@ -115,7 +117,8 @@ func (s *Server) update(spec *ServerObjectSpec, w http.ResponseWriter, r *http.R
 	}
 
 	if err := spec.Handler.Update(object); err != nil {
-		if _, ok := err.(*store.ObjectNotFoundError); ok {
+		var objectNotFoundError *store.ObjectNotFoundError
+		if errors.As(err, &objectNotFoundError) {
 			requestLogger.Errorf("Object not found.")
 			http.Error(w, "object not found", http.StatusNotFound)
 			return

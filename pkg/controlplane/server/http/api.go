@@ -407,7 +407,7 @@ type lbPolicyHandler struct {
 func (h *lbPolicyHandler) Decode(data []byte) (any, error) {
 	var policy api.Policy
 	if err := json.Unmarshal(data, &policy); err != nil {
-		return nil, fmt.Errorf("cannot decode load-balancing policy: %v", err)
+		return nil, fmt.Errorf("cannot decode load-balancing policy: %w", err)
 	}
 
 	if len(policy.Spec.Blob) == 0 {
