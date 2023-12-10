@@ -31,7 +31,7 @@ const (
 	httpSchemaPrefix = "https://"
 )
 
-// StartDataplaneServer starts the Dataplane server
+// StartDataplaneServer starts the Dataplane server.
 func (d *Dataplane) StartDataplaneServer(dataplaneServerAddress string) error {
 	d.logger.Infof("Dataplane server starting at %s.", dataplaneServerAddress)
 	server := netutils.CreateResilientHTTPServer(dataplaneServerAddress, d.router, d.parsedCertData.ServerConfig(), nil, nil, nil)
@@ -39,7 +39,7 @@ func (d *Dataplane) StartDataplaneServer(dataplaneServerAddress string) error {
 	return server.ListenAndServeTLS("", "")
 }
 
-// StartSNIServer starts the SNI Proxy in the dataplane
+// StartSNIServer starts the SNI Proxy in the dataplane.
 func (d *Dataplane) StartSNIServer(dataplaneServerAddress string) error {
 	dataplaneListenAddress := ":" + strconv.Itoa(api.ListenPort)
 	sniProxy := sniproxy.NewServer(map[string]string{

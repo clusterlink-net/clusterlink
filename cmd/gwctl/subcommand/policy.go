@@ -160,7 +160,7 @@ func lbPolicyFromParams(serviceSrc, serviceDst, scheme, defaultPeer string) (api
 	return api.Policy{Name: policyName, Spec: api.PolicySpec{Blob: blob}}, nil
 }
 
-// PolicyDeleteOptions is the command line options for 'delete policy'
+// PolicyDeleteOptions is the command line options for 'delete policy'.
 type policyDeleteOptions struct {
 	myID       string
 	pType      string
@@ -199,7 +199,7 @@ func (o *policyDeleteOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.policyFile, "policyFile", "", "File to load access policy from")
 }
 
-// run performs the execution of the 'delete policy' subcommand
+// run performs the execution of the 'delete policy' subcommand.
 func (o *policyDeleteOptions) run() error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
@@ -234,12 +234,12 @@ func (o *policyDeleteOptions) run() error {
 	}
 }
 
-// PolicyGetOptions is the command line options for 'get policy'
+// PolicyGetOptions is the command line options for 'get policy'.
 type policyGetOptions struct {
 	myID string
 }
 
-// PolicyGetCmd - get a policy command
+// PolicyGetCmd - get a policy command.
 func PolicyGetCmd() *cobra.Command {
 	o := policyGetOptions{}
 	cmd := &cobra.Command{
@@ -260,7 +260,7 @@ func (o *policyGetOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
 }
 
-// run performs the execution of the 'delete policy' subcommand
+// run performs the execution of the 'delete policy' subcommand.
 func (o *policyGetOptions) run() error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {

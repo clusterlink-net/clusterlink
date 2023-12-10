@@ -24,7 +24,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 )
 
-// bindingCreateOptions is the command line options for 'create binding'
+// bindingCreateOptions is the command line options for 'create binding'.
 type bindingCreateOptions struct {
 	myID     string
 	importID string
@@ -56,7 +56,7 @@ func (o *bindingCreateOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.peer, "peer", "", "Remote peer to import the service from")
 }
 
-// run performs the execution of 'create binding' subcommand
+// run performs the execution of 'create binding' subcommand.
 func (o *bindingCreateOptions) run() error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
@@ -76,7 +76,7 @@ func (o *bindingCreateOptions) run() error {
 	return nil
 }
 
-// bindingDeleteOptions is the command line options for 'delete binding'
+// bindingDeleteOptions is the command line options for 'delete binding'.
 type bindingDeleteOptions struct {
 	myID     string
 	importID string
@@ -108,7 +108,7 @@ func (o *bindingDeleteOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.peer, "peer", "", "Remote peer to stop importing from")
 }
 
-// run performs the execution of the 'delete binding' subcommand
+// run performs the execution of the 'delete binding' subcommand.
 func (o *bindingDeleteOptions) run() error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
@@ -128,7 +128,7 @@ func (o *bindingDeleteOptions) run() error {
 	return nil
 }
 
-// bindingGetOptions is the command line options for 'delete binding'
+// bindingGetOptions is the command line options for 'delete binding'.
 type bindingGetOptions struct {
 	myID     string
 	importID string
@@ -158,7 +158,7 @@ func (o *bindingGetOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.importID, "import", "", "Imported service name to bind")
 }
 
-// run performs the execution of the 'get binding' subcommand
+// run performs the execution of the 'get binding' subcommand.
 func (o *bindingGetOptions) run() error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {

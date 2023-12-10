@@ -104,14 +104,14 @@ func NewBinding(binding *api.Binding) *Binding {
 	}
 }
 
-// AccessPolicy to allow/deny specific connections
+// AccessPolicy to allow/deny specific connections.
 type AccessPolicy struct {
 	api.Policy
 	// Version of the struct when object was created.
 	Version uint32
 }
 
-// NewAccessPolicy creates a new access policy
+// NewAccessPolicy creates a new access policy.
 func NewAccessPolicy(policy *api.Policy) *AccessPolicy {
 	return &AccessPolicy{
 		Policy:  *policy,
@@ -119,14 +119,14 @@ func NewAccessPolicy(policy *api.Policy) *AccessPolicy {
 	}
 }
 
-// LBPolicy specifies the load-balancing scheme for specific connections
+// LBPolicy specifies the load-balancing scheme for specific connections.
 type LBPolicy struct {
 	api.Policy
 	// Version of the struct when object was created.
 	Version uint32
 }
 
-// NewLBPolicy creates a new load-balancing policy
+// NewLBPolicy creates a new load-balancing policy.
 func NewLBPolicy(policy *api.Policy) *LBPolicy {
 	return &LBPolicy{
 		Policy:  *policy,

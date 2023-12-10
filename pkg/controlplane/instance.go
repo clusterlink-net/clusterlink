@@ -545,7 +545,7 @@ func (cp *Instance) GetLBPolicy(name string) *cpstore.LBPolicy {
 	return cp.lbPolicies.Get(name)
 }
 
-// GetAllLBPolicies returns the list of all load-balancing Policies.p
+// GetAllLBPolicies returns the list of all load-balancing Policies.p.
 func (cp *Instance) GetAllLBPolicies() []*cpstore.LBPolicy {
 	cp.logger.Info("Listing all load-balancing policies.")
 	return cp.lbPolicies.GetAll()

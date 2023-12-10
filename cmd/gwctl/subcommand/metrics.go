@@ -22,12 +22,12 @@ import (
 	"github.com/clusterlink-net/clusterlink/cmd/gwctl/config"
 )
 
-// MetricsGetOptions is the command line options for 'get metrics'
+// MetricsGetOptions is the command line options for 'get metrics'.
 type metricsGetOptions struct {
 	myID string
 }
 
-// MetricsGetCmd - get a policy command
+// MetricsGetCmd - get a policy command.
 func MetricsGetCmd() *cobra.Command {
 	o := metricsGetOptions{}
 	cmd := &cobra.Command{
@@ -48,7 +48,7 @@ func (o *metricsGetOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
 }
 
-// run performs the execution of the 'delete policy' subcommand
+// run performs the execution of the 'delete policy' subcommand.
 func (o *metricsGetOptions) run() error {
 	m, err := config.GetClientFromID(o.myID)
 	if err != nil {

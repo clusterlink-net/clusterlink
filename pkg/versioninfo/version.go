@@ -37,7 +37,7 @@ func init() {
 }
 
 // Short provides a short string summarizing available version information.
-// The format is <SemVer>-<GIT SHA>[-<dirty>]
+// The format is <SemVer>-<GIT SHA>[-<dirty>].
 func Short() string {
 	parts := make([]string, 0, 4)
 

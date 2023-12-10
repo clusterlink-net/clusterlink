@@ -197,7 +197,7 @@ func (pH *PolicyHandler) AddExport(_ *api.Export) (event.ExposeRequestResp, erro
 func (pH *PolicyHandler) DeleteExport(_ string) {
 }
 
-// connPolicyFromBlob unmarshals a ConnectivityPolicy object encoded as json in a byte array
+// connPolicyFromBlob unmarshals a ConnectivityPolicy object encoded as json in a byte array.
 func connPolicyFromBlob(blob []byte) (*policytypes.ConnectivityPolicy, error) {
 	bReader := bytes.NewReader(blob)
 	connPolicy := &policytypes.ConnectivityPolicy{}
@@ -209,7 +209,7 @@ func connPolicyFromBlob(blob []byte) (*policytypes.ConnectivityPolicy, error) {
 	return connPolicy, nil
 }
 
-// lbPolicyFromBlob unmarshals an LBPolicy object encoded as json in a byte array
+// lbPolicyFromBlob unmarshals an LBPolicy object encoded as json in a byte array.
 func lbPolicyFromBlob(blob []byte) (*LBPolicy, error) {
 	bReader := bytes.NewReader(blob)
 	lbPolicy := &LBPolicy{}

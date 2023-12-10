@@ -52,7 +52,7 @@ func IsDNS(s string) bool {
 	return dnsRegex.MatchString(s)
 }
 
-// Start HTTP server
+// Start HTTP server.
 func StartHTTPServer(ip string, handler http.Handler) {
 	s := CreateDefaultResilientHTTPServer(ip, handler)
 	log.Fatal(s.ListenAndServe())
@@ -76,7 +76,7 @@ func StartMTLSServer(ip, certca, certificate, key string, handler http.Handler) 
 	log.Fatal(server.ListenAndServeTLS(certificate, key))
 }
 
-// ConfigureSafeTLSConfig creates a default tls.Config that's considered "safe" for HTTP serving
+// ConfigureSafeTLSConfig creates a default tls.Config that's considered "safe" for HTTP serving.
 func ConfigureSafeTLSConfig() *tls.Config {
 	return &tls.Config{
 		MinVersion: tls.VersionTLS12,
@@ -99,12 +99,12 @@ func ConfigureSafeTLSConfig() *tls.Config {
 	}
 }
 
-// CreateDefaultResilientHTTPServer returns an http.Server configured with default configuration
+// CreateDefaultResilientHTTPServer returns an http.Server configured with default configuration.
 func CreateDefaultResilientHTTPServer(addr string, mux http.Handler) *http.Server {
 	return CreateResilientHTTPServer(addr, mux, ConfigureSafeTLSConfig(), nil, nil, nil)
 }
 
-// CreateResilientHTTPServer returns an http.Server configured with the timeouts provided
+// CreateResilientHTTPServer returns an http.Server configured with the timeouts provided.
 func CreateResilientHTTPServer(addr string, mux http.Handler, tlsConfig *tls.Config,
 	headerReadTimeout, writeTimeout, idleTimeout *time.Duration) *http.Server {
 

@@ -32,7 +32,7 @@ type ConnectivityPolicy struct {
 	To         WorkloadSetOrSelectorList `json:"to"`
 }
 
-// PolicyAction specifies whether a ConnectivityPolicy allows or denies the connection specified by its 'From' and 'To' fields
+// PolicyAction specifies whether a ConnectivityPolicy allows or denies the connection specified by its 'From' and 'To' fields.
 type PolicyAction string
 
 const (
@@ -40,7 +40,7 @@ const (
 	PolicyActionDeny  PolicyAction = "deny"
 )
 
-// PolicyDecision represents a ConnectivityPolicy decision on a given connection
+// PolicyDecision represents a ConnectivityPolicy decision on a given connection.
 type PolicyDecision int
 
 const (
@@ -49,7 +49,7 @@ const (
 	PolicyDecisionDeny
 )
 
-// WorkloadSetOrSelectorList is a collection of WorkloadSetOrSelector objects
+// WorkloadSetOrSelectorList is a collection of WorkloadSetOrSelector objects.
 type WorkloadSetOrSelectorList []WorkloadSetOrSelector
 
 // WorkloadSetOrSelector describes a set of workloads, based on their attributes (labels)
@@ -59,7 +59,7 @@ type WorkloadSetOrSelector struct {
 	WorkloadSelector *metav1.LabelSelector `json:"workloadSelector,omitempty"`
 }
 
-// WorkloadAttrs are the actual key-value attributes attached to any given workload
+// WorkloadAttrs are the actual key-value attributes attached to any given workload.
 type WorkloadAttrs map[string]string
 
 // Validate returns an error if the given ConnectivityPolicy is invalid. Otherwise, returns nil.
@@ -119,7 +119,7 @@ func (cps *ConnectivityPolicy) Decide(src, dest WorkloadAttrs) (PolicyDecision, 
 }
 
 // Matches checks if a connection from a source with given labels to a destination with given labels,
-// matches a ConnectivityPolicy
+// matches a ConnectivityPolicy.
 func (cps *ConnectivityPolicy) Matches(src, dest WorkloadAttrs) (bool, error) {
 	// Check if source matches any element of the policy's "From" field
 	matched, err := cps.From.matches(src)
@@ -138,7 +138,7 @@ func (cps *ConnectivityPolicy) Matches(src, dest WorkloadAttrs) (bool, error) {
 	return matched, nil
 }
 
-// checks whether a workload with the given labels matches any item in a slice of WorkloadSetOrSelectors
+// checks whether a workload with the given labels matches any item in a slice of WorkloadSetOrSelectors.
 func (wsl WorkloadSetOrSelectorList) matches(workloadAttrs WorkloadAttrs) (bool, error) {
 	for _, workloadSet := range wsl {
 		matched, err := workloadSet.matches(workloadAttrs)
@@ -152,7 +152,7 @@ func (wsl WorkloadSetOrSelectorList) matches(workloadAttrs WorkloadAttrs) (bool,
 	return false, nil
 }
 
-// checks whether a workload with the given labels matches a WorkloadSetOrSelectors
+// checks whether a workload with the given labels matches a WorkloadSetOrSelectors.
 func (wss *WorkloadSetOrSelector) matches(workloadAttrs WorkloadAttrs) (bool, error) {
 	// TODO: implement logic for WorkloadSet matching
 	selector, err := metav1.LabelSelectorAsSelector(wss.WorkloadSelector)

@@ -30,7 +30,7 @@ linters:
     - exportloopref
     - ginkgolinter
     - gocritic
-    # - godot
+    - godot
     - gofmt
     # - gofumpt
     - goimports

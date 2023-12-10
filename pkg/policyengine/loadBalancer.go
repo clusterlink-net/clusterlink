@@ -162,6 +162,7 @@ func (lB *LoadBalancer) updateState(serviceSrc, serviceDst string) {
 }
 
 /*********************  Policy functions ***************************************************/
+
 func (lB *LoadBalancer) LookupRandom(service string, peers []string) (string, error) {
 	index := rand.Intn(len(peers)) //nolint:gosec // G404: use of weak random is fine for load balancing
 	plog.Infof("LoadBalancer selects index(%d) - target peer %s for service %s", index, peers[index], service)

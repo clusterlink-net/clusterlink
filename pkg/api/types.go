@@ -41,7 +41,7 @@ type Peer struct {
 	Status PeerStatus
 }
 
-// PeerSpec contains all the peer attributes
+// PeerSpec contains all the peer attributes.
 type PeerSpec struct {
 	// Gateways serving the Peer.
 	Gateways []Endpoint

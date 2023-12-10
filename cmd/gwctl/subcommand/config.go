@@ -36,7 +36,7 @@ func ConfigCmd() *cobra.Command {
 	return configCmd
 }
 
-// getContextCmd is the command line options for 'config current-context'
+// getContextCmd is the command line options for 'config current-context'.
 type currentContextOptions struct {
 }
 
@@ -56,7 +56,7 @@ func currentContextCmd() *cobra.Command {
 	return cmd
 }
 
-// run performs the execution of the 'config current-context' subcommand
+// run performs the execution of the 'config current-context' subcommand.
 func (o *currentContextOptions) run() error {
 	s, err := config.GetConfigFromID("")
 	if err != nil {
@@ -68,7 +68,7 @@ func (o *currentContextOptions) run() error {
 	return nil
 }
 
-// useContext is the command line options for 'config use-context'
+// useContext is the command line options for 'config use-context'.
 type useContextOptions struct {
 	myID string
 }
@@ -95,7 +95,7 @@ func (o *useContextOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
 }
 
-// run performs the execution of the 'config current-context' subcommand
+// run performs the execution of the 'config current-context' subcommand.
 func (o *useContextOptions) run() error {
 	c, err := config.GetConfigFromID(o.myID)
 	if err != nil {
