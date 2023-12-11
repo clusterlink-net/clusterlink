@@ -175,7 +175,7 @@ func (o *allGetOptions) run() error {
 		fmt.Println(string(sJSON))
 	}
 
-	// Policy.
+	// Policy
 	p := policyGetOptions{myID: o.myID}
 	return p.run()
 }

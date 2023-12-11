@@ -163,11 +163,11 @@ func (c *ClientConfig) SetDefaultClient(id string) error {
 		c.logger.Errorf("Client config File with id %v is not exist\n", id)
 		return err
 	}
-	// Remove if the link exist.
+	// Remove if the link exist
 	if _, err := os.Lstat(link); err == nil {
 		os.Remove(link)
 	}
-	// Create a link.
+	// Create a link
 	err := os.Symlink(file, link)
 	if err != nil {
 		c.logger.Errorln("Error creating symlink:", err)
@@ -211,7 +211,7 @@ func ClientPath(id string) string {
 	if id != "" {
 		cfgFile += "_" + id
 	}
-	// set cfg file in home directory.
+	// set cfg file in home directory
 	usr, _ := user.Current()
 	return path.Join(usr.HomeDir, projectFolder, cfgFile)
 }
