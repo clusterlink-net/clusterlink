@@ -1,6 +1,25 @@
 {
-    "name": "clusterlink build tools",
-    "build": {
-      "dockerfile": "../Containerfile.dev"
-    }
+	"name": "ClusterLink Dev Container",
+	"image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {},
+		"ghcr.io/devcontainers/features/go:1": {},
+		"ghcr.io/mpriscella/features/kind:1": {
+			"version": "0.17.0"
+		},
+    "ghcr.io/devcontainers-contrib/features/kubectl-asdf:2": {
+      "version": "1.23.5"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/python:1": {}
+	},
+	"remoteUser": "vscode",
+	"postCreateCommand": "bash .devcontainer/dev/post-create.sh",
+	"customizations": {
+		"vscode":{
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "bash"
+			}		
+		}
+	}
 }
