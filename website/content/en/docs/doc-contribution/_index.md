@@ -36,7 +36,7 @@ Here's a quick guide to updating the docs. It assumes you're familiar with the
   of your updates.
 1. Continue updating your doc and pushing your changes until you're happy with
   the content.
-1. When you're ready for a review, add a comment to the PR, and remove any
+1. When you are ready for a review, add a comment to the PR, and remove any
   "WIP" markers.
 
 ## Updating a single page
