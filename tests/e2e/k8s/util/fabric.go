@@ -27,7 +27,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/client"
 )
 
-// PeerConfig is a peer configuration
+// PeerConfig is a peer configuration.
 type PeerConfig struct {
 	// DataplaneType is the dataplane type (envoy / go).
 	DataplaneType string

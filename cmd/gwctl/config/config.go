@@ -31,7 +31,7 @@ const (
 	configFile    = "gwctl"
 )
 
-// ClientConfig contain all Client configuration to send requests to the GW
+// ClientConfig contain all Client configuration to send requests to the GW.
 type ClientConfig struct {
 	GwIP             string        `json:"gwIP"`
 	GwPort           uint16        `json:"gwPort"`
@@ -45,7 +45,7 @@ type ClientConfig struct {
 	logger           *logrus.Entry `json:"-"`
 }
 
-// NewClientConfig create config file with all the configuration of the Client
+// NewClientConfig create config file with all the configuration of the Client.
 func NewClientConfig(cfg ClientConfig) (*ClientConfig, error) {
 	c := ClientConfig{
 		ID:               cfg.ID,
@@ -71,53 +71,53 @@ func NewClientConfig(cfg ClientConfig) (*ClientConfig, error) {
 	return &c, nil
 }
 
-// GetConfigFromID return configuration of Client according to the Client ID
+// GetConfigFromID return configuration of Client according to the Client ID.
 func GetConfigFromID(id string) (*ClientConfig, error) {
 	c, err := readConfigFromFile(id)
 	return &c, err
 }
 
-// GetGwIP return the gw IP that the Client is connected
+// GetGwIP return the gw IP that the Client is connected.
 func (c *ClientConfig) GetGwIP() string {
 	return c.GwIP
 }
 
-// GetGwPort return the gw port that the Client is connected
+// GetGwPort return the gw port that the Client is connected.
 func (c *ClientConfig) GetGwPort() uint16 {
 	return c.GwPort
 }
 
-// GetID return the Client ID
+// GetID return the Client ID.
 func (c *ClientConfig) GetID() string {
 	return c.ID
 }
 
-// GetDataplane return the Client dataplane type (MTLS or TCP)
+// GetDataplane return the Client dataplane type (MTLS or TCP).
 func (c *ClientConfig) GetDataplane() string {
 	return c.Dataplane
 }
 
-// GetCert return the Client certificate
+// GetCert return the Client certificate.
 func (c *ClientConfig) GetCert() string {
 	return c.CertFile
 }
 
-// GetCaFile return the Client certificate Authority
+// GetCaFile return the Client certificate Authority.
 func (c *ClientConfig) GetCaFile() string {
 	return c.CaFile
 }
 
-// GetKeyFile return the Client key file
+// GetKeyFile return the Client key file.
 func (c *ClientConfig) GetKeyFile() string {
 	return c.KeyFile
 }
 
-// GetPolicyEngineIP return the policy server address
+// GetPolicyEngineIP return the policy server address.
 func (c *ClientConfig) GetPolicyEngineIP() string {
 	return c.PolicyEngineIP
 }
 
-// GetMetricsManagerIP return the metrics manager address
+// GetMetricsManagerIP return the metrics manager address.
 func (c *ClientConfig) GetMetricsManagerIP() string {
 	return c.MetricsManagerIP
 }
@@ -125,6 +125,7 @@ func (c *ClientConfig) GetMetricsManagerIP() string {
 /********************************/
 /******** Config functions **********/
 /********************************/
+
 func (c *ClientConfig) createProjectfolder() (string, error) {
 	usr, _ := user.Current()
 	fol := path.Join(usr.HomeDir, projectFolder)
@@ -204,7 +205,7 @@ func GetClientFromID(id string) (*client.Client, error) {
 	return client.New(c.GwIP, c.GwPort, parsedCertData.ClientConfig(c.ID)), nil
 }
 
-// ClientPath get CLI config file from id
+// ClientPath get CLI config file from id.
 func ClientPath(id string) string {
 	cfgFile := configFile
 	if id != "" {

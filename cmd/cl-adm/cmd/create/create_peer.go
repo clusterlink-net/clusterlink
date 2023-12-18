@@ -242,7 +242,7 @@ func verifyNotExists(path string) error {
 	return nil
 }
 
-// verifyDataplaneType checks if the given dataplane type is valid
+// verifyDataplaneType checks if the given dataplane type is valid.
 func verifyDataplaneType(dType string) error {
 	switch dType {
 	case platform.DataplaneTypeEnvoy:

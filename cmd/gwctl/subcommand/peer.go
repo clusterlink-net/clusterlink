@@ -104,7 +104,7 @@ func (o *peerOptions) run(isUpdate bool) error {
 	return nil
 }
 
-// peerDeleteOptions is the command line options for 'delete peer'
+// peerDeleteOptions is the command line options for 'delete peer'.
 type peerDeleteOptions struct {
 	myID string
 	name string
@@ -133,7 +133,7 @@ func (o *peerDeleteOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "Peer name")
 }
 
-// run performs the execution of the 'delete peer' subcommand
+// run performs the execution of the 'delete peer' subcommand.
 func (o *peerDeleteOptions) run() error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
@@ -148,7 +148,7 @@ func (o *peerDeleteOptions) run() error {
 	return nil
 }
 
-// peerGetOptions is the command line options for 'get peer'
+// peerGetOptions is the command line options for 'get peer'.
 type peerGetOptions struct {
 	myID string
 	name string
@@ -177,7 +177,7 @@ func (o *peerGetOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "Peer name. If empty gets all peers")
 }
 
-// run performs the execution of the 'get peer' subcommand
+// run performs the execution of the 'get peer' subcommand.
 func (o *peerGetOptions) run() error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {

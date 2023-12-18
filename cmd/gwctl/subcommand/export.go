@@ -103,7 +103,7 @@ func (o *exportCreateOptions) run(isUpdate bool) error {
 	return nil
 }
 
-// exportDeleteOptions is the command line options for 'delete export'
+// exportDeleteOptions is the command line options for 'delete export'.
 type exportDeleteOptions struct {
 	myID string
 	name string
@@ -133,7 +133,7 @@ func (o *exportDeleteOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "Exported service name")
 }
 
-// run performs the execution of the 'delete export' subcommand
+// run performs the execution of the 'delete export' subcommand.
 func (o *exportDeleteOptions) run() error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
@@ -148,7 +148,7 @@ func (o *exportDeleteOptions) run() error {
 	return nil
 }
 
-// exportGetOptions is the command line options for 'get export'
+// exportGetOptions is the command line options for 'get export'.
 type exportGetOptions struct {
 	myID string
 	name string
@@ -177,7 +177,7 @@ func (o *exportGetOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "Exported service name. If empty gets all exported services.")
 }
 
-// run performs the execution of the 'get export' subcommand
+// run performs the execution of the 'get export' subcommand.
 func (o *exportGetOptions) run() error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {

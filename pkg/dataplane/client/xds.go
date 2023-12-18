@@ -30,10 +30,10 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/server"
 )
 
-// resources indicate the xDS resources that would be fetched
+// resources indicate the xDS resources that would be fetched.
 var resources = [...]string{resource.ClusterType, resource.ListenerType}
 
-// XDSClient implements the client which fetches clusters and listeners
+// XDSClient implements the client which fetches clusters and listeners.
 type XDSClient struct {
 	dataplane          *server.Dataplane
 	controlplaneTarget string

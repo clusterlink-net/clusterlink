@@ -115,7 +115,7 @@ func (s *TestSuite) TearDownSuite() {
 	}
 }
 
-// convert e.g. TestBlaBla to test-bla-bla
+// convert e.g. TestBlaBla to test-bla-bla.
 func convertCaseCamelToKebab(s string) string {
 	s = regexp.MustCompile("(.)([A-Z][a-z]+)").ReplaceAllString(s, "${1}-${2}")
 	s = regexp.MustCompile("([a-z0-9])([A-Z])").ReplaceAllString(s, "${1}-${2}")

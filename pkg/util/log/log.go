@@ -67,7 +67,7 @@ type formatter struct {
 	*logrus.TextFormatter
 }
 
-// Format sets the line number and file for errors and fatal
+// Format sets the line number and file for errors and fatal.
 func (f *formatter) Format(entry *logrus.Entry) ([]byte, error) {
 	if entry.Level <= logrus.ErrorLevel {
 		_, file, line, _ := runtime.Caller(logrusFieldStack)

@@ -14,7 +14,7 @@
 package api
 
 const (
-	// cluster names
+	// cluster names.
 
 	// ControlplaneInternalHTTPCluster is the cluster name of the controlplane HTTP server for local dataplanes.
 	ControlplaneInternalHTTPCluster = "controlplane-internal-http"
@@ -29,7 +29,7 @@ const (
 	// RemotePeerClusterPrefix is the prefix of clusters representing remote peers.
 	RemotePeerClusterPrefix = "remote-peer-"
 
-	// listener names
+	// listener names.
 
 	// EgressRouterListener is the listener name of the internal egress router.
 	EgressRouterListener = "egress-router"
@@ -38,7 +38,7 @@ const (
 	// IngressRouterListener is the listener name of the ingress router.
 	IngressRouterListener = "ingress-router"
 
-	// secret names
+	// secret names.
 
 	// ValidationSecret is the secret name of the dataplane certificate validation context
 	// (which includes the CA certificate).
