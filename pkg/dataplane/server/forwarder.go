@@ -71,9 +71,9 @@ func (f *forwarder) peerToWorkload() error {
 	}
 	f.closeSignal.Swap(true)
 	if errors.Is(err, io.EOF) { // don't log EOF
-		return err
+		return nil
 	}
-	return nil
+	return err
 }
 
 func (f *forwarder) workloadToPeer() error {
@@ -103,9 +103,9 @@ func (f *forwarder) workloadToPeer() error {
 	}
 	f.closeSignal.Swap(true)
 	if errors.Is(err, io.EOF) { // don't log EOF
-		return err
+		return nil
 	}
-	return nil
+	return err
 }
 
 func (f *forwarder) closeConnections() {
