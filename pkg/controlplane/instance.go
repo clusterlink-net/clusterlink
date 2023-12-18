@@ -678,7 +678,7 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, platf
 	if err != nil {
 		return nil, fmt.Errorf("cannot load load-balancing policies from store: %w", err)
 	}
-	logger.Infof("Loaded %d load-balancing policies.", acPolicies.Len())
+	logger.Infof("Loaded %d load-balancing policies.", lbPolicies.Len())
 
 	cp := &Instance{
 		peerTLS:       peerTLS,
