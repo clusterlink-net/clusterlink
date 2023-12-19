@@ -13,6 +13,8 @@ jobs:
         go: ['1.20']
         
     steps:
+    - name: checkout
+      uses: actions/checkout@v4
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
@@ -21,8 +23,6 @@ jobs:
       uses: helm/kind-action@v1.8.0
       with:
         install_only: true
-    - name: checkout
-      uses: actions/checkout@v4
     - name: Run build
       run: make build
     - name: Build docker images
