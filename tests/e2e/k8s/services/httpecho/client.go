@@ -38,14 +38,15 @@ func GetEchoValue(cluster *util.KindCluster, server *util.Service) (string, erro
 		return "", err
 	}
 
-	url := fmt.Sprintf("http://%s", net.JoinHostPort(cluster.IP(), strconv.Itoa(int(port))))
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return "", fmt.Errorf("cannot create request: %w", err)
+	// fresh client assures a fresh connection
+	client := &http.Client{
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
 	}
 
-	req.Close = true
-	resp, err := http.DefaultClient.Do(req)
+	url := fmt.Sprintf("http://%s", net.JoinHostPort(cluster.IP(), strconv.Itoa(int(port))))
+	resp, err := client.Get(url)
 	if err != nil {
 		if errors.Is(err, syscall.ECONNREFUSED) {
 			return "", &services.ConnectionRefusedError{}
