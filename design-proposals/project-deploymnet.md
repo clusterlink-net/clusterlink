@@ -56,15 +56,19 @@ The deployment to another environment as VMs is out of scope.
 
 ## Proposal
 
-The proposal describes how the ClusterLink project can be deployed on any K8s Cluster. In this proposal, we distinguish between two entities: first, the fabric administrator, who manages the fabric and is responsible for determining which clusters can join the fabric, and second, the site administrator, who manages the k8s Cluster and is responsible for deploying the ClusterLink into the cluster.
+The proposal describes how the ClusterLink project can be deployed on any K8s Cluster.
+In this proposal, we distinguish between two entities:
+
+1. Fabric administrator: manages the fabric and is responsible for determining which clusters can join the fabric.
+1. Site administrator: manages the k8s Cluster and is responsible for deploying the ClusterLink into the cluster.
 
 Before deploying the ClusterLink, a few prerequisite steps should be completed:
 
 1. The fabric administrator should create the site certificates (public and private) and transfer them, along with the public CA certificate, to the site administrator.
-1. The site administrator should deploy the certificates as k8s secrets to the cluster.
-1. The site administrator should deploy the ClusterLink operator to the cluster.
+2. The site administrator should deploy the certificates as k8s secrets to the cluster.
+3. The site administrator should deploy the ClusterLink operator to the cluster and register ClusterLink Custom Resource Definition (CRD) class to the cluster.
 
-After completing all the prerequisites, the site administrator can deploy the ClusterLink Custom Resource Definition (CRD) to the operator. The operator will then create the ClusterLink components, including:
+After completing all the prerequisites, the site administrator can deploy the ClusterLink CRD instance to the operator. The operator will then create the ClusterLink components, including:
 
 * A ClusterLink dedicated namespace, which by default will be cl-operator-ns.
 * Deployment of ClusterLink controlplane components, including controlplane-pod, controlplane-service, and RBAC roles.
@@ -75,12 +79,13 @@ Overall, the ClusterLink deployment stages are:
 
 <img src="deployment.png" width="800" height="400" alt="ClusterLink Deployment Stages"/>
 
-The ClusterLink operator will have privileged permissions, enabling it to create ClusterLink components within the dedicated namespace.
-The ClusterLink components will be created in `clusterlink-system-ns`, and the control-plane will have privileged permissions to execute operations on the ClusterLink CRDs, such as peer, export, import, policy, etc.
-Additionally, the operator will create and update components in response to the `clusterlink-system.yaml` create or update actions. Once created or updated, the operator will not actively monitor the state of each component, assuming that any changes will be made only by privileged users.
-Furthermore, the operator will delete all components and the namespace of ClusterLink when the `clusterlink-system.yaml` file is deleted.
+The ClusterLink operator will have privileged permissions, allowing it to create a dedicated namespace and the ClusterLink components within.
+The ClusterLink components will be created in `clusterlink-system-ns`, and the control-plane will have privileged permissions within the namespace.
+Additionally, the operator will create and update components in response to the CRD instance create or update actions. Once created or updated, the operator will not actively monitor the state of each component, assuming that any changes will be made only by privileged users.
+Furthermore, the operator will delete all components and the namespace of ClusterLink when the CRD instance is deleted.
+The ClusterLink deployment is limited to one instance per cluster. In the case of deploying more than one CRD instance, only the first one will be taken into account, and the others will be ignored.
 
-The deployment file for the operator and example of `clusterlink-system.yaml` will be included in every project release.
+The deployment file for the operator and example of CRD instance will be included in every project release.
 
 The ClusterLink CLI will be utilized to automate the deployment process.
 For instance, the following commands can assist the fabric administrator in creating the site certificates:
@@ -88,9 +93,11 @@ For instance, the following commands can assist the fabric administrator in crea
     clusterlink create fabric --name <fabric_name>
     clusterlink create site --name <site_name> --fabric <fabric_name> 
 
-For the site administrator, automation of deploying the certificates as a secret to the cluster, deploying the ClusterLink operator, and the `clusterlink-system.yaml` can be achieved with:
+For the site administrator, automation of deploying the certificates as a secret to the cluster, deploying the ClusterLink operator, and the CRD instance can be achieved with:
 
     clusterlink install --site <site_name>
+
+Note: The ClusterLink CLI uses the kubeconfig, and it should be set to the specific cluster that needs to be configured
 
 ### ClusterLink CRD
 
@@ -164,6 +171,6 @@ There will be two types of tests:
 ### Implementation Phases/History
 
 The first phase focuses on building the k8s operator. In this step, we will create the ClusterLink operator and suitable tests. Additionally, during this step, we will continue to use the current cl-adm implementation to create peer and fabric certificates.
-The `cl-adm create peer1` command will generate two files: `k8s-secret.yaml` (containing all the certificates for the control-plane and data-plane) and `clusterlink-system.yaml` (the CRD for the ClusterLink operator). The ClusterLink operator will be deployed manually by the site administrator. The site administrator deploys the `clusterlink-system.yaml` file to the ClusterLink operator, than the operator creates the ClusterLink components.
+The `cl-adm create peer1` command will generate two files: `k8s-secret.yaml` (containing all the certificates for the control-plane and data-plane) and `clusterlink-system.yaml` (the CRD instance for the ClusterLink operator). The ClusterLink operator will be deployed manually by the site administrator. The site administrator deploys the `clusterlink-system.yaml` file to the ClusterLink operator, than the operator creates the ClusterLink components.
 
 In the second step, the focus is on automating the deployment process. We will create a ClusterLink CLI. This CLI will automate certificate creation by the fabric administrator, replacing the current cl-adm CLI. Furthermore, the CLI will automate the deployment process for ClusterLink by the site manager (including secret creation, deploying the ClusterLink operator, and CRD creation).
