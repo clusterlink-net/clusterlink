@@ -1,0 +1,11 @@
+<div class="col-lg-4 mb-5 mb-lg-0 text-center">
+    <div style="height: 60px;">
+     <img src="{{ .Get "icon" }}" style="width: 40px; height: 40px;" />
+    </div>
+    <h4 class="h3">{{ .Get "title" }}</h4>{{ if strings.ContainsNonSpace .Inner }}
+    <div class="mb-0">
+     {{ trim .Inner "\r\n" }}
+    </div>
+    {{ end }}
+   </div>
+ 
