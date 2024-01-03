@@ -16,7 +16,7 @@ jobs:
     - name: checkout
       uses: actions/checkout@v4
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go }}
     - name: Install kind
@@ -30,7 +30,7 @@ jobs:
     - name: Run e2e k8s test on a kind cluster
       run: CICD=1 ${{ runner.debug == '1' && 'DEBUG=1' || '' }} make tests-e2e-k8s
     - name: upload e2e k8s test logs
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: tests-e2e-k8s
