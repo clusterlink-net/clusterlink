@@ -2,54 +2,53 @@
 title: ClusterLink
 ---
 
-{{< blocks/cover image_anchor="smart" height="auto" color="secondary" >}}
-  <img src="clusterlink.png" class="site-logo" />
+{{< blocks/cover image_anchor="smart" height="full" color="secondary" >}}
+  <img src="clusterlink_logo.png" width="50%" class="site-logo" />
+
   <div class="mx-auto">
-    <a class="btn btn-lg btn-primary mr-3 mb-4" href="/docs/">Learn More <i class="fas fa-arrow-alt-circle-right ml-2"></i></a>
-    <a class="btn btn-lg btn-secondary mr-3 mb-4" href="/docs/getting-started">Get Started <i class="fa-solid fa-person-running ml-2"></i></a>
-   <p class="lead mt-5" color="primary">Securely connecting applications &mdash; across multi-cloud</p>
+    <p style="color: white;">Securely connecting applications<br />across multi-cloud</p>
+    <a class="btn btn-lg btn-secondary mr-3 mb-4" href="/docs/getting-started">Get Started <!--<i class="fa-solid fa-person-running ml-2"></i>--></a>
   </div>
   {{< blocks/link-down color="secondary" >}}
+
 {{< /blocks/cover >}}
 
 
-{{% blocks/lead color="primary" %}}
-  <h1>What is ClusterLink?</h1>
-  <p>
-    <b>ClusterLink</b> is a ...
+{{% blocks/lead color="primary" height="auto" %}}
+<div style="background-image: url('backgrounds/section2.jpg'); background-size: 100%; <!--border-style: solid;-->">
+  <span style="vertical-align:middle; display:inline-block; width:400px;">
+  <h1 style="color: white;">What is ClusterLink?</h1><br />
+  <p style="color: white; weight: bold; width="25%;">
+    ClusterLink simplifies the connection
+between application services that are located in different
+domains, networks, and cloud infrastructures.
   </p>
+  <p>
+    <a class="btn btn-lg btn-secondary mr-3 mb-4" href="/docs/">Learn More <!--<i class="fas fa-arrow-alt-circle-right ml-2"></i>--></a>
+  </p>
+  </span><span style="width: 50%;">
+   <img src="clusterlink_figure.png" />
+  </span>
+</div>
+
 {{% /blocks/lead %}}
 
+{{< blocks/section color="dark" type="row" >}}
 
-{{< blocks/section color="info" type="row" >}}
-  {{% blocks/feature icon="fa-solid fa-lightbulb" title="feature title" %}}
-  feature description
-  {{% /blocks/feature %}}
-  {{% blocks/feature icon="fa-solid fa-shield-halved" title="another feature title" %}}
-  feature 2 description
-  {{% /blocks/feature %}}
-  {{% blocks/feature icon="fa-solid fa-globe" title="3rd feature " %}}
-  feature 3 description
-  {{% /blocks/feature %}}
-  {{% blocks/feature icon="fa-solid fa-wifi" title="feature four!" %}}
-  feature 4 paragraph
-  {{% /blocks/feature %}}
+{{% clusterlink/feature icon="icons/icon6.png" title="Programmable" %}}Create use-case specific end-to-end connectivity solutions by exposing programmable interfaces between control, data, and management components.{{% /clusterlink/feature %}}
+
+{{% clusterlink/feature icon="icons/icon5.png" title="Open and Extensible" %}}Operate across administrative, technology, and vendor boundaries without interfering with the existing networks installed in the interconnected locations.{{% /clusterlink/feature %}}
+
+{{% clusterlink/feature icon="icons/icon4.png" title="Connection Oriented" %}}Support predictable performance on business-meaningful connections such as service-to-service or client-to-service communication flows.{{% /clusterlink/feature %}}
+
 {{< /blocks/section >}}
 
+{{< blocks/section color="primary" type="row" >}}
+<div width="100%" align="center" style="display: flex; background-image: url('backgrounds/section4.jpg'); background-size: 100%; <!--border-style: solid;-->">
+{{% clusterlink/card icon="icons/icon3.png" title="Concepts" url="docs/concepts"%}}Learn about the background and broader context behind ClusterLink. With an understanding of how it works and why, you can use it most effectively.{{% /clusterlink/card %}}
 
-{{< blocks/section color="secondary" type="row" >}}
-  {{< cardpane >}}
-    <!-- {{< card header="**👓 How-to guides**" >}}
-      Content card 1
-    {{< /card >}} -->
-    {{< card header="**💭 Concepts**" footer="[**View concepts →**]({{< ref concepts >}})" >}}
-    Learn about the background and concepts behind ClusterLink with in-depth explanations. You’ll cover the main concepts and how ClusterLink works, so you have the broader context to use it most effectively.
-    {{< /card >}}
-    {{< card header="**🎓 Tutorials**" footer="[**View available tutorials →**]({{< ref tutorials >}})" >}}
-    Visit the tutorials for guided learning paths to try out ClusterLink and pick up the main concepts. We'll walk you through the steps to get started with ClusterLink and run your first use case.
-    {{< /card >}}
-    {{< card header="**📖 Reference**" footer="[**View reference →**]({{< ref reference >}})" >}}
-    Refer to detailed information on ClusterLink resources, APIs, CLIs, and more. Reference material is useful for looking up specific information about ClusterLink when you need it.
-    {{< /card >}}
-  {{< /cardpane >}}
+{{% clusterlink/card icon="icons/icon2.png" title="Tutorials" url="docs/tutorials" %}}Visit the tutorials for guided learning paths to try out ClusterLink. We'll walk you through the steps to access the functionality so that you can ace your first use case.{{% /clusterlink/card %}}
+
+{{% clusterlink/card icon="icons/icon1.png" title="Reference" url="docs/reference" %}}Refer to detailed information on ClusterLink resources, APIs, CLIs, and more. Reference material is useful for looking up specific information when you need it.{{% /clusterlink/card %}}
+</div>
 {{< /blocks/section >}}
