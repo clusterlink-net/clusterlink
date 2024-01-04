@@ -33,15 +33,15 @@ const (
 
 // ClientConfig contain all Client configuration to send requests to the GW.
 type ClientConfig struct {
-	GwIP             string        `json:"gw_ip"`
-	GwPort           uint16        `json:"gw_port"`
+	GwIP             string        `json:"gwIp"`
+	GwPort           uint16        `json:"gwPort"`
 	ID               string        `json:"id"`
-	CaFile           string        `json:"ca_file"`
-	CertFile         string        `json:"cert_file"`
-	KeyFile          string        `json:"key_file"`
+	CaFile           string        `json:"caFile"`
+	CertFile         string        `json:"certFile"`
+	KeyFile          string        `json:"keyFile"`
 	Dataplane        string        `json:"dataplane"`
-	PolicyEngineIP   string        `json:"policy_engine_ip"`
-	MetricsManagerIP string        `json:"metrics_manager_ip"`
+	PolicyEngineIP   string        `json:"policyEngineIp"`
+	MetricsManagerIP string        `json:"metricsManagerIp"`
 	logger           *logrus.Entry `json:"-"`
 }
 
