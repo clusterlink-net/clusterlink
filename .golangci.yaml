@@ -96,10 +96,6 @@ linters-settings:
       # - io.Copy(*bytes.Buffer)
       # - io.Copy(os.Stdout)
 
-  govet:
-    disable:
-      - fieldalignment
-
   nakedret:
     # No naked returns (default: 30)
     max-func-lines: 1
