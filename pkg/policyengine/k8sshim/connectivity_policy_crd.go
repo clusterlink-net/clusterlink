@@ -50,10 +50,11 @@ type ConnectivityPolicy struct {
 
 // ConnectivityPolicySpec is a common spec for both PrivilegedConnectivityPolicy and ConnectivityPolicy.
 type ConnectivityPolicySpec struct {
-	Action          policytypes.PolicyAction
-	From            policytypes.WorkloadSetOrSelectorList `json:"from"`
-	To              policytypes.WorkloadSetOrSelectorList `json:"to"`
-	ConnectionAttrs []ConnectionAttrs                     `json:"connectionAttrs,omitempty"`
+	Action policytypes.PolicyAction
+	From   policytypes.WorkloadSetOrSelectorList `json:"from"`
+	To     policytypes.WorkloadSetOrSelectorList `json:"to"`
+	//nolint:tagliatelle // use camelCase, same as k8s convention
+	ConnectionAttrs []ConnectionAttrs `json:"connectionAttrs,omitempty"`
 }
 
 // ConnectionAttrs describes the combination of protocol and port used by a given connection.

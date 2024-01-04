@@ -60,7 +60,7 @@ linters:
     - revive
     - staticcheck
     - stylecheck
-    # - tagliatelle
+    - tagliatelle
     - tenv
     - testableexamples
     # - thelper

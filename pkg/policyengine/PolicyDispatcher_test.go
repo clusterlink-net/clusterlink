@@ -241,6 +241,7 @@ func TestDisableEnablePeers(t *testing.T) {
 	require.Equal(t, peer1, connReqResp.TargetPeer) // peer1 was re-enabled, so it is now chosen again
 }
 
+//nolint:unparam // `svc` always receives `svcName` (allow passing other names in future)
 func addRemoteSvc(t *testing.T, svc, peer string, ph policyengine.PolicyDecider) {
 	ph.AddPeer(peer) // just in case it was not already added
 	action, err := ph.AddBinding(&api.Binding{Spec: api.BindingSpec{Import: svc, Peer: peer}})
