@@ -109,16 +109,6 @@ linters-settings:
 
   stylecheck:
 
-  tagliatelle:
-    case:
-      rules:
-        json: snake
-        yaml: snake
-        xml: camel
-        bson: camel
-        avro: snake
-        mapstructure: kebab
-
 output:
   # prefer the simplest output: `line-number` without saving to file
   format: line-number
