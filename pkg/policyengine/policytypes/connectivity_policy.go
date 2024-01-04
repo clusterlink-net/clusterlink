@@ -55,9 +55,7 @@ type WorkloadSetOrSelectorList []WorkloadSetOrSelector
 // WorkloadSetOrSelector describes a set of workloads, based on their attributes (labels)
 // Exactly one of the two fields should be non-empty.
 type WorkloadSetOrSelector struct {
-	//nolint:tagliatelle // use camelCase, same as k8s convention
-	WorkloadSets []string `json:"workloadSets,omitempty"`
-	//nolint:tagliatelle // use camelCase, same as k8s convention
+	WorkloadSets     []string              `json:"workloadSets,omitempty"`
 	WorkloadSelector *metav1.LabelSelector `json:"workloadSelector,omitempty"`
 }
 
