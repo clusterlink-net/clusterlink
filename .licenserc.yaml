@@ -47,6 +47,7 @@ header:
     - "**/assets/assets.gen.go"
     - "**/*.scss"
     - "**/*.svg"
+    - "**/*.lock"
     
 
   comment: on-failure
