@@ -114,7 +114,7 @@ ClusterLink will be used in a cloud native environment with other
  it. It does not manage certificate lifetimes, rotation, etc. - these are delegated to external tools.
 - Enabling IP level connectivity between sites. ClusterLink uses existing network paths.
 - Pod to Pod communications. ClusterLink works at the level of `Service`s (but you could create a Service per Pod
- if that makes sense in your use cases...)
+Pod to Pod communications. ClusterLink works at the level of `Service`s , but can support this scenario by creating a service per pod.
 
 ## Communications
 
