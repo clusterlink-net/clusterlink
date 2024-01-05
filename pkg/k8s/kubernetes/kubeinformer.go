@@ -448,7 +448,6 @@ func (k *kubeData) CreateEndpoint(epName, namespace, targetIP string, targetPort
 	if err != nil {
 		log.Errorf("Error creating endpoint: %s", err)
 		return err
-
 	}
 	k.serviceMap[epName] = namespace
 
