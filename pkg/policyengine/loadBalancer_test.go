@@ -44,6 +44,7 @@ func addImports(lb *policyengine.LoadBalancer) {
 
 // We repeat lookups enough times to make sure we get all the peers allowed by the relevant policy.
 func repeatLookups(t *testing.T, lb *policyengine.LoadBalancer, srcSvc, dstSvc string, peers []string) map[string]bool {
+	t.Helper()
 	res := map[string]bool{}
 	for i := 0; i < 100; i++ {
 		targetPeer, err := lb.LookupWith(srcSvc, dstSvc, peers)

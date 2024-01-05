@@ -243,6 +243,7 @@ func TestDisableEnablePeers(t *testing.T) {
 
 //nolint:unparam // `svc` always receives `svcName` (allow passing other names in future)
 func addRemoteSvc(t *testing.T, svc, peer string, ph policyengine.PolicyDecider) {
+	t.Helper()
 	ph.AddPeer(peer) // just in case it was not already added
 	action, err := ph.AddBinding(&api.Binding{Spec: api.BindingSpec{Import: svc, Peer: peer}})
 	require.Nil(t, err)
@@ -254,6 +255,7 @@ func removeRemoteSvc(svc, peer string, ph policyengine.PolicyDecider) {
 }
 
 func addPolicy(t *testing.T, policy *policytypes.ConnectivityPolicy, ph policyengine.PolicyDecider) {
+	t.Helper()
 	policyBuf, err := json.Marshal(policy)
 	require.Nil(t, err)
 	apiPolicy := api.Policy{Name: policy.Name, Spec: api.PolicySpec{Blob: policyBuf}}
