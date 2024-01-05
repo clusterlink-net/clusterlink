@@ -11,15 +11,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package k8s
+package k8s_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
+
+	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s"
 )
 
 // TestE2EK8S runs all k8s e2e tests.
 func TestE2EK8S(t *testing.T) {
-	suite.Run(t, &TestSuite{})
+	suite.Run(t, &k8s.TestSuite{})
 }

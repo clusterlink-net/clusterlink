@@ -64,7 +64,7 @@ linters:
     - tenv
     - testableexamples
     # - thelper
-    # - testpackage
+    - testpackage
     - tparallel
     - unconvert
     - unparam
