@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package k8s
+package k8s_test
 
 import (
 	"context"
@@ -26,6 +26,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"github.com/clusterlink-net/clusterlink/pkg/platform/k8s"
 )
 
 const (
@@ -41,12 +43,8 @@ func TestPodReconciler(t *testing.T) {
 	client, err := getFakeClient()
 	require.NoError(t, err)
 	ctx := context.Background()
-	podReconciler := &PodReconciler{
-		Client:  client,
-		ipToPod: make(map[string]types.NamespacedName),
-		podList: make(map[types.NamespacedName]podInfo),
-		logger:  logger,
-	}
+	podReconciler := k8s.CreatePodReconciler(client, logger)
+
 	req := ctrl.Request{NamespacedName: types.NamespacedName{
 		Name:      TestPodName,
 		Namespace: TestPodNameSpace,
@@ -59,7 +57,7 @@ func TestPodReconciler(t *testing.T) {
 	require.NoError(t, err)
 	_, err = podReconciler.Reconcile(ctx, req)
 	require.NoError(t, err)
-	actualLabels := podReconciler.getLabelsFromIP(TestPodIP)[TestPodKeyLabel]
+	actualLabels := podReconciler.GetLabelsFromIP(TestPodIP)[TestPodKeyLabel]
 	expectedLabels := createLabel
 	require.Equal(t, expectedLabels, actualLabels, "Labels should be equal")
 
@@ -70,7 +68,7 @@ func TestPodReconciler(t *testing.T) {
 	require.NoError(t, err)
 	_, err = podReconciler.Reconcile(ctx, req)
 	require.NoError(t, err)
-	actualLabels = podReconciler.getLabelsFromIP(TestPodIP)[TestPodKeyLabel]
+	actualLabels = podReconciler.GetLabelsFromIP(TestPodIP)[TestPodKeyLabel]
 	expectedLabels = updateLabel
 	require.Equal(t, expectedLabels, actualLabels, "Labels should be equal")
 
@@ -79,9 +77,8 @@ func TestPodReconciler(t *testing.T) {
 	require.NoError(t, err)
 	_, err = podReconciler.Reconcile(ctx, req)
 	require.NoError(t, err)
-	require.Empty(t, podReconciler.ipToPod, "ipToPod map should be empty")
-	require.Empty(t, podReconciler.podList, "podList map should be empty")
-
+	labels := podReconciler.GetLabelsFromIP(TestPodIP)[TestPodKeyLabel]
+	require.Empty(t, labels)
 }
 
 func getFakeClient(initObjs ...client.Object) (client.WithWatch, error) {

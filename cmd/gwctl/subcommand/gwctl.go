@@ -46,7 +46,6 @@ func InitCmd() *cobra.Command {
 		Short: "A start command set all parameter state of gwctl (gw control)",
 		Long:  `A start command set all parameter state of gwctl (gw control)`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			return o.run()
 		},
 	}

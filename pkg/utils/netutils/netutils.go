@@ -107,7 +107,6 @@ func CreateDefaultResilientHTTPServer(addr string, mux http.Handler) *http.Serve
 // CreateResilientHTTPServer returns an http.Server configured with the timeouts provided.
 func CreateResilientHTTPServer(addr string, mux http.Handler, tlsConfig *tls.Config,
 	headerReadTimeout, writeTimeout, idleTimeout *time.Duration) *http.Server {
-
 	const (
 		defaultReadHeaderTimeout = 2 * time.Second
 		defaultWriteTimeout      = 2 * time.Second

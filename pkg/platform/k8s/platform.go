@@ -114,7 +114,7 @@ func (p *Platform) DeleteService(name, host string) {
 
 // GetLabelsFromIP return all the labels for specific ip.
 func (p *Platform) GetLabelsFromIP(ip string) map[string]string {
-	return p.podReconciler.getLabelsFromIP(ip)
+	return p.podReconciler.GetLabelsFromIP(ip)
 }
 
 // NewPlatform returns a new Kubernetes platform.
