@@ -31,8 +31,7 @@ linters:
     - ginkgolinter
     - gocritic
     - godot
-    - gofmt
-    # - gofumpt
+    - gofumpt
     - goimports
     - gomoddirectives
     - gosec
