@@ -106,7 +106,8 @@ func (p *Platform) UpdateExternalService(name, host, externalName string) {
 // DeleteService deletes a service.
 func (p *Platform) DeleteService(name, host string) {
 	serviceSpec := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: host, Namespace: p.namespace}}
+		ObjectMeta: metav1.ObjectMeta{Name: host, Namespace: p.namespace},
+	}
 
 	p.logger.Infof("Deleting K8s service %s.", host)
 	go p.serviceReconciler.DeleteResource(name, serviceSpec)

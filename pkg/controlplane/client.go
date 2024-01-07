@@ -208,7 +208,8 @@ func newClient(peer *store.Peer, tlsConfig *tls.Config) *client {
 		stopSignal: make(chan struct{}),
 		logger: logrus.WithFields(logrus.Fields{
 			"component": "peer-client",
-			"peer":      peer}),
+			"peer":      peer,
+		}),
 	}
 
 	go c.heartbeatMonitor()

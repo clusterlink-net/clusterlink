@@ -81,7 +81,8 @@ func (o *initOptions) run() error {
 		CertFile:       o.cert,
 		KeyFile:        o.key,
 		Dataplane:      o.dataplane,
-		PolicyEngineIP: o.policyEngineIP})
+		PolicyEngineIP: o.policyEngineIP,
+	})
 
 	return err
 }

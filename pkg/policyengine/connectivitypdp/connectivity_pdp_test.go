@@ -43,10 +43,12 @@ func TestPrivilegedVsRegular(t *testing.T) {
 	workloadSet := []policytypes.WorkloadSetOrSelector{trivialWorkloadSet}
 	trivialConnPol := policytypes.ConnectivityPolicy{
 		Name: "reg", Privileged: false, Action: policytypes.PolicyActionAllow,
-		From: workloadSet, To: workloadSet}
+		From: workloadSet, To: workloadSet,
+	}
 	trivialPrivConnPol := policytypes.ConnectivityPolicy{
 		Name: "priv", Privileged: true, Action: policytypes.PolicyActionDeny,
-		From: workloadSet, To: workloadSet}
+		From: workloadSet, To: workloadSet,
+	}
 
 	pdp := connectivitypdp.NewPDP()
 	dests := []policytypes.WorkloadAttrs{trivialLabel}
@@ -171,7 +173,8 @@ func TestBadSelector(t *testing.T) {
 		Name:   "aBadPolicy",
 		Action: policytypes.PolicyActionAllow,
 		From:   []policytypes.WorkloadSetOrSelector{badWorkloadSet},
-		To:     []policytypes.WorkloadSetOrSelector{trivialWorkloadSet}}
+		To:     []policytypes.WorkloadSetOrSelector{trivialWorkloadSet},
+	}
 	pdp := connectivitypdp.NewPDP()
 	err := pdp.AddOrUpdatePolicy(badSelectorPol)
 	require.NotNil(t, err)

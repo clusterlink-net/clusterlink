@@ -26,8 +26,10 @@ import (
 	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 )
 
-var mlog = logrus.WithField("component", "Metrics")
-var MyMetricsManager Metrics
+var (
+	mlog             = logrus.WithField("component", "Metrics")
+	MyMetricsManager Metrics
+)
 
 type Metrics struct {
 	ConnectionFlow map[string]*event.ConnectionStatusAttr

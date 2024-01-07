@@ -108,7 +108,8 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	ph := policyengine.NewPolicyHandler()
 	simpleSelector2 := metav1.LabelSelector{MatchLabels: policytypes.WorkloadAttrs{
 		policyengine.ServiceNameLabel: svcName,
-		policyengine.GatewayNameLabel: peer2}}
+		policyengine.GatewayNameLabel: peer2,
+	}}
 	simpleWorkloadSet2 := policytypes.WorkloadSetOrSelector{WorkloadSelector: &simpleSelector2}
 	policy2 := policy
 	policy2.To = []policytypes.WorkloadSetOrSelector{simpleWorkloadSet2}

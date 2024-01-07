@@ -123,7 +123,8 @@ func (c *ClusterLink) RestartDataplane() error {
 // Access a cluster service.
 func (c *ClusterLink) AccessService(
 	client func(*KindCluster, *Service) (string, error),
-	service *Service, allowRetry bool, expectedError error) (string, error) {
+	service *Service, allowRetry bool, expectedError error,
+) (string, error) {
 	if service.Namespace == "" {
 		service.Namespace = c.namespace
 	}

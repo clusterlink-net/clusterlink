@@ -111,10 +111,12 @@ func (x *XDSClient) Run() error {
 
 // NewXDSClient returns am xDS client which can fetch clusters and listeners from the controlplane.
 func NewXDSClient(dataplane *server.Dataplane, controlplaneTarget string, tlsConfig *tls.Config) *XDSClient {
-	return &XDSClient{dataplane: dataplane,
+	return &XDSClient{
+		dataplane:          dataplane,
 		controlplaneTarget: controlplaneTarget,
 		tlsConfig:          tlsConfig,
 		errors:             make(map[string]error),
 		logger:             logrus.WithField("component", "xds.client"),
-		clustersReady:      make(chan bool, 1)}
+		clustersReady:      make(chan bool, 1),
+	}
 }

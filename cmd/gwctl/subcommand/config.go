@@ -37,14 +37,12 @@ func ConfigCmd() *cobra.Command {
 }
 
 // getContextCmd is the command line options for 'config current-context'.
-type currentContextOptions struct {
-}
+type currentContextOptions struct{}
 
 // currentContextCmd - get the last gwctl context command to use.
 func currentContextCmd() *cobra.Command {
 	o := currentContextOptions{}
 	cmd := &cobra.Command{
-
 		Use:   "current-context",
 		Short: "Get gwctl current context.",
 		Long:  `Get gwctl current context.`,
