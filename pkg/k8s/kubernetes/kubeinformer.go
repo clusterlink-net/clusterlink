@@ -209,15 +209,17 @@ func (k *kubeData) getOwner(info *Info) owner {
 			log.WithError(err).WithField("key", info.Namespace+"/"+ownerReference.Name).
 				Debug("can't get ReplicaSet info from informer. Ignoring")
 		} else if ok {
-			rsInfo := item.(*metav1.ObjectMeta)
-			if len(rsInfo.OwnerReferences) > 0 {
-				return owner{
-					Name: rsInfo.OwnerReferences[0].Name,
-					Type: rsInfo.OwnerReferences[0].Kind,
+			if rsInfo, ok := item.(*metav1.ObjectMeta); ok {
+				if len(rsInfo.OwnerReferences) > 0 {
+					return owner{
+						Name: rsInfo.OwnerReferences[0].Name,
+						Type: rsInfo.OwnerReferences[0].Kind,
+					}
 				}
 			}
 		}
 	}
+
 	// If no owner references found, return itself as owner
 	return owner{
 		Name: info.Name,

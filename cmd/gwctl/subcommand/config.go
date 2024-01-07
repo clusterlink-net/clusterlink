@@ -63,9 +63,11 @@ func (o *currentContextOptions) run() error {
 		return err
 	}
 
-	sJSON, _ := json.MarshalIndent(s, "", " ")
-	fmt.Println("gwctl current state\n", string(sJSON))
-	return nil
+	sJSON, err := json.MarshalIndent(s, "", " ")
+	if err != nil {
+		fmt.Println("gwctl current state\n", string(sJSON))
+	}
+	return err
 }
 
 // useContext is the command line options for 'config use-context'.

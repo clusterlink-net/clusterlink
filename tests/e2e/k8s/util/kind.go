@@ -102,6 +102,7 @@ func (c *KindCluster) Start() {
 		// retry cluster creation up to 10 times
 		var err error
 		for i := 0; i < 10; i++ {
+			//nolint:errcheck // ignore errors when cluster did not exist
 			_ = c.cluster.Destroy(context.Background())
 
 			_, err = c.cluster.Create(context.Background())

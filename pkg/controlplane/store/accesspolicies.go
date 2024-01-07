@@ -139,8 +139,9 @@ func (s *AccessPolicies) init() error {
 
 	// store all policies to the cache
 	for _, object := range policies {
-		policy := object.(*AccessPolicy)
-		s.cache[policy.Name] = policy
+		if policy, ok := object.(*AccessPolicy); ok {
+			s.cache[policy.Name] = policy
+		}
 	}
 
 	return nil

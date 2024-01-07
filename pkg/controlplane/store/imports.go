@@ -139,8 +139,9 @@ func (s *Imports) init() error {
 
 	// store all imports to the cache
 	for _, object := range imports {
-		imp := object.(*Import)
-		s.cache[imp.Name] = imp
+		if imp, ok := object.(*Import); ok {
+			s.cache[imp.Name] = imp
+		}
 	}
 
 	return nil

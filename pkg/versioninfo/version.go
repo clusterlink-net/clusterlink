@@ -29,7 +29,7 @@ func init() {
 		case "vcs.revision":
 			Revision = kv.Value
 		case "vcs.time":
-			LastCommit, _ = time.Parse(time.RFC3339, kv.Value)
+			LastCommit, _ = time.Parse(time.RFC3339, kv.Value) //nolint:errcheck // ignore last commit not being a valid time
 		case "vcs.modified":
 			DirtyBuild = kv.Value == "true"
 		}
