@@ -71,6 +71,7 @@ linters:
     - unused
     - usestdlibvars
     # - varnamelen
+    - whitespace
 
 linters-settings:
   gocritic:

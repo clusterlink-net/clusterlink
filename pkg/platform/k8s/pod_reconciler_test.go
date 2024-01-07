@@ -81,7 +81,6 @@ func TestPodReconciler(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, podReconciler.ipToPod, "ipToPod map should be empty")
 	require.Empty(t, podReconciler.podList, "podList map should be empty")
-
 }
 
 func getFakeClient(initObjs ...client.Object) (client.WithWatch, error) {
