@@ -63,7 +63,7 @@ linters:
     - tagliatelle
     - tenv
     - testableexamples
-    # - thelper
+    - thelper
     - testpackage
     - tparallel
     - unconvert
