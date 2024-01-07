@@ -89,12 +89,8 @@ linters-settings:
 
   errcheck:
     # change some error checks which are disabled by default
-    # check-type-assertions: true
-    # check-blank: true
-    # exclude-functions:
-      # - io/ioutil.ReadFile
-      # - io.Copy(*bytes.Buffer)
-      # - io.Copy(os.Stdout)
+    check-type-assertions: true
+    check-blank: true
 
   nakedret:
     # No naked returns (default: 30)
