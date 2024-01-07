@@ -32,7 +32,10 @@ const (
 func SetLog(logLevel string, logFileName string) (*os.File, error) {
 	var f *os.File
 	if logFileName != "" {
-		usr, _ := user.Current()
+		usr, err := user.Current()
+		if err != nil {
+			return nil, err
+		}
 		logFileFullPath := path.Join(usr.HomeDir, logFileName)
 		createLogFolder(logFileFullPath)
 

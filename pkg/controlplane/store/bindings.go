@@ -186,15 +186,15 @@ func (s *Bindings) init() error {
 
 	// store all bindings to the cache
 	for _, object := range bindings {
-		binding := object.(*Binding)
+		if binding, ok := object.(*Binding); ok {
+			valMap, ok := s.cache[binding.Import]
+			if !ok {
+				valMap = make(map[string]*Binding)
+				s.cache[binding.Import] = valMap
+			}
 
-		valMap, ok := s.cache[binding.Import]
-		if !ok {
-			valMap = make(map[string]*Binding)
-			s.cache[binding.Import] = valMap
+			valMap[binding.Peer] = binding
 		}
-
-		valMap[binding.Peer] = binding
 	}
 
 	return nil

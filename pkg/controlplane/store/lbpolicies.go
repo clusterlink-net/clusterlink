@@ -139,8 +139,9 @@ func (s *LBPolicies) init() error {
 
 	// store all policies to the cache
 	for _, object := range policies {
-		policy := object.(*LBPolicy)
-		s.cache[policy.Name] = policy
+		if policy, ok := object.(*LBPolicy); ok {
+			s.cache[policy.Name] = policy
+		}
 	}
 
 	return nil

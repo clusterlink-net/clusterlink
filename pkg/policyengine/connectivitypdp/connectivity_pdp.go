@@ -143,6 +143,7 @@ func (pt *policyTier) getPolicies() []policytypes.ConnectivityPolicy {
 func (pt *policyTier) addPolicy(policy *policytypes.ConnectivityPolicy) {
 	pt.lock.Lock()
 	defer pt.lock.Unlock()
+	//nolint:errcheck // ignore return value as we just want to make sure non exists
 	_ = pt.unsafeDeletePolicy(policy.Name) // delete an existing policy with the same name, if it exists
 	if policy.Action == policytypes.PolicyActionDeny {
 		pt.denyPolicies[policy.Name] = policy
