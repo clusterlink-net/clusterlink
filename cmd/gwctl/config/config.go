@@ -133,7 +133,7 @@ func (c *ClientConfig) createProjectfolder() (string, error) {
 	}
 	fol := path.Join(usr.HomeDir, projectFolder)
 	// Create folder
-	err = os.MkdirAll(fol, 0755)
+	err = os.MkdirAll(fol, 0o755)
 	if err != nil {
 		c.logger.Errorln(err)
 		return "", err
@@ -152,7 +152,7 @@ func (c *ClientConfig) createConfigFile() error {
 		c.logger.Errorln("Client get config file path", err)
 		return err
 	}
-	err = os.WriteFile(f, jsonC, 0600) // RW by owner only
+	err = os.WriteFile(f, jsonC, 0o600) // RW by owner only
 	c.logger.Println("Create Client config File:", f)
 	if err != nil {
 		c.logger.Errorln("Creating client config File", err)

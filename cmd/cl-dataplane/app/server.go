@@ -67,7 +67,7 @@ func (o *Options) RequiredFlags() []string {
 func (o *Options) Run() error {
 	// set log file
 	if o.LogFile != "" {
-		f, err := os.OpenFile(o.LogFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+		f, err := os.OpenFile(o.LogFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o666)
 		if err != nil {
 			return fmt.Errorf("unable to open log file: %w", err)
 		}
