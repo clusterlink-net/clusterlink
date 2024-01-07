@@ -50,7 +50,7 @@ linters:
     - nilerr
     # - nilnil
     # - noctx
-    # - nolintlint
+    - nolintlint
     - nonamedreturns
     - nosprintfhostport
     - prealloc
