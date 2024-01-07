@@ -31,8 +31,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var dnsPattern = `^[a-zA-Z0-9-]{1,63}(\.[a-zA-Z0-9-]{1,63})*$`
-var dnsRegex = regexp.MustCompile(dnsPattern)
+var (
+	dnsPattern = `^[a-zA-Z0-9-]{1,63}(\.[a-zA-Z0-9-]{1,63})*$`
+	dnsRegex   = regexp.MustCompile(dnsPattern)
+)
 
 // GetConnIP returns the connection's local IP and port.
 func GetConnIP(c net.Conn) (string, string) {
@@ -106,7 +108,8 @@ func CreateDefaultResilientHTTPServer(addr string, mux http.Handler) *http.Serve
 
 // CreateResilientHTTPServer returns an http.Server configured with the timeouts provided.
 func CreateResilientHTTPServer(addr string, mux http.Handler, tlsConfig *tls.Config,
-	headerReadTimeout, writeTimeout, idleTimeout *time.Duration) *http.Server {
+	headerReadTimeout, writeTimeout, idleTimeout *time.Duration,
+) *http.Server {
 	const (
 		defaultReadHeaderTimeout = 2 * time.Second
 		defaultWriteTimeout      = 2 * time.Second

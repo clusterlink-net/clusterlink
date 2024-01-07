@@ -76,7 +76,8 @@ func (s *Server) GracefulStop() error {
 func NewServer(name string, tlsConfig *tls.Config) Server {
 	logger := logrus.WithFields(logrus.Fields{
 		"component": "http-server",
-		"name":      name})
+		"name":      name,
+	})
 	logWriter := logger.WriterLevel(logrus.ErrorLevel)
 
 	router := chi.NewRouter()

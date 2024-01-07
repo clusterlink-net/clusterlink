@@ -39,7 +39,7 @@ func SetLog(logLevel string, logFileName string) (*os.File, error) {
 		logFileFullPath := path.Join(usr.HomeDir, logFileName)
 		createLogFolder(logFileFullPath)
 
-		f, err := os.OpenFile(logFileFullPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0600)
+		f, err := os.OpenFile(logFileFullPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o600)
 		fmt.Printf("Creating log file: %v\n", logFileFullPath)
 		if err != nil {
 			return nil, fmt.Errorf("error opening log file: %w", err)
@@ -84,7 +84,7 @@ func (f *formatter) Format(entry *logrus.Entry) ([]byte, error) {
 // createLogFolder create the log folder if not exists.
 func createLogFolder(filePath string) {
 	dir := filepath.Dir(filePath)
-	err := os.MkdirAll(dir, 0755)
+	err := os.MkdirAll(dir, 0o755)
 	if err != nil {
 		fmt.Println("Failed to create directory:", err)
 		return

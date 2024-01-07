@@ -64,7 +64,7 @@ type ConnectionRequestAttr struct {
 	SrcService string
 	DstService string
 	Direction  Direction
-	OtherPeer  string //Optional: Would not be set if its an outgoing connection
+	OtherPeer  string // Optional: Would not be set if its an outgoing connection
 }
 
 type ConnectionRequestResp struct {

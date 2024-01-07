@@ -143,8 +143,9 @@ func (f *forwarder) run() {
 }
 
 func newForwarder(workloadConn net.Conn, peerConn net.Conn) *forwarder {
-	return &forwarder{workloadConn: workloadConn,
-		peerConn: peerConn,
-		logger:   logrus.WithField("component", "dataplane.forwarder"),
+	return &forwarder{
+		workloadConn: workloadConn,
+		peerConn:     peerConn,
+		logger:       logrus.WithField("component", "dataplane.forwarder"),
 	}
 }

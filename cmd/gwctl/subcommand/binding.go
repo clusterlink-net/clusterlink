@@ -66,7 +66,8 @@ func (o *bindingCreateOptions) run() error {
 	err = g.Bindings.Create(&api.Binding{
 		Spec: api.BindingSpec{
 			Import: o.importID,
-			Peer:   o.peer},
+			Peer:   o.peer,
+		},
 	})
 	if err != nil {
 		return err
@@ -118,7 +119,8 @@ func (o *bindingDeleteOptions) run() error {
 	err = g.Bindings.Delete(&api.Binding{
 		Spec: api.BindingSpec{
 			Import: o.importID,
-			Peer:   o.peer},
+			Peer:   o.peer,
+		},
 	})
 	if err != nil {
 		return err
