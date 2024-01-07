@@ -36,7 +36,11 @@ Not applicable.
 
 ## User/User Story
 
-As a site administrator, I would like to join my cluster to an existing fabric. The fabric administrator should send me the certificates required to join the fabric: the fabric CA certificate and the cluster certificates (private and public keys). Using these certificates and the ClusterLink operator, I can deploy the ClusterLink system in my cluster. Now, any user in my cluster can connect to other remote services in the fabric, even if they are located on different locations, or different cloud providers.
+The below user stories describe sample needs of a site administrator. Fabric administrators' requirements aren't elaborated.
+
+1. As a site administrator, I want to join my cluster with an existing fabric. After receiving the credentials (e.g., fabric certificate and site keypair, I would like to provide minimal additional configuration needed to deploy ClusterLink to the site/cluster I manage.
+1. As a site administrator, I would like to scale my ClusterLink deployment to meet growing demand (e.g., bandwidth) for cross-site communication.
+1. As a site administrator, I would like to completely remove ClusterLink from my cluster, restoring its previous state.
 
 ## Goals
 
@@ -51,7 +55,7 @@ This design document should:
 The following aspects are explicitly excluded and are out of scope in the current design:
 
 * This document focuses only on the deployment of ClusterLink to the K8s cluster.
-The deployment to another environment as VMs is out of scope.
+The deployment to another environment, such as VMs, is out of scope.
 * Security considerations related to the creation of certificates for the fabric or each site by the fabric administrator are also beyond the scope of this document.
 
 ## Proposal
@@ -65,22 +69,22 @@ In this proposal, we distinguish between two entities:
 Before deploying the ClusterLink, a few prerequisite steps should be completed:
 
 1. The fabric administrator should create the site certificates (public and private) and transfer them, along with the public CA certificate, to the site administrator.
-2. The site administrator should deploy the certificates as k8s secrets to the cluster.
-3. The site administrator should deploy the ClusterLink operator to the cluster and register ClusterLink Custom Resource Definition (CRD) class to the cluster.
+2. The site administrator should deploy the certificates as k8s secrets to the cluster.  This step can be automated to reduce operator toll and chance of introducing errors.
+3. The site administrator should deploy the ClusterLink operator to the cluster and register ClusterLink Custom Resource Definition (CRD) class to the cluster. This step is not dependent on the previous two and can be done at the administrator's convenience.
 
-After completing all the prerequisites, the site administrator can deploy the ClusterLink CRD instance to the operator. The operator will then create the ClusterLink components, including:
+After completing all the prerequisites, the site administrator can edit and apply a ClusterLink CRD instance to the operator. The operator will then create the ClusterLink components, including:
 
 * A ClusterLink dedicated namespace, which by default will be cl-operator-ns.
 * Deployment of ClusterLink controlplane components, including controlplane-pod, controlplane-service, and RBAC roles.
 * Deployment of ClusterLink dataplane components, including dataplane pods (single or multiple) and the dataplane-service.
-* Deployment of ClusterLink ingress, providing an external access point using load-balancer/node-port/gateway-API service."
+* Deployment of ClusterLink ingress, providing an external access point using load-balancer/node-port/gateway-API service.
 
 Overall, the ClusterLink deployment stages are:
 
 <img src="deployment.png" width="800" height="400" alt="ClusterLink Deployment Stages"/>
 
 The ClusterLink operator will have privileged permissions, allowing it to create a dedicated namespace and the ClusterLink components within.
-The ClusterLink components will be created in `clusterlink-system-ns`, and the control-plane will have privileged permissions within the namespace.
+The ClusterLink components will be created in the `clusterlink-system-ns``, and the control-plane will have privileged permissions within the namespace (for creating K8s services) and watch permissions in other namespaces.
 Additionally, the operator will create and update components in response to the CRD instance create or update actions. Once created or updated, the operator will not actively monitor the state of each component, assuming that any changes will be made only by privileged users.
 Furthermore, the operator will delete all components and the namespace of ClusterLink when the CRD instance is deleted.
 The ClusterLink deployment is limited to one instance per cluster. In the case of deploying more than one CRD instance, only the first one will be taken into account, and the others will be ignored.
@@ -112,9 +116,9 @@ The ClusterLink CRD includes the following fields:
     | ---- | ----- | ------ | ----|
     |dataplane | | ClusterLink dataplane component attributes||
     |  |type| Types of dataplane, supported values "go" or "envoy"|"envoy"|
-    | |replicates| Number of dataplane replicas|1|
+    | |replicas| Number of dataplane replicas|1|
     |ingress|| ClusterLink ingress component attributes ||
-    ||type| Type of service to expose ClusterLink deployment, supported values: "load-balancer", "API-gateway",    "node-port". |load-balancer|
+    ||type| Type of service to expose ClusterLink deployment, supported values: "LoadBalancer", "Gateway", "NodePort", "None". |None|
     |logLevel| |Log level severity for all the components (controlplane and dataplane)| "info"|
     |containerRegistry| |The container registry to pull the project images when the images is not present locally | ghcr.io/clusterlink-net|
     |imageTag| |The project images version | latest|
@@ -123,8 +127,8 @@ The ClusterLink CRD includes the following fields:
 
     | Field name | Description | Default value |
     | ----------- | ----------- | ------------- |
-    | controlplaneStatus      | Status of the controlplane components controlled by the operator. Supported values: <br> None - if all components have not been created. <br> Ready - if all components are in a ready and running status. <br> Error - If one of the components is in an error status. <br> Update - if one of the components is in an update status. | None |
-    | dataplaneStatus      | Status of the dataplane components controlled by the operator. Supported values: <br> None - if all components have not been created. <br> Ready - if all components are in a ready and running status. <br> Error - If one of the components is in an error status. <br> Update - if one of the components is in an update status. | None |
+    | controlplane      | Status of the controlplane components controlled by the operator. Supported values: <br> None - if all components have not been created. <br> Ready - if all components are in a ready and running status. <br> Error - If one of the components is in an error status. <br> Update - if one of the components is in an update status. | None |
+    | dataplane      | Status of the dataplane components controlled by the operator. Supported values: <br> None - if all components have not been created. <br> Ready - if all components are in a ready and running status. <br> Error - If one of the components is in an error status. <br> Update - if one of the components is in an update status. | None |
     | message     | Optional message that provides additional information about the status. | None |
 
 Example to clusterlink CRD:
@@ -137,7 +141,7 @@ metadata:
 spec:
   dataplane:
     type: "envoy"
-    replicates: 1
+    replicas: 1
 ```
 
 ## Impacts / Key Questions
@@ -155,7 +159,7 @@ For the deployment of ClusterLink, the Fabric CA certificate (public key) and th
 
 The ClusterLink operator will have privileged permissions to deploy the ClusterLink project to the cluster. The control plane of ClusterLink will be granted privileged access to all cluster resources through RBAC (Role-Based Access Control).
 
-In the future, we may introduce a Namespace deployment, which will have permissions limited to a single namespace.
+In the future, we may introduce a per-Namespace deployment, which will have permissions limited to a single namespace.
 
 ## Implementation Details
 
