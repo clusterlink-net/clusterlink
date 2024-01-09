@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
-	github.com/envoyproxy/go-control-plane v0.11.1
+	github.com/envoyproxy/go-control-plane v0.12.0
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.5.0
 	github.com/lestrrat-go/jwx v1.2.27
@@ -67,7 +67,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.16.0 // indirect
-	github.com/prometheus/client_model v0.4.0 // indirect
+	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/vladimirvivien/gexe v0.2.0 // indirect
