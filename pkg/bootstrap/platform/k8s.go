@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	k8sTemplate = `---
+	certsTemplate = `---
 apiVersion: v1
 kind: Secret
 metadata:
@@ -65,7 +65,9 @@ metadata:
 data:
   cert: {{.gwctlCert}}
   key: {{.gwctlKey}}
----
+`
+
+	k8sTemplate = `---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -249,7 +251,7 @@ metadata:
   name: cl-controlplane
 rules:
 - apiGroups: [""]
-  resources: ["services", "endpoints"]
+  resources: ["services"]
   verbs: ["create", "delete", "update"]
 - apiGroups: [""]
   resources: ["pods"]
@@ -267,6 +269,23 @@ subjects:
 - kind: ServiceAccount
   name: default
   namespace: default`
+	ClusterLinkInstanceTemplate = `apiVersion: clusterlink.net/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    app.kubernetes.io/name: instance
+    app.kubernetes.io/instance: cl-instance
+    app.kubernetes.io/part-of: clusterlink
+    app.kubernetes.io/created-by: clusterlink
+  name: cl-instance
+spec:
+  dataplane:
+    type: {{.dataplaneType}}
+    replicas: {{.dataplanes}} 
+  logLevel: {{.logLevel}} 
+  containerRegistry: {{.containerRegistry}}
+  namespace: {{.namespace}}
+`
 )
 
 // K8SConfig returns a kubernetes deployment file.
@@ -285,15 +304,6 @@ func K8SConfig(config *Config) ([]byte, error) {
 
 		"dataplaneTypeEnvoy": DataplaneTypeEnvoy,
 
-		"fabricCA":         base64.StdEncoding.EncodeToString(config.FabricCertificate.RawCert()),
-		"peerCA":           base64.StdEncoding.EncodeToString(config.PeerCertificate.RawCert()),
-		"controlplaneCert": base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawCert()),
-		"controlplaneKey":  base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawKey()),
-		"dataplaneCert":    base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawCert()),
-		"dataplaneKey":     base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawKey()),
-		"gwctlCert":        base64.StdEncoding.EncodeToString(config.GWCTLCertificate.RawCert()),
-		"gwctlKey":         base64.StdEncoding.EncodeToString(config.GWCTLCertificate.RawKey()),
-
 		"persistencyDirectoryMountPath": filepath.Dir(cpapp.StoreFile),
 
 		"controlplaneCAMountPath":   cpapp.CAFile,
@@ -311,8 +321,61 @@ func K8SConfig(config *Config) ([]byte, error) {
 	var k8sConfig bytes.Buffer
 	t := template.Must(template.New("").Parse(k8sTemplate))
 	if err := t.Execute(&k8sConfig, args); err != nil {
-		return nil, fmt.Errorf("cannot create k8s configuration off template: %w", err)
+		return nil, fmt.Errorf("cannot create k8s configuration from template: %w", err)
 	}
 
-	return k8sConfig.Bytes(), nil
+	certConfig, err := K8SCertificateConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	k8sBytes := certConfig
+	k8sBytes = append(k8sBytes, k8sConfig.Bytes()...)
+	return k8sBytes, nil
+}
+
+// K8SCertificateConfig returns a kubernetes secrets that contains all the certificates.
+func K8SCertificateConfig(config *Config) ([]byte, error) {
+	args := map[string]interface{}{
+		"fabricCA":         base64.StdEncoding.EncodeToString(config.FabricCertificate.RawCert()),
+		"peerCA":           base64.StdEncoding.EncodeToString(config.PeerCertificate.RawCert()),
+		"controlplaneCert": base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawCert()),
+		"controlplaneKey":  base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawKey()),
+		"dataplaneCert":    base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawCert()),
+		"dataplaneKey":     base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawKey()),
+		"gwctlCert":        base64.StdEncoding.EncodeToString(config.GWCTLCertificate.RawCert()),
+		"gwctlKey":         base64.StdEncoding.EncodeToString(config.GWCTLCertificate.RawKey()),
+	}
+
+	var certConfig bytes.Buffer
+	t := template.Must(template.New("").Parse(certsTemplate))
+	if err := t.Execute(&certConfig, args); err != nil {
+		return nil, fmt.Errorf("cannot create k8s certificate configuration from template: %w", err)
+	}
+
+	return certConfig.Bytes(), nil
+}
+
+// K8SClusterLinkInstanceConfig returns a YAML file for the ClusterLink instance.
+func K8SClusterLinkInstanceConfig(config *Config) ([]byte, error) {
+	containerRegistry := config.ContainerRegistry
+	if containerRegistry != "" {
+		containerRegistry = config.ContainerRegistry + "/"
+	}
+
+	args := map[string]interface{}{
+		"dataplanes":        config.Dataplanes,
+		"dataplaneType":     config.DataplaneType,
+		"logLevel":          config.LogLevel,
+		"containerRegistry": containerRegistry,
+		"namespace":         "default",
+	}
+
+	var clConfig bytes.Buffer
+	t := template.Must(template.New("").Parse(ClusterLinkInstanceTemplate))
+	if err := t.Execute(&clConfig, args); err != nil {
+		return nil, fmt.Errorf("cannot create clusterlink instance configuration from template: %w", err)
+	}
+
+	return clConfig.Bytes(), nil
 }
