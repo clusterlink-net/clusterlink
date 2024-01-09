@@ -3,9 +3,9 @@
      <img src="{{ .Get "icon" }}" style="width: 40px; height: 40px;" />
     </div>
     <h4 class="h3">{{ .Get "title" }}</h4>{{ if strings.ContainsNonSpace .Inner }}
-    <div class="mb-0">
+    <div class="mb-0" style="text-align: center;"><div style="width: 340px; text-align: center; margin: auto;">
      {{ trim .Inner "\r\n" }}
-    </div>
+    </div></div>
     {{ end }}
    </div>
  

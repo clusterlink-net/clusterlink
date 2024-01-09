@@ -2,14 +2,9 @@
 title: ClusterLink
 ---
 
-{{< blocks/cover image_anchor="smart" height="full" color="secondary" >}}
-  <img src="clusterlink_logo.png" width="50%" class="site-logo" />
-
-  <div class="mx-auto">
-    <p style="color: white;">Securely connecting applications<br />across multi-cloud</p>
-    <a class="btn btn-lg btn-secondary mr-3 mb-4" href="/docs/getting-started">Get Started <!--<i class="fa-solid fa-person-running ml-2"></i>--></a>
-  </div>
-  {{< blocks/link-down color="secondary" >}}
+{{< blocks/cover image_anchor="smart" height="auto" color="secondary" >}}
+ {{% clusterlink/intro logo="clusterlink_logo.png" buttontext="Get Started" buttonlink="/docs/getting-started" %}}Securely connecting<br />applications across multi-cloud{{% /clusterlink/intro %}}
+ {{< blocks/link-down color="secondary" >}}
 
 {{< /blocks/cover >}}
 
