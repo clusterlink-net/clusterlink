@@ -48,8 +48,16 @@ func (d *Dataplane) GetClusterTarget(name string) (string, error) {
 	if _, ok := d.clusters[name]; !ok {
 		return "", fmt.Errorf("unable to find %s in cluster map", name)
 	}
-	address := d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Address.GetSocketAddress().GetAddress()
-	port := d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Address.GetSocketAddress().GetPortValue()
+	address := d.clusters[name].
+		LoadAssignment.GetEndpoints()[0].
+		LbEndpoints[0].GetEndpoint().
+		Address.GetSocketAddress().
+		GetAddress()
+	port := d.clusters[name].
+		LoadAssignment.GetEndpoints()[0].
+		LbEndpoints[0].GetEndpoint().
+		Address.GetSocketAddress().
+		GetPortValue()
 	return address + ":" + strconv.Itoa(int(port)), nil
 }
 
@@ -58,7 +66,8 @@ func (d *Dataplane) GetClusterHost(name string) (string, error) {
 	if _, ok := d.clusters[name]; !ok {
 		return "", fmt.Errorf("unable to find %s in cluster map", name)
 	}
-	return strings.Split(d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Hostname, ":")[0], nil
+	return strings.Split(
+		d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Hostname, ":")[0], nil
 }
 
 // AddCluster adds a cluster to the map.
@@ -74,7 +83,9 @@ func (d *Dataplane) AddListener(listener *listener.Listener) {
 	}
 	d.listeners[listenerName] = listener
 	go func() {
-		d.CreateListener(listenerName, listener.Address.GetSocketAddress().GetAddress(), listener.Address.GetSocketAddress().GetPortValue())
+		d.CreateListener(listenerName,
+			listener.Address.GetSocketAddress().GetAddress(),
+			listener.Address.GetSocketAddress().GetPortValue())
 	}()
 }
 

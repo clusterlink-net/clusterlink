@@ -56,7 +56,8 @@ func (d *Dataplane) serveEgressConnections(name string, listener net.Listener) e
 			return err
 		}
 
-		d.logger.Debugf("Received an egress connection at listener for imported service %s from %s.", name, conn.RemoteAddr().String())
+		d.logger.Debugf(
+			"Received an egress connection at listener for imported service %s from %s.", name, conn.RemoteAddr().String())
 		d.logger.Debugf("Connection: %+v.", conn)
 
 		targetPeer, accessToken, err := d.getEgressAuth(name, strings.Split(conn.RemoteAddr().String(), ":")[0])

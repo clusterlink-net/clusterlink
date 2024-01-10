@@ -33,7 +33,9 @@ const (
 
 var (
 	selectAllSelector = metav1.LabelSelector{}
-	simpleSelector    = metav1.LabelSelector{MatchLabels: policytypes.WorkloadAttrs{policyengine.ServiceNameLabel: svcName}}
+	simpleSelector    = metav1.LabelSelector{
+		MatchLabels: policytypes.WorkloadAttrs{policyengine.ServiceNameLabel: svcName},
+	}
 	simpleWorkloadSet = policytypes.WorkloadSetOrSelector{WorkloadSelector: &simpleSelector}
 	policy            = policytypes.ConnectivityPolicy{
 		Name:       "test-policy",
@@ -136,7 +138,8 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	require.Equal(t, event.Deny, connReqResp.Action)
 	require.Nil(t, err)
 
-	// peer2 is removed as a remote for the requested service, so now the single allow policy does not allow the remaining peers
+	// peer2 is removed as a remote for the requested service,
+	// so now the single allow policy does not allow the remaining peers
 	removeRemoteSvc(svcName, peer2, ph)
 	requestAttr = event.ConnectionRequestAttr{SrcService: svcName, DstService: svcName, Direction: event.Outgoing}
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
@@ -150,7 +153,12 @@ func TestLoadBalancer(t *testing.T) {
 	addRemoteSvc(t, svcName, peer2, ph)
 	addPolicy(t, &policy, ph)
 
-	lbPolicy := policyengine.LBPolicy{ServiceSrc: svcName, ServiceDst: svcName, Scheme: policyengine.Static, DefaultPeer: peer1}
+	lbPolicy := policyengine.LBPolicy{
+		ServiceSrc:  svcName,
+		ServiceDst:  svcName,
+		Scheme:      policyengine.Static,
+		DefaultPeer: peer1,
+	}
 	policyBuf, err := json.Marshal(lbPolicy)
 	require.Nil(t, err)
 	apiLBPolicy := api.Policy{Name: policy.Name, Spec: api.PolicySpec{Blob: policyBuf}}
@@ -206,7 +214,12 @@ func TestDisableEnablePeers(t *testing.T) {
 	addRemoteSvc(t, svcName, peer2, ph)
 	addPolicy(t, &policy, ph)
 
-	lbPolicy := policyengine.LBPolicy{ServiceSrc: svcName, ServiceDst: svcName, Scheme: policyengine.Static, DefaultPeer: peer1}
+	lbPolicy := policyengine.LBPolicy{
+		ServiceSrc:  svcName,
+		ServiceDst:  svcName,
+		Scheme:      policyengine.Static,
+		DefaultPeer: peer1,
+	}
 	policyBuf, err := json.Marshal(lbPolicy)
 	require.Nil(t, err)
 	apiLBPolicy := api.Policy{Name: policy.Name, Spec: api.PolicySpec{Blob: policyBuf}}

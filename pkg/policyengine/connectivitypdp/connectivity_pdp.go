@@ -37,8 +37,10 @@ type policyTier struct {
 
 type connPolicyMap map[string]*policytypes.ConnectivityPolicy // map from policy name to the policy
 
-// DestinationDecision describes the PDP decision on a given destination (w.r.t, to a given source), including the deciding policy, if any.
-// Calling PDP.Decide() with a source workload and a slice of destinations workloads, returns a slice of corresponding DestinationDecisions.
+// DestinationDecision describes the PDP decision on a given destination (w.r.t, to a given source),
+// including the deciding policy, if any.
+// Calling PDP.Decide() with a source workload and a slice of destinations workloads,
+// returns a slice of corresponding DestinationDecisions.
 type DestinationDecision struct {
 	Destination     policytypes.WorkloadAttrs
 	Decision        policytypes.PolicyDecision
@@ -62,7 +64,8 @@ func (pdp *PDP) GetPolicies() []policytypes.ConnectivityPolicy {
 }
 
 // AddOrUpdatePolicy adds a ConnectivityPolicy to the PDP.
-// If a policy with the same name and the same privilege already exists in the PDP, it is updated (including updating the Action field).
+// If a policy with the same name and the same privilege already exists in the PDP,
+// it is updated (including updating the Action field).
 // Invalid policies return an error.
 func (pdp *PDP) AddOrUpdatePolicy(policy policytypes.ConnectivityPolicy) error {
 	if err := policy.Validate(); err != nil {
@@ -86,10 +89,13 @@ func (pdp *PDP) DeletePolicy(policyName string, privileged bool) error {
 	return pdp.regularPolicies.deletePolicy(policyName)
 }
 
-// Decide makes allow/deny decisions for the queried connections between src and each of the destinations in dests.
+// Decide makes allow/deny decisions for the queried connections between src and each of destinations in dests.
 // The decision, as well as the deciding policy, are recorded in the returned slice of DestinationDecision structs.
 // The order of destinations in dests is preserved in the returned slice.
-func (pdp *PDP) Decide(src policytypes.WorkloadAttrs, dests []policytypes.WorkloadAttrs) ([]DestinationDecision, error) {
+func (pdp *PDP) Decide(
+	src policytypes.WorkloadAttrs,
+	dests []policytypes.WorkloadAttrs,
+) ([]DestinationDecision, error) {
 	decisions := make([]DestinationDecision, len(dests))
 	for i, dest := range dests {
 		decisions[i] = DestinationDecision{Destination: dest}
@@ -212,7 +218,8 @@ func (cpm connPolicyMap) getPolicies() []policytypes.ConnectivityPolicy {
 // on the not-yet-decided connections between src and each of the destinations in dests.
 // returns whether all destinations were decided and an error (if occurred).
 func (cpm connPolicyMap) decide(src policytypes.WorkloadAttrs, dests []DestinationDecision) (bool, error) {
-	allDecided := false // for when there are no policies in cpm (some destinations are undecided, otherwise we shouldn't be here)
+	// for when there are no policies in cpm (some destinations are undecided, otherwise we shouldn't be here)
+	allDecided := false
 	for _, policy := range cpm {
 		allDecided = true // assume all destinations were decided, unless we find a destination which is not
 		for i := range dests {

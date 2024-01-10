@@ -79,7 +79,8 @@ func TestPrivilegedVsRegular(t *testing.T) {
 
 // TestAllLayers starts with one policy per layer (allow/deny X privileged/non-privileged)
 // Policies are set s.t., they capture more connections as their priority is lower.
-// We then test connections that should match the policy in a specific layer, but not policies in higher-priority layers.
+// We then test connections that should match the policy in a specific layer,
+// but not policies in higher-priority layers.
 // Finally we delete policies, starting with highest priority and going to lower priority policies.
 // After each deletion we test again a specific connection, which should match all policies.
 func TestAllLayers(t *testing.T) {
@@ -118,7 +119,8 @@ func TestAllLayers(t *testing.T) {
 	dests = []policytypes.WorkloadAttrs{privateMeteringLabel}
 	decisions, err = pdp.Decide(privateLabel, dests)
 	require.Nil(t, err)
-	require.Equal(t, policytypes.PolicyDecisionAllow, decisions[0].Decision) // no privileged deny, so privileged allow matches
+	// no privileged deny, so privileged allow matches
+	require.Equal(t, policytypes.PolicyDecisionAllow, decisions[0].Decision)
 
 	privAllowPolicy := getNameOfFirstPolicyInPDP(pdp, policytypes.PolicyActionAllow, true)
 	require.NotEmpty(t, privAllowPolicy)

@@ -34,7 +34,13 @@ const (
 // StartDataplaneServer starts the Dataplane server.
 func (d *Dataplane) StartDataplaneServer(dataplaneServerAddress string) error {
 	d.logger.Infof("Dataplane server starting at %s.", dataplaneServerAddress)
-	server := netutils.CreateResilientHTTPServer(dataplaneServerAddress, d.router, d.parsedCertData.ServerConfig(), nil, nil, nil)
+	server := netutils.CreateResilientHTTPServer(
+		dataplaneServerAddress,
+		d.router,
+		d.parsedCertData.ServerConfig(),
+		nil,
+		nil,
+		nil)
 
 	return server.ListenAndServeTLS("", "")
 }
@@ -147,7 +153,12 @@ func (d *Dataplane) hijackConn(w http.ResponseWriter) (net.Conn, error) {
 	return peerConn, nil
 }
 
-func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, appConn net.Conn, tlsConfig *tls.Config) error {
+func (d *Dataplane) initiateEgressConnection(
+	targetCluster,
+	authToken string,
+	appConn net.Conn,
+	tlsConfig *tls.Config,
+) error {
 	target, err := d.GetClusterTarget(targetCluster)
 	if err != nil {
 		d.logger.Error(err)
