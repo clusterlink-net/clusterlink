@@ -35,7 +35,8 @@ func (s *Server) addAuthzHandlers() {
 	r.Post(api.DataplaneIngressAuthorizationPath, s.DataplaneIngressAuthorize)
 }
 
-// PeerAuthorize authorizes a remote peer controlplane request for accessing an exported service, yielding an access token.
+// PeerAuthorize authorizes a remote peer controlplane request for accessing an exported service,
+// yielding an access token.
 func (s *Server) PeerAuthorize(w http.ResponseWriter, r *http.Request) {
 	var req api.AuthorizationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -45,7 +46,9 @@ func (s *Server) PeerAuthorize(w http.ResponseWriter, r *http.Request) {
 
 	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 || len(r.TLS.PeerCertificates[0].DNSNames) != 2 ||
 		r.TLS.PeerCertificates[0].DNSNames[0] == "" {
-		http.Error(w, fmt.Errorf("certificate does not contain a valid DNS name for the peer gateway").Error(), http.StatusBadRequest)
+		http.Error(w,
+			fmt.Errorf("certificate does not contain a valid DNS name for the peer gateway").Error(),
+			http.StatusBadRequest)
 		return
 	}
 
@@ -121,7 +124,9 @@ func (s *Server) DataplaneIngressAuthorize(w http.ResponseWriter, r *http.Reques
 	}
 
 	if !strings.HasPrefix(authorization, bearerSchemaPrefix) {
-		http.Error(w, fmt.Sprintf("authorization header is not using the bearer scheme: %s", authorization), http.StatusBadRequest)
+		http.Error(w,
+			fmt.Sprintf("authorization header is not using the bearer scheme: %s", authorization),
+			http.StatusBadRequest)
 		return
 	}
 	token := strings.TrimPrefix(authorization, bearerSchemaPrefix)

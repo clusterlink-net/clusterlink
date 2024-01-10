@@ -32,7 +32,8 @@ type ConnectivityPolicy struct {
 	To         WorkloadSetOrSelectorList `json:"to"`
 }
 
-// PolicyAction specifies whether a ConnectivityPolicy allows or denies the connection specified by its 'From' and 'To' fields.
+// PolicyAction specifies whether a ConnectivityPolicy allows or denies
+// the connection specified by its 'From' and 'To' fields.
 type PolicyAction string
 
 const (

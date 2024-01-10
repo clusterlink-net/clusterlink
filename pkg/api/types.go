@@ -49,7 +49,8 @@ type PeerSpec struct {
 
 // PeerStatus contains the peer status observed by the gateway.
 type PeerStatus struct {
-	// State contains the last peer state that observed by the gateway, indicating its reachability (Reachable/Unreachable).
+	// State contains the last peer state that observed by the gateway,
+	// indicating its reachability (Reachable/Unreachable).
 	State string
 	// LastSeen define the last time the state of the peer was updated.
 	LastSeen string

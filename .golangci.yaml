@@ -38,7 +38,7 @@ linters:
     - gosimple
     - govet
     - grouper
-    # - lll
+    - lll
     - loggercheck
     - importas
     - ineffassign

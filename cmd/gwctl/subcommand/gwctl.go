@@ -64,7 +64,11 @@ func (o *initOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.cert, "cert", "", "Path to the Certificate File (.pem)")
 	fs.StringVar(&o.key, "key", "", "Path to the Key File (.pem)")
 	fs.StringVar(&o.dataplane, "dataplane", "mtls", "tcp/mtls based dataplane proxies")
-	fs.StringVar(&o.policyEngineIP, "policyEngineIP", "", "IP address of the policy engine, if empty will use the same value as gwIP")
+	fs.StringVar(
+		&o.policyEngineIP,
+		"policyEngineIP",
+		"",
+		"IP address of the policy engine, if empty will use the same value as gwIP")
 }
 
 // run performs the execution of the 'init' subcommand.
@@ -161,7 +165,13 @@ func (o *allGetOptions) run() error {
 		return err
 	}
 
-	objects := map[string]*rest.Client{"Peers": g.Peers, "Exports": g.Exports, "Imports": g.Imports, "Bindings": g.Bindings}
+	objects := map[string]*rest.Client{
+		"Peers":    g.Peers,
+		"Exports":  g.Exports,
+		"Imports":  g.Imports,
+		"Bindings": g.Bindings,
+	}
+
 	for name, o := range objects {
 		fmt.Printf("%s:\n", name)
 		d, err := o.List()

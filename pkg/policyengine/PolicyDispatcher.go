@@ -103,7 +103,9 @@ func (pH *PolicyHandler) filterOutDisabledPeers(peers []string) []string {
 	return res
 }
 
-func (pH *PolicyHandler) decideIncomingConnection(requestAttr *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {
+func (pH *PolicyHandler) decideIncomingConnection(
+	requestAttr *event.ConnectionRequestAttr,
+) (event.ConnectionRequestResp, error) {
 	src := getServiceAttrs(requestAttr.SrcService, requestAttr.OtherPeer)
 	dest := getServiceAttrs(requestAttr.DstService, "")
 	decisions, err := pH.connectivityPDP.Decide(src, []policytypes.WorkloadAttrs{dest})
@@ -117,12 +119,15 @@ func (pH *PolicyHandler) decideIncomingConnection(requestAttr *event.ConnectionR
 	return event.ConnectionRequestResp{Action: event.Deny}, nil
 }
 
-func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {
+func (pH *PolicyHandler) decideOutgoingConnection(
+	requestAttr *event.ConnectionRequestAttr,
+) (event.ConnectionRequestResp, error) {
 	// Get a list of peers for the service
 	peerList, err := pH.loadBalancer.GetTargetPeers(requestAttr.DstService)
 	if err != nil || len(peerList) == 0 {
 		plog.Errorf("error getting target peers for service %s: %v", requestAttr.DstService, err)
-		return event.ConnectionRequestResp{Action: event.Deny}, nil // this can be caused by a user typo - so only log this error
+		// this can be caused by a user typo - so only log this error
+		return event.ConnectionRequestResp{Action: event.Deny}, nil
 	}
 
 	peerList = pH.filterOutDisabledPeers(peerList)
@@ -156,7 +161,9 @@ func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionR
 	return event.ConnectionRequestResp{Action: event.Allow, TargetPeer: targetPeer}, nil
 }
 
-func (pH *PolicyHandler) AuthorizeAndRouteConnection(connReq *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {
+func (pH *PolicyHandler) AuthorizeAndRouteConnection(
+	connReq *event.ConnectionRequestAttr,
+) (event.ConnectionRequestResp, error) {
 	plog.Infof("New connection request : %+v", connReq)
 
 	var resp event.ConnectionRequestResp
