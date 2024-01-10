@@ -8,14 +8,11 @@
 
 ## Summary/Abstract
 
-ClusterLink policies apply to communications between workloads. [ZN: should we mention services here?]
- Workloads can be identified by a strong (e.g., cryptographic) identity.
+ClusterLink policies apply to communications between clients and services.
+ Both types of workloads can be identified by a strong (e.g., cryptographic) identity.
  The identity links the workload to a set of attributes, and policies are
  defined on workload attributes. This design proposal defines the initial
  set of attributes used in policies.
-
- > ZN: The abstract only mentions workloads, but the notion of services is central to this document.
- Should we mention services here?
 
 ## Background
 
@@ -139,13 +136,12 @@ then the following attributes can be used to identify a workload (K8s Pod) withi
 - K8s namespace
 - Other metadata fields, including
   - Pod labels
-  - Pod name?
+  - Pod name
   - Owner reference
 - Pod Spec fields, including
   - Service Account
-  - Image name
-
-> ZN: How should we set Image name if the Pod runs multiple containers?
+  - Image name and SHA/tag (if multiple: concatenate, sort and base64 encode)
+  - Init image name and SHA/tag (if multiple: concatenate, sort and base64 encode)
 
 As users are isolated in their own namespaces, it is not possible for an attacker to provision
  resources in arbitrary namespaces and impersonate another workload. Labels, then, can be used to
@@ -164,8 +160,6 @@ Service attributes are set (or retrieved) when a Service is exported. Remote gat
  The exact definition is out of scope of this design.
 
 ### Gateway Attributes
-
-> ZN: Is this part of the gateway's certificate? How do we set it?
 
 Gateways learn the attributes associated with other gateways when Peers are added.
 
@@ -241,7 +235,9 @@ to allow updating the attributes of gateways/services across the fabric.
  reused to update project documentation, guides, and Frequently Asked Questions (FAQs).
 -->
 
-> Ziv has many ;-\
+- How safe is it to rely in the requesting workload IP to obtain its attributes from the K8s API server?
+  Which attacks does this expose us to?
+- What is the process of establishing the Gateway attributes? Are these attributes encoded in the Gateway certificate?
 
 ## Future Milestones
 
