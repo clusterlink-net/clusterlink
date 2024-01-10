@@ -178,8 +178,8 @@ Gateways learn the attributes associated with other gateways when Peers are adde
 | `k8s:ns` | Workload, Service | k8s API | Kubernetes namespace | |
 | `k8s:sa` | Workload | k8s API | Kubernetes service account name | |
 | `k8s:label:<name>` | Workload, Service | k8s API | Kubernetes label(s) | the use of [common k8s labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/) is recommended. Labels describing the application structure (e.g., `app`, `role`, `tier`) could be expressive and flexible |
-| `k8s:container-image` | Workload | k8s API | Image name | includes repo? Tag? Image SHA only?  what's useful? |
-| `TBD` | TBD | TBD | TODO | ... |
+| `k8s:container-image` | Workload | k8s API | Image name | includes repo, name, SHA/Tag. Multiple images are concatenated. |
+| `k8s:init-container-image` | Workload | k8s API | Image name | includes repo, name, SHA/Tag. Multiple images are concatenated. |
 
 ### Exchanging Attributes Between Gateways
 
