@@ -63,6 +63,7 @@ Not applicable.
  to enforce an egress policy that allows only workloads from *namespaces I own* on remote clusters and
  not from namespaces assigned to other users. The labels of workloads running in other namespaces are
  not trusted.
+- **Access control based on workload verified/validated version**:  As a Service owner, I would like to allow access to a specific service only for validated and trusted workloads. This might be an extension or working in conjunction with any or all of the above use-cases. Only specific version of the image (validated by image tag or even SHA) is allowed to access this service.
 
 ## Goals
 
@@ -235,8 +236,8 @@ to allow updating the attributes of gateways/services across the fabric.
  reused to update project documentation, guides, and Frequently Asked Questions (FAQs).
 -->
 
-- How safe is it to rely in the requesting workload IP to obtain its attributes from the K8s API server?
-  Which attacks does this expose us to?
+- How safe is relying on the requesting workload's IP to obtain its attributes from the K8s API server?
+  Which attacks does this expose us to? Can workloads contain their own identity instead (possibly via a sidecar) and present these tokens/certs to the gateway in order to get access to specific resource?
 - What is the process of establishing the Gateway attributes? Are these attributes encoded in the Gateway certificate?
 
 ## Future Milestones
