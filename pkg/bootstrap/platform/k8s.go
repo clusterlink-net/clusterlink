@@ -156,9 +156,9 @@ spec:
             secretName: cl-dataplane
       containers:
         - name: dataplane
-          image: {{.containerRegistry}}
-          {{ if (eq .dataplaneType .dataplaneTypeEnvoy) }}cl-dataplane
-          {{ else }}{{.containerRegistry}}cl-go-dataplane{{ end }}
+          image: {{.containerRegistry}}{{ 
+          if (eq .dataplaneType .dataplaneTypeEnvoy) }}cl-dataplane{{ 
+          else }}{{.containerRegistry}}cl-go-dataplane{{ end }}
           args: ["--log-level", "{{.logLevel}}", "--controlplane-host", "cl-controlplane"]
           imagePullPolicy: IfNotPresent
           ports:
