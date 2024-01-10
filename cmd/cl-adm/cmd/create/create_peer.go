@@ -43,16 +43,8 @@ type PeerOptions struct {
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(
-		&o.Name,
-		"name",
-		"",
-		"Peer name.")
-	fs.Uint16Var(
-		&o.Dataplanes,
-		"dataplanes",
-		1,
-		"Number of dataplanes.")
+	fs.StringVar(&o.Name, "name", "", "Peer name.")
+	fs.Uint16Var(&o.Dataplanes, "dataplanes", 1, "Number of dataplanes.")
 	fs.StringVar(
 		&o.DataplaneType,
 		"dataplane-type",
