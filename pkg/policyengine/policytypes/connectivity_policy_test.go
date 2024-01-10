@@ -49,7 +49,8 @@ func TestMatching(t *testing.T) {
 func TestDecide(t *testing.T) {
 	trivialConnPol := policytypes.ConnectivityPolicy{
 		Action: policytypes.PolicyActionDeny,
-		From:   []policytypes.WorkloadSetOrSelector{trivialWorkloadSet}}
+		From:   []policytypes.WorkloadSetOrSelector{trivialWorkloadSet},
+	}
 	decision, err := trivialConnPol.Decide(trivialLabel, trivialLabel)
 	require.Nil(t, err)
 	require.Equal(t, policytypes.PolicyDecisionUndecided, decision) // no match -> no decision

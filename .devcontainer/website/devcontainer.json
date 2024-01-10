@@ -1,0 +1,28 @@
+{
+	"name": "ClusterLink Website/Docs Dev Container",
+	"image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {},
+		"ghcr.io/devcontainers/features/go:1": {},
+		"ghcr.io/devcontainers/features/hugo:1": {
+			"version": "0.117.0",
+			"extended": true
+		},
+		"ghcr.io/devcontainers/features/node:1": {}
+	},
+	"remoteUser": "vscode",
+	"postCreateCommand": "bash .devcontainer/website/post-create.sh",
+	"customizations": {
+		"vscode":{
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "bash"
+			}		
+		}
+	},
+	"portsAttributes": {
+		"1313": {
+			"label": "hugo server",
+			"onAutoForward": "openBrowser"
+		}
+	}
+}

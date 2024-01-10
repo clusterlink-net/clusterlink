@@ -157,7 +157,7 @@ func (c *client) getHeartbeat() error {
 	return retErr // Return an error if all client targets are unreachable
 }
 
-// StopMonitor send signal to stop heartbeat monitor
+// StopMonitor send signal to stop heartbeat monitor.
 func (c *client) StopMonitor() {
 	close(c.stopSignal)
 }
@@ -208,7 +208,8 @@ func newClient(peer *store.Peer, tlsConfig *tls.Config) *client {
 		stopSignal: make(chan struct{}),
 		logger: logrus.WithFields(logrus.Fields{
 			"component": "peer-client",
-			"peer":      peer}),
+			"peer":      peer,
+		}),
 	}
 
 	go c.heartbeatMonitor()

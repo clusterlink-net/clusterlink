@@ -77,7 +77,7 @@ func (s *TestSuite) SetupSuite() {
 	if err := os.RemoveAll(util.ExportedLogsPath); err != nil {
 		s.T().Fatal(fmt.Errorf("cannot cleanup logs directory: %w", err))
 	}
-	if err := os.MkdirAll(util.ExportedLogsPath, 0755); err != nil {
+	if err := os.MkdirAll(util.ExportedLogsPath, 0o755); err != nil {
 		s.T().Fatal(fmt.Errorf("cannot create logs directory: %w", err))
 	}
 
@@ -115,7 +115,7 @@ func (s *TestSuite) TearDownSuite() {
 	}
 }
 
-// convert e.g. TestBlaBla to test-bla-bla
+// convert e.g. TestBlaBla to test-bla-bla.
 func convertCaseCamelToKebab(s string) string {
 	s = regexp.MustCompile("(.)([A-Z][a-z]+)").ReplaceAllString(s, "${1}-${2}")
 	s = regexp.MustCompile("([a-z0-9])([A-Z])").ReplaceAllString(s, "${1}-${2}")

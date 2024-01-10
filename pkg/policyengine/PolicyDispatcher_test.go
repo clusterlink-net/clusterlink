@@ -108,7 +108,8 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	ph := policyengine.NewPolicyHandler()
 	simpleSelector2 := metav1.LabelSelector{MatchLabels: policytypes.WorkloadAttrs{
 		policyengine.ServiceNameLabel: svcName,
-		policyengine.GatewayNameLabel: peer2}}
+		policyengine.GatewayNameLabel: peer2,
+	}}
 	simpleWorkloadSet2 := policytypes.WorkloadSetOrSelector{WorkloadSelector: &simpleSelector2}
 	policy2 := policy
 	policy2.To = []policytypes.WorkloadSetOrSelector{simpleWorkloadSet2}
@@ -241,7 +242,9 @@ func TestDisableEnablePeers(t *testing.T) {
 	require.Equal(t, peer1, connReqResp.TargetPeer) // peer1 was re-enabled, so it is now chosen again
 }
 
+//nolint:unparam // `svc` always receives `svcName` (allow passing other names in future)
 func addRemoteSvc(t *testing.T, svc, peer string, ph policyengine.PolicyDecider) {
+	t.Helper()
 	ph.AddPeer(peer) // just in case it was not already added
 	action, err := ph.AddBinding(&api.Binding{Spec: api.BindingSpec{Import: svc, Peer: peer}})
 	require.Nil(t, err)
@@ -253,6 +256,7 @@ func removeRemoteSvc(svc, peer string, ph policyengine.PolicyDecider) {
 }
 
 func addPolicy(t *testing.T, policy *policytypes.ConnectivityPolicy, ph policyengine.PolicyDecider) {
+	t.Helper()
 	policyBuf, err := json.Marshal(policy)
 	require.Nil(t, err)
 	apiPolicy := api.Policy{Name: policy.Name, Spec: api.PolicySpec{Blob: policyBuf}}

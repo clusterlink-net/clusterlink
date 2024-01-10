@@ -235,7 +235,8 @@ func makeEndpointsCluster(name string, endpoints []api.Endpoint, hostname string
 }
 
 func makeTCPProxyFilter(clusterName, statPrefix string,
-	tunnelingConfig *tcpproxy.TcpProxy_TunnelingConfig) (*listener.Filter, error) {
+	tunnelingConfig *tcpproxy.TcpProxy_TunnelingConfig,
+) (*listener.Filter, error) {
 	tcpProxyConfig := &tcpproxy.TcpProxy{
 		StatPrefix: "tcp-proxy-" + statPrefix,
 		ClusterSpecifier: &tcpproxy.TcpProxy_Cluster{

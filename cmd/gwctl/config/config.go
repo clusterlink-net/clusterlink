@@ -31,21 +31,21 @@ const (
 	configFile    = "gwctl"
 )
 
-// ClientConfig contain all Client configuration to send requests to the GW
+// ClientConfig contain all Client configuration to send requests to the GW.
 type ClientConfig struct {
-	GwIP             string        `json:"gwIP"`
+	GwIP             string        `json:"gwIp"`
 	GwPort           uint16        `json:"gwPort"`
-	ID               string        `json:"ID"`
-	CaFile           string        `json:"CaFile"`
-	CertFile         string        `json:"CertFile"`
-	KeyFile          string        `json:"KeyFile"`
-	Dataplane        string        `json:"Dataplane"`
-	PolicyEngineIP   string        `json:"PolicyEngineIP"`
-	MetricsManagerIP string        `json:"MetricsManagerIP"`
+	ID               string        `json:"id"`
+	CaFile           string        `json:"caFile"`
+	CertFile         string        `json:"certFile"`
+	KeyFile          string        `json:"keyFile"`
+	Dataplane        string        `json:"dataplane"`
+	PolicyEngineIP   string        `json:"policyEngineIp"`
+	MetricsManagerIP string        `json:"metricsManagerIp"`
 	logger           *logrus.Entry `json:"-"`
 }
 
-// NewClientConfig create config file with all the configuration of the Client
+// NewClientConfig create config file with all the configuration of the Client.
 func NewClientConfig(cfg ClientConfig) (*ClientConfig, error) {
 	c := ClientConfig{
 		ID:               cfg.ID,
@@ -71,53 +71,53 @@ func NewClientConfig(cfg ClientConfig) (*ClientConfig, error) {
 	return &c, nil
 }
 
-// GetConfigFromID return configuration of Client according to the Client ID
+// GetConfigFromID return configuration of Client according to the Client ID.
 func GetConfigFromID(id string) (*ClientConfig, error) {
 	c, err := readConfigFromFile(id)
 	return &c, err
 }
 
-// GetGwIP return the gw IP that the Client is connected
+// GetGwIP return the gw IP that the Client is connected.
 func (c *ClientConfig) GetGwIP() string {
 	return c.GwIP
 }
 
-// GetGwPort return the gw port that the Client is connected
+// GetGwPort return the gw port that the Client is connected.
 func (c *ClientConfig) GetGwPort() uint16 {
 	return c.GwPort
 }
 
-// GetID return the Client ID
+// GetID return the Client ID.
 func (c *ClientConfig) GetID() string {
 	return c.ID
 }
 
-// GetDataplane return the Client dataplane type (MTLS or TCP)
+// GetDataplane return the Client dataplane type (MTLS or TCP).
 func (c *ClientConfig) GetDataplane() string {
 	return c.Dataplane
 }
 
-// GetCert return the Client certificate
+// GetCert return the Client certificate.
 func (c *ClientConfig) GetCert() string {
 	return c.CertFile
 }
 
-// GetCaFile return the Client certificate Authority
+// GetCaFile return the Client certificate Authority.
 func (c *ClientConfig) GetCaFile() string {
 	return c.CaFile
 }
 
-// GetKeyFile return the Client key file
+// GetKeyFile return the Client key file.
 func (c *ClientConfig) GetKeyFile() string {
 	return c.KeyFile
 }
 
-// GetPolicyEngineIP return the policy server address
+// GetPolicyEngineIP return the policy server address.
 func (c *ClientConfig) GetPolicyEngineIP() string {
 	return c.PolicyEngineIP
 }
 
-// GetMetricsManagerIP return the metrics manager address
+// GetMetricsManagerIP return the metrics manager address.
 func (c *ClientConfig) GetMetricsManagerIP() string {
 	return c.MetricsManagerIP
 }
@@ -125,11 +125,15 @@ func (c *ClientConfig) GetMetricsManagerIP() string {
 /********************************/
 /******** Config functions **********/
 /********************************/
+
 func (c *ClientConfig) createProjectfolder() (string, error) {
-	usr, _ := user.Current()
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
 	fol := path.Join(usr.HomeDir, projectFolder)
 	// Create folder
-	err := os.MkdirAll(fol, 0755)
+	err = os.MkdirAll(fol, 0o755)
 	if err != nil {
 		c.logger.Errorln(err)
 		return "", err
@@ -143,8 +147,12 @@ func (c *ClientConfig) createConfigFile() error {
 		c.logger.Errorln("Client create config File", err)
 		return err
 	}
-	f := ClientPath(c.ID)
-	err = os.WriteFile(f, jsonC, 0600) // RW by owner only
+	f, err := ClientPath(c.ID)
+	if err != nil {
+		c.logger.Errorln("Client get config file path", err)
+		return err
+	}
+	err = os.WriteFile(f, jsonC, 0o600) // RW by owner only
 	c.logger.Println("Create Client config File:", f)
 	if err != nil {
 		c.logger.Errorln("Creating client config File", err)
@@ -155,19 +163,28 @@ func (c *ClientConfig) createConfigFile() error {
 
 // SetDefaultClient set the default Client the CLI will use.
 func (c *ClientConfig) SetDefaultClient(id string) error {
-	file := ClientPath(id)
-	link := ClientPath("")
 	// Check if the file exist
-	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
-		c.logger.Errorf("Client config File with id %v is not exist\n", id)
+	file, err := ClientPath(id)
+	if err != nil {
+		c.logger.Errorf("failed to get client config file path for id %v\n", id)
 		return err
 	}
+	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
+		c.logger.Errorf("Client config File with id %v does not exist\n", id)
+		return err
+	}
+
 	// Remove if the link exist
+	link, err := ClientPath("")
+	if err != nil {
+		c.logger.Errorf("failed to get client config link path\n")
+		return err
+	}
 	if _, err := os.Lstat(link); err == nil {
 		os.Remove(link)
 	}
 	// Create a link
-	err := os.Symlink(file, link)
+	err = os.Symlink(file, link)
 	if err != nil {
 		c.logger.Errorln("Error creating symlink:", err)
 		return err
@@ -176,7 +193,10 @@ func (c *ClientConfig) SetDefaultClient(id string) error {
 }
 
 func readConfigFromFile(id string) (ClientConfig, error) {
-	file := ClientPath(id)
+	file, err := ClientPath(id)
+	if err != nil {
+		return ClientConfig{}, err
+	}
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return ClientConfig{}, err
@@ -204,13 +224,16 @@ func GetClientFromID(id string) (*client.Client, error) {
 	return client.New(c.GwIP, c.GwPort, parsedCertData.ClientConfig(c.ID)), nil
 }
 
-// ClientPath get CLI config file from id
-func ClientPath(id string) string {
+// ClientPath get CLI config file from id.
+func ClientPath(id string) (string, error) {
 	cfgFile := configFile
 	if id != "" {
 		cfgFile += "_" + id
 	}
 	// set cfg file in home directory
-	usr, _ := user.Current()
-	return path.Join(usr.HomeDir, projectFolder, cfgFile)
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return path.Join(usr.HomeDir, projectFolder, cfgFile), nil
 }

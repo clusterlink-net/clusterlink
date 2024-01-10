@@ -140,8 +140,9 @@ func (s *Exports) init() error {
 
 	// store all exports to the cache
 	for _, object := range exports {
-		export := object.(*Export)
-		s.cache[export.Name] = export
+		if export, ok := object.(*Export); ok {
+			s.cache[export.Name] = export
+		}
 	}
 
 	return nil

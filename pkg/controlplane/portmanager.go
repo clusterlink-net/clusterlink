@@ -115,7 +115,8 @@ func newPortManager() *portManager {
 
 	logger.WithFields(logrus.Fields{
 		"start": startPort,
-		"end":   endPort},
+		"end":   endPort,
+	},
 	).Info("Initialized.")
 
 	return &portManager{

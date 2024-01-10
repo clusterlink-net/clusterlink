@@ -57,13 +57,13 @@ func (o *PeerOptions) RequiredFlags() []string {
 
 func (o *PeerOptions) saveCertificate(cert *bootstrap.Certificate, outDirectory string) error {
 	// save certificate to file
-	err := os.WriteFile(filepath.Join(outDirectory, config.CertificateFileName), cert.RawCert(), 0600)
+	err := os.WriteFile(filepath.Join(outDirectory, config.CertificateFileName), cert.RawCert(), 0o600)
 	if err != nil {
 		return err
 	}
 
 	// save private key to file
-	return os.WriteFile(filepath.Join(outDirectory, config.PrivateKeyFileName), cert.RawKey(), 0600)
+	return os.WriteFile(filepath.Join(outDirectory, config.PrivateKeyFileName), cert.RawKey(), 0o600)
 }
 
 func (o *PeerOptions) createControlplane(peerCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
@@ -73,7 +73,7 @@ func (o *PeerOptions) createControlplane(peerCert *bootstrap.Certificate) (*boot
 	}
 
 	outDirectory := config.ControlplaneDirectory(o.Name)
-	if err := os.Mkdir(outDirectory, 0755); err != nil {
+	if err := os.Mkdir(outDirectory, 0o755); err != nil {
 		return nil, err
 	}
 
@@ -91,7 +91,7 @@ func (o *PeerOptions) createDataplane(peerCert *bootstrap.Certificate) (*bootstr
 	}
 
 	outDirectory := config.DataplaneDirectory(o.Name)
-	if err := os.Mkdir(outDirectory, 0755); err != nil {
+	if err := os.Mkdir(outDirectory, 0o755); err != nil {
 		return nil, err
 	}
 
@@ -109,7 +109,7 @@ func (o *PeerOptions) createGWCTL(peerCert *bootstrap.Certificate) (*bootstrap.C
 	}
 
 	outDirectory := config.GWCTLDirectory(o.Name)
-	if err := os.Mkdir(outDirectory, 0755); err != nil {
+	if err := os.Mkdir(outDirectory, 0o755); err != nil {
 		return nil, err
 	}
 
@@ -152,7 +152,7 @@ func (o *PeerOptions) Run() error {
 	}
 
 	peerDirectory := config.PeerDirectory(o.Name)
-	if err := os.Mkdir(peerDirectory, 0755); err != nil {
+	if err := os.Mkdir(peerDirectory, 0o755); err != nil {
 		return err
 	}
 
@@ -199,7 +199,7 @@ func (o *PeerOptions) Run() error {
 	}
 
 	outPath := filepath.Join(peerDirectory, config.K8SYamlFile)
-	return os.WriteFile(outPath, k8sConfig, 0600)
+	return os.WriteFile(outPath, k8sConfig, 0o600)
 }
 
 // NewCmdCreatePeer returns a cobra.Command to run the 'create peer' subcommand.
@@ -242,7 +242,7 @@ func verifyNotExists(path string) error {
 	return nil
 }
 
-// verifyDataplaneType checks if the given dataplane type is valid
+// verifyDataplaneType checks if the given dataplane type is valid.
 func verifyDataplaneType(dType string) error {
 	switch dType {
 	case platform.DataplaneTypeEnvoy:

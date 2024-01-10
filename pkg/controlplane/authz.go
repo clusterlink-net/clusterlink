@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	// the number of seconds a JWT access token is valid before it expires
+	// the number of seconds a JWT access token is valid before it expires.
 	jwtExpirySeconds      = 5
 	jwtSignatureAlgorithm = jwa.RS256
 )

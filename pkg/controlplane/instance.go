@@ -545,7 +545,7 @@ func (cp *Instance) GetLBPolicy(name string) *cpstore.LBPolicy {
 	return cp.lbPolicies.Get(name)
 }
 
-// GetAllLBPolicies returns the list of all load-balancing Policies.p
+// GetAllLBPolicies returns the list of all load-balancing Policies.p.
 func (cp *Instance) GetAllLBPolicies() []*cpstore.LBPolicy {
 	cp.logger.Info("Listing all load-balancing policies.")
 	return cp.lbPolicies.GetAll()
@@ -678,7 +678,7 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, platf
 	if err != nil {
 		return nil, fmt.Errorf("cannot load load-balancing policies from store: %w", err)
 	}
-	logger.Infof("Loaded %d load-balancing policies.", acPolicies.Len())
+	logger.Infof("Loaded %d load-balancing policies.", lbPolicies.Len())
 
 	cp := &Instance{
 		peerTLS:       peerTLS,

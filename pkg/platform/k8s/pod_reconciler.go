@@ -40,6 +40,16 @@ type PodReconciler struct {
 	logger  *logrus.Entry
 }
 
+// CreatePodReconciler returns a new PodReconciler with the given client and logger.
+func CreatePodReconciler(c client.Client, l *logrus.Entry) *PodReconciler {
+	return &PodReconciler{
+		Client:  c,
+		ipToPod: make(map[string]types.NamespacedName),
+		podList: make(map[types.NamespacedName]podInfo),
+		logger:  l,
+	}
+}
+
 // Reconcile watches all pods events and updates the PodReconciler.
 func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var pod corev1.Pod
@@ -85,8 +95,8 @@ func (r *PodReconciler) updatePod(pod corev1.Pod) {
 	}
 }
 
-// getLabelsFromIP return all the labels for specific ip.
-func (r *PodReconciler) getLabelsFromIP(ip string) map[string]string {
+// GetLabelsFromIP returns the labels associated with Pod with the specified IP address.
+func (r *PodReconciler) GetLabelsFromIP(ip string) map[string]string {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
@@ -108,16 +118,11 @@ func (r *PodReconciler) setupWithManager(mgr *ctrl.Manager) error {
 // NewPodReconciler creates pod reconciler for monitoring pods in the cluster.
 func NewPodReconciler(mgr *ctrl.Manager) (*PodReconciler, error) {
 	logger := logrus.WithField("component", "platform.k8s.podReconciler")
-	r := PodReconciler{
-		Client:  (*mgr).GetClient(),
-		ipToPod: make(map[string]types.NamespacedName),
-		podList: make(map[types.NamespacedName]podInfo),
-		logger:  logger,
-	}
+	r := CreatePodReconciler((*mgr).GetClient(), logger)
 
 	if err := r.setupWithManager(mgr); err != nil {
 		return nil, err
 	}
 	r.logger.Info("start podReconciler")
-	return &r, nil
+	return r, nil
 }

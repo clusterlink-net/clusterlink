@@ -42,7 +42,8 @@ func ImportCreateCmd() *cobra.Command {
 		Long:  `Create an imported service that can be bounded to other peers`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return o.run(false)
-		}}
+		},
+	}
 
 	o.addFlags(cmd.Flags())
 	cmdutil.MarkFlagsRequired(cmd, []string{"name", "port"})
@@ -59,7 +60,8 @@ func ImportUpdateCmd() *cobra.Command {
 		Long:  `Update an imported service that can be bounded to other peers`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return o.run(true)
-		}}
+		},
+	}
 
 	o.addFlags(cmd.Flags())
 	cmdutil.MarkFlagsRequired(cmd, []string{"name", "port"})
@@ -92,7 +94,8 @@ func (o *importOptions) run(isUpdate bool) error {
 		Spec: api.ImportSpec{
 			Service: api.Endpoint{
 				Host: o.host,
-				Port: o.port},
+				Port: o.port,
+			},
 		},
 	})
 	if err != nil {
@@ -102,7 +105,7 @@ func (o *importOptions) run(isUpdate bool) error {
 	return nil
 }
 
-// importDeleteOptions is the command line options for 'delete import'
+// importDeleteOptions is the command line options for 'delete import'.
 type importDeleteOptions struct {
 	myID string
 	name string
@@ -132,7 +135,7 @@ func (o *importDeleteOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "Imported service name")
 }
 
-// run performs the execution of the 'delete import' subcommand
+// run performs the execution of the 'delete import' subcommand.
 func (o *importDeleteOptions) run() error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {
@@ -147,7 +150,7 @@ func (o *importDeleteOptions) run() error {
 	return nil
 }
 
-// importGetOptions is the command line options for 'get import'
+// importGetOptions is the command line options for 'get import'.
 type importGetOptions struct {
 	myID string
 	name string
@@ -175,7 +178,7 @@ func (o *importGetOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "Imported service name. If empty gets all imported services.")
 }
 
-// run performs the execution of the 'get import' subcommand
+// run performs the execution of the 'get import' subcommand.
 func (o *importGetOptions) run() error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {

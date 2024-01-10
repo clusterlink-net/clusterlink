@@ -30,10 +30,10 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/server"
 )
 
-// resources indicate the xDS resources that would be fetched
+// resources indicate the xDS resources that would be fetched.
 var resources = [...]string{resource.ClusterType, resource.ListenerType}
 
-// XDSClient implements the client which fetches clusters and listeners
+// XDSClient implements the client which fetches clusters and listeners.
 type XDSClient struct {
 	dataplane          *server.Dataplane
 	controlplaneTarget string
@@ -111,10 +111,12 @@ func (x *XDSClient) Run() error {
 
 // NewXDSClient returns am xDS client which can fetch clusters and listeners from the controlplane.
 func NewXDSClient(dataplane *server.Dataplane, controlplaneTarget string, tlsConfig *tls.Config) *XDSClient {
-	return &XDSClient{dataplane: dataplane,
+	return &XDSClient{
+		dataplane:          dataplane,
 		controlplaneTarget: controlplaneTarget,
 		tlsConfig:          tlsConfig,
 		errors:             make(map[string]error),
 		logger:             logrus.WithField("component", "xds.client"),
-		clustersReady:      make(chan bool, 1)}
+		clustersReady:      make(chan bool, 1),
+	}
 }

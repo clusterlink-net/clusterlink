@@ -34,7 +34,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// Data contain the kube informer datat should be part of the control plane
+// Data contain the kube informer datat should be part of the control plane.
 var Data kubeDataInterface = &kubeData{}
 
 const (
@@ -43,7 +43,7 @@ const (
 	indexIP               = "byIP"
 	typePod               = "Pod"
 	typeService           = "Service"
-	// AppLabel default pod label kubeinformer use
+	// AppLabel default pod label kubeinformer use.
 	AppLabel = "app"
 )
 
@@ -61,7 +61,7 @@ type kubeDataInterface interface {
 	CheckEndpointExist(string) bool
 }
 
-// kubeData contain all k8s information of the cluster/namespace
+// kubeData contain all k8s information of the cluster/namespace.
 type kubeData struct {
 	kubeDataInterface
 	// pods and services cache the different object types as *Info pointers
@@ -100,7 +100,7 @@ var commonIndexers = map[string]cache.IndexFunc{
 	},
 }
 
-// GetInfoIP Return the pod information according to the pod Ip
+// GetInfoIP Return the pod information according to the pod Ip.
 func (k *kubeData) GetInfoIP(ip string) (*Info, error) {
 	if info, ok := k.fetchInformers(ip); ok {
 		// Owner data might be discovered after the owned, so we fetch it
@@ -114,7 +114,7 @@ func (k *kubeData) GetInfoIP(ip string) (*Info, error) {
 	return nil, fmt.Errorf("informers can't find IP %s", ip)
 }
 
-// Return pod information according to the application name
+// Return pod information according to the application name.
 func (k *kubeData) GetInfoApp(app string) (*Info, error) {
 	podLister := k.pods.GetIndexer()
 	// Define the label selector
@@ -122,7 +122,7 @@ func (k *kubeData) GetInfoApp(app string) (*Info, error) {
 	// List all pods
 	allPods := podLister.List()
 
-	// Find the first pod that matches the label selector
+	// Find the first pod that matches the label selector.
 	for _, pod := range allPods {
 		if labelSelector.Matches(labels.Set(pod.(*Info).Labels)) {
 			return pod.(*Info), nil
@@ -131,7 +131,7 @@ func (k *kubeData) GetInfoApp(app string) (*Info, error) {
 	return nil, fmt.Errorf("informers can't find App %s", app)
 }
 
-// Get Ip and key(prefix of label) and return pod label
+// Get Ip and key(prefix of label) and return pod label.
 func (k *kubeData) GetLabel(ip string, key string) (string, error) {
 	if info, ok := k.fetchInformers(ip); ok {
 		// Owner data might be discovered after the owned, so we fetch it
@@ -145,7 +145,7 @@ func (k *kubeData) GetLabel(ip string, key string) (string, error) {
 	return "", fmt.Errorf("informers can't find IP %s", ip)
 }
 
-// GetIPFromLabel Get label(prefix of label) and return pod ip
+// GetIPFromLabel Get label(prefix of label) and return pod ip.
 func (k *kubeData) GetIPFromLabel(label string) ([]string, error) {
 	namespace := "default"
 	label = AppLabel + "=" + label
@@ -209,15 +209,17 @@ func (k *kubeData) getOwner(info *Info) owner {
 			log.WithError(err).WithField("key", info.Namespace+"/"+ownerReference.Name).
 				Debug("can't get ReplicaSet info from informer. Ignoring")
 		} else if ok {
-			rsInfo := item.(*metav1.ObjectMeta)
-			if len(rsInfo.OwnerReferences) > 0 {
-				return owner{
-					Name: rsInfo.OwnerReferences[0].Name,
-					Type: rsInfo.OwnerReferences[0].Kind,
+			if rsInfo, ok := item.(*metav1.ObjectMeta); ok {
+				if len(rsInfo.OwnerReferences) > 0 {
+					return owner{
+						Name: rsInfo.OwnerReferences[0].Name,
+						Type: rsInfo.OwnerReferences[0].Kind,
+					}
 				}
 			}
 		}
 	}
+
 	// If no owner references found, return itself as owner
 	return owner{
 		Name: info.Name,
@@ -390,7 +392,7 @@ func (k *kubeData) initInformers(client kubernetes.Interface) error {
 	return nil
 }
 
-// CreateService Add support to create a service/NodePort for a target port
+// CreateService Add support to create a service/NodePort for a target port.
 func (k *kubeData) CreateService(serviceName string, port int, targetPort int, namespace, svcAppName string) error {
 	var selectorMap map[string]string
 	if svcAppName != "" {
@@ -421,7 +423,7 @@ func (k *kubeData) CreateService(serviceName string, port int, targetPort int, n
 	return nil
 }
 
-// CreateEndpoint create k8s endpoint
+// CreateEndpoint create k8s endpoint.
 func (k *kubeData) CreateEndpoint(epName, namespace, targetIP string, targetPort int) error {
 	endpoint := &v1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
@@ -448,14 +450,13 @@ func (k *kubeData) CreateEndpoint(epName, namespace, targetIP string, targetPort
 	if err != nil {
 		log.Errorf("Error creating endpoint: %s", err)
 		return err
-
 	}
 	k.serviceMap[epName] = namespace
 
 	return nil
 }
 
-// DeleteService delete k8s service
+// DeleteService delete k8s service.
 func (k *kubeData) DeleteService(serviceName string) error {
 	if namespace, ok := k.serviceMap[serviceName]; ok {
 		return k.kubeClient.CoreV1().Services(namespace).Delete(context.TODO(), serviceName, metav1.DeleteOptions{})
@@ -464,7 +465,7 @@ func (k *kubeData) DeleteService(serviceName string) error {
 	return fmt.Errorf("serviceName: %s is not exists", serviceName)
 }
 
-// DeleteEndpoint delete k8s endpoint
+// DeleteEndpoint delete k8s endpoint.
 func (k *kubeData) DeleteEndpoint(epName string) error {
 	if namespace, ok := k.endpointMap[epName]; ok {
 		return k.kubeClient.CoreV1().Endpoints(namespace).Delete(context.TODO(), epName, metav1.DeleteOptions{})

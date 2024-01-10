@@ -1,0 +1,3 @@
+# Set the search placeholder empty instead of the default "Search this site..."
+[ui_search]
+other = " "

@@ -16,10 +16,12 @@ package jsonapi
 import (
 	"bytes"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -82,6 +84,18 @@ func (c *Client) do(method, path string, body []byte) (*Response, error) {
 
 	resp, err := c.client.Do(req)
 	if err != nil {
+		// check for timeout error which could be due to a failed re-used connection
+		var uerr *url.Error
+		if errors.As(err, &uerr) && uerr.Timeout() {
+			// close old connections
+			c.client.Transport.(*http.Transport).CloseIdleConnections()
+
+			// retry request with a fresh connection
+			req.Body = io.NopCloser(bytes.NewBuffer(body))
+			resp, err = c.client.Do(req)
+		}
+	}
+	if err != nil {
 		return nil, fmt.Errorf("unable to perform http request: %w", err)
 	}
 
@@ -116,6 +130,7 @@ func NewClient(host string, port uint16, tlsConfig *tls.Config) *Client {
 		serverURL: serverURL,
 		logger: logrus.WithFields(logrus.Fields{
 			"component":  "http-client",
-			"server-url": serverURL}),
+			"server-url": serverURL,
+		}),
 	}
 }

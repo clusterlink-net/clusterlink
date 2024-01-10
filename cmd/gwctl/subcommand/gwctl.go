@@ -26,7 +26,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/util/rest"
 )
 
-// initOptions is the command line options for 'init'
+// initOptions is the command line options for 'init'.
 type initOptions struct {
 	id             string
 	gwIP           string
@@ -46,7 +46,6 @@ func InitCmd() *cobra.Command {
 		Short: "A start command set all parameter state of gwctl (gw control)",
 		Long:  `A start command set all parameter state of gwctl (gw control)`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			return o.run()
 		},
 	}
@@ -68,7 +67,7 @@ func (o *initOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.policyEngineIP, "policyEngineIP", "", "IP address of the policy engine, if empty will use the same value as gwIP")
 }
 
-// run performs the execution of the 'init' subcommand
+// run performs the execution of the 'init' subcommand.
 func (o *initOptions) run() error {
 	if _, err := util.ParseTLSFiles(o.certCa, o.cert, o.key); err != nil {
 		return err
@@ -82,12 +81,13 @@ func (o *initOptions) run() error {
 		CertFile:       o.cert,
 		KeyFile:        o.key,
 		Dataplane:      o.dataplane,
-		PolicyEngineIP: o.policyEngineIP})
+		PolicyEngineIP: o.policyEngineIP,
+	})
 
 	return err
 }
 
-// stateGetOptions is the command line options for 'get state'
+// stateGetOptions is the command line options for 'get state'.
 type stateGetOptions struct {
 	myID string
 }
@@ -113,7 +113,7 @@ func (o *stateGetOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
 }
 
-// run performs the execution of the 'get state' subcommand
+// run performs the execution of the 'get state' subcommand.
 func (o *stateGetOptions) run() error {
 	d, err := config.GetConfigFromID(o.myID)
 	if err != nil {
@@ -154,7 +154,7 @@ func (o *allGetOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
 }
 
-// run performs the execution of the 'get all' subcommand
+// run performs the execution of the 'get all' subcommand.
 func (o *allGetOptions) run() error {
 	g, err := config.GetClientFromID(o.myID)
 	if err != nil {

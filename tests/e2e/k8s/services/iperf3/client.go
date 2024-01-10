@@ -25,6 +25,7 @@ import (
 // RunClient runs iperf3 client. Returns bits/second.
 func RunClient(cluster *util.KindCluster, server *util.Service) (float64, error) {
 	type iperfOutput struct {
+		//nolint:tagliatelle // iperf output is out of our control
 		End struct {
 			SumSent struct {
 				BitsPerSecond float64 `json:"bits_per_second"`

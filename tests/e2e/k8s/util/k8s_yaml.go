@@ -66,7 +66,6 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 		LogLevel:                logLevel,
 		ContainerRegistry:       "",
 	})
-
 	if err != nil {
 		return "", err
 	}

@@ -99,11 +99,18 @@ func (c *KindCluster) IP() string {
 func (c *KindCluster) Start() {
 	c.created.Add(1)
 	c.Run(func() error {
-		// destroy cluster before creating (if exists)
-		_ = c.cluster.Destroy(context.Background())
+		// retry cluster creation up to 10 times
+		var err error
+		for i := 0; i < 10; i++ {
+			//nolint:errcheck // ignore errors when cluster did not exist
+			_ = c.cluster.Destroy(context.Background())
 
-		// create cluster
-		_, err := c.cluster.Create(context.Background())
+			_, err = c.cluster.Create(context.Background())
+			if err == nil {
+				break
+			}
+		}
+
 		c.created.Done()
 		if err != nil {
 			return fmt.Errorf("unable to create kind cluster: %w", err)

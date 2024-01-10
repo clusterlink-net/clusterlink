@@ -38,7 +38,7 @@ type policyTier struct {
 type connPolicyMap map[string]*policytypes.ConnectivityPolicy // map from policy name to the policy
 
 // DestinationDecision describes the PDP decision on a given destination (w.r.t, to a given source), including the deciding policy, if any.
-// Calling PDP.Decide() with a source workload and a slice of destinations workloads, returns a slice of corresponding DestinationDecisions
+// Calling PDP.Decide() with a source workload and a slice of destinations workloads, returns a slice of corresponding DestinationDecisions.
 type DestinationDecision struct {
 	Destination     policytypes.WorkloadAttrs
 	Decision        policytypes.PolicyDecision
@@ -48,7 +48,7 @@ type DestinationDecision struct {
 
 const DefaultDenyPolicyName = "<default deny>"
 
-// NewPDP constructs a new PDP
+// NewPDP constructs a new PDP.
 func NewPDP() *PDP {
 	return &PDP{
 		privilegedPolicies: newPolicyTier(),
@@ -56,7 +56,7 @@ func NewPDP() *PDP {
 	}
 }
 
-// Returns a slice of copies of the policies stored in the PDP
+// Returns a slice of copies of the policies stored in the PDP.
 func (pdp *PDP) GetPolicies() []policytypes.ConnectivityPolicy {
 	return append(pdp.privilegedPolicies.getPolicies(), pdp.regularPolicies.getPolicies()...)
 }
@@ -143,6 +143,7 @@ func (pt *policyTier) getPolicies() []policytypes.ConnectivityPolicy {
 func (pt *policyTier) addPolicy(policy *policytypes.ConnectivityPolicy) {
 	pt.lock.Lock()
 	defer pt.lock.Unlock()
+	//nolint:errcheck // ignore return value as we just want to make sure non exists
 	_ = pt.unsafeDeletePolicy(policy.Name) // delete an existing policy with the same name, if it exists
 	if policy.Action == policytypes.PolicyActionDeny {
 		pt.denyPolicies[policy.Name] = policy
@@ -160,7 +161,7 @@ func (pt *policyTier) deletePolicy(policyName string) error {
 }
 
 // unsafeDeletePolicy does the actual deleting of the given policy, but without locking.
-// Do not use directly
+// Do not use directly.
 func (pt *policyTier) unsafeDeletePolicy(policyName string) error {
 	var okDeny, okAllow bool
 	if _, okDeny = pt.denyPolicies[policyName]; okDeny {
@@ -180,7 +181,7 @@ func (pt *policyTier) unsafeDeletePolicy(policyName string) error {
 // be updated to reflect the connection been denied.
 // The function then checks whether any of the tier's allow policies matches any of the remaining undecided connections,
 // and will similarly update the relevant DestinationDecision of any matching connection.
-// returns whether all destinations were decided and an error (if occurred)
+// returns whether all destinations were decided and an error (if occurred).
 func (pt *policyTier) decide(src policytypes.WorkloadAttrs, dests []DestinationDecision) (bool, error) {
 	pt.lock.RLock() // allowing multiple simultaneous calls to decide() to be served
 	defer pt.lock.RUnlock()
@@ -209,7 +210,7 @@ func (cpm connPolicyMap) getPolicies() []policytypes.ConnectivityPolicy {
 
 // decide iterates over all policies in a connPolicyMap and checks if they make a connectivity decision (allow/deny)
 // on the not-yet-decided connections between src and each of the destinations in dests.
-// returns whether all destinations were decided and an error (if occurred)
+// returns whether all destinations were decided and an error (if occurred).
 func (cpm connPolicyMap) decide(src policytypes.WorkloadAttrs, dests []DestinationDecision) (bool, error) {
 	allDecided := false // for when there are no policies in cpm (some destinations are undecided, otherwise we shouldn't be here)
 	for _, policy := range cpm {

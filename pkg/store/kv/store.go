@@ -25,7 +25,7 @@ import (
 )
 
 // ObjectStore represents a persistent store of objects, backed by a KV-store.
-// Key format for an object is: <storeName>.<objectName>
+// Key format for an object is: <storeName>.<objectName>.
 type ObjectStore struct {
 	store Store
 

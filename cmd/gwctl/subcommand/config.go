@@ -36,15 +36,13 @@ func ConfigCmd() *cobra.Command {
 	return configCmd
 }
 
-// getContextCmd is the command line options for 'config current-context'
-type currentContextOptions struct {
-}
+// getContextCmd is the command line options for 'config current-context'.
+type currentContextOptions struct{}
 
 // currentContextCmd - get the last gwctl context command to use.
 func currentContextCmd() *cobra.Command {
 	o := currentContextOptions{}
 	cmd := &cobra.Command{
-
 		Use:   "current-context",
 		Short: "Get gwctl current context.",
 		Long:  `Get gwctl current context.`,
@@ -56,19 +54,21 @@ func currentContextCmd() *cobra.Command {
 	return cmd
 }
 
-// run performs the execution of the 'config current-context' subcommand
+// run performs the execution of the 'config current-context' subcommand.
 func (o *currentContextOptions) run() error {
 	s, err := config.GetConfigFromID("")
 	if err != nil {
 		return err
 	}
 
-	sJSON, _ := json.MarshalIndent(s, "", " ")
-	fmt.Println("gwctl current state\n", string(sJSON))
-	return nil
+	sJSON, err := json.MarshalIndent(s, "", " ")
+	if err != nil {
+		fmt.Println("gwctl current state\n", string(sJSON))
+	}
+	return err
 }
 
-// useContext is the command line options for 'config use-context'
+// useContext is the command line options for 'config use-context'.
 type useContextOptions struct {
 	myID string
 }
@@ -95,7 +95,7 @@ func (o *useContextOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
 }
 
-// run performs the execution of the 'config current-context' subcommand
+// run performs the execution of the 'config current-context' subcommand.
 func (o *useContextOptions) run() error {
 	c, err := config.GetConfigFromID(o.myID)
 	if err != nil {

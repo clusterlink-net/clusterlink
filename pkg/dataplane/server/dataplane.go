@@ -29,7 +29,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/util"
 )
 
-// Dataplane implements the server and api client which sends authorization to the control plane
+// Dataplane implements the server and api client which sends authorization to the control plane.
 type Dataplane struct {
 	ID                 string
 	peerName           string
@@ -43,7 +43,7 @@ type Dataplane struct {
 	logger             *logrus.Entry
 }
 
-// GetClusterTarget returns the cluster address:port from the cluster map
+// GetClusterTarget returns the cluster address:port from the cluster map.
 func (d *Dataplane) GetClusterTarget(name string) (string, error) {
 	if _, ok := d.clusters[name]; !ok {
 		return "", fmt.Errorf("unable to find %s in cluster map", name)
@@ -53,7 +53,7 @@ func (d *Dataplane) GetClusterTarget(name string) (string, error) {
 	return address + ":" + strconv.Itoa(int(port)), nil
 }
 
-// GetClusterHost returns the cluster hostname after trimming ":"
+// GetClusterHost returns the cluster hostname after trimming ":".
 func (d *Dataplane) GetClusterHost(name string) (string, error) {
 	if _, ok := d.clusters[name]; !ok {
 		return "", fmt.Errorf("unable to find %s in cluster map", name)
@@ -61,12 +61,12 @@ func (d *Dataplane) GetClusterHost(name string) (string, error) {
 	return strings.Split(d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Hostname, ":")[0], nil
 }
 
-// AddCluster adds a cluster to the map
+// AddCluster adds a cluster to the map.
 func (d *Dataplane) AddCluster(cluster *cluster.Cluster) {
 	d.clusters[cluster.Name] = cluster
 }
 
-// AddListener adds a listener to the map
+// AddListener adds a listener to the map.
 func (d *Dataplane) AddListener(listener *listener.Listener) {
 	listenerName := strings.TrimPrefix(listener.Name, api.ImportListenerPrefix)
 	if _, ok := d.listeners[listenerName]; ok {
