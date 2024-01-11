@@ -98,8 +98,8 @@ spec:
                 type: string
               namespace:
                 default: clusterlink-system
-                description: Namespace represents the namespace the ClusterLink project
-                  components are deployed.
+                description: Namespace represents the namespace where the ClusterLink
+                  project components are deployed.
                 type: string
             type: object
           status:
