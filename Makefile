@@ -73,6 +73,26 @@ GO ?= CGO_ENABLED=0 go
 # Allow setting of go build flags from the command line.
 GOFLAGS := 
 
+# Location to install dependencies to
+GOBIN ?= $(GOPATH)/bin
+
+
+# Controller Gen for crds
+CONTROLLER_GEN ?= $(GOBIN)/controller-gen
+CONTROLLER_TOOLS_VERSION ?= v0.13.0
+
+controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary. If wrong version is installed, it will be overwritten.
+$(CONTROLLER_GEN):
+	test -s $(GOBIN)/controller-gen && $(GOBIN)/controller-gen --version | grep -q $(CONTROLLER_TOOLS_VERSION) || \
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+
+.PHONY: codegen
+codegen: controller-gen  ## Generate ClusterRole, CRDs and DeepCopyObject.
+	$(CONTROLLER_GEN) crd paths="./pkg/apis/..." output:crd:artifacts:config=config/operator/crds/
+	$(CONTROLLER_GEN) rbac:roleName=cl-operator-manager-role paths="./pkg/operator/..." output:rbac:dir=config/operator/rbac
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="././pkg/apis/..."
+	@goimports -l -w ./pkg/apis/clusterlink.net/v1alpha1/zz_generated.deepcopy.go
+
 build:
 	@echo "Start go build phase"
 	$(GO) build -o ./bin/gwctl ./cmd/gwctl
