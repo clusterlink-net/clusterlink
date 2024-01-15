@@ -99,7 +99,8 @@ func newFetcher(ctx context.Context, conn *grpc.ClientConn, resourceType string,
 	if err != nil {
 		return nil, err
 	}
-	return &fetcher{client: client,
+	return &fetcher{
+		client:       client,
 		resourceType: resourceType,
 		dataplane:    dataplane,
 		logger:       logrus.WithField("component", "fetcher.xds.client"),

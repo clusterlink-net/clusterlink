@@ -31,8 +31,7 @@ linters:
     - ginkgolinter
     - gocritic
     - godot
-    - gofmt
-    # - gofumpt
+    - gofumpt
     - goimports
     - gomoddirectives
     - gosec
@@ -50,7 +49,7 @@ linters:
     - nilerr
     # - nilnil
     # - noctx
-    # - nolintlint
+    - nolintlint
     - nonamedreturns
     - nosprintfhostport
     - prealloc
@@ -63,14 +62,15 @@ linters:
     - tagliatelle
     - tenv
     - testableexamples
-    # - thelper
-    # - testpackage
+    - thelper
+    - testpackage
     - tparallel
     - unconvert
     - unparam
     - unused
     - usestdlibvars
     # - varnamelen
+    - whitespace
 
 linters-settings:
   gocritic:
@@ -88,16 +88,8 @@ linters-settings:
 
   errcheck:
     # change some error checks which are disabled by default
-    # check-type-assertions: true
-    # check-blank: true
-    # exclude-functions:
-      # - io/ioutil.ReadFile
-      # - io.Copy(*bytes.Buffer)
-      # - io.Copy(os.Stdout)
-
-  govet:
-    disable:
-      - fieldalignment
+    check-type-assertions: true
+    check-blank: true
 
   nakedret:
     # No naked returns (default: 30)

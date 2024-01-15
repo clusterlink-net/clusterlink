@@ -73,6 +73,7 @@ func NewListener(name string) Listener {
 		name: name,
 		logger: logrus.WithFields(logrus.Fields{
 			"component": "listener",
-			"name":      name}),
+			"name":      name,
+		}),
 	}
 }

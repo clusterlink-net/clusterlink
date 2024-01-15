@@ -104,7 +104,7 @@ func (s *Store) Close() error {
 // Open a bolt store.
 func Open(path string) (*Store, error) {
 	// open
-	db, err := bbolt.Open(path, 0666, nil)
+	db, err := bbolt.Open(path, 0o666, nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open store: %w", err)
 	}

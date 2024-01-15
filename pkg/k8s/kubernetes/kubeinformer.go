@@ -220,13 +220,16 @@ func (k *kubeData) getOwner(info *Info) owner {
 	}
 
 	rsInfo := item.(*metav1.ObjectMeta)
-	if len(rsInfo.OwnerReferences) > 0 {
+	if len(rsInfo.OwnerReferences) > 0 { // ReplicaSet created in response to some other object
 		return owner{
 			Name: rsInfo.OwnerReferences[0].Name,
 			Type: rsInfo.OwnerReferences[0].Kind,
 		}
 	}
-	return self
+	return owner{
+		Name: ownerReference.Name,
+		Type: ownerReference.Kind,
+	}
 }
 
 func (k *kubeData) initPodInformer(informerFactory informers.SharedInformerFactory) error {
@@ -452,7 +455,6 @@ func (k *kubeData) CreateEndpoint(epName, namespace, targetIP string, targetPort
 	if err != nil {
 		log.Errorf("Error creating endpoint: %s", err)
 		return err
-
 	}
 	k.serviceMap[epName] = namespace
 

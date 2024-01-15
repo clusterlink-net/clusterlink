@@ -77,7 +77,7 @@ func (s *TestSuite) SetupSuite() {
 	if err := os.RemoveAll(util.ExportedLogsPath); err != nil {
 		s.T().Fatal(fmt.Errorf("cannot cleanup logs directory: %w", err))
 	}
-	if err := os.MkdirAll(util.ExportedLogsPath, 0755); err != nil {
+	if err := os.MkdirAll(util.ExportedLogsPath, 0o755); err != nil {
 		s.T().Fatal(fmt.Errorf("cannot create logs directory: %w", err))
 	}
 

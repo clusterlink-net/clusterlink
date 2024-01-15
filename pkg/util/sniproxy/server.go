@@ -59,7 +59,8 @@ func (s *Server) GracefulStop() error {
 // routes map (server name) -> (target host:port).
 func NewServer(routes map[string]string) *Server {
 	logger := logrus.WithFields(logrus.Fields{
-		"component": "sni-proxy"})
+		"component": "sni-proxy",
+	})
 
 	s := &Server{
 		Listener: tcp.NewListener("sni-proxy"),

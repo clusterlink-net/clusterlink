@@ -92,7 +92,8 @@ func (o *exportCreateOptions) run(isUpdate bool) error {
 		Spec: api.ExportSpec{
 			Service: api.Endpoint{
 				Host: o.host,
-				Port: o.port},
+				Port: o.port,
+			},
 			ExternalService: o.external,
 		},
 	})

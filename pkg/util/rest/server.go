@@ -283,6 +283,7 @@ func NewServer(name string, tlsConfig *tls.Config) Server {
 		Server: utilhttp.NewServer(name, tlsConfig),
 		logger: logrus.WithFields(logrus.Fields{
 			"component": "rest-server",
-			"name":      name}),
+			"name":      name,
+		}),
 	}
 }

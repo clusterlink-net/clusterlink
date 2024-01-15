@@ -127,10 +127,13 @@ func (c *ClientConfig) GetMetricsManagerIP() string {
 /********************************/
 
 func (c *ClientConfig) createProjectfolder() (string, error) {
-	usr, _ := user.Current()
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
 	fol := path.Join(usr.HomeDir, projectFolder)
 	// Create folder
-	err := os.MkdirAll(fol, 0755)
+	err = os.MkdirAll(fol, 0o755)
 	if err != nil {
 		c.logger.Errorln(err)
 		return "", err
@@ -144,8 +147,12 @@ func (c *ClientConfig) createConfigFile() error {
 		c.logger.Errorln("Client create config File", err)
 		return err
 	}
-	f := ClientPath(c.ID)
-	err = os.WriteFile(f, jsonC, 0600) // RW by owner only
+	f, err := ClientPath(c.ID)
+	if err != nil {
+		c.logger.Errorln("Client get config file path", err)
+		return err
+	}
+	err = os.WriteFile(f, jsonC, 0o600) // RW by owner only
 	c.logger.Println("Create Client config File:", f)
 	if err != nil {
 		c.logger.Errorln("Creating client config File", err)
@@ -156,19 +163,28 @@ func (c *ClientConfig) createConfigFile() error {
 
 // SetDefaultClient set the default Client the CLI will use.
 func (c *ClientConfig) SetDefaultClient(id string) error {
-	file := ClientPath(id)
-	link := ClientPath("")
 	// Check if the file exist
-	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
-		c.logger.Errorf("Client config File with id %v is not exist\n", id)
+	file, err := ClientPath(id)
+	if err != nil {
+		c.logger.Errorf("failed to get client config file path for id %v\n", id)
 		return err
 	}
+	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
+		c.logger.Errorf("Client config File with id %v does not exist\n", id)
+		return err
+	}
+
 	// Remove if the link exist
+	link, err := ClientPath("")
+	if err != nil {
+		c.logger.Errorf("failed to get client config link path\n")
+		return err
+	}
 	if _, err := os.Lstat(link); err == nil {
 		os.Remove(link)
 	}
 	// Create a link
-	err := os.Symlink(file, link)
+	err = os.Symlink(file, link)
 	if err != nil {
 		c.logger.Errorln("Error creating symlink:", err)
 		return err
@@ -177,7 +193,10 @@ func (c *ClientConfig) SetDefaultClient(id string) error {
 }
 
 func readConfigFromFile(id string) (ClientConfig, error) {
-	file := ClientPath(id)
+	file, err := ClientPath(id)
+	if err != nil {
+		return ClientConfig{}, err
+	}
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return ClientConfig{}, err
@@ -206,12 +225,15 @@ func GetClientFromID(id string) (*client.Client, error) {
 }
 
 // ClientPath get CLI config file from id.
-func ClientPath(id string) string {
+func ClientPath(id string) (string, error) {
 	cfgFile := configFile
 	if id != "" {
 		cfgFile += "_" + id
 	}
 	// set cfg file in home directory
-	usr, _ := user.Current()
-	return path.Join(usr.HomeDir, projectFolder, cfgFile)
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return path.Join(usr.HomeDir, projectFolder, cfgFile), nil
 }

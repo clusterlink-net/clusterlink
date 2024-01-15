@@ -106,7 +106,8 @@ func (p *Platform) UpdateExternalService(name, host, externalName string) {
 // DeleteService deletes a service.
 func (p *Platform) DeleteService(name, host string) {
 	serviceSpec := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: host, Namespace: p.namespace}}
+		ObjectMeta: metav1.ObjectMeta{Name: host, Namespace: p.namespace},
+	}
 
 	p.logger.Infof("Deleting K8s service %s.", host)
 	go p.serviceReconciler.DeleteResource(name, serviceSpec)
@@ -114,7 +115,7 @@ func (p *Platform) DeleteService(name, host string) {
 
 // GetLabelsFromIP return all the labels for specific ip.
 func (p *Platform) GetLabelsFromIP(ip string) map[string]string {
-	return p.podReconciler.getLabelsFromIP(ip)
+	return p.podReconciler.GetLabelsFromIP(ip)
 }
 
 // NewPlatform returns a new Kubernetes platform.

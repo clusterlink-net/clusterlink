@@ -42,7 +42,8 @@ func ImportCreateCmd() *cobra.Command {
 		Long:  `Create an imported service that can be bounded to other peers`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return o.run(false)
-		}}
+		},
+	}
 
 	o.addFlags(cmd.Flags())
 	cmdutil.MarkFlagsRequired(cmd, []string{"name", "port"})
@@ -59,7 +60,8 @@ func ImportUpdateCmd() *cobra.Command {
 		Long:  `Update an imported service that can be bounded to other peers`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return o.run(true)
-		}}
+		},
+	}
 
 	o.addFlags(cmd.Flags())
 	cmdutil.MarkFlagsRequired(cmd, []string{"name", "port"})
@@ -92,7 +94,8 @@ func (o *importOptions) run(isUpdate bool) error {
 		Spec: api.ImportSpec{
 			Service: api.Endpoint{
 				Host: o.host,
-				Port: o.port},
+				Port: o.port,
+			},
 		},
 	})
 	if err != nil {

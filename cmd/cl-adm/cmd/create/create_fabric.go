@@ -36,13 +36,13 @@ func NewCmdCreateFabric() *cobra.Command {
 			}
 
 			// save certificate to file
-			err = os.WriteFile(config.CertificateFileName, fabricCert.RawCert(), 0600)
+			err = os.WriteFile(config.CertificateFileName, fabricCert.RawCert(), 0o600)
 			if err != nil {
 				return err
 			}
 
 			// save private key to file
-			return os.WriteFile(config.PrivateKeyFileName, fabricCert.RawKey(), 0600)
+			return os.WriteFile(config.PrivateKeyFileName, fabricCert.RawKey(), 0o600)
 		},
 	}
 }

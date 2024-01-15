@@ -2,34 +2,16 @@
 title: ClusterLink
 ---
 
-{{< blocks/cover image_anchor="smart" height="full" color="secondary" >}}
-  <img src="clusterlink_logo.png" width="50%" class="site-logo" />
-
-  <div class="mx-auto">
-    <p style="color: white;">Securely connecting applications<br />across multi-cloud</p>
-    <a class="btn btn-lg btn-secondary mr-3 mb-4" href="/docs/getting-started">Get Started <!--<i class="fa-solid fa-person-running ml-2"></i>--></a>
-  </div>
-  {{< blocks/link-down color="secondary" >}}
+{{< blocks/cover image_anchor="smart" height="auto" color="secondary" >}}
+ {{% clusterlink/intro logo="clusterlink_logo.png" buttontext="Get Started" buttonlink="docs/getting-started" %}}Securely connecting<br />applications across multi-cloud{{% /clusterlink/intro %}}
+ {{< blocks/link-down color="secondary" >}}
 
 {{< /blocks/cover >}}
 
 
 {{% blocks/lead color="primary" height="auto" %}}
-<div style="background-image: url('backgrounds/section2.jpg'); background-size: 100%; <!--border-style: solid;-->">
-  <span style="vertical-align:middle; display:inline-block; width:400px;">
-  <h1 style="color: white;">What is ClusterLink?</h1><br />
-  <p style="color: white; weight: bold; width="25%;">
-    ClusterLink simplifies the connection
-between application services that are located in different
-domains, networks, and cloud infrastructures.
-  </p>
-  <p>
-    <a class="btn btn-lg btn-secondary mr-3 mb-4" href="/docs/">Learn More <!--<i class="fas fa-arrow-alt-circle-right ml-2"></i>--></a>
-  </p>
-  </span><span style="width: 50%;">
-   <img src="clusterlink_figure.png" />
-  </span>
-</div>
+
+{{% clusterlink/main %}}ClusterLink simplifies the connection between application services that are located in different domains, networks, and cloud infrastructures.{{% /clusterlink/main %}}
 
 {{% /blocks/lead %}}
 

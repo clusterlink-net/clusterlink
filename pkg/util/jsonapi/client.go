@@ -130,6 +130,7 @@ func NewClient(host string, port uint16, tlsConfig *tls.Config) *Client {
 		serverURL: serverURL,
 		logger: logrus.WithFields(logrus.Fields{
 			"component":  "http-client",
-			"server-url": serverURL}),
+			"server-url": serverURL,
+		}),
 	}
 }

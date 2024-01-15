@@ -139,8 +139,9 @@ func (s *Peers) init() error {
 
 	// store all peers to the cache
 	for _, object := range peers {
-		peer := object.(*Peer)
-		s.cache[peer.Name] = peer
+		if peer, ok := object.(*Peer); ok {
+			s.cache[peer.Name] = peer
+		}
 	}
 
 	return nil

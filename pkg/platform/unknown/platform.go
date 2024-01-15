@@ -14,8 +14,7 @@
 package unknown
 
 // Platform represents an unknown platform.
-type Platform struct {
-}
+type Platform struct{}
 
 // CreateService creates a service.
 func (p *Platform) CreateService(_, _, _ string, _, _ uint16) {
