@@ -272,9 +272,12 @@ metadata:
 rules:
 - apiGroups: [""]
   resources: ["services"]
-  verbs: ["create", "delete", "update"]
+  verbs: ["get", "list", "watch", "create", "delete", "update"]
 - apiGroups: [""]
   resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["clusterlink.net"]
+  resources: ["exports", "imports", "peers", "accesspolicies"]
   verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

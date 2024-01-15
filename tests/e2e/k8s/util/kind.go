@@ -17,10 +17,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -94,6 +97,10 @@ func (c *KindCluster) IP() string {
 	return c.ip
 }
 
+func (c *KindCluster) Resources() *resources.Resources {
+	return c.resources
+}
+
 // Start the kind cluster.
 // Should be called only once.
 func (c *KindCluster) Start() {
@@ -144,6 +151,10 @@ func (c *KindCluster) initializeClients() error {
 	c.resources, err = resources.New(cfg)
 	if err != nil {
 		return fmt.Errorf("unable to initialize REST client: %w", err)
+	}
+
+	if err := v1alpha1.AddToScheme(c.resources.GetScheme()); err != nil {
+		return fmt.Errorf("unable to add clusterlink API objects to scheme: %w", err)
 	}
 
 	c.clientset, err = kubernetes.NewForConfig(cfg)
@@ -359,6 +370,15 @@ func (c *KindCluster) CreateFromYAML(yaml, namespace string) error {
 		strings.NewReader(yaml),
 		decoder.CreateHandler(c.resources),
 		decoder.MutateNamespace(namespace))
+}
+
+// CreateFromDirectory creates k8s objects from a yaml in a directory.
+func (c *KindCluster) CreateFromDirectory(path string) error {
+	return decoder.DecodeEachFile(
+		context.Background(),
+		os.DirFS(path),
+		"*",
+		decoder.CreateHandler(c.resources))
 }
 
 // ExposeNodeport returns a nodeport (uint16) for accessing a given k8s service.

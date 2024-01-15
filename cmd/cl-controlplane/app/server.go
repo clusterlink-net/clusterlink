@@ -14,6 +14,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -25,14 +26,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/grpc"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/http"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/control"
+	cprest "github.com/clusterlink-net/clusterlink/pkg/controlplane/rest"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/xds"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv/bolt"
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
+	"github.com/clusterlink-net/clusterlink/pkg/util/grpc"
 	"github.com/clusterlink-net/clusterlink/pkg/util/log"
+	utilrest "github.com/clusterlink-net/clusterlink/pkg/util/rest"
 	"github.com/clusterlink-net/clusterlink/pkg/util/runnable"
 	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
@@ -145,24 +149,10 @@ func (o *Options) Run() error {
 			"unable to create k8s controller manager: %w", err)
 	}
 
-	// open store
-	kvStore, err := bolt.Open(StoreFile)
-	if err != nil {
-		return err
-	}
+	httpServer := utilrest.NewServer("controlplane-http", parsedCertData.ServerConfig())
+	grpcServer := grpc.NewServer("controlplane-grpc", parsedCertData.ServerConfig())
 
-	defer func() {
-		if err := kvStore.Close(); err != nil {
-			logrus.Warnf("Cannot close store: %v.", err)
-		}
-	}()
-
-	storeManager := kv.NewManager(kvStore)
-
-	cp, err := controlplane.NewInstance(parsedCertData, storeManager, namespace)
-	if err != nil {
-		return err
-	}
+	runnableManager := runnable.NewManager()
 
 	controlplaneServerListenAddress := fmt.Sprintf("0.0.0.0:%d", api.ListenPort)
 	sniProxy := sniproxy.NewServer(map[string]string{
@@ -170,11 +160,61 @@ func (o *Options) Run() error {
 		grpcServerName: grpcServerAddress,
 	})
 
-	runnableManager := runnable.NewManager()
 	runnableManager.Add(controller.NewManager(mgr))
-	runnableManager.AddServer(httpServerAddress, http.NewServer(cp, parsedCertData.ServerConfig()))
-	runnableManager.AddServer(grpcServerAddress, grpc.NewServer(cp, parsedCertData.ServerConfig()))
 	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
+	runnableManager.AddServer(httpServerAddress, httpServer)
+	runnableManager.AddServer(grpcServerAddress, grpcServer)
+
+	authzManager, err := authz.NewManager(parsedCertData)
+	if err != nil {
+		return fmt.Errorf("cannot create authorization manager: %w", err)
+	}
+
+	if err := authz.CreateControllers(authzManager, mgr, namespace); err != nil {
+		return fmt.Errorf("cannot create authz controllers: %w", err)
+	}
+
+	authz.RegisterHandlers(authzManager, &httpServer.Server)
+
+	xdsManager := xds.NewManager()
+	xds.RegisterService(
+		context.Background(), xdsManager, grpcServer.GetGRPCServer())
+
+	controlManager := control.NewManager(mgr.GetClient())
+
+	if o.CRDMode {
+		err := xds.CreateControllers(xdsManager, mgr, namespace)
+		if err != nil {
+			return fmt.Errorf("cannot create xDS controllers: %w", err)
+		}
+
+		err = control.CreateControllers(controlManager, mgr)
+		if err != nil {
+			return fmt.Errorf("cannot create control controllers: %w", err)
+		}
+	} else {
+		// open store
+		kvStore, err := bolt.Open(StoreFile)
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			if err := kvStore.Close(); err != nil {
+				logrus.Warnf("Cannot close store: %v.", err)
+			}
+		}()
+
+		storeManager := kv.NewManager(kvStore)
+
+		restManager, err := cprest.NewManager(
+			namespace, storeManager, xdsManager, authzManager, controlManager)
+		if err != nil {
+			return err
+		}
+
+		cprest.RegisterHandlers(restManager, httpServer)
+	}
 
 	return runnableManager.Run()
 }

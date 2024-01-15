@@ -14,6 +14,7 @@
 package util
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,7 +23,11 @@ import (
 	"syscall"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/client"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
@@ -34,6 +39,7 @@ type ClusterLink struct {
 	namespace string
 	client    *client.Client
 	port      uint16
+	crdMode   bool
 }
 
 // Name returns the peer name.
@@ -155,6 +161,23 @@ func (c *ClusterLink) AccessService(
 }
 
 func (c *ClusterLink) CreatePeer(peer *ClusterLink) error {
+	if c.crdMode {
+		return c.cluster.Resources().Create(
+			context.Background(),
+			&v1alpha1.Peer{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      peer.Name(),
+					Namespace: c.namespace,
+				},
+				Spec: v1alpha1.PeerSpec{
+					Gateways: []v1alpha1.Endpoint{{
+						Host: peer.IP(),
+						Port: peer.Port(),
+					}},
+				},
+			})
+	}
+
 	return c.client.Peers.Create(&api.Peer{
 		Name: peer.Name(),
 		Spec: api.PeerSpec{
@@ -200,7 +223,36 @@ func (c *ClusterLink) DeletePeer(peer *ClusterLink) error {
 	return c.client.Peers.Delete(peer.Name())
 }
 
+func (c *ClusterLink) CreateService(service *Service) error {
+	return c.cluster.Resources().Create(
+		context.Background(),
+		&v1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      service.Name,
+				Namespace: c.namespace,
+			},
+			Spec: v1.ServiceSpec{
+				Type:         v1.ServiceTypeExternalName,
+				ExternalName: fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace),
+			},
+		})
+}
+
 func (c *ClusterLink) CreateExport(name string, service *Service) error {
+	if c.crdMode {
+		return c.cluster.Resources().Create(
+			context.Background(),
+			&v1alpha1.Export{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      service.Name,
+					Namespace: c.namespace,
+				},
+				Spec: v1alpha1.ExportSpec{
+					Port: service.Port,
+				},
+			})
+	}
+
 	return c.client.Exports.Create(&api.Export{
 		Name: name,
 		Spec: api.ExportSpec{

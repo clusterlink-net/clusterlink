@@ -52,8 +52,8 @@ func (s *Server) GracefulStop() error {
 }
 
 // NewServer returns a new server.
-func NewServer(name string, tlsConfig *tls.Config) Server {
-	return Server{
+func NewServer(name string, tlsConfig *tls.Config) *Server {
+	return &Server{
 		Listener: tcp.NewListener(name),
 		server:   grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsConfig))),
 	}

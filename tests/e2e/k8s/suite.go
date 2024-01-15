@@ -87,8 +87,14 @@ func (s *TestSuite) SetupSuite() {
 			s.T().Fatal(err)
 		}
 
+		// create CRDs
+		err := s.clusters[i].CreateFromDirectory("./../../../config/crds")
+		if err != nil {
+			s.T().Fatal(fmt.Errorf("cannot create clusterlink CRDs: %w", err))
+		}
+
 		// create http-echo service which echoes the cluster name
-		err := s.clusters[i].CreatePodAndService(httpecho.ServerPod(httpEchoService, s.clusters[i].Name()))
+		err = s.clusters[i].CreatePodAndService(httpecho.ServerPod(httpEchoService, s.clusters[i].Name()))
 		if err != nil {
 			s.T().Fatal(fmt.Errorf("cannot create http-echo service: %w", err))
 		}

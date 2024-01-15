@@ -1,0 +1,75 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.13.0
+  name: imports.clusterlink.net
+spec:
+  group: clusterlink.net
+  names:
+    kind: Import
+    listKind: ImportList
+    plural: imports
+    singular: import
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Import defines a service that is being imported to the local
+          Peer from a remote Peer.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec represents the attributes of the imported service.
+            properties:
+              port:
+                description: Port of the imported service.
+                type: integer
+              sources:
+                description: Peers are the list of peers to import from.
+                items:
+                  description: ImportSource represents an addressable exported service.
+                  properties:
+                    name:
+                      description: ExportName is the name of the exported service.
+                      type: string
+                    namespace:
+                      description: ExportNamespace is the namespace of the exported
+                        service.
+                      type: string
+                    peer:
+                      description: Peer name where the exported service is defined.
+                      type: string
+                  required:
+                  - name
+                  - namespace
+                  - peer
+                  type: object
+                type: array
+              targetPort:
+                description: TargetPort of the imported service.
+                type: integer
+            required:
+            - port
+            - sources
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

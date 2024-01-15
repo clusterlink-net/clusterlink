@@ -11,28 +11,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package grpc
+package xds
 
 import (
 	"context"
-	"crypto/tls"
 
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
-
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
-	"github.com/clusterlink-net/clusterlink/pkg/util/grpc"
+	"google.golang.org/grpc"
 )
 
-// Server implements an xDS server for dataplane dynamic configuration.
-type Server struct {
-	grpc.Server
-}
-
-// NewServer returns a new xDS server.
-func NewServer(cp *controlplane.Instance, tlsConfig *tls.Config) *Server {
+// RegisterService registers an xDS service backed by Manager to the given gRPC server.
+func RegisterService(ctx context.Context, manager *Manager, grpcServer *grpc.Server) {
 	// create a combined mux cache of listeners, clusters and secrets
 	muxCache := &cache.MuxCache{
 		Classify: func(req *cache.Request) string {
@@ -42,18 +34,11 @@ func NewServer(cp *controlplane.Instance, tlsConfig *tls.Config) *Server {
 			return req.TypeUrl
 		},
 		Caches: map[string]cache.Cache{
-			resource.ClusterType:  cp.GetXDSClusterManager(),
-			resource.ListenerType: cp.GetXDSListenerManager(),
+			resource.ClusterType:  manager.clusters,
+			resource.ListenerType: manager.listeners,
 		},
 	}
 
-	srv := server.NewServer(context.Background(), muxCache, nil)
-	s := &Server{
-		Server: grpc.NewServer("controlplane-grpc", tlsConfig),
-	}
-
-	grpcServer := s.GetGRPCServer()
+	srv := server.NewServer(ctx, muxCache, nil)
 	discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, srv)
-
-	return s
 }
