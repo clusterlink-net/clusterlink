@@ -117,6 +117,6 @@ issues:
   # nothing should be skipped to not miss errors.
   max-same-issues: 0
   # analyze only new code (manually set to false to check existing code)
-  new: false
+  new: true
   # do not automatically fix (until AI assisted code improves)
   fix: false
