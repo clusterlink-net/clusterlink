@@ -3,7 +3,7 @@ title: ClusterLink
 ---
 
 {{< blocks/cover image_anchor="smart" height="auto" color="secondary" >}}
- {{% clusterlink/intro logo="ClusterLink_Logo.png" buttontext="Get Started" buttonlink="docs/getting-started" %}}Securely connecting<br />applications across multi-cloud{{% /clusterlink/intro %}}
+ {{% clusterlink/intro logo="clusterlink_logo.png" buttontext="Get Started" buttonlink="docs/getting-started" %}}Securely connecting<br />applications across multi-cloud{{% /clusterlink/intro %}}
  {{< blocks/link-down color="secondary" >}}
 
 {{< /blocks/cover >}}
