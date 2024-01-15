@@ -195,36 +195,38 @@ func infoForIP(idx cache.Indexer, ip string) (*Info, bool) {
 }
 
 func (k *kubeData) getOwner(info *Info) owner {
-	if len(info.OwnerReferences) != 0 {
-		ownerReference := info.OwnerReferences[0]
-		if ownerReference.Kind != "ReplicaSet" {
-			return owner{
-				Name: ownerReference.Name,
-				Type: ownerReference.Kind,
-			}
-		}
-
-		item, ok, err := k.replicaSets.GetIndexer().GetByKey(info.Namespace + "/" + ownerReference.Name)
-		if err != nil {
-			log.WithError(err).WithField("key", info.Namespace+"/"+ownerReference.Name).
-				Debug("can't get ReplicaSet info from informer. Ignoring")
-		} else if ok {
-			if rsInfo, ok := item.(*metav1.ObjectMeta); ok {
-				if len(rsInfo.OwnerReferences) > 0 {
-					return owner{
-						Name: rsInfo.OwnerReferences[0].Name,
-						Type: rsInfo.OwnerReferences[0].Kind,
-					}
-				}
-			}
-		}
-	}
-
-	// If no owner references found, return itself as owner
-	return owner{
+	self := owner{ // unless we discover otherwise, an object owns itself
 		Name: info.Name,
 		Type: info.Type,
 	}
+
+	if len(info.OwnerReferences) != 0 {
+		return self
+	}
+
+	ownerRef := owner{
+		Name: info.OwnerReferences[0].Name,
+		Type: info.OwnerReferences[0].Kind,
+	}
+
+	if ownerRef.Type != "ReplicaSet" {
+		return ownerRef
+	}
+
+	item, ok, err := k.replicaSets.GetIndexer().GetByKey(info.Namespace + "/" + ownerRef.Name)
+	if err == nil || !ok { // unable to retrieve the ReplicaSet, return what we already have
+		log.WithError(err).WithField("key", info.Namespace+"/"+ownerRef.Name).
+			Debug("can't get ReplicaSet info from informer. Ignoring")
+		return ownerRef
+	}
+
+	if rsInfo, ok := item.(*metav1.ObjectMeta); ok && len(rsInfo.OwnerReferences) > 0 {
+		return owner{ // ReplicaSet created in response to another object
+			Name: rsInfo.OwnerReferences[0].Name,
+			Type: rsInfo.OwnerReferences[0].Kind,
+		}
+	}
+	return ownerRef
 }
 
 func (k *kubeData) initPodInformer(informerFactory informers.SharedInformerFactory) error {
