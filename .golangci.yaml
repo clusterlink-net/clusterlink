@@ -95,6 +95,10 @@ linters-settings:
     # No naked returns (default: 30)
     max-func-lines: 1
 
+  lll:
+    # max line length, lines longer will be reported. Default is 120.
+    line-length: 130
+
   staticcheck:
     checks:
       - "all"

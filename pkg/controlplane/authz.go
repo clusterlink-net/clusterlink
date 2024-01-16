@@ -129,8 +129,7 @@ func (cp *Instance) AuthorizeEgress(req *EgressAuthorizationRequest) (*EgressAut
 }
 
 // AuthorizeIngress authorizes a request for accessing an exported service.
-func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest, peer string,
-) (*IngressAuthorizationResponse, error) {
+func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest, peer string) (*IngressAuthorizationResponse, error) {
 	cp.logger.Infof("Received ingress authorization request: %v.", req)
 
 	resp := &IngressAuthorizationResponse{}
