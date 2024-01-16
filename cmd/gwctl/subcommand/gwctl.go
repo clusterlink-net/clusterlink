@@ -64,10 +64,7 @@ func (o *initOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.cert, "cert", "", "Path to the Certificate File (.pem)")
 	fs.StringVar(&o.key, "key", "", "Path to the Key File (.pem)")
 	fs.StringVar(&o.dataplane, "dataplane", "mtls", "tcp/mtls based dataplane proxies")
-	fs.StringVar(
-		&o.policyEngineIP,
-		"policyEngineIP",
-		"",
+	fs.StringVar(&o.policyEngineIP, "policyEngineIP", "",
 		"IP address of the policy engine, if empty will use the same value as gwIP")
 }
 

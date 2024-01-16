@@ -153,11 +153,7 @@ func (d *Dataplane) hijackConn(w http.ResponseWriter) (net.Conn, error) {
 	return peerConn, nil
 }
 
-func (d *Dataplane) initiateEgressConnection(
-	targetCluster,
-	authToken string,
-	appConn net.Conn,
-	tlsConfig *tls.Config,
+func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, appConn net.Conn, tlsConfig *tls.Config,
 ) error {
 	target, err := d.GetClusterTarget(targetCluster)
 	if err != nil {

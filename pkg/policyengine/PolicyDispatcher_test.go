@@ -36,8 +36,10 @@ var (
 	simpleSelector    = metav1.LabelSelector{
 		MatchLabels: policytypes.WorkloadAttrs{policyengine.ServiceNameLabel: svcName},
 	}
-	simpleWorkloadSet = policytypes.WorkloadSetOrSelector{WorkloadSelector: &simpleSelector}
-	policy            = policytypes.ConnectivityPolicy{
+	simpleWorkloadSet = policytypes.WorkloadSetOrSelector{
+		WorkloadSelector: &simpleSelector,
+	}
+	policy = policytypes.ConnectivityPolicy{
 		Name:       "test-policy",
 		Privileged: false,
 		Action:     policytypes.PolicyActionAllow,

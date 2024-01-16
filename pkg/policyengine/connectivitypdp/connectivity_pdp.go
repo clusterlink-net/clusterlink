@@ -92,9 +92,7 @@ func (pdp *PDP) DeletePolicy(policyName string, privileged bool) error {
 // Decide makes allow/deny decisions for the queried connections between src and each of destinations in dests.
 // The decision, as well as the deciding policy, are recorded in the returned slice of DestinationDecision structs.
 // The order of destinations in dests is preserved in the returned slice.
-func (pdp *PDP) Decide(
-	src policytypes.WorkloadAttrs,
-	dests []policytypes.WorkloadAttrs,
+func (pdp *PDP) Decide(src policytypes.WorkloadAttrs, dests []policytypes.WorkloadAttrs,
 ) ([]DestinationDecision, error) {
 	decisions := make([]DestinationDecision, len(dests))
 	for i, dest := range dests {

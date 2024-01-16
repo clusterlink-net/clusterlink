@@ -93,11 +93,7 @@ func (f *fetcher) Run() error {
 	}
 }
 
-func newFetcher(
-	ctx context.Context,
-	conn *grpc.ClientConn,
-	resourceType string,
-	dataplane *server.Dataplane,
+func newFetcher(ctx context.Context, conn *grpc.ClientConn, resourceType string, dataplane *server.Dataplane,
 ) (*fetcher, error) {
 	client := client.NewADSClient(ctx, &core.Node{Id: dataplane.ID}, resourceType)
 	err := client.InitConnect(conn)

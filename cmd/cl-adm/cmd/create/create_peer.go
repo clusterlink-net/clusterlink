@@ -45,20 +45,11 @@ type PeerOptions struct {
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
 	fs.Uint16Var(&o.Dataplanes, "dataplanes", 1, "Number of dataplanes.")
-	fs.StringVar(
-		&o.DataplaneType,
-		"dataplane-type",
-		platform.DataplaneTypeEnvoy,
+	fs.StringVar(&o.DataplaneType, "dataplane-type", platform.DataplaneTypeEnvoy,
 		"Type of dataplane, Supported values: \"envoy\" (default), \"go\"")
-	fs.StringVar(
-		&o.LogLevel,
-		"log-level",
-		"info",
+	fs.StringVar(&o.LogLevel, "log-level", "info",
 		"The log level. One of fatal, error, warn, info, debug.")
-	fs.StringVar(
-		&o.ContainerRegistry,
-		"container-registry",
-		"ghcr.io/clusterlink-net",
+	fs.StringVar(&o.ContainerRegistry, "container-registry", "ghcr.io/clusterlink-net",
 		"The container registry to pull the project images. If empty will use local registry.")
 }
 

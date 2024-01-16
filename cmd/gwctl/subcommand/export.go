@@ -73,10 +73,7 @@ func (o *exportCreateOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "Exported service name")
 	fs.StringVar(&o.host, "host", "", "Exported service endpoint hostname (IP/DNS), if unspecified, uses the service name")
 	fs.Uint16Var(&o.port, "port", 0, "Exported service port")
-	fs.StringVar(
-		&o.external,
-		"external",
-		"",
+	fs.StringVar(&o.external, "external", "",
 		"External endpoint <host>:<port, which the exported service will be connected")
 }
 

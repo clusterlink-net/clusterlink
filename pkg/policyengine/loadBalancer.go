@@ -178,12 +178,8 @@ func (lB *LoadBalancer) LookupECMP(service string, peers []string) (string, erro
 
 func (lB *LoadBalancer) LookupStatic(serviceSrc, serviceDst string, peers []string) (string, error) {
 	peer := lB.getDefaultPeer(serviceSrc, serviceDst)
-	plog.Infof(
-		"LookupStatic: serviceSrc %s serviceDst %s selects defaultPeer %s - target peer %s",
-		serviceSrc,
-		serviceDst,
-		peer,
-		peers)
+	plog.Infof("LookupStatic: serviceSrc %s serviceDst %s selects defaultPeer %s - target peer %s",
+		serviceSrc, serviceDst, peer, peers)
 	for _, m := range peers {
 		if m == peer {
 			plog.Infof("LoadBalancer selects - target peer %s", peer)
@@ -199,8 +195,8 @@ func (lB *LoadBalancer) LookupWith(serviceSrc, serviceDst string, peers []string
 	policy := lB.getScheme(serviceSrc, serviceDst)
 
 	lB.updateState(serviceSrc, serviceDst)
-	plog.Infof(
-		"LoadBalancer lookup for serviceSrc %s serviceDst %s with policy %s with %+v", serviceSrc, serviceDst, policy, peers)
+	plog.Infof("LoadBalancer lookup for serviceSrc %s serviceDst %s with policy %s with %+v",
+		serviceSrc, serviceDst, policy, peers)
 
 	if len(peers) == 0 {
 		return "", fmt.Errorf("no available target peer")

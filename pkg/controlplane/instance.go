@@ -641,10 +641,7 @@ func (cp *Instance) generateJWK() error {
 }
 
 // NewInstance returns a new controlplane instance.
-func NewInstance(
-	peerTLS *util.ParsedCertData,
-	storeManager store.Manager,
-	platform platform.Platform,
+func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, platform platform.Platform,
 ) (*Instance, error) {
 	logger := logrus.WithField("component", "controlplane")
 

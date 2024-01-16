@@ -103,8 +103,7 @@ func (pH *PolicyHandler) filterOutDisabledPeers(peers []string) []string {
 	return res
 }
 
-func (pH *PolicyHandler) decideIncomingConnection(
-	requestAttr *event.ConnectionRequestAttr,
+func (pH *PolicyHandler) decideIncomingConnection(requestAttr *event.ConnectionRequestAttr,
 ) (event.ConnectionRequestResp, error) {
 	src := getServiceAttrs(requestAttr.SrcService, requestAttr.OtherPeer)
 	dest := getServiceAttrs(requestAttr.DstService, "")
@@ -119,8 +118,7 @@ func (pH *PolicyHandler) decideIncomingConnection(
 	return event.ConnectionRequestResp{Action: event.Deny}, nil
 }
 
-func (pH *PolicyHandler) decideOutgoingConnection(
-	requestAttr *event.ConnectionRequestAttr,
+func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionRequestAttr,
 ) (event.ConnectionRequestResp, error) {
 	// Get a list of peers for the service
 	peerList, err := pH.loadBalancer.GetTargetPeers(requestAttr.DstService)
@@ -161,8 +159,7 @@ func (pH *PolicyHandler) decideOutgoingConnection(
 	return event.ConnectionRequestResp{Action: event.Allow, TargetPeer: targetPeer}, nil
 }
 
-func (pH *PolicyHandler) AuthorizeAndRouteConnection(
-	connReq *event.ConnectionRequestAttr,
+func (pH *PolicyHandler) AuthorizeAndRouteConnection(connReq *event.ConnectionRequestAttr,
 ) (event.ConnectionRequestResp, error) {
 	plog.Infof("New connection request : %+v", connReq)
 
