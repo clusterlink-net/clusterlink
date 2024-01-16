@@ -49,9 +49,7 @@ func (d *Dataplane) GetClusterTarget(name string) (string, error) {
 		return "", fmt.Errorf("unable to find %s in cluster map", name)
 	}
 	ep := d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Address.GetSocketAddress()
-	address := ep.GetAddress()
-	port := ep.GetPortValue()
-	return address + ":" + strconv.Itoa(int(port)), nil
+	return ep.GetAddress() + ":" + strconv.Itoa(int(ep.GetPortValue())), nil
 }
 
 // GetClusterHost returns the cluster hostname after trimming ":".
