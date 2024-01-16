@@ -33,7 +33,8 @@ func MetricsGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "metrics",
 		Short: "Get metrics from the GW",
-		Long:  `Get Connection-level metrics from the GW. This is a test command, Ideally metrics have to be scraped from prometheus endpoint provided`,
+		Long: "Get Connection-level metrics from the GW." +
+			"This is a test command, Ideally metrics have to be scraped from prometheus endpoint provided",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return o.run()
 		},

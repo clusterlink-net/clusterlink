@@ -38,7 +38,7 @@ linters:
     - gosimple
     - govet
     - grouper
-    # - lll
+    - lll
     - loggercheck
     - importas
     - ineffassign
@@ -94,6 +94,10 @@ linters-settings:
   nakedret:
     # No naked returns (default: 30)
     max-func-lines: 1
+
+  lll:
+    # max line length, lines longer will be reported. Default is 120.
+    line-length: 130
 
   staticcheck:
     checks:
