@@ -46,7 +46,7 @@ type ClientConfig struct {
 }
 
 // NewClientConfig create config file with all the configuration of the Client.
-func NewClientConfig(cfg ClientConfig) (*ClientConfig, error) {
+func NewClientConfig(cfg *ClientConfig) (*ClientConfig, error) {
 	c := ClientConfig{
 		ID:               cfg.ID,
 		GwIP:             cfg.GwIP,

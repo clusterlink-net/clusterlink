@@ -67,15 +67,15 @@ func (pdp *PDP) GetPolicies() []policytypes.ConnectivityPolicy {
 // If a policy with the same name and the same privilege already exists in the PDP,
 // it is updated (including updating the Action field).
 // Invalid policies return an error.
-func (pdp *PDP) AddOrUpdatePolicy(policy policytypes.ConnectivityPolicy) error {
+func (pdp *PDP) AddOrUpdatePolicy(policy *policytypes.ConnectivityPolicy) error {
 	if err := policy.Validate(); err != nil {
 		return err
 	}
 
 	if policy.Privileged {
-		pdp.privilegedPolicies.addPolicy(&policy)
+		pdp.privilegedPolicies.addPolicy(policy)
 	} else {
-		pdp.regularPolicies.addPolicy(&policy)
+		pdp.regularPolicies.addPolicy(policy)
 	}
 	return nil
 }
