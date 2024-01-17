@@ -58,7 +58,7 @@ func TestPrivilegedVsRegular(t *testing.T) {
 	require.Equal(t, connectivitypdp.DefaultDenyPolicyName, decisions[0].MatchedBy)
 	require.Equal(t, false, decisions[0].PrivilegedMatch)
 
-	err = pdp.AddOrUpdatePolicy(trivialConnPol)
+	err = pdp.AddOrUpdatePolicy(&trivialConnPol)
 	require.Nil(t, err)
 	dests = []policytypes.WorkloadAttrs{trivialLabel}
 	decisions, err = pdp.Decide(trivialLabel, dests)
@@ -67,7 +67,7 @@ func TestPrivilegedVsRegular(t *testing.T) {
 	require.Equal(t, "reg", decisions[0].MatchedBy)
 	require.Equal(t, false, decisions[0].PrivilegedMatch)
 
-	err = pdp.AddOrUpdatePolicy(trivialPrivConnPol)
+	err = pdp.AddOrUpdatePolicy(&trivialPrivConnPol)
 	require.Nil(t, err)
 	dests = []policytypes.WorkloadAttrs{trivialLabel}
 	decisions, err = pdp.Decide(trivialLabel, dests)
@@ -178,7 +178,7 @@ func TestBadSelector(t *testing.T) {
 		To:     []policytypes.WorkloadSetOrSelector{trivialWorkloadSet},
 	}
 	pdp := connectivitypdp.NewPDP()
-	err := pdp.AddOrUpdatePolicy(badSelectorPol)
+	err := pdp.AddOrUpdatePolicy(&badSelectorPol)
 	require.NotNil(t, err)
 }
 
@@ -219,13 +219,13 @@ func addPoliciesFromFile(pdp *connectivitypdp.PDP, filename string) error {
 		case err == nil:
 			switch policy.Kind {
 			case k8sshim.PrivilegedConnectivityPolicyKind:
-				err = pdp.AddOrUpdatePolicy(*policy.ToInternal())
+				err = pdp.AddOrUpdatePolicy(policy.ToInternal())
 				if err != nil {
 					fmt.Printf("invalid privileged connectivity policy: %v\n", err)
 				}
 			case k8sshim.ConnectivityPolicyKind:
 				regPolicy := k8sshim.ConnectivityPolicy{ObjectMeta: metav1.ObjectMeta{Name: policy.Name}, Spec: policy.Spec}
-				err = pdp.AddOrUpdatePolicy(*regPolicy.ToInternal())
+				err = pdp.AddOrUpdatePolicy(regPolicy.ToInternal())
 				if err != nil {
 					fmt.Printf("invalid connectivity policy: %v\n", err)
 				}

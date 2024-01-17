@@ -243,7 +243,7 @@ func (pH *PolicyHandler) AddAccessPolicy(policy *api.Policy) error {
 	if err != nil {
 		return err
 	}
-	return pH.connectivityPDP.AddOrUpdatePolicy(*connPolicy)
+	return pH.connectivityPDP.AddOrUpdatePolicy(connPolicy)
 }
 
 func (pH *PolicyHandler) DeleteAccessPolicy(policy *api.Policy) error {

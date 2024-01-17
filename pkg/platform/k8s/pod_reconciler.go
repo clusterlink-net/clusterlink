@@ -63,7 +63,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	r.updatePod(pod)
+	r.updatePod(&pod)
 	return ctrl.Result{}, nil
 }
 
@@ -81,7 +81,7 @@ func (r *PodReconciler) deletePod(podID types.NamespacedName) {
 }
 
 // updatePod adds or updates pod to ipToPod and podList.
-func (r *PodReconciler) updatePod(pod corev1.Pod) {
+func (r *PodReconciler) updatePod(pod *corev1.Pod) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 

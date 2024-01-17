@@ -80,11 +80,6 @@ linters-settings:
       # - opinionated
       - performance
       # - style
-    disabled-checks:
-      # consider enabling in performance oriented code
-      - hugeParam
-      - rangeExprCopy
-      - rangeValCopy
 
   errcheck:
     # change some error checks which are disabled by default
@@ -121,6 +116,6 @@ issues:
   # nothing should be skipped to not miss errors.
   max-same-issues: 0
   # analyze only new code (manually set to false to check existing code)
-  new: true
+  new: false
   # do not automatically fix (until AI assisted code improves)
   fix: false

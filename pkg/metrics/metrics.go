@@ -68,10 +68,10 @@ func (m *Metrics) PostConnectionMetrics(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	// Aggregate Metrics
-	m.aggregateMetrics(connectionStatus)
+	m.aggregateMetrics(&connectionStatus)
 }
 
-func (m *Metrics) aggregateMetrics(connectionStatus event.ConnectionStatusAttr) {
+func (m *Metrics) aggregateMetrics(connectionStatus *event.ConnectionStatusAttr) {
 	if _, exists := m.ConnectionFlow[connectionStatus.ConnectionID]; exists {
 		// Update existing metrics
 		flow := m.ConnectionFlow[connectionStatus.ConnectionID]
@@ -80,7 +80,7 @@ func (m *Metrics) aggregateMetrics(connectionStatus event.ConnectionStatusAttr) 
 		flow.LastTstamp = connectionStatus.LastTstamp
 		flow.State = connectionStatus.State
 	} else {
-		m.ConnectionFlow[connectionStatus.ConnectionID] = &connectionStatus
+		m.ConnectionFlow[connectionStatus.ConnectionID] = connectionStatus
 	}
 }
 

@@ -164,8 +164,8 @@ func (k *kubeData) GetIPFromLabel(label string) ([]string, error) {
 
 	podIPs := make([]string, 0, len(podList.Items))
 	// We assume that the first matching pod is the correct one
-	for _, p := range podList.Items {
-		podIPs = append(podIPs, p.Status.PodIP)
+	for i := range podList.Items {
+		podIPs = append(podIPs, podList.Items[i].Status.PodIP)
 	}
 
 	log.Infof("The label %v match to pod ips %v\n", label, podIPs)

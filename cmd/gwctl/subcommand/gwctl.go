@@ -74,7 +74,7 @@ func (o *initOptions) run() error {
 		return err
 	}
 
-	_, err := config.NewClientConfig(config.ClientConfig{
+	_, err := config.NewClientConfig(&config.ClientConfig{
 		ID:             o.id,
 		GwIP:           o.gwIP,
 		GwPort:         o.gwPort,
