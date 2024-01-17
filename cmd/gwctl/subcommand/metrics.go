@@ -61,8 +61,8 @@ func (o *metricsGetOptions) run() error {
 		fmt.Printf("Unable to get metrics %v\n", err)
 	} else {
 		fmt.Printf("Metrics\n")
-		for _, conn := range metrics {
-			fmt.Printf("%v\n", conn)
+		for i := range metrics {
+			fmt.Printf("%v\n", metrics[i])
 		}
 	}
 	return nil
