@@ -109,16 +109,16 @@ func (r *PodReconciler) GetLabelsFromIP(ip string) map[string]string {
 }
 
 // setupWithManager setup PodReconciler for all the pods.
-func (r *PodReconciler) setupWithManager(mgr *ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(*mgr).
+func (r *PodReconciler) setupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Pod{}).
 		Complete(r)
 }
 
 // NewPodReconciler creates pod reconciler for monitoring pods in the cluster.
-func NewPodReconciler(mgr *ctrl.Manager) (*PodReconciler, error) {
+func NewPodReconciler(mgr ctrl.Manager) (*PodReconciler, error) {
 	logger := logrus.WithField("component", "platform.k8s.podReconciler")
-	r := CreatePodReconciler((*mgr).GetClient(), logger)
+	r := CreatePodReconciler(mgr.GetClient(), logger)
 
 	if err := r.setupWithManager(mgr); err != nil {
 		return nil, err

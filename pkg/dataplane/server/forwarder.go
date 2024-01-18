@@ -142,7 +142,7 @@ func (f *forwarder) run() {
 	f.closeConnections()
 }
 
-func newForwarder(workloadConn net.Conn, peerConn net.Conn) *forwarder {
+func newForwarder(workloadConn, peerConn net.Conn) *forwarder {
 	return &forwarder{
 		workloadConn: workloadConn,
 		peerConn:     peerConn,

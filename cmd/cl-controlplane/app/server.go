@@ -129,13 +129,13 @@ func (o *Options) Run() error {
 
 	storeManager := kv.NewManager(kvStore)
 
-	// initiailze platform
-	var platform platform.Platform
+	// initialize platform
+	var pp platform.Platform
 	switch o.Platform {
 	case platformUnknown:
-		platform = unknown.NewPlatform()
+		pp = unknown.NewPlatform()
 	case platformK8S:
-		platform, err = k8s.NewPlatform()
+		pp, err = k8s.NewPlatform()
 		if err != nil {
 			return err
 		}
@@ -143,7 +143,7 @@ func (o *Options) Run() error {
 		return fmt.Errorf("unknown platform type: %s", o.Platform)
 	}
 
-	cp, err := controlplane.NewInstance(parsedCertData, storeManager, platform)
+	cp, err := controlplane.NewInstance(parsedCertData, storeManager, pp)
 	if err != nil {
 		return err
 	}

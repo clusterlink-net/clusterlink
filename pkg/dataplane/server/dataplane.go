@@ -62,21 +62,21 @@ func (d *Dataplane) GetClusterHost(name string) (string, error) {
 }
 
 // AddCluster adds a cluster to the map.
-func (d *Dataplane) AddCluster(cluster *cluster.Cluster) {
-	d.clusters[cluster.Name] = cluster
+func (d *Dataplane) AddCluster(c *cluster.Cluster) {
+	d.clusters[c.Name] = c
 }
 
 // AddListener adds a listener to the map.
-func (d *Dataplane) AddListener(listener *listener.Listener) {
-	listenerName := strings.TrimPrefix(listener.Name, api.ImportListenerPrefix)
+func (d *Dataplane) AddListener(ln *listener.Listener) {
+	listenerName := strings.TrimPrefix(ln.Name, api.ImportListenerPrefix)
 	if _, ok := d.listeners[listenerName]; ok {
 		return
 	}
-	d.listeners[listenerName] = listener
+	d.listeners[listenerName] = ln
 	go func() {
 		d.CreateListener(listenerName,
-			listener.Address.GetSocketAddress().GetAddress(),
-			listener.Address.GetSocketAddress().GetPortValue())
+			ln.Address.GetSocketAddress().GetAddress(),
+			ln.Address.GetSocketAddress().GetPortValue())
 	}()
 }
 

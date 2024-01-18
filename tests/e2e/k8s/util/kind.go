@@ -378,10 +378,10 @@ func (c *KindCluster) ExposeNodeport(service *Service) (uint16, error) {
 		return 0, fmt.Errorf("expected a single port service, but got: %v", k8sService.Spec.Ports)
 	}
 
-	services := c.nodeportServices[service.Namespace]
-	if services == nil {
-		services = &map[string]*v1.Service{}
-		c.nodeportServices[service.Namespace] = services
+	svcs := c.nodeportServices[service.Namespace]
+	if svcs == nil {
+		svcs = &map[string]*v1.Service{}
+		c.nodeportServices[service.Namespace] = svcs
 	}
 
 	nodeportService := &v1.Service{
@@ -399,7 +399,7 @@ func (c *KindCluster) ExposeNodeport(service *Service) (uint16, error) {
 		},
 	}
 
-	cachedService := (*services)[service.Name]
+	cachedService := (*svcs)[service.Name]
 	cacheMiss := true
 	switch {
 	case cachedService == nil:
@@ -427,7 +427,7 @@ func (c *KindCluster) ExposeNodeport(service *Service) (uint16, error) {
 		}
 
 		cachedService = nodeportService
-		(*services)[service.Name] = cachedService
+		(*svcs)[service.Name] = cachedService
 	}
 
 	return uint16(cachedService.Spec.Ports[0].NodePort), nil

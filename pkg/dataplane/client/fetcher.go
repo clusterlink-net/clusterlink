@@ -93,16 +93,16 @@ func (f *fetcher) Run() error {
 	}
 }
 
-func newFetcher(ctx context.Context, conn *grpc.ClientConn, resourceType string, dataplane *server.Dataplane) (*fetcher, error) {
-	client := client.NewADSClient(ctx, &core.Node{Id: dataplane.ID}, resourceType)
-	err := client.InitConnect(conn)
+func newFetcher(ctx context.Context, conn *grpc.ClientConn, resourceType string, dp *server.Dataplane) (*fetcher, error) {
+	cl := client.NewADSClient(ctx, &core.Node{Id: dp.ID}, resourceType)
+	err := cl.InitConnect(conn)
 	if err != nil {
 		return nil, err
 	}
 	return &fetcher{
-		client:       client,
+		client:       cl,
 		resourceType: resourceType,
-		dataplane:    dataplane,
+		dataplane:    dp,
 		logger:       logrus.WithField("component", "fetcher.xds.client"),
 	}, nil
 }
