@@ -249,28 +249,28 @@ func (s *Server) list(spec *ServerObjectSpec, w http.ResponseWriter, r *http.Req
 
 // AddObjectHandlers adds the server a handlers for managing a specific object type.
 func (s *Server) AddObjectHandlers(spec *ServerObjectSpec) {
-	r := s.Router()
+	router := s.Router()
 
-	r.Route(spec.BasePath, func(r chi.Router) {
-		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+	router.Route(spec.BasePath, func(cr chi.Router) {
+		cr.Post("/", func(w http.ResponseWriter, r *http.Request) {
 			s.create(spec, w, r)
 		})
-		r.Put("/", func(w http.ResponseWriter, r *http.Request) {
+		cr.Put("/", func(w http.ResponseWriter, r *http.Request) {
 			s.update(spec, w, r)
 		})
-		r.Get("/{name}", func(w http.ResponseWriter, r *http.Request) {
+		cr.Get("/{name}", func(w http.ResponseWriter, r *http.Request) {
 			s.get(spec, w, r)
 		})
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		cr.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			s.list(spec, w, r)
 		})
 
 		if spec.DeleteByValue {
-			r.Delete("/", func(w http.ResponseWriter, r *http.Request) {
+			cr.Delete("/", func(w http.ResponseWriter, r *http.Request) {
 				s.deleteObject(spec, w, r)
 			})
 		} else {
-			r.Delete("/{name}", func(w http.ResponseWriter, r *http.Request) {
+			cr.Delete("/{name}", func(w http.ResponseWriter, r *http.Request) {
 				s.delete(spec, w, r)
 			})
 		}

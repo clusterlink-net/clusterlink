@@ -179,13 +179,13 @@ func (o *peerGetOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'get peer' subcommand.
 func (o *peerGetOptions) run() error {
-	g, err := config.GetClientFromID(o.myID)
+	peerClient, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
 	if o.name == "" {
-		pArr, err := g.Peers.List()
+		pArr, err := peerClient.Peers.List()
 		if err != nil {
 			return err
 		}
@@ -194,7 +194,7 @@ func (o *peerGetOptions) run() error {
 			fmt.Printf("%d. Peer: %v\n", i+1, p)
 		}
 	} else {
-		peer, err := g.Peers.Get(o.name)
+		peer, err := peerClient.Peers.Get(o.name)
 		if err != nil {
 			return err
 		}

@@ -74,9 +74,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		}
 
 		// list imports when empty
-		o, err := client0.Imports.List()
+		objects, err := client0.Imports.List()
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), o.(*[]api.Import))
+		require.Empty(s.T(), objects.(*[]api.Import))
 
 		// get non-existing import
 		_, err = client0.Imports.Get(imp.Name)
@@ -106,18 +106,18 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 
 		// get import
-		o, err = client0.Imports.Get(imp.Name)
+		objects, err = client0.Imports.Get(imp.Name)
 		require.Nil(s.T(), err)
-		importFromServer := *o.(*api.Import)
+		importFromServer := *objects.(*api.Import)
 		require.Equal(s.T(), importFromServer.Name, imp.Name)
 		require.Equal(s.T(), importFromServer.Spec, imp.Spec)
 		require.Equal(s.T(), importFromServer.Status.Listener.Host, "")
 		require.NotZero(s.T(), importFromServer.Status.Listener.Port)
 
 		// list imports
-		o, err = client0.Imports.List()
+		objects, err = client0.Imports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Import), []api.Import{importFromServer})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Import), []api.Import{importFromServer})
 
 		// test binding API
 		binding := api.Binding{
@@ -128,14 +128,14 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		}
 
 		// list bindings when empty
-		o, err = client0.Bindings.List()
+		objects, err = client0.Bindings.List()
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), o.(*[]api.Binding))
+		require.Empty(s.T(), objects.(*[]api.Binding))
 
 		// get non-existing binding
 		_, err = client0.Bindings.Get(binding.Spec.Import)
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), o.(*[]api.Binding))
+		require.Empty(s.T(), objects.(*[]api.Binding))
 
 		// delete non-existing binding
 		require.NotNil(s.T(), client0.Bindings.Delete(&binding))
@@ -162,14 +162,14 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Nil(s.T(), client0.Bindings.Create(&binding2))
 
 		// get bindings
-		o, err = client0.Bindings.Get(binding.Spec.Import)
+		objects, err = client0.Bindings.Get(binding.Spec.Import)
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Binding), []api.Binding{binding})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Binding), []api.Binding{binding})
 
 		// list bindings
-		o, err = client0.Bindings.List()
+		objects, err = client0.Bindings.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Binding), []api.Binding{binding, binding2})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Binding), []api.Binding{binding, binding2})
 
 		// test peer API
 		peer := api.Peer{
@@ -183,9 +183,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		}
 
 		// list peers when empty
-		o, err = client0.Peers.List()
+		objects, err = client0.Peers.List()
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), o.(*[]api.Peer))
+		require.Empty(s.T(), objects.(*[]api.Peer))
 
 		// get non-existing peer
 		_, err = client0.Peers.Get(peer.Name)
@@ -205,9 +205,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 
 		// get peer
-		o, err = client0.Peers.Get(peer.Name)
+		objects, err = client0.Peers.Get(peer.Name)
 		require.Nil(s.T(), err)
-		peerFromServer := *o.(*api.Peer)
+		peerFromServer := *objects.(*api.Peer)
 		require.Equal(s.T(), peerFromServer.Name, peer.Name)
 		require.Equal(s.T(), peerFromServer.Spec, peer.Spec)
 		require.Equal(s.T(), peerFromServer.Status, api.PeerStatus{
@@ -216,9 +216,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		})
 
 		// list peers
-		o, err = client0.Peers.List()
+		objects, err = client0.Peers.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Peer), []api.Peer{peerFromServer})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Peer), []api.Peer{peerFromServer})
 
 		// add another peer (for upcoming load-balancing test)
 		peer2 := api.Peer{
@@ -244,9 +244,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		}
 
 		// list access policies when empty
-		o, err = client0.AccessPolicies.List()
+		objects, err = client0.AccessPolicies.List()
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), o.(*[]api.Policy))
+		require.Empty(s.T(), objects.(*[]api.Policy))
 
 		// get non-existing access policy
 		_, err = client0.AccessPolicies.Get(policy.Name)
@@ -266,14 +266,14 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 
 		// get access policy
-		o, err = client0.AccessPolicies.Get(policy.Name)
+		objects, err = client0.AccessPolicies.Get(policy.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), *o.(*api.Policy), policy)
+		require.Equal(s.T(), *objects.(*api.Policy), policy)
 
 		// list access policies
-		o, err = client0.AccessPolicies.List()
+		objects, err = client0.AccessPolicies.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Policy), []api.Policy{policy})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Policy), []api.Policy{policy})
 
 		// test export API
 		export := api.Export{
@@ -289,9 +289,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		}
 
 		// list exports when empty
-		o, err = client1.Exports.List()
+		objects, err = client1.Exports.List()
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), o.(*[]api.Export))
+		require.Empty(s.T(), objects.(*[]api.Export))
 
 		// get non-existing export
 		_, err = client1.Exports.Get(export.Name)
@@ -311,14 +311,14 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 
 		// get export
-		o, err = client1.Exports.Get(export.Name)
+		objects, err = client1.Exports.Get(export.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), *o.(*api.Export), export)
+		require.Equal(s.T(), *objects.(*api.Export), export)
 
 		// list exports
-		o, err = client1.Exports.List()
+		objects, err = client1.Exports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Export), []api.Export{export})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Export), []api.Export{export})
 
 		// allow export to be accessed
 		require.Nil(s.T(), client1.AccessPolicies.Create(&policy))
@@ -346,9 +346,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		}
 
 		// list LB policies when empty
-		o, err = client0.LBPolicies.List()
+		objects, err = client0.LBPolicies.List()
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), o.(*[]api.Policy))
+		require.Empty(s.T(), objects.(*[]api.Policy))
 
 		// get non-existing LB policy
 		_, err = client0.LBPolicies.Get(lbPolicy.Name)
@@ -378,14 +378,14 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Equal(s.T(), str, cl[1].Name())
 
 		// get LB policy
-		o, err = client0.LBPolicies.Get(lbPolicy.Name)
+		objects, err = client0.LBPolicies.Get(lbPolicy.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), *o.(*api.Policy), lbPolicy)
+		require.Equal(s.T(), *objects.(*api.Policy), lbPolicy)
 
 		// list LB policies
-		o, err = client0.LBPolicies.List()
+		objects, err = client0.LBPolicies.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Policy), []api.Policy{lbPolicy})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Policy), []api.Policy{lbPolicy})
 
 		// update import port
 		imp.Spec.Service.Port++
@@ -409,19 +409,19 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		_, err = accessService(true, nil)
 		require.Nil(s.T(), err)
 		// get import after update
-		o, err = client0.Imports.Get(imp.Name)
+		objects, err = client0.Imports.Get(imp.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), o.(*api.Import).Spec, imp.Spec)
-		require.Equal(s.T(), o.(*api.Import).Status, importFromServer.Status)
-		importFromServer = *o.(*api.Import)
+		require.Equal(s.T(), objects.(*api.Import).Spec, imp.Spec)
+		require.Equal(s.T(), objects.(*api.Import).Status, importFromServer.Status)
+		importFromServer = *objects.(*api.Import)
 
 		// update peer
 		peer.Spec.Gateways[0].Port++
 		require.Nil(s.T(), client0.Peers.Update(&peer))
 		// get peer after update
-		o, err = client0.Peers.Get(peer.Name)
+		objects, err = client0.Peers.Get(peer.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), o.(*api.Peer).Spec, peer.Spec)
+		require.Equal(s.T(), objects.(*api.Peer).Spec, peer.Spec)
 		// verify no access after update
 		_, err = accessService(true, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
@@ -442,9 +442,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		policy.Spec.Blob = data
 		require.Nil(s.T(), client0.AccessPolicies.Update(&policy))
 		// get access policy after update
-		o, err = client0.AccessPolicies.Get(policy.Name)
+		objects, err = client0.AccessPolicies.Get(policy.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), o.(*api.Policy).Spec, policy.Spec)
+		require.Equal(s.T(), objects.(*api.Policy).Spec, policy.Spec)
 		// verify no access after update
 		_, err = accessService(false, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
@@ -460,9 +460,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		export.Spec.Service.Port++
 		require.Nil(s.T(), client1.Exports.Update(&export))
 		// get export after update
-		o, err = client1.Exports.Get(export.Name)
+		objects, err = client1.Exports.Get(export.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), o.(*api.Export).Spec, export.Spec)
+		require.Equal(s.T(), objects.(*api.Export).Spec, export.Spec)
 		// verify no access after update
 		_, err = accessService(true, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
@@ -482,9 +482,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		lbPolicy.Spec.Blob = data
 		require.Nil(s.T(), client0.LBPolicies.Update(&lbPolicy))
 		// get LB policy after update
-		o, err = client0.LBPolicies.Get(lbPolicy.Name)
+		objects, err = client0.LBPolicies.Get(lbPolicy.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), o.(*api.Policy).Spec, lbPolicy.Spec)
+		require.Equal(s.T(), objects.(*api.Policy).Spec, lbPolicy.Spec)
 		// verify no access after update
 		_, err = accessService(false, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
@@ -511,9 +511,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 			// re-create import
 			require.Nil(s.T(), client0.Imports.Create(&imp))
 			// re-get import from server
-			o, err = client0.Imports.Get(imp.Name)
+			objects, err = client0.Imports.Get(imp.Name)
 			require.Nil(s.T(), err)
-			importFromServer = *o.(*api.Import)
+			importFromServer = *objects.(*api.Import)
 			// verify access after re-create
 			str, err = accessService(true, nil)
 			require.Nil(s.T(), err)
@@ -523,9 +523,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// delete binding
 		require.Nil(s.T(), client0.Bindings.Delete(&binding))
 		// get binding after delete
-		o, err = client0.Bindings.Get(imp.Name)
+		objects, err = client0.Bindings.Get(imp.Name)
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Binding), []api.Binding{binding3})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Binding), []api.Binding{binding3})
 		// verify no access after delete
 		_, err = accessService(false, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
@@ -603,34 +603,34 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Nil(s.T(), runner.Wait())
 
 		// verify imports after restart
-		o, err = client0.Imports.List()
+		objects, err = client0.Imports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Import), []api.Import{importFromServer})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Import), []api.Import{importFromServer})
 
 		// verify bindings after restart
-		o, err = client0.Bindings.List()
+		objects, err = client0.Bindings.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Binding), []api.Binding{binding, binding2, binding3})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Binding), []api.Binding{binding, binding2, binding3})
 
 		// verify peers after restart
-		o, err = client0.Peers.List()
+		objects, err = client0.Peers.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Peer), []api.Peer{peerFromServer, peer2})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Peer), []api.Peer{peerFromServer, peer2})
 
 		// verify access policies after restart
-		o, err = client0.AccessPolicies.List()
+		objects, err = client0.AccessPolicies.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Policy), []api.Policy{policy})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Policy), []api.Policy{policy})
 
 		// verify exports after restart
-		o, err = client1.Exports.List()
+		objects, err = client1.Exports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Export), []api.Export{export})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Export), []api.Export{export})
 
 		// verify lb policies after restart
-		o, err = client0.LBPolicies.List()
+		objects, err = client0.LBPolicies.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *o.(*[]api.Policy), []api.Policy{lbPolicy})
+		require.ElementsMatch(s.T(), *objects.(*[]api.Policy), []api.Policy{lbPolicy})
 
 		// verify access after restart
 		str, err = accessService(true, nil)

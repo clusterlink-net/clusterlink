@@ -30,7 +30,8 @@ const (
 
 // SetLog sets logrus logger (format, file, level).
 func SetLog(logLevel, logFileName string) (*os.File, error) {
-	var f *os.File
+	var logfile *os.File
+
 	if logFileName != "" {
 		usr, err := user.Current()
 		if err != nil {
@@ -63,7 +64,7 @@ func SetLog(logLevel, logFileName string) (*os.File, error) {
 			DisableQuote:    true,
 		},
 	})
-	return f, nil
+	return logfile, nil
 }
 
 type formatter struct {

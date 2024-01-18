@@ -47,7 +47,7 @@ type ClientConfig struct {
 
 // NewClientConfig create config file with all the configuration of the Client.
 func NewClientConfig(cfg *ClientConfig) (*ClientConfig, error) {
-	c := ClientConfig{
+	clientCfg := ClientConfig{
 		ID:               cfg.ID,
 		GwIP:             cfg.GwIP,
 		GwPort:           cfg.GwPort,
@@ -60,15 +60,15 @@ func NewClientConfig(cfg *ClientConfig) (*ClientConfig, error) {
 		logger:           logrus.WithField("component", "gwctl/config"),
 	}
 
-	_, err := c.createProjectfolder()
+	_, err := clientCfg.createProjectfolder()
 	if err != nil {
 		return nil, err
 	}
-	err = c.createConfigFile()
+	err = clientCfg.createConfigFile()
 	if err != nil {
 		return nil, err
 	}
-	return &c, nil
+	return &clientCfg, nil
 }
 
 // GetConfigFromID return configuration of Client according to the Client ID.

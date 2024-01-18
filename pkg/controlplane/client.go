@@ -199,7 +199,7 @@ func newClient(peer *store.Peer, tlsConfig *tls.Config) *client {
 	for i, endpoint := range peer.Gateways {
 		clients[i] = jsonapi.NewClient(endpoint.Host, endpoint.Port, tlsConfig)
 	}
-	c := &client{
+	clnt := &client{
 		clients:    clients,
 		active:     false,
 		lastSeen:   time.Time{},
@@ -210,6 +210,6 @@ func newClient(peer *store.Peer, tlsConfig *tls.Config) *client {
 		}),
 	}
 
-	go c.heartbeatMonitor()
-	return c
+	go clnt.heartbeatMonitor()
+	return clnt
 }

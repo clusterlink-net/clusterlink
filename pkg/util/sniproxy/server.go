@@ -62,16 +62,16 @@ func NewServer(routes map[string]string) *Server {
 		"component": "sni-proxy",
 	})
 
-	s := &Server{
+	sniproxy := &Server{
 		Listener: tcp.NewListener("sni-proxy"),
 		routes:   routes,
 		server:   &tcpproxy.Proxy{},
 		logger:   logger,
 	}
 
-	s.server.ListenFunc = func(_, _ string) (net.Listener, error) {
-		return s.GetListener(), nil
+	sniproxy.server.ListenFunc = func(_, _ string) (net.Listener, error) {
+		return sniproxy.GetListener(), nil
 	}
 
-	return s
+	return sniproxy
 }
