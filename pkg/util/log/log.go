@@ -40,7 +40,7 @@ func SetLog(logLevel, logFileName string) (*os.File, error) {
 		logFileFullPath := path.Join(usr.HomeDir, logFileName)
 		createLogFolder(logFileFullPath)
 
-		logfile, err := os.OpenFile(logFileFullPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o600)
+		logfile, err = os.OpenFile(logFileFullPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o600)
 		fmt.Printf("Creating log file: %v\n", logFileFullPath)
 		if err != nil {
 			return nil, fmt.Errorf("error opening log file: %w", err)
