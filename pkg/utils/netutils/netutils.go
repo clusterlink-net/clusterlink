@@ -37,7 +37,7 @@ var (
 )
 
 // GetConnIP returns the connection's local IP and port.
-func GetConnIP(c net.Conn) (string, string) {
+func GetConnIP(c net.Conn) (string, string) { //nolint:gocritic // unnamedResult: named in comment
 	s := strings.Split(c.LocalAddr().String(), ":")
 	ip := s[0]
 	port := s[1]

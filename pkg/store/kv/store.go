@@ -123,14 +123,14 @@ func (s *ObjectStore) GetAll() ([]any, error) {
 }
 
 // NewObjectStore returns a new object store backed by a KV-store.
-func NewObjectStore(name string, store Store, sampleObject any) *ObjectStore {
+func NewObjectStore(name string, s Store, sampleObject any) *ObjectStore {
 	logger := logrus.WithFields(logrus.Fields{
 		"component": "store.kv.object-store",
 		"name":      name,
 	})
 
 	return &ObjectStore{
-		store:      store,
+		store:      s,
 		keyPrefix:  name + ".",
 		objectType: reflect.TypeOf(sampleObject),
 		logger:     logger,

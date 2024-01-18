@@ -132,7 +132,7 @@ func NewPlatform() (*Platform, error) {
 	if err != nil {
 		return nil, err
 	}
-	podReconciler, err := NewPodReconciler(&manager)
+	podReconciler, err := NewPodReconciler(manager)
 	if err != nil {
 		return nil, err
 	}

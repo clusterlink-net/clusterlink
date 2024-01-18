@@ -76,10 +76,10 @@ linters-settings:
   gocritic:
     enabled-tags:
       - diagnostic
-      # - experimental
-      # - opinionated
+      - experimental
+      - opinionated
       - performance
-      # - style
+      - style
 
   errcheck:
     # change some error checks which are disabled by default

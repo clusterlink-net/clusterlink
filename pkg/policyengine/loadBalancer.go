@@ -46,15 +46,15 @@ type ServiceState struct {
 
 type LoadBalancer struct {
 	ServiceMap      map[string][]string                 // Service to Peers
-	Scheme          map[string](map[string]LBScheme)    // PolicyMap [serviceDst][serviceSrc]Policy
+	Scheme          map[string]map[string]LBScheme      // PolicyMap [serviceDst][serviceSrc]Policy
 	ServiceStateMap map[string]map[string]*ServiceState // State of policy Per destination and source
 }
 
 func NewLoadBalancer() *LoadBalancer {
 	lb := &LoadBalancer{
 		ServiceMap:      make(map[string][]string),
-		Scheme:          make(map[string](map[string]LBScheme)),
-		ServiceStateMap: make(map[string](map[string]*ServiceState)),
+		Scheme:          make(map[string]map[string]LBScheme),
+		ServiceStateMap: make(map[string]map[string]*ServiceState),
 	}
 
 	lb.Scheme[event.Wildcard] = map[string]LBScheme{event.Wildcard: Random} // default policy
@@ -62,7 +62,7 @@ func NewLoadBalancer() *LoadBalancer {
 	return lb
 }
 
-func (lB *LoadBalancer) AddToServiceMap(serviceDst string, peer string) {
+func (lB *LoadBalancer) AddToServiceMap(serviceDst, peer string) {
 	if peers, ok := lB.ServiceMap[serviceDst]; ok {
 		_, exist := exists(peers, peer)
 		if !exist {

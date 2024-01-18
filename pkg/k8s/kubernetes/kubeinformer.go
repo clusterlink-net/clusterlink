@@ -132,7 +132,7 @@ func (k *kubeData) GetInfoApp(app string) (*Info, error) {
 }
 
 // Get Ip and key(prefix of label) and return pod label.
-func (k *kubeData) GetLabel(ip string, key string) (string, error) {
+func (k *kubeData) GetLabel(ip, key string) (string, error) {
 	if info, ok := k.fetchInformers(ip); ok {
 		// Owner data might be discovered after the owned, so we fetch it
 		// at the last moment
@@ -395,7 +395,7 @@ func (k *kubeData) initInformers(client kubernetes.Interface) error {
 }
 
 // CreateService Add support to create a service/NodePort for a target port.
-func (k *kubeData) CreateService(serviceName string, port int, targetPort int, namespace, svcAppName string) error {
+func (k *kubeData) CreateService(serviceName string, port, targetPort int, namespace, svcAppName string) error {
 	var selectorMap map[string]string
 	if svcAppName != "" {
 		selectorMap = map[string]string{"app": svcAppName}

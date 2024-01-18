@@ -40,10 +40,10 @@ const (
 func TestPodReconciler(t *testing.T) {
 	// Test setup
 	logger := logrus.WithField("component", "podReconciler")
-	client, err := getFakeClient()
+	clnt, err := getFakeClient()
 	require.NoError(t, err)
 	ctx := context.Background()
-	podReconciler := k8s.CreatePodReconciler(client, logger)
+	podReconciler := k8s.CreatePodReconciler(clnt, logger)
 
 	req := ctrl.Request{NamespacedName: types.NamespacedName{
 		Name:      TestPodName,
