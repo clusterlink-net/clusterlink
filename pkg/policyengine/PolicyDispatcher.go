@@ -51,7 +51,7 @@ type PolicyDecider interface {
 	AddBinding(imp *api.Binding) (event.Action, error)
 	DeleteBinding(imp *api.Binding)
 
-	AddExport(exp *api.Export) (event.ExposeRequestResp, error)
+	AddExport(exp *api.Export) ([]string, error) // Returns a list of peers to which export is allowed
 	DeleteExport(name string)
 }
 
@@ -183,8 +183,14 @@ func (pH *PolicyHandler) DeleteBinding(binding *api.Binding) {
 	pH.loadBalancer.RemoveDestService(binding.Spec.Import, binding.Spec.Peer)
 }
 
-func (pH *PolicyHandler) AddExport(_ *api.Export) (event.ExposeRequestResp, error) {
-	return event.ExposeRequestResp{Action: event.AllowAll}, nil
+func (pH *PolicyHandler) AddExport(_ *api.Export) ([]string, error) {
+	retPeers := []string{}
+	for peer, enabled := range pH.enabledPeers {
+		if enabled {
+			retPeers = append(retPeers, peer)
+		}
+	}
+	return retPeers, nil
 }
 
 func (pH *PolicyHandler) DeleteExport(_ string) {

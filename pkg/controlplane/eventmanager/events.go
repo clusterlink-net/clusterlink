@@ -27,8 +27,6 @@ type Action int
 const (
 	Allow Action = iota
 	Deny
-	AllowAll
-	AllowPartial
 )
 
 type ConnectionState int
@@ -68,9 +66,4 @@ type ConnectionStatusAttr struct {
 	LastTstamp      time.Time
 	Direction       Direction // Incoming/Outgoing
 	State           ConnectionState
-}
-
-type ExposeRequestResp struct {
-	Action      Action
-	TargetPeers []string
 }
