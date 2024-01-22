@@ -175,13 +175,10 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 	if eSpec.ExternalService != "" && !netutils.IsIP(eSpec.ExternalService) && !netutils.IsDNS(eSpec.ExternalService) {
 		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
 	}
-	peers, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
+	// TODO: check policyDecider's answer
+	_, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
 	if err != nil {
 		return err
-	}
-	if len(peers) == 0 { // export is denied for all peers
-		cp.logger.Warnf("Access policies deny creating export '%s'.", export.Name)
-		return nil
 	}
 
 	if cp.initialized {
@@ -210,13 +207,10 @@ func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
 	}
 
-	peers, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
+	// TODO: check policyDecider's answer
+	_, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
 	if err != nil {
 		return err
-	}
-	if len(peers) == 0 { // export is denied for all peers
-		cp.logger.Warnf("Access policies deny creating export '%s'.", export.Name)
-		return nil
 	}
 
 	err = cp.exports.Update(export.Name, func(old *cpstore.Export) *cpstore.Export {
