@@ -147,48 +147,48 @@ func (f *Fabric) SwitchToNewNamespace(name string, appendName bool) error {
 }
 
 // deployClusterLink deploys clusterlink to the given peer.
-func (f *Fabric) deployClusterLink(pr *peer, cfg *PeerConfig) (*ClusterLink, error) {
+func (f *Fabric) deployClusterLink(target *peer, cfg *PeerConfig) (*ClusterLink, error) {
 	if f.namespace == "" {
 		return nil, fmt.Errorf("namespace not set")
 	}
 
-	k8sYAML, err := f.generateK8SYAML(pr, cfg)
+	k8sYAML, err := f.generateK8SYAML(target, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("cannot generate k8s yaml: %w", err)
 	}
 
-	if err := pr.cluster.CreateFromYAML(k8sYAML, f.namespace); err != nil {
+	if err := target.cluster.CreateFromYAML(k8sYAML, f.namespace); err != nil {
 		return nil, fmt.Errorf("cannot create k8s objects: %w", err)
 	}
 
 	var service v1.Service
-	err = pr.cluster.resources.Get(context.Background(), "cl-dataplane", f.namespace, &service)
+	err = target.cluster.resources.Get(context.Background(), "cl-dataplane", f.namespace, &service)
 	if err != nil {
 		return nil, fmt.Errorf("error getting dataplane service: %w", err)
 	}
 
 	port := uint16(service.Spec.Ports[0].NodePort)
 
-	cert := pr.gwctlCert
+	cert := target.gwctlCert
 	certificate, err := tls.X509KeyPair(cert.RawCert(), cert.RawKey())
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse gwctl certificate: %w", err)
 	}
 
 	caCertPool := x509.NewCertPool()
-	if !caCertPool.AppendCertsFromPEM(pr.peerCert.RawCert()) {
+	if !caCertPool.AppendCertsFromPEM(target.peerCert.RawCert()) {
 		return nil, fmt.Errorf("unable to parse peer certificate")
 	}
 
-	c := client.New(pr.cluster.IP(), port, &tls.Config{
+	c := client.New(target.cluster.IP(), port, &tls.Config{
 		MinVersion:   tls.VersionTLS12,
 		Certificates: []tls.Certificate{certificate},
 		RootCAs:      caCertPool,
-		ServerName:   pr.cluster.Name(),
+		ServerName:   target.cluster.Name(),
 	})
 
 	clink := &ClusterLink{
-		cluster:   pr.cluster,
+		cluster:   target.cluster,
 		namespace: f.namespace,
 		client:    c,
 		port:      port,
@@ -196,7 +196,7 @@ func (f *Fabric) deployClusterLink(pr *peer, cfg *PeerConfig) (*ClusterLink, err
 
 	// wait for default service account to be created
 	for t := time.Now(); time.Since(t) < time.Second*30; time.Sleep(time.Millisecond * 100) {
-		err = pr.cluster.resources.Get(context.Background(), "default", f.namespace, &v1.ServiceAccount{})
+		err = target.cluster.resources.Get(context.Background(), "default", f.namespace, &v1.ServiceAccount{})
 		if err == nil {
 			break
 		}
