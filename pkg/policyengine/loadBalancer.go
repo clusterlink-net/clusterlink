@@ -18,8 +18,6 @@ import (
 	"math/rand"
 
 	"github.com/sirupsen/logrus"
-
-	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 )
 
 var llog = logrus.WithField("component", "LoadBalancer")
@@ -31,6 +29,8 @@ const (
 	ECMP   LBScheme = "ecmp"
 	Static LBScheme = "static"
 )
+
+const Wildcard = "*"
 
 type LBPolicy struct {
 	ServiceSrc  string
@@ -57,8 +57,8 @@ func NewLoadBalancer() *LoadBalancer {
 		ServiceStateMap: make(map[string]map[string]*ServiceState),
 	}
 
-	lb.Scheme[event.Wildcard] = map[string]LBScheme{event.Wildcard: Random} // default policy
-	lb.ServiceStateMap[event.Wildcard] = map[string]*ServiceState{event.Wildcard: {}}
+	lb.Scheme[Wildcard] = map[string]LBScheme{Wildcard: Random} // default policy
+	lb.ServiceStateMap[Wildcard] = map[string]*ServiceState{Wildcard: {}}
 	return lb
 }
 
@@ -71,7 +71,7 @@ func (lB *LoadBalancer) AddToServiceMap(serviceDst, peer string) {
 	} else {
 		lB.ServiceMap[serviceDst] = []string{peer}
 		lB.ServiceStateMap[serviceDst] = make(map[string]*ServiceState)
-		lB.ServiceStateMap[serviceDst][event.Wildcard] = &ServiceState{totalConnections: 0, defaultPeer: peer}
+		lB.ServiceStateMap[serviceDst][Wildcard] = &ServiceState{totalConnections: 0, defaultPeer: peer}
 	}
 	llog.Infof("Remote serviceDst added %v->[%+v]", serviceDst, lB.ServiceMap[serviceDst])
 }
@@ -125,7 +125,7 @@ func (lB *LoadBalancer) DeletePolicy(lbPolicy *LBPolicy) error {
 	serviceSrc := lbPolicy.ServiceSrc
 	serviceDst := lbPolicy.ServiceDst
 
-	if serviceSrc == event.Wildcard && serviceDst == event.Wildcard {
+	if serviceSrc == Wildcard && serviceDst == Wildcard {
 		return fmt.Errorf("default policy cannot be deleted")
 	}
 
@@ -138,7 +138,7 @@ func (lB *LoadBalancer) DeletePolicy(lbPolicy *LBPolicy) error {
 		return fmt.Errorf("failed to delete a non-existing load-balancing policy")
 	}
 
-	if serviceDst != event.Wildcard && serviceSrc != event.Wildcard {
+	if serviceDst != Wildcard && serviceSrc != Wildcard {
 		// ServiceStateMap apply only we set policy for specific serviceSrc and serviceDst
 		delete(lB.ServiceStateMap[serviceDst], serviceSrc)
 	}
@@ -157,8 +157,8 @@ func (lB *LoadBalancer) updateState(serviceSrc, serviceDst string) {
 	if _, ok := lB.ServiceStateMap[serviceDst][serviceSrc]; ok {
 		lB.ServiceStateMap[serviceDst][serviceSrc].totalConnections++
 	}
-	if _, ok := lB.ServiceStateMap[serviceDst][event.Wildcard]; ok {
-		lB.ServiceStateMap[serviceDst][event.Wildcard].totalConnections++ // may not exist if dst is not imported yet
+	if _, ok := lB.ServiceStateMap[serviceDst][Wildcard]; ok {
+		lB.ServiceStateMap[serviceDst][Wildcard].totalConnections++ // may not exist if dst is not imported yet
 	}
 }
 
@@ -171,7 +171,7 @@ func (lB *LoadBalancer) LookupRandom(service string, peers []string) (string, er
 }
 
 func (lB *LoadBalancer) LookupECMP(service string, peers []string) (string, error) {
-	index := lB.ServiceStateMap[service][event.Wildcard].totalConnections % len(peers)
+	index := lB.ServiceStateMap[service][Wildcard].totalConnections % len(peers)
 	plog.Infof("LoadBalancer selects index(%d) - target peer %s", index, peers[index])
 	return peers[index], nil
 }
@@ -217,12 +217,12 @@ func (lB *LoadBalancer) LookupWith(serviceSrc, serviceDst string, peers []string
 func (lB *LoadBalancer) getScheme(serviceSrc, serviceDst string) LBScheme {
 	if p, ok := lB.Scheme[serviceDst][serviceSrc]; ok {
 		return p
-	} else if p, ok := lB.Scheme[event.Wildcard][serviceSrc]; ok {
+	} else if p, ok := lB.Scheme[Wildcard][serviceSrc]; ok {
 		return p
-	} else if p, ok := lB.Scheme[serviceDst][event.Wildcard]; ok {
+	} else if p, ok := lB.Scheme[serviceDst][Wildcard]; ok {
 		return p
 	} else {
-		return lB.Scheme[event.Wildcard][event.Wildcard]
+		return lB.Scheme[Wildcard][Wildcard]
 	}
 }
 
@@ -231,7 +231,7 @@ func (lB *LoadBalancer) getDefaultPeer(serviceSrc, serviceDst string) string {
 		if _, ok := lB.ServiceStateMap[serviceDst][serviceSrc]; ok {
 			return lB.ServiceStateMap[serviceDst][serviceSrc].defaultPeer
 		}
-		return lB.ServiceStateMap[serviceDst][event.Wildcard].defaultPeer
+		return lB.ServiceStateMap[serviceDst][Wildcard].defaultPeer
 	}
 	plog.Errorf("Lookup policy for destination service (%s) that doesn't exist", serviceDst)
 	return ""

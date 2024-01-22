@@ -40,8 +40,6 @@ const (
 	PeerDenied
 )
 
-const Wildcard = "*"
-
 const (
 	ConnectionStatus = "ConnectionStatus"
 )

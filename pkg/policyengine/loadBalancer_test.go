@@ -18,7 +18,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 )
 
@@ -196,7 +195,7 @@ func TestPoliciesWithWildcards(t *testing.T) {
 	require.Nil(t, err)
 
 	policy := policyengine.LBPolicy{
-		ServiceSrc: event.Wildcard,
+		ServiceSrc: policyengine.Wildcard,
 		ServiceDst: svc1, Scheme: policyengine.Static,
 		DefaultPeer: peer1,
 	}
@@ -211,11 +210,11 @@ func TestPoliciesWithWildcards(t *testing.T) {
 	require.Len(t, peers, 1)
 	require.Equal(t, true, peers[peer1])
 
-	peers = repeatLookups(t, lb, event.Wildcard, svc1, svc1Peers)
+	peers = repeatLookups(t, lb, policyengine.Wildcard, svc1, svc1Peers)
 	require.Len(t, peers, 1)
 	require.Equal(t, true, peers[peer1])
 
-	peers = repeatLookups(t, lb, svc2, event.Wildcard, svc1Peers)
+	peers = repeatLookups(t, lb, svc2, policyengine.Wildcard, svc1Peers)
 	require.Len(t, peers, 2)
 	require.Equal(t, true, peers[peer1])
 	require.Equal(t, true, peers[peer2])
@@ -225,7 +224,7 @@ func TestPoliciesWithWildcards(t *testing.T) {
 
 	policy = policyengine.LBPolicy{
 		ServiceSrc:  svc1,
-		ServiceDst:  event.Wildcard,
+		ServiceDst:  policyengine.Wildcard,
 		Scheme:      policyengine.ECMP,
 		DefaultPeer: peer1,
 	}
@@ -241,12 +240,12 @@ func TestPoliciesWithWildcards(t *testing.T) {
 	require.Equal(t, true, peers[peer1])
 	require.Equal(t, true, peers[peer2])
 
-	peers = repeatLookups(t, lb, svc1, event.Wildcard, svc1Peers)
+	peers = repeatLookups(t, lb, svc1, policyengine.Wildcard, svc1Peers)
 	require.Len(t, peers, 2)
 	require.Equal(t, true, peers[peer1])
 	require.Equal(t, true, peers[peer2])
 
-	peers = repeatLookups(t, lb, event.Wildcard, svc1, svc1Peers)
+	peers = repeatLookups(t, lb, policyengine.Wildcard, svc1, svc1Peers)
 	require.Len(t, peers, 2)
 	require.Equal(t, true, peers[peer1])
 	require.Equal(t, true, peers[peer2])
@@ -258,11 +257,11 @@ func TestLookupBeforeImport(t *testing.T) {
 	require.Nil(t, err)
 	require.NotEmpty(t, targetPeer)
 
-	targetPeer, err = lb.LookupWith(svc1, event.Wildcard, []string{peer1, peer2})
+	targetPeer, err = lb.LookupWith(svc1, policyengine.Wildcard, []string{peer1, peer2})
 	require.Nil(t, err)
 	require.NotEmpty(t, targetPeer)
 
-	targetPeer, err = lb.LookupWith(event.Wildcard, svc1, []string{peer1, peer2})
+	targetPeer, err = lb.LookupWith(policyengine.Wildcard, svc1, []string{peer1, peer2})
 	require.Nil(t, err)
 	require.NotEmpty(t, targetPeer)
 }
@@ -270,15 +269,15 @@ func TestLookupBeforeImport(t *testing.T) {
 func TestAddPolicyBeforeImport(t *testing.T) {
 	lb := policyengine.NewLoadBalancer()
 
-	policy := policyengine.LBPolicy{ServiceSrc: event.Wildcard, ServiceDst: event.Wildcard, Scheme: policyengine.ECMP}
+	policy := policyengine.LBPolicy{ServiceSrc: policyengine.Wildcard, ServiceDst: policyengine.Wildcard, Scheme: policyengine.ECMP}
 	err := lb.SetPolicy(&policy)
 	require.Nil(t, err)
 
-	policy = policyengine.LBPolicy{ServiceSrc: svc1, ServiceDst: event.Wildcard, Scheme: policyengine.ECMP}
+	policy = policyengine.LBPolicy{ServiceSrc: svc1, ServiceDst: policyengine.Wildcard, Scheme: policyengine.ECMP}
 	err = lb.SetPolicy(&policy)
 	require.Nil(t, err)
 
-	policy = policyengine.LBPolicy{ServiceSrc: event.Wildcard, ServiceDst: svc2, Scheme: policyengine.ECMP}
+	policy = policyengine.LBPolicy{ServiceSrc: policyengine.Wildcard, ServiceDst: svc2, Scheme: policyengine.ECMP}
 	err = lb.SetPolicy(&policy)
 	require.Nil(t, err)
 
@@ -289,7 +288,7 @@ func TestAddPolicyBeforeImport(t *testing.T) {
 
 func TestDeletingDefaultPolicy(t *testing.T) {
 	lb := policyengine.NewLoadBalancer()
-	policy := policyengine.LBPolicy{ServiceSrc: event.Wildcard, ServiceDst: event.Wildcard, Scheme: policyengine.ECMP}
+	policy := policyengine.LBPolicy{ServiceSrc: policyengine.Wildcard, ServiceDst: policyengine.Wildcard, Scheme: policyengine.ECMP}
 	err := lb.DeletePolicy(&policy)
 	require.NotNil(t, err)
 }
