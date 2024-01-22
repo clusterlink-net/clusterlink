@@ -35,6 +35,7 @@ const (
 
 var plog = logrus.WithField("component", "PolicyEngine")
 
+// PolicyDecider is an interface for entities that make policy-based decisions on various ClusterLink operations.
 type PolicyDecider interface {
 	AddLBPolicy(policy *api.Policy) error
 	DeleteLBPolicy(policy *api.Policy) error
@@ -54,6 +55,7 @@ type PolicyDecider interface {
 	DeleteExport(name string)
 }
 
+// PolicyHandler implements PolicyDecider using Connectivity Policies and Load-Balancing Policies.
 type PolicyHandler struct {
 	loadBalancer    *LoadBalancer
 	connectivityPDP *connectivitypdp.PDP

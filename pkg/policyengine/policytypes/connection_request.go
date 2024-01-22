@@ -13,6 +13,7 @@
 
 package policytypes
 
+// Direction indicates whether a given request is for an incoming or an outgoing connection.
 type Direction int
 
 const (
@@ -20,6 +21,7 @@ const (
 	Outgoing
 )
 
+// ConnectionRequest encapsulates all the information needed to decide on a given incoming/outgoing connection.
 type ConnectionRequest struct {
 	SrcPeer string
 	DstPeer string // ignored on an outgoing connection request
@@ -30,6 +32,7 @@ type ConnectionRequest struct {
 	Direction Direction
 }
 
+// ConnectionResponse encapsulates the returned decision on a given incoming incoming/outgoing connection.
 type ConnectionResponse struct {
 	Action  PolicyAction
 	DstPeer string
