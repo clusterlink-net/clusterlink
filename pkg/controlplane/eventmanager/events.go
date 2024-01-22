@@ -22,10 +22,6 @@ const (
 	Outgoing
 )
 
-func (d Direction) String() string {
-	return [...]string{"Incoming", "Outgoing"}[d]
-}
-
 type Action int
 
 const (
@@ -44,20 +40,10 @@ const (
 	PeerDenied
 )
 
-func (a Action) String() string {
-	return [...]string{"Allow", "Deny", "AllowAll", "AllowPartial"}[a]
-}
-
 const Wildcard = "*"
 
 const (
-	NewConnectionRequest = "NewConnectionRequest"
-	ConnectionStatus     = "ConnectionStatus"
-	AddPeerRequest       = "AddPeerRequest"
-	NewRemoteService     = "NewRemoteService"
-	ExposeRequest        = "ExposeRequest"
-	RemovePeerRequest    = "RemovePeerRequest"
-	RemoveRemoteService  = "RemoveRemoteService"
+	ConnectionStatus = "ConnectionStatus"
 )
 
 type ConnectionRequestAttr struct {
@@ -86,54 +72,7 @@ type ConnectionStatusAttr struct {
 	State           ConnectionState
 }
 
-type NewRemoteServiceAttr struct {
-	Service string
-	Peer    string
-}
-
-type RemoveRemoteServiceAttr struct {
-	Service string
-	Peer    string
-}
-
-type NewRemoteServiceResp struct {
-	Action Action
-}
-
-type ExposeRequestAttr struct {
-	Service string
-}
-
 type ExposeRequestResp struct {
 	Action      Action
 	TargetPeers []string
-}
-
-type AddPeerAttr struct {
-	Peer string
-}
-
-type AddPeerResp struct {
-	Action Action
-}
-
-type RemovePeerAttr struct {
-	Peer string
-}
-
-type ServiceListRequestAttr struct {
-	SrcPeer string
-}
-
-type ServiceListRequestResp struct {
-	Action   Action
-	Services []string
-}
-
-type ServiceRequestAttr struct {
-	SrcPeer string
-}
-
-type ServiceRequestResp struct {
-	Action Action
 }
