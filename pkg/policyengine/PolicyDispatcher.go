@@ -30,14 +30,6 @@ const (
 	LbType     = "lb"     // Type for load-balancing policies
 	AccessType = "access" // Type for access policies
 
-	PolicyRoute = "/policy"        // Parent route for all kinds of policies
-	LbRoute     = "/" + LbType     // Route for managing LoadBalancer policies
-	AccessRoute = "/" + AccessType // Route for managing Access policies (Connectivity policies)
-
-	GetRoute = "/"       // Route for getting a list of active policies
-	AddRoute = "/add"    // Route for adding policies
-	DelRoute = "/delete" // Route for deleting policies
-
 	ServiceNameLabel = "clusterlink/metadata.serviceName"
 	GatewayNameLabel = "clusterlink/metadata.gatewayName"
 )
