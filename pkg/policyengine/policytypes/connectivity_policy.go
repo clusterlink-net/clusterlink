@@ -37,17 +37,17 @@ type ConnectivityPolicy struct {
 type PolicyAction string
 
 const (
-	PolicyActionAllow PolicyAction = "allow"
-	PolicyActionDeny  PolicyAction = "deny"
+	ActionAllow PolicyAction = "allow"
+	ActionDeny  PolicyAction = "deny"
 )
 
 // PolicyDecision represents a ConnectivityPolicy decision on a given connection.
 type PolicyDecision int
 
 const (
-	PolicyDecisionUndecided PolicyDecision = iota
-	PolicyDecisionAllow
-	PolicyDecisionDeny
+	DecisionUndecided PolicyDecision = iota
+	DecisionAllow
+	DecisionDeny
 )
 
 // WorkloadSetOrSelectorList is a collection of WorkloadSetOrSelector objects.
@@ -65,7 +65,7 @@ type WorkloadAttrs map[string]string
 
 // Validate returns an error if the given ConnectivityPolicy is invalid. Otherwise, returns nil.
 func (cps *ConnectivityPolicy) Validate() error {
-	if cps.Action != PolicyActionAllow && cps.Action != PolicyActionDeny {
+	if cps.Action != ActionAllow && cps.Action != ActionDeny {
 		return fmt.Errorf("unsupported policy actions %s", cps.Action)
 	}
 	if len(cps.From) == 0 {
@@ -108,15 +108,15 @@ func (wss *WorkloadSetOrSelector) validate() error {
 func (cps *ConnectivityPolicy) Decide(src, dest WorkloadAttrs) (PolicyDecision, error) {
 	matches, err := cps.Matches(src, dest)
 	if err != nil {
-		return PolicyDecisionDeny, err
+		return DecisionDeny, err
 	}
 	if matches {
-		if cps.Action == PolicyActionAllow {
-			return PolicyDecisionAllow, nil
+		if cps.Action == ActionAllow {
+			return DecisionAllow, nil
 		}
-		return PolicyDecisionDeny, nil
+		return DecisionDeny, nil
 	}
-	return PolicyDecisionUndecided, nil
+	return DecisionUndecided, nil
 }
 
 // Matches checks if a connection from a source with given labels to a destination with given labels,

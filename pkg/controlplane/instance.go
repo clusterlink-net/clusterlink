@@ -371,7 +371,7 @@ func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 	if err != nil {
 		return err
 	}
-	if action != policytypes.PolicyActionAllow {
+	if action != policytypes.ActionAllow {
 		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
 		return nil
 	}
@@ -393,7 +393,7 @@ func (cp *Instance) UpdateBinding(binding *cpstore.Binding) error {
 	if err != nil {
 		return err
 	}
-	if action != policytypes.PolicyActionAllow {
+	if action != policytypes.ActionAllow {
 		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
 		return nil
 	}

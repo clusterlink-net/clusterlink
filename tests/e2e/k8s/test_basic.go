@@ -434,7 +434,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 
 		//  update access policy
 		policy2 := *util.PolicyAllowAll
-		policy2.Action = policytypes.PolicyActionDeny
+		policy2.Action = policytypes.ActionDeny
 		data, err = json.Marshal(&policy2)
 		require.Nil(s.T(), err)
 		oldPolicyBlob := policy.Spec.Blob

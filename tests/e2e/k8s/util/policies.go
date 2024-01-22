@@ -21,7 +21,7 @@ import (
 
 var PolicyAllowAll = &policytypes.ConnectivityPolicy{
 	Name:   "allow-all",
-	Action: policytypes.PolicyActionAllow,
+	Action: policytypes.ActionAllow,
 	From: policytypes.WorkloadSetOrSelectorList{{
 		WorkloadSelector: &metav1.LabelSelector{},
 	}},

@@ -93,7 +93,7 @@ func (cp *Instance) AuthorizeEgress(req *EgressAuthorizationRequest) (*EgressAut
 		return nil, err
 	}
 
-	if authResp.Action != policytypes.PolicyActionAllow {
+	if authResp.Action != policytypes.ActionAllow {
 		return &EgressAuthorizationResponse{Allowed: false}, nil
 	}
 
@@ -151,7 +151,7 @@ func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest, peer stri
 	if err != nil {
 		return nil, err
 	}
-	if authResp.Action != policytypes.PolicyActionAllow {
+	if authResp.Action != policytypes.ActionAllow {
 		resp.Allowed = false
 		return resp, nil
 	}

@@ -122,8 +122,8 @@ func (pdp *PDP) Decide(src policytypes.WorkloadAttrs, dests []policytypes.Worklo
 func denyUndecidedDestinations(dest []DestinationDecision) {
 	for i := range dest {
 		dd := &dest[i]
-		if dd.Decision == policytypes.PolicyDecisionUndecided {
-			dd.Decision = policytypes.PolicyDecisionDeny
+		if dd.Decision == policytypes.DecisionUndecided {
+			dd.Decision = policytypes.DecisionDeny
 			dd.MatchedBy = DefaultDenyPolicyName
 			dd.PrivilegedMatch = false
 		}
@@ -148,7 +148,7 @@ func (pt *policyTier) addPolicy(policy *policytypes.ConnectivityPolicy) {
 	defer pt.lock.Unlock()
 	//nolint:errcheck // ignore return value as we just want to make sure non exists
 	_ = pt.unsafeDeletePolicy(policy.Name) // delete an existing policy with the same name, if it exists
-	if policy.Action == policytypes.PolicyActionDeny {
+	if policy.Action == policytypes.ActionDeny {
 		pt.denyPolicies[policy.Name] = policy
 	} else {
 		pt.allowPolicies[policy.Name] = policy
@@ -221,12 +221,12 @@ func (cpm connPolicyMap) decide(src policytypes.WorkloadAttrs, dests []Destinati
 		allDecided = true // assume all destinations were decided, unless we find a destination which is not
 		for i := range dests {
 			dest := &dests[i]
-			if dest.Decision == policytypes.PolicyDecisionUndecided {
+			if dest.Decision == policytypes.DecisionUndecided {
 				decision, err := policy.Decide(src, dest.Destination)
 				if err != nil {
 					return false, err
 				}
-				if decision == policytypes.PolicyDecisionUndecided {
+				if decision == policytypes.DecisionUndecided {
 					allDecided = false // policy didn't match dest - not all dests are decided
 				} else { // policy matched - we now have a decision for dest
 					dest.Decision = decision

@@ -101,12 +101,12 @@ func (pH *PolicyHandler) decideIncomingConnection(req *policytypes.ConnectionReq
 	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, []policytypes.WorkloadAttrs{dest})
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
-		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, err
+		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, err
 	}
-	if decisions[0].Decision == policytypes.PolicyDecisionAllow {
-		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionAllow}, nil
+	if decisions[0].Decision == policytypes.DecisionAllow {
+		return policytypes.ConnectionResponse{Action: policytypes.ActionAllow}, nil
 	}
-	return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, nil
+	return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, nil
 }
 
 func (pH *PolicyHandler) decideOutgoingConnection(req *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error) {
@@ -115,7 +115,7 @@ func (pH *PolicyHandler) decideOutgoingConnection(req *policytypes.ConnectionReq
 	if err != nil || len(peerList) == 0 {
 		plog.Errorf("error getting target peers for service %s: %v", req.DstSvcName, err)
 		// this can be caused by a user typo - so only log this error
-		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, nil
+		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, nil
 	}
 
 	peerList = pH.filterOutDisabledPeers(peerList)
@@ -124,29 +124,29 @@ func (pH *PolicyHandler) decideOutgoingConnection(req *policytypes.ConnectionReq
 	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, dsts)
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
-		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, err
+		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, err
 	}
 
 	allowedPeers := []string{}
 	for _, decision := range decisions {
 		dstPeer := decision.Destination[GatewayNameLabel]
-		if decision.Decision == policytypes.PolicyDecisionAllow {
+		if decision.Decision == policytypes.DecisionAllow {
 			allowedPeers = append(allowedPeers, dstPeer)
 		}
 	}
 
 	if len(allowedPeers) == 0 {
 		plog.Infof("access policies deny connections to service %s in all peers", req.DstSvcName)
-		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, nil
+		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, nil
 	}
 
 	// Perform load-balancing using the filtered peer list
 	srcSvcName := req.SrcWorkloadAttrs[ServiceNameLabel]
 	targetPeer, err := pH.loadBalancer.LookupWith(srcSvcName, req.DstSvcName, allowedPeers)
 	if err != nil {
-		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, err
+		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, err
 	}
-	return policytypes.ConnectionResponse{Action: policytypes.PolicyActionAllow, DstPeer: targetPeer}, nil
+	return policytypes.ConnectionResponse{Action: policytypes.ActionAllow, DstPeer: targetPeer}, nil
 }
 
 func (pH *PolicyHandler) AuthorizeAndRouteConnection(req *policytypes.ConnectionRequest) (
@@ -179,7 +179,7 @@ func (pH *PolicyHandler) DeletePeer(name string) {
 
 func (pH *PolicyHandler) AddBinding(binding *api.Binding) (policytypes.PolicyAction, error) {
 	pH.loadBalancer.AddToServiceMap(binding.Spec.Import, binding.Spec.Peer)
-	return policytypes.PolicyActionAllow, nil
+	return policytypes.ActionAllow, nil
 }
 
 func (pH *PolicyHandler) DeleteBinding(binding *api.Binding) {

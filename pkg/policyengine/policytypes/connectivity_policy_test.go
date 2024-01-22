@@ -48,27 +48,27 @@ func TestMatching(t *testing.T) {
 
 func TestDecide(t *testing.T) {
 	trivialConnPol := policytypes.ConnectivityPolicy{
-		Action: policytypes.PolicyActionDeny,
+		Action: policytypes.ActionDeny,
 		From:   []policytypes.WorkloadSetOrSelector{trivialWorkloadSet},
 	}
 	decision, err := trivialConnPol.Decide(trivialLabel, trivialLabel)
 	require.Nil(t, err)
-	require.Equal(t, policytypes.PolicyDecisionUndecided, decision) // no match -> no decision
+	require.Equal(t, policytypes.DecisionUndecided, decision) // no match -> no decision
 
 	trivialConnPol.To = []policytypes.WorkloadSetOrSelector{trivialWorkloadSet}
 	decision, err = trivialConnPol.Decide(trivialLabel, trivialLabel)
 	require.Nil(t, err)
-	require.Equal(t, policytypes.PolicyDecisionDeny, decision) // match -> policy says deny
+	require.Equal(t, policytypes.DecisionDeny, decision) // match -> policy says deny
 
-	trivialConnPol.Action = policytypes.PolicyActionAllow
+	trivialConnPol.Action = policytypes.ActionAllow
 	decision, err = trivialConnPol.Decide(trivialLabel, trivialLabel)
 	require.Nil(t, err)
-	require.Equal(t, policytypes.PolicyDecisionAllow, decision) // match -> policy says allow
+	require.Equal(t, policytypes.DecisionAllow, decision) // match -> policy says allow
 }
 
 func TestMarshall(t *testing.T) {
 	trivialConnPol := policytypes.ConnectivityPolicy{
-		Action: policytypes.PolicyActionAllow,
+		Action: policytypes.ActionAllow,
 		From:   []policytypes.WorkloadSetOrSelector{trivialWorkloadSet},
 		To:     []policytypes.WorkloadSetOrSelector{trivialWorkloadSet},
 	}
@@ -99,7 +99,7 @@ func TestBadSelector(t *testing.T) {
 	badSelector := metav1.LabelSelector{MatchLabels: badLabel}
 	badWorkloadSet := policytypes.WorkloadSetOrSelector{WorkloadSelector: &badSelector}
 	badPolicy := policytypes.ConnectivityPolicy{
-		Action: policytypes.PolicyActionDeny,
+		Action: policytypes.ActionDeny,
 		From:   []policytypes.WorkloadSetOrSelector{badWorkloadSet},
 		To:     []policytypes.WorkloadSetOrSelector{badWorkloadSet},
 	}
@@ -109,7 +109,7 @@ func TestBadSelector(t *testing.T) {
 	require.NotNil(t, err)
 
 	anotherBadPolicy := policytypes.ConnectivityPolicy{
-		Action: policytypes.PolicyActionDeny,
+		Action: policytypes.ActionDeny,
 		From:   []policytypes.WorkloadSetOrSelector{trivialWorkloadSet},
 		To:     []policytypes.WorkloadSetOrSelector{badWorkloadSet},
 	}
@@ -127,7 +127,7 @@ func TestBadSelector(t *testing.T) {
 
 	notYetSupportedSelector := policytypes.WorkloadSetOrSelector{WorkloadSets: []string{"a-set"}}
 	notYetSupportedPolicy := policytypes.ConnectivityPolicy{
-		Action: policytypes.PolicyActionDeny,
+		Action: policytypes.ActionDeny,
 		From:   []policytypes.WorkloadSetOrSelector{trivialWorkloadSet},
 		To:     []policytypes.WorkloadSetOrSelector{notYetSupportedSelector},
 	}
