@@ -21,7 +21,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
-	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
@@ -43,12 +42,12 @@ type PolicyDecider interface {
 	AddAccessPolicy(policy *api.Policy) error
 	DeleteAccessPolicy(policy *api.Policy) error
 
-	AuthorizeAndRouteConnection(connReq *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error)
+	AuthorizeAndRouteConnection(connReq *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error)
 
 	AddPeer(name string)
 	DeletePeer(name string)
 
-	AddBinding(imp *api.Binding) (event.Action, error)
+	AddBinding(imp *api.Binding) (policytypes.PolicyAction, error)
 	DeleteBinding(imp *api.Binding)
 
 	AddExport(exp *api.Export) ([]string, error) // Returns a list of peers to which export is allowed
@@ -95,37 +94,35 @@ func (pH *PolicyHandler) filterOutDisabledPeers(peers []string) []string {
 	return res
 }
 
-func (pH *PolicyHandler) decideIncomingConnection(requestAttr *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {
-	src := getServiceAttrs(requestAttr.SrcService, requestAttr.OtherPeer)
-	dest := getServiceAttrs(requestAttr.DstService, "")
-	decisions, err := pH.connectivityPDP.Decide(src, []policytypes.WorkloadAttrs{dest})
+func (pH *PolicyHandler) decideIncomingConnection(requestAttr *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error) {
+	dest := getServiceAttrs(requestAttr.DstSvcName, "")
+	decisions, err := pH.connectivityPDP.Decide(requestAttr.SrcWorkloadAttrs, []policytypes.WorkloadAttrs{dest})
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
-		return event.ConnectionRequestResp{Action: event.Deny}, err
+		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, err
 	}
 	if decisions[0].Decision == policytypes.PolicyDecisionAllow {
-		return event.ConnectionRequestResp{Action: event.Allow}, nil
+		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionAllow}, nil
 	}
-	return event.ConnectionRequestResp{Action: event.Deny}, nil
+	return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, nil
 }
 
-func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {
+func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error) {
 	// Get a list of peers for the service
-	peerList, err := pH.loadBalancer.GetTargetPeers(requestAttr.DstService)
+	peerList, err := pH.loadBalancer.GetTargetPeers(requestAttr.DstSvcName)
 	if err != nil || len(peerList) == 0 {
-		plog.Errorf("error getting target peers for service %s: %v", requestAttr.DstService, err)
+		plog.Errorf("error getting target peers for service %s: %v", requestAttr.DstSvcName, err)
 		// this can be caused by a user typo - so only log this error
-		return event.ConnectionRequestResp{Action: event.Deny}, nil
+		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, nil
 	}
 
 	peerList = pH.filterOutDisabledPeers(peerList)
 
-	src := getServiceAttrs(requestAttr.SrcService, "")
-	dsts := getServiceAttrsForMultiplePeers(requestAttr.DstService, peerList)
-	decisions, err := pH.connectivityPDP.Decide(src, dsts)
+	dsts := getServiceAttrsForMultiplePeers(requestAttr.DstSvcName, peerList)
+	decisions, err := pH.connectivityPDP.Decide(requestAttr.SrcWorkloadAttrs, dsts)
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
-		return event.ConnectionRequestResp{Action: event.Deny}, err
+		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, err
 	}
 
 	allowedPeers := []string{}
@@ -137,26 +134,27 @@ func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionR
 	}
 
 	if len(allowedPeers) == 0 {
-		plog.Infof("access policies deny connections to service %s in all peers", requestAttr.DstService)
-		return event.ConnectionRequestResp{Action: event.Deny}, nil
+		plog.Infof("access policies deny connections to service %s in all peers", requestAttr.DstSvcName)
+		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, nil
 	}
 
 	// Perform load-balancing using the filtered peer list
-	targetPeer, err := pH.loadBalancer.LookupWith(requestAttr.SrcService, requestAttr.DstService, allowedPeers)
+	srcSvcName := requestAttr.SrcWorkloadAttrs[ServiceNameLabel]
+	targetPeer, err := pH.loadBalancer.LookupWith(srcSvcName, requestAttr.DstSvcName, allowedPeers)
 	if err != nil {
-		return event.ConnectionRequestResp{Action: event.Deny}, err
+		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, err
 	}
-	return event.ConnectionRequestResp{Action: event.Allow, TargetPeer: targetPeer}, nil
+	return policytypes.ConnectionResponse{Action: policytypes.PolicyActionAllow, DstPeer: targetPeer}, nil
 }
 
-func (pH *PolicyHandler) AuthorizeAndRouteConnection(connReq *event.ConnectionRequestAttr) (event.ConnectionRequestResp, error) {
+func (pH *PolicyHandler) AuthorizeAndRouteConnection(connReq *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error) {
 	plog.Infof("New connection request : %+v", connReq)
 
-	var resp event.ConnectionRequestResp
+	var resp policytypes.ConnectionResponse
 	var err error
-	if connReq.Direction == event.Incoming {
+	if connReq.Direction == policytypes.Incoming {
 		resp, err = pH.decideIncomingConnection(connReq)
-	} else if connReq.Direction == event.Outgoing {
+	} else if connReq.Direction == policytypes.Outgoing {
 		resp, err = pH.decideOutgoingConnection(connReq)
 	}
 
@@ -174,9 +172,9 @@ func (pH *PolicyHandler) DeletePeer(name string) {
 	plog.Infof("Removed Peer %s", name)
 }
 
-func (pH *PolicyHandler) AddBinding(binding *api.Binding) (event.Action, error) {
+func (pH *PolicyHandler) AddBinding(binding *api.Binding) (policytypes.PolicyAction, error) {
 	pH.loadBalancer.AddToServiceMap(binding.Spec.Import, binding.Spec.Peer)
-	return event.Allow, nil
+	return policytypes.PolicyActionAllow, nil
 }
 
 func (pH *PolicyHandler) DeleteBinding(binding *api.Binding) {

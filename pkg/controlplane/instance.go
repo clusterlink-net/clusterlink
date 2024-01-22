@@ -24,10 +24,10 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
-	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	cpstore "github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 	"github.com/clusterlink-net/clusterlink/pkg/platform"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/pkg/store"
 	"github.com/clusterlink-net/clusterlink/pkg/util"
 	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
@@ -377,7 +377,7 @@ func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 	if err != nil {
 		return err
 	}
-	if action != event.Allow {
+	if action != policytypes.PolicyActionAllow {
 		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
 		return nil
 	}
@@ -399,7 +399,7 @@ func (cp *Instance) UpdateBinding(binding *cpstore.Binding) error {
 	if err != nil {
 		return err
 	}
-	if action != event.Allow {
+	if action != policytypes.PolicyActionAllow {
 		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
 		return nil
 	}

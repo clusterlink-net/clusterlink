@@ -21,7 +21,8 @@ import (
 	"github.com/lestrrat-go/jwx/jwt"
 
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
 
 const (
@@ -80,11 +81,11 @@ func (cp *Instance) AuthorizeEgress(req *EgressAuthorizationRequest) (*EgressAut
 		return nil, fmt.Errorf("no bindings found for import '%s'", req.Import)
 	}
 
-	connReq := eventmanager.ConnectionRequestAttr{DstService: req.Import, Direction: eventmanager.Outgoing}
+	connReq := policytypes.ConnectionRequest{DstSvcName: req.Import, Direction: policytypes.Outgoing}
 	srcLabels := cp.platform.GetLabelsFromIP(req.IP)
 	if src, ok := srcLabels["app"]; ok { // TODO: Add support for labels other than just the "app" key.
 		cp.logger.Infof("Received egress authorization srcLabels[app]: %v.", srcLabels["app"])
-		connReq.SrcService = src
+		connReq.SrcWorkloadAttrs = policytypes.WorkloadAttrs{policyengine.ServiceNameLabel: src}
 	}
 
 	authResp, err := cp.policyDecider.AuthorizeAndRouteConnection(&connReq)
@@ -92,11 +93,11 @@ func (cp *Instance) AuthorizeEgress(req *EgressAuthorizationRequest) (*EgressAut
 		return nil, err
 	}
 
-	if authResp.Action != eventmanager.Allow {
+	if authResp.Action != policytypes.PolicyActionAllow {
 		return &EgressAuthorizationResponse{Allowed: false}, nil
 	}
 
-	target := authResp.TargetPeer
+	target := authResp.DstPeer
 	peer := cp.GetPeer(target)
 	if peer == nil {
 		return nil, fmt.Errorf("peer '%s' does not exist", target)
@@ -141,16 +142,16 @@ func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest, peer stri
 
 	resp.ServiceExists = true
 
-	connReq := eventmanager.ConnectionRequestAttr{
-		DstService: req.Service,
-		Direction:  eventmanager.Incoming,
-		OtherPeer:  peer,
+	connReq := policytypes.ConnectionRequest{
+		DstSvcName: req.Service,
+		Direction:  policytypes.Incoming,
+		SrcPeer:    peer,
 	}
 	authResp, err := cp.policyDecider.AuthorizeAndRouteConnection(&connReq)
 	if err != nil {
 		return nil, err
 	}
-	if authResp.Action != eventmanager.Allow {
+	if authResp.Action != policytypes.PolicyActionAllow {
 		resp.Allowed = false
 		return resp, nil
 	}

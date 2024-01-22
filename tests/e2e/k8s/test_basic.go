@@ -21,7 +21,6 @@ import (
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
@@ -329,7 +328,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 
 		// test LB policy API
 		staticPolicy := &policyengine.LBPolicy{
-			ServiceSrc:  eventmanager.Wildcard,
+			ServiceSrc:  policyengine.Wildcard,
 			ServiceDst:  imp.Name,
 			Scheme:      policyengine.Static,
 			DefaultPeer: cl[1].Name(),

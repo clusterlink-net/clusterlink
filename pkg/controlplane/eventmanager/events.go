@@ -22,13 +22,6 @@ const (
 	Outgoing
 )
 
-type Action int
-
-const (
-	Allow Action = iota
-	Deny
-)
-
 type ConnectionState int
 
 const (
@@ -41,19 +34,6 @@ const (
 const (
 	ConnectionStatus = "ConnectionStatus"
 )
-
-type ConnectionRequestAttr struct {
-	SrcService string
-	DstService string
-	Direction  Direction
-	OtherPeer  string // Optional: Would not be set if its an outgoing connection
-}
-
-type ConnectionRequestResp struct {
-	Action     Action
-	TargetPeer string
-	BitRate    int // Mbps
-}
 
 type ConnectionStatusAttr struct {
 	ConnectionID    string // Unique ID to track a connection from start to end within the gateway
