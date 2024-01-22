@@ -94,9 +94,9 @@ func (pH *PolicyHandler) filterOutDisabledPeers(peers []string) []string {
 	return res
 }
 
-func (pH *PolicyHandler) decideIncomingConnection(requestAttr *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error) {
-	dest := getServiceAttrs(requestAttr.DstSvcName, "")
-	decisions, err := pH.connectivityPDP.Decide(requestAttr.SrcWorkloadAttrs, []policytypes.WorkloadAttrs{dest})
+func (pH *PolicyHandler) decideIncomingConnection(req *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error) {
+	dest := getServiceAttrs(req.DstSvcName, "")
+	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, []policytypes.WorkloadAttrs{dest})
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
 		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, err
@@ -107,19 +107,19 @@ func (pH *PolicyHandler) decideIncomingConnection(requestAttr *policytypes.Conne
 	return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, nil
 }
 
-func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error) {
+func (pH *PolicyHandler) decideOutgoingConnection(req *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error) {
 	// Get a list of peers for the service
-	peerList, err := pH.loadBalancer.GetTargetPeers(requestAttr.DstSvcName)
+	peerList, err := pH.loadBalancer.GetTargetPeers(req.DstSvcName)
 	if err != nil || len(peerList) == 0 {
-		plog.Errorf("error getting target peers for service %s: %v", requestAttr.DstSvcName, err)
+		plog.Errorf("error getting target peers for service %s: %v", req.DstSvcName, err)
 		// this can be caused by a user typo - so only log this error
 		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, nil
 	}
 
 	peerList = pH.filterOutDisabledPeers(peerList)
 
-	dsts := getServiceAttrsForMultiplePeers(requestAttr.DstSvcName, peerList)
-	decisions, err := pH.connectivityPDP.Decide(requestAttr.SrcWorkloadAttrs, dsts)
+	dsts := getServiceAttrsForMultiplePeers(req.DstSvcName, peerList)
+	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, dsts)
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
 		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, err
@@ -134,28 +134,31 @@ func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *policytypes.Conne
 	}
 
 	if len(allowedPeers) == 0 {
-		plog.Infof("access policies deny connections to service %s in all peers", requestAttr.DstSvcName)
+		plog.Infof("access policies deny connections to service %s in all peers", req.DstSvcName)
 		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, nil
 	}
 
 	// Perform load-balancing using the filtered peer list
-	srcSvcName := requestAttr.SrcWorkloadAttrs[ServiceNameLabel]
-	targetPeer, err := pH.loadBalancer.LookupWith(srcSvcName, requestAttr.DstSvcName, allowedPeers)
+	srcSvcName := req.SrcWorkloadAttrs[ServiceNameLabel]
+	targetPeer, err := pH.loadBalancer.LookupWith(srcSvcName, req.DstSvcName, allowedPeers)
 	if err != nil {
 		return policytypes.ConnectionResponse{Action: policytypes.PolicyActionDeny}, err
 	}
 	return policytypes.ConnectionResponse{Action: policytypes.PolicyActionAllow, DstPeer: targetPeer}, nil
 }
 
-func (pH *PolicyHandler) AuthorizeAndRouteConnection(connReq *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error) {
-	plog.Infof("New connection request : %+v", connReq)
+func (pH *PolicyHandler) AuthorizeAndRouteConnection(req *policytypes.ConnectionRequest) (
+	policytypes.ConnectionResponse,
+	error,
+) {
+	plog.Infof("New connection request : %+v", req)
 
 	var resp policytypes.ConnectionResponse
 	var err error
-	if connReq.Direction == policytypes.Incoming {
-		resp, err = pH.decideIncomingConnection(connReq)
-	} else if connReq.Direction == policytypes.Outgoing {
-		resp, err = pH.decideOutgoingConnection(connReq)
+	if req.Direction == policytypes.Incoming {
+		resp, err = pH.decideIncomingConnection(req)
+	} else if req.Direction == policytypes.Outgoing {
+		resp, err = pH.decideOutgoingConnection(req)
 	}
 
 	plog.Infof("Response : %+v", resp)
