@@ -55,7 +55,7 @@ func (m *xdsManager) AddPeer(peer *store.Peer) error {
 
 	clusterName := cpapi.RemotePeerClusterName(peer.Name)
 	dataplaneSNI := dpapi.DataplaneSNI(peer.Name)
-	c, err := makeEndpointsCluster(clusterName, peer.Gateways, dataplaneSNI)
+	epc, err := makeEndpointsCluster(clusterName, peer.Gateways, dataplaneSNI)
 	if err != nil {
 		return err
 	}
@@ -79,12 +79,12 @@ func (m *xdsManager) AddPeer(peer *store.Peer) error {
 		return err
 	}
 
-	c.TransportSocket = &core.TransportSocket{
+	epc.TransportSocket = &core.TransportSocket{
 		Name:       wellknown.TransportSocketTLS,
 		ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: pb},
 	}
 
-	return m.clusters.UpdateResource(clusterName, c)
+	return m.clusters.UpdateResource(clusterName, epc)
 }
 
 // DeletePeer removes the possibility for egress dataplane connections to be routed to a given peer.
@@ -152,7 +152,7 @@ func (m *xdsManager) AddImport(imp *store.Import) error {
 	}
 
 	// TODO: listen on a more specific address (i.e. not 0.0.0.0)
-	l := &listener.Listener{
+	ln := &listener.Listener{
 		Name: listenerName,
 		Address: &core.Address{
 			Address: &core.Address_SocketAddress{
@@ -169,7 +169,7 @@ func (m *xdsManager) AddImport(imp *store.Import) error {
 		}},
 	}
 
-	return m.listeners.UpdateResource(listenerName, l)
+	return m.listeners.UpdateResource(listenerName, ln)
 }
 
 // DeleteImport removes the listening socket of a previously imported service.
@@ -212,7 +212,7 @@ func makeEndpointsCluster(name string, endpoints []api.Endpoint, hostname string
 		return nil, err
 	}
 
-	c := &cluster.Cluster{
+	cc := &cluster.Cluster{
 		Name:           name,
 		ConnectTimeout: durationpb.New(time.Second),
 		DnsRefreshRate: durationpb.New(time.Second),
@@ -231,7 +231,7 @@ func makeEndpointsCluster(name string, endpoints []api.Endpoint, hostname string
 		},
 	}
 
-	return c, nil
+	return cc, nil
 }
 
 func makeTCPProxyFilter(clusterName, statPrefix string,
