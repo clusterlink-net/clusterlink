@@ -143,9 +143,9 @@ func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest, peer stri
 	resp.ServiceExists = true
 
 	connReq := policytypes.ConnectionRequest{
-		DstSvcName: req.Service,
-		Direction:  policytypes.Incoming,
-		SrcPeer:    peer,
+		DstSvcName:       req.Service,
+		Direction:        policytypes.Incoming,
+		SrcWorkloadAttrs: policytypes.WorkloadAttrs{policyengine.GatewayNameLabel: peer},
 	}
 	authResp, err := cp.policyDecider.AuthorizeAndRouteConnection(&connReq)
 	if err != nil {

@@ -23,9 +23,6 @@ const (
 
 // ConnectionRequest encapsulates all the information needed to decide on a given incoming/outgoing connection.
 type ConnectionRequest struct {
-	SrcPeer string
-	DstPeer string // ignored on an outgoing connection request
-
 	SrcWorkloadAttrs WorkloadAttrs
 	DstSvcName       string
 
