@@ -1,3 +1,5 @@
+SHELL=/bin/bash
+
 IMAGE_VERSION ?= latest
 IMAGE_ORG ?= clusterlink-net
 IMAGE_BASE ?= ghcr.io/$(IMAGE_ORG)
@@ -21,10 +23,10 @@ dist: ; $(info creating dist directory...)
 .PHONY: prereqs prereqs-force
 
 prereqs: ; $(info installing dev tooling...) 
-	@source ./hack/install-devtools.sh
+	@. ./hack/install-devtools.sh
 
 prereqs-force: ; $(info force installing dev tooling...)
-	@source ./hack/install-devtools.sh --force
+	@. ./hack/install-devtools.sh --force
 
 .PHONY: dev-container
 dev-container: dist/.dev-container
