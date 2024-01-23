@@ -181,13 +181,13 @@ func (o *exportGetOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'get export' subcommand.
 func (o *exportGetOptions) run() error {
-	g, err := config.GetClientFromID(o.myID)
+	exportClient, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
 	if o.name == "" {
-		sArr, err := g.Exports.List()
+		sArr, err := exportClient.Exports.List()
 		if err != nil {
 			return err
 		}
@@ -196,7 +196,7 @@ func (o *exportGetOptions) run() error {
 			fmt.Printf("%d. Service Name: %s. Endpoint: %v\n", i+1, s.Name, s.Spec.Service)
 		}
 	} else {
-		s, err := g.Exports.Get(o.name)
+		s, err := exportClient.Exports.Get(o.name)
 		if err != nil {
 			return err
 		}

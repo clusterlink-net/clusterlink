@@ -180,13 +180,13 @@ func (o *importGetOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'get import' subcommand.
 func (o *importGetOptions) run() error {
-	g, err := config.GetClientFromID(o.myID)
+	importClient, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
 	if o.name == "" {
-		sArr, err := g.Imports.List()
+		sArr, err := importClient.Imports.List()
 		if err != nil {
 			return err
 		}
@@ -195,7 +195,7 @@ func (o *importGetOptions) run() error {
 			fmt.Printf("%d. Imported Name: %s. Endpoint %v\n", i+1, s.Name, s.Spec.Service)
 		}
 	} else {
-		imp, err := g.Imports.Get(o.name)
+		imp, err := importClient.Imports.Get(o.name)
 		if err != nil {
 			return err
 		}
