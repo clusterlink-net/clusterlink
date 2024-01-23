@@ -25,18 +25,18 @@ updates:
     schedule:
       interval: "monthly"
   - package-ecosystem: "docker"
-    directory: "/cmd/cl-controlplane"
+    directory: "cmd/cl-controlplane"
     schedule:
       interval: "monthly"
   - package-ecosystem: "docker"
-    directory: "/cmd/cl-go-dataplane"
+    directory: "cmd/cl-go-dataplane"
     schedule:
       interval: "monthly"
   - package-ecosystem: "docker"
-    directory: "/cmd/gwctl"
+    directory: "cmd/gwctl"
     schedule:
       interval: "monthly"
   - package-ecosystem: "docker"
-    directory: "/cmd/cl-dataplane"
+    directory: "cmd/cl-dataplane"
     schedule:
       interval: "monthly"
