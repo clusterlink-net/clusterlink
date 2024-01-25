@@ -26,8 +26,12 @@ const (
 	DockerRunFile = "docker-run.sh"
 	// GWCTLInitFile is the filename of the gwctl-init script.
 	GWCTLInitFile = "gwctl-init.sh"
-	// K8SYamlFile is the filename of the kubernetes deployment yaml file.
-	K8SYamlFile = "k8s.yaml"
+	// K8SYAMLFile is the filename of the kubernetes deployment yaml file.
+	K8SYAMLFile = "k8s.yaml"
+	// K8SSecretYAMLFile is the filename of the kubernetes secrets yaml file.
+	K8SSecretYAMLFile = "cl-secret.yaml" //nolint:gosec // G101(Potential hardcoded credentials): Enable secret usage in filenames.
+	// K8SClusterLinkInstanceYAMLFile is the filename of the ClusterLink instance CRD file that will use by the operator.
+	K8SClusterLinkInstanceYAMLFile = "cl-instance.yaml"
 	// PersistencyDirectoryName is the directory name containing container persisted files.
 	PersistencyDirectoryName = "persist"
 
