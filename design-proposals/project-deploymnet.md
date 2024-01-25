@@ -119,17 +119,25 @@ The ClusterLink CRD includes the following fields:
     | |replicas| Number of dataplane replicas|1|
     |ingress|| ClusterLink ingress component attributes ||
     ||type| Type of service to expose ClusterLink deployment, supported values: "LoadBalancer", "Gateway", "NodePort", "None". |None|
+    ||Port| Port represents the port number of the external service |443 for all types,except for NodePort, where the port number will be allocated by Kubernetes | 
     |logLevel| |Log level severity for all the components (controlplane and dataplane)| "info"|
     |containerRegistry| |The container registry to pull the project images when the images is not present locally | ghcr.io/clusterlink-net|
     |imageTag| |The project images version | latest|
+    |Namespace| | The namespace where the components of the ClusterLink project are deployed | clusterlink-system|
+  .
 
 * **Status:**
 
-    | Field name | Description | Default value |
-    | ----------- | ----------- | ------------- |
-    | controlplane      | Status of the controlplane components controlled by the operator. Supported values: <br> None - if all components have not been created. <br> Ready - if all components are in a ready and running status. <br> Error - If one of the components is in an error status. <br> Update - if one of the components is in an update status. | None |
-    | dataplane      | Status of the dataplane components controlled by the operator. Supported values: <br> None - if all components have not been created. <br> Ready - if all components are in a ready and running status. <br> Error - If one of the components is in an error status. <br> Update - if one of the components is in an update status. | None |
-    | message     | Optional message that provides additional information about the status. | None |
+    | Field name | Subfield name|  Description |
+    | ----------- | ----------- |----------- |
+    | controlplane || Status of the controlplane components controlled by the operator |
+    |  |Conditions|The controlplane will have two status conditions: 1. ```DeploymentReady``` will be set to true when the controlplane deployment is ready, and 2. `ServiceReady` will be set to true when the controlplane service is ready|
+    | datalplane || Status of the dataplane components controlled by the operator |
+    |  |Conditions|The dataplane will have two status conditions: 1. ```DeploymentReady``` will be set to true when the dataplane deployment is ready, and 2. `ServiceReady` will be set to true when the dataplane service is ready|
+    | ingress || Status of the dataplane components controlled by the operator |
+    |  |Conditions|The ingress will have one status conditions: `ServiceReady` will be set to true when the external ingress service is ready|
+    |  |IP| the external ingress service's IP|
+    |  |Port| the external ingress service's Port|
 
 Example to clusterlink CRD:
 ```
