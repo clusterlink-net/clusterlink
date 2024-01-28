@@ -48,9 +48,8 @@ func (d *Dataplane) GetClusterTarget(name string) (string, error) {
 	if _, ok := d.clusters[name]; !ok {
 		return "", fmt.Errorf("unable to find %s in cluster map", name)
 	}
-	address := d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Address.GetSocketAddress().GetAddress()
-	port := d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Address.GetSocketAddress().GetPortValue()
-	return address + ":" + strconv.Itoa(int(port)), nil
+	ep := d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Address.GetSocketAddress()
+	return ep.GetAddress() + ":" + strconv.Itoa(int(ep.GetPortValue())), nil
 }
 
 // GetClusterHost returns the cluster hostname after trimming ":".
@@ -58,29 +57,32 @@ func (d *Dataplane) GetClusterHost(name string) (string, error) {
 	if _, ok := d.clusters[name]; !ok {
 		return "", fmt.Errorf("unable to find %s in cluster map", name)
 	}
-	return strings.Split(d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Hostname, ":")[0], nil
+	return strings.Split(
+		d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Hostname, ":")[0], nil
 }
 
 // AddCluster adds a cluster to the map.
-func (d *Dataplane) AddCluster(cluster *cluster.Cluster) {
-	d.clusters[cluster.Name] = cluster
+func (d *Dataplane) AddCluster(c *cluster.Cluster) {
+	d.clusters[c.Name] = c
 }
 
 // AddListener adds a listener to the map.
-func (d *Dataplane) AddListener(listener *listener.Listener) {
-	listenerName := strings.TrimPrefix(listener.Name, api.ImportListenerPrefix)
+func (d *Dataplane) AddListener(ln *listener.Listener) {
+	listenerName := strings.TrimPrefix(ln.Name, api.ImportListenerPrefix)
 	if _, ok := d.listeners[listenerName]; ok {
 		return
 	}
-	d.listeners[listenerName] = listener
+	d.listeners[listenerName] = ln
 	go func() {
-		d.CreateListener(listenerName, listener.Address.GetSocketAddress().GetAddress(), listener.Address.GetSocketAddress().GetPortValue())
+		d.CreateListener(listenerName,
+			ln.Address.GetSocketAddress().GetAddress(),
+			ln.Address.GetSocketAddress().GetPortValue())
 	}()
 }
 
 // NewDataplane returns a new dataplane HTTP server.
 func NewDataplane(dataplaneID, controlplaneTarget, peerName string, parsedCertData *util.ParsedCertData) *Dataplane {
-	d := &Dataplane{
+	dp := &Dataplane{
 		ID:       dataplaneID,
 		peerName: peerName,
 		router:   chi.NewRouter(),
@@ -98,6 +100,6 @@ func NewDataplane(dataplaneID, controlplaneTarget, peerName string, parsedCertDa
 		logger:             logrus.WithField("component", "dataplane.server.http"),
 	}
 
-	d.addAuthzHandlers()
-	return d
+	dp.addAuthzHandlers()
+	return dp
 }

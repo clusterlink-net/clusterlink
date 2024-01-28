@@ -133,11 +133,9 @@ func (c *client) getHeartbeat() error {
 	var retErr error
 	// copy peer clients array aside
 	peerClients := make([]*jsonapi.Client, len(c.clients))
-	{
-		c.lock.RLock()
-		defer c.lock.RUnlock()
-		copy(peerClients, c.clients)
-	}
+	c.lock.RLock()
+	copy(peerClients, c.clients)
+	c.lock.RUnlock()
 
 	for _, client := range peerClients {
 		serverResp, err := client.Get(api.HeartbeatPath)
@@ -201,7 +199,7 @@ func newClient(peer *store.Peer, tlsConfig *tls.Config) *client {
 	for i, endpoint := range peer.Gateways {
 		clients[i] = jsonapi.NewClient(endpoint.Host, endpoint.Port, tlsConfig)
 	}
-	c := &client{
+	clnt := &client{
 		clients:    clients,
 		active:     false,
 		lastSeen:   time.Time{},
@@ -212,6 +210,6 @@ func newClient(peer *store.Peer, tlsConfig *tls.Config) *client {
 		}),
 	}
 
-	go c.heartbeatMonitor()
-	return c
+	go clnt.heartbeatMonitor()
+	return clnt
 }

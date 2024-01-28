@@ -108,7 +108,7 @@ func peerToAPI(peer *store.Peer) *api.Peer {
 	return &api.Peer{
 		Name:   peer.Name,
 		Spec:   peer.PeerSpec,
-		Status: api.PeerStatus{}, // TODO
+		Status: api.PeerStatus{},
 	}
 }
 
@@ -252,8 +252,7 @@ func importToAPI(imp *store.Import) *api.Import {
 		Name: imp.Name,
 		Spec: imp.ImportSpec,
 		Status: api.ImportStatus{
-			Listener: api.Endpoint{
-				Host: "", // TODO
+			Listener: api.Endpoint{ // Endpoint.Host is not set
 				Port: imp.Port,
 			},
 		},

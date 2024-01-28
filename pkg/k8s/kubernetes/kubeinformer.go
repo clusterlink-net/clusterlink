@@ -132,7 +132,7 @@ func (k *kubeData) GetInfoApp(app string) (*Info, error) {
 }
 
 // Get Ip and key(prefix of label) and return pod label.
-func (k *kubeData) GetLabel(ip string, key string) (string, error) {
+func (k *kubeData) GetLabel(ip, key string) (string, error) {
 	if info, ok := k.fetchInformers(ip); ok {
 		// Owner data might be discovered after the owned, so we fetch it
 		// at the last moment
@@ -164,8 +164,8 @@ func (k *kubeData) GetIPFromLabel(label string) ([]string, error) {
 
 	podIPs := make([]string, 0, len(podList.Items))
 	// We assume that the first matching pod is the correct one
-	for _, p := range podList.Items {
-		podIPs = append(podIPs, p.Status.PodIP)
+	for i := range podList.Items {
+		podIPs = append(podIPs, podList.Items[i].Status.PodIP)
 	}
 
 	log.Infof("The label %v match to pod ips %v\n", label, podIPs)
@@ -195,36 +195,38 @@ func infoForIP(idx cache.Indexer, ip string) (*Info, bool) {
 }
 
 func (k *kubeData) getOwner(info *Info) owner {
-	if len(info.OwnerReferences) != 0 {
-		ownerReference := info.OwnerReferences[0]
-		if ownerReference.Kind != "ReplicaSet" {
-			return owner{
-				Name: ownerReference.Name,
-				Type: ownerReference.Kind,
-			}
-		}
-
-		item, ok, err := k.replicaSets.GetIndexer().GetByKey(info.Namespace + "/" + ownerReference.Name)
-		if err != nil {
-			log.WithError(err).WithField("key", info.Namespace+"/"+ownerReference.Name).
-				Debug("can't get ReplicaSet info from informer. Ignoring")
-		} else if ok {
-			if rsInfo, ok := item.(*metav1.ObjectMeta); ok {
-				if len(rsInfo.OwnerReferences) > 0 {
-					return owner{
-						Name: rsInfo.OwnerReferences[0].Name,
-						Type: rsInfo.OwnerReferences[0].Kind,
-					}
-				}
-			}
-		}
-	}
-
-	// If no owner references found, return itself as owner
-	return owner{
+	self := owner{ // unless we discover otherwise, an object owns itself
 		Name: info.Name,
 		Type: info.Type,
 	}
+
+	if len(info.OwnerReferences) != 0 {
+		return self
+	}
+
+	ownerRef := owner{
+		Name: info.OwnerReferences[0].Name,
+		Type: info.OwnerReferences[0].Kind,
+	}
+
+	if ownerRef.Type != "ReplicaSet" {
+		return ownerRef
+	}
+
+	item, ok, err := k.replicaSets.GetIndexer().GetByKey(info.Namespace + "/" + ownerRef.Name)
+	if err == nil || !ok { // unable to retrieve the ReplicaSet, return what we already have
+		log.WithError(err).WithField("key", info.Namespace+"/"+ownerRef.Name).
+			Debug("can't get ReplicaSet info from informer. Ignoring")
+		return ownerRef
+	}
+
+	if rsInfo, ok := item.(*metav1.ObjectMeta); ok && len(rsInfo.OwnerReferences) > 0 {
+		return owner{ // ReplicaSet created in response to another object
+			Name: rsInfo.OwnerReferences[0].Name,
+			Type: rsInfo.OwnerReferences[0].Kind,
+		}
+	}
+	return ownerRef
 }
 
 func (k *kubeData) initPodInformer(informerFactory informers.SharedInformerFactory) error {
@@ -393,7 +395,7 @@ func (k *kubeData) initInformers(client kubernetes.Interface) error {
 }
 
 // CreateService Add support to create a service/NodePort for a target port.
-func (k *kubeData) CreateService(serviceName string, port int, targetPort int, namespace, svcAppName string) error {
+func (k *kubeData) CreateService(serviceName string, port, targetPort int, namespace, svcAppName string) error {
 	var selectorMap map[string]string
 	if svcAppName != "" {
 		selectorMap = map[string]string{"app": svcAppName}

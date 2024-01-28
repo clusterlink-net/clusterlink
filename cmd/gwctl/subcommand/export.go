@@ -73,7 +73,8 @@ func (o *exportCreateOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "Exported service name")
 	fs.StringVar(&o.host, "host", "", "Exported service endpoint hostname (IP/DNS), if unspecified, uses the service name")
 	fs.Uint16Var(&o.port, "port", 0, "Exported service port")
-	fs.StringVar(&o.external, "external", "", "External endpoint <host>:<port, which the exported service will be connected")
+	fs.StringVar(&o.external, "external", "",
+		"External endpoint <host>:<port, which the exported service will be connected")
 }
 
 // run performs the execution of the 'create export' or 'update export' subcommand.
@@ -180,13 +181,13 @@ func (o *exportGetOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'get export' subcommand.
 func (o *exportGetOptions) run() error {
-	g, err := config.GetClientFromID(o.myID)
+	exportClient, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
 
 	if o.name == "" {
-		sArr, err := g.Exports.List()
+		sArr, err := exportClient.Exports.List()
 		if err != nil {
 			return err
 		}
@@ -195,7 +196,7 @@ func (o *exportGetOptions) run() error {
 			fmt.Printf("%d. Service Name: %s. Endpoint: %v\n", i+1, s.Name, s.Spec.Service)
 		}
 	} else {
-		s, err := g.Exports.Get(o.name)
+		s, err := exportClient.Exports.Get(o.name)
 		if err != nil {
 			return err
 		}

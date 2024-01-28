@@ -34,7 +34,13 @@ const (
 // StartDataplaneServer starts the Dataplane server.
 func (d *Dataplane) StartDataplaneServer(dataplaneServerAddress string) error {
 	d.logger.Infof("Dataplane server starting at %s.", dataplaneServerAddress)
-	server := netutils.CreateResilientHTTPServer(dataplaneServerAddress, d.router, d.parsedCertData.ServerConfig(), nil, nil, nil)
+	server := netutils.CreateResilientHTTPServer(
+		dataplaneServerAddress,
+		d.router,
+		d.parsedCertData.ServerConfig(),
+		nil,
+		nil,
+		nil)
 
 	return server.ListenAndServeTLS("", "")
 }
@@ -169,7 +175,7 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, ap
 		},
 	}
 
-	egressReq, err := http.NewRequest(http.MethodPost, url, nil)
+	egressReq, err := http.NewRequest(http.MethodPost, url, http.NoBody)
 	if err != nil {
 		return err
 	}

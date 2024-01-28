@@ -1,17 +1,17 @@
 <div align="center" style="width: 33.3%; display: flex;">
-    <div style="width: 13%;">&nbsp;</div>"
+    <div style="width: 13%;">&nbsp;</div>
     <div style="width: 74%; text-align: center; background-color: white; border-radius: 20px; padding-left: 10px; padding-right: 10px; padding-top: 30px; padding-bottom: 0px;">
         <div style="height: 60px; background-color: white;">
-            <img src="{{ .Get "icon" }}" style="width: 40px; height: 40px;" />
+            <img src="{{ .Get `icon` }}" style="width: 40px; height: 40px;" />
         </div>
         <h4 class="h3" style="background-color: white;">{{ .Get "title" }}</h4>
         <div style="background-color: white; margin-left: 30px; margin-right: 30px;">
             {{ .Inner }}
             <div style="height: 10px; background-color: white;">&nbsp;</div>
             <p>
-                <a class="btn btn-lg btn-primary mr-3 mb-4" href="{{ .Site.BaseURL }}{{ .Get "url" }}" style="color: white;">Learn More</a>
+                <a class="btn btn-lg btn-light mr-3 mb-4" href="{{ .Site.BaseURL }}{{ .Get `url` }}">Learn More</a>
             </p>
         </div>
     </div>
-    <div style="width: 13%;">&nbsp;</div>"
+    <div style="width: 13%;">&nbsp;</div>
 </div>

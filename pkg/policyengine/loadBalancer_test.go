@@ -175,7 +175,12 @@ func TestDeletingNonExistingPolicy(t *testing.T) {
 	lb := policyengine.NewLoadBalancer()
 	addImports(lb)
 
-	noSuchPolicy := policyengine.LBPolicy{ServiceSrc: svc2, ServiceDst: svc1, Scheme: policyengine.Static, DefaultPeer: peer3}
+	noSuchPolicy := policyengine.LBPolicy{
+		ServiceSrc:  svc2,
+		ServiceDst:  svc1,
+		Scheme:      policyengine.Static,
+		DefaultPeer: peer3,
+	}
 	err := lb.DeletePolicy(&noSuchPolicy)
 	require.NotNil(t, err)
 }
@@ -190,7 +195,11 @@ func TestPoliciesWithWildcards(t *testing.T) {
 	svc3Peers, err := lb.GetTargetPeers(svc3)
 	require.Nil(t, err)
 
-	policy := policyengine.LBPolicy{ServiceSrc: event.Wildcard, ServiceDst: svc1, Scheme: policyengine.Static, DefaultPeer: peer1}
+	policy := policyengine.LBPolicy{
+		ServiceSrc: event.Wildcard,
+		ServiceDst: svc1, Scheme: policyengine.Static,
+		DefaultPeer: peer1,
+	}
 	err = lb.SetPolicy(&policy)
 	require.Nil(t, err)
 
@@ -214,7 +223,12 @@ func TestPoliciesWithWildcards(t *testing.T) {
 	err = lb.DeletePolicy(&policy)
 	require.Nil(t, err)
 
-	policy = policyengine.LBPolicy{ServiceSrc: svc1, ServiceDst: event.Wildcard, Scheme: policyengine.ECMP, DefaultPeer: peer1}
+	policy = policyengine.LBPolicy{
+		ServiceSrc:  svc1,
+		ServiceDst:  event.Wildcard,
+		Scheme:      policyengine.ECMP,
+		DefaultPeer: peer1,
+	}
 	err = lb.SetPolicy(&policy)
 	require.Nil(t, err)
 

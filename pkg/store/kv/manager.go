@@ -26,6 +26,6 @@ func (m *Manager) GetObjectStore(name string, sampleObject any) store.ObjectStor
 }
 
 // NewManager returns a new manager.
-func NewManager(store Store) *Manager {
-	return &Manager{store: store}
+func NewManager(s Store) *Manager {
+	return &Manager{store: s}
 }

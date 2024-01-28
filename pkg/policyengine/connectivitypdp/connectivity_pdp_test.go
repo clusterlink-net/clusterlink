@@ -58,7 +58,7 @@ func TestPrivilegedVsRegular(t *testing.T) {
 	require.Equal(t, connectivitypdp.DefaultDenyPolicyName, decisions[0].MatchedBy)
 	require.Equal(t, false, decisions[0].PrivilegedMatch)
 
-	err = pdp.AddOrUpdatePolicy(trivialConnPol)
+	err = pdp.AddOrUpdatePolicy(&trivialConnPol)
 	require.Nil(t, err)
 	dests = []policytypes.WorkloadAttrs{trivialLabel}
 	decisions, err = pdp.Decide(trivialLabel, dests)
@@ -67,7 +67,7 @@ func TestPrivilegedVsRegular(t *testing.T) {
 	require.Equal(t, "reg", decisions[0].MatchedBy)
 	require.Equal(t, false, decisions[0].PrivilegedMatch)
 
-	err = pdp.AddOrUpdatePolicy(trivialPrivConnPol)
+	err = pdp.AddOrUpdatePolicy(&trivialPrivConnPol)
 	require.Nil(t, err)
 	dests = []policytypes.WorkloadAttrs{trivialLabel}
 	decisions, err = pdp.Decide(trivialLabel, dests)
@@ -79,7 +79,8 @@ func TestPrivilegedVsRegular(t *testing.T) {
 
 // TestAllLayers starts with one policy per layer (allow/deny X privileged/non-privileged)
 // Policies are set s.t., they capture more connections as their priority is lower.
-// We then test connections that should match the policy in a specific layer, but not policies in higher-priority layers.
+// We then test connections that should match the policy in a specific layer,
+// but not policies in higher-priority layers.
 // Finally we delete policies, starting with highest priority and going to lower priority policies.
 // After each deletion we test again a specific connection, which should match all policies.
 func TestAllLayers(t *testing.T) {
@@ -118,7 +119,8 @@ func TestAllLayers(t *testing.T) {
 	dests = []policytypes.WorkloadAttrs{privateMeteringLabel}
 	decisions, err = pdp.Decide(privateLabel, dests)
 	require.Nil(t, err)
-	require.Equal(t, policytypes.PolicyDecisionAllow, decisions[0].Decision) // no privileged deny, so privileged allow matches
+	// no privileged deny, so privileged allow matches
+	require.Equal(t, policytypes.PolicyDecisionAllow, decisions[0].Decision)
 
 	privAllowPolicy := getNameOfFirstPolicyInPDP(pdp, policytypes.PolicyActionAllow, true)
 	require.NotEmpty(t, privAllowPolicy)
@@ -176,7 +178,7 @@ func TestBadSelector(t *testing.T) {
 		To:     []policytypes.WorkloadSetOrSelector{trivialWorkloadSet},
 	}
 	pdp := connectivitypdp.NewPDP()
-	err := pdp.AddOrUpdatePolicy(badSelectorPol)
+	err := pdp.AddOrUpdatePolicy(&badSelectorPol)
 	require.NotNil(t, err)
 }
 
@@ -217,13 +219,13 @@ func addPoliciesFromFile(pdp *connectivitypdp.PDP, filename string) error {
 		case err == nil:
 			switch policy.Kind {
 			case k8sshim.PrivilegedConnectivityPolicyKind:
-				err = pdp.AddOrUpdatePolicy(*policy.ToInternal())
+				err = pdp.AddOrUpdatePolicy(policy.ToInternal())
 				if err != nil {
 					fmt.Printf("invalid privileged connectivity policy: %v\n", err)
 				}
 			case k8sshim.ConnectivityPolicyKind:
 				regPolicy := k8sshim.ConnectivityPolicy{ObjectMeta: metav1.ObjectMeta{Name: policy.Name}, Spec: policy.Spec}
-				err = pdp.AddOrUpdatePolicy(*regPolicy.ToInternal())
+				err = pdp.AddOrUpdatePolicy(regPolicy.ToInternal())
 				if err != nil {
 					fmt.Printf("invalid connectivity policy: %v\n", err)
 				}

@@ -63,7 +63,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	r.updatePod(pod)
+	r.updatePod(&pod)
 	return ctrl.Result{}, nil
 }
 
@@ -81,7 +81,7 @@ func (r *PodReconciler) deletePod(podID types.NamespacedName) {
 }
 
 // updatePod adds or updates pod to ipToPod and podList.
-func (r *PodReconciler) updatePod(pod corev1.Pod) {
+func (r *PodReconciler) updatePod(pod *corev1.Pod) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -109,16 +109,16 @@ func (r *PodReconciler) GetLabelsFromIP(ip string) map[string]string {
 }
 
 // setupWithManager setup PodReconciler for all the pods.
-func (r *PodReconciler) setupWithManager(mgr *ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(*mgr).
+func (r *PodReconciler) setupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Pod{}).
 		Complete(r)
 }
 
 // NewPodReconciler creates pod reconciler for monitoring pods in the cluster.
-func NewPodReconciler(mgr *ctrl.Manager) (*PodReconciler, error) {
+func NewPodReconciler(mgr ctrl.Manager) (*PodReconciler, error) {
 	logger := logrus.WithField("component", "platform.k8s.podReconciler")
-	r := CreatePodReconciler((*mgr).GetClient(), logger)
+	r := CreatePodReconciler(mgr.GetClient(), logger)
 
 	if err := r.setupWithManager(mgr); err != nil {
 		return nil, err

@@ -56,7 +56,8 @@ type IngressAuthorizationRequest struct {
 	Service string
 }
 
-// IngressAuthorizationResponse (from remote peer controlplane) represents a response for an IngressAuthorizationRequest.
+// IngressAuthorizationResponse (from remote peer controlplane)
+// represents a response for an IngressAuthorizationRequest.
 type IngressAuthorizationResponse struct {
 	// ServiceExists is true if the requested service exists.
 	ServiceExists bool
@@ -140,7 +141,11 @@ func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest, peer stri
 
 	resp.ServiceExists = true
 
-	connReq := eventmanager.ConnectionRequestAttr{DstService: req.Service, Direction: eventmanager.Incoming, OtherPeer: peer}
+	connReq := eventmanager.ConnectionRequestAttr{
+		DstService: req.Service,
+		Direction:  eventmanager.Incoming,
+		OtherPeer:  peer,
+	}
 	authResp, err := cp.policyDecider.AuthorizeAndRouteConnection(&connReq)
 	if err != nil {
 		return nil, err

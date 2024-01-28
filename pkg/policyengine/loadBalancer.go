@@ -46,15 +46,15 @@ type ServiceState struct {
 
 type LoadBalancer struct {
 	ServiceMap      map[string][]string                 // Service to Peers
-	Scheme          map[string](map[string]LBScheme)    // PolicyMap [serviceDst][serviceSrc]Policy
+	Scheme          map[string]map[string]LBScheme      // PolicyMap [serviceDst][serviceSrc]Policy
 	ServiceStateMap map[string]map[string]*ServiceState // State of policy Per destination and source
 }
 
 func NewLoadBalancer() *LoadBalancer {
 	lb := &LoadBalancer{
 		ServiceMap:      make(map[string][]string),
-		Scheme:          make(map[string](map[string]LBScheme)),
-		ServiceStateMap: make(map[string](map[string]*ServiceState)),
+		Scheme:          make(map[string]map[string]LBScheme),
+		ServiceStateMap: make(map[string]map[string]*ServiceState),
 	}
 
 	lb.Scheme[event.Wildcard] = map[string]LBScheme{event.Wildcard: Random} // default policy
@@ -62,7 +62,7 @@ func NewLoadBalancer() *LoadBalancer {
 	return lb
 }
 
-func (lB *LoadBalancer) AddToServiceMap(serviceDst string, peer string) {
+func (lB *LoadBalancer) AddToServiceMap(serviceDst, peer string) {
 	if peers, ok := lB.ServiceMap[serviceDst]; ok {
 		_, exist := exists(peers, peer)
 		if !exist {
@@ -138,7 +138,8 @@ func (lB *LoadBalancer) DeletePolicy(lbPolicy *LBPolicy) error {
 		return fmt.Errorf("failed to delete a non-existing load-balancing policy")
 	}
 
-	if serviceDst != event.Wildcard && serviceSrc != event.Wildcard { // ServiceStateMap apply only we set policy for specific serviceSrc and serviceDst
+	if serviceDst != event.Wildcard && serviceSrc != event.Wildcard {
+		// ServiceStateMap apply only we set policy for specific serviceSrc and serviceDst
 		delete(lB.ServiceStateMap[serviceDst], serviceSrc)
 	}
 	return nil
@@ -177,7 +178,8 @@ func (lB *LoadBalancer) LookupECMP(service string, peers []string) (string, erro
 
 func (lB *LoadBalancer) LookupStatic(serviceSrc, serviceDst string, peers []string) (string, error) {
 	peer := lB.getDefaultPeer(serviceSrc, serviceDst)
-	plog.Infof("LookupStatic: serviceSrc %s serviceDst %s selects defaultPeer %s - target peer %s", serviceSrc, serviceDst, peer, peers)
+	plog.Infof("LookupStatic: serviceSrc %s serviceDst %s selects defaultPeer %s - target peer %s",
+		serviceSrc, serviceDst, peer, peers)
 	for _, m := range peers {
 		if m == peer {
 			plog.Infof("LoadBalancer selects - target peer %s", peer)
@@ -193,7 +195,8 @@ func (lB *LoadBalancer) LookupWith(serviceSrc, serviceDst string, peers []string
 	policy := lB.getScheme(serviceSrc, serviceDst)
 
 	lB.updateState(serviceSrc, serviceDst)
-	plog.Infof("LoadBalancer lookup for serviceSrc %s serviceDst %s with policy %s with %+v", serviceSrc, serviceDst, policy, peers)
+	plog.Infof("LoadBalancer lookup for serviceSrc %s serviceDst %s with policy %s with %+v",
+		serviceSrc, serviceDst, policy, peers)
 
 	if len(peers) == 0 {
 		return "", fmt.Errorf("no available target peer")

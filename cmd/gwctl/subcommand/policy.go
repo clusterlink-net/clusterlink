@@ -85,7 +85,7 @@ func (o *policyOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'create policy' or 'update policy' subcommand.
 func (o *policyOptions) run(isUpdate bool) error {
-	g, err := config.GetClientFromID(o.myID)
+	policyClient, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
@@ -96,9 +96,9 @@ func (o *policyOptions) run(isUpdate bool) error {
 			return err
 		}
 
-		lbOperation := g.LBPolicies.Create
+		lbOperation := policyClient.LBPolicies.Create
 		if isUpdate {
-			lbOperation = g.LBPolicies.Update
+			lbOperation = policyClient.LBPolicies.Update
 		}
 
 		err = lbOperation(policy)
@@ -114,9 +114,9 @@ func (o *policyOptions) run(isUpdate bool) error {
 			return err
 		}
 
-		acOperation := g.AccessPolicies.Create
+		acOperation := policyClient.AccessPolicies.Create
 		if isUpdate {
-			acOperation = g.AccessPolicies.Update
+			acOperation = policyClient.AccessPolicies.Update
 		}
 
 		err = acOperation(policy)
@@ -201,7 +201,7 @@ func (o *policyDeleteOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'delete policy' subcommand.
 func (o *policyDeleteOptions) run() error {
-	g, err := config.GetClientFromID(o.myID)
+	policyClient, err := config.GetClientFromID(o.myID)
 	if err != nil {
 		return err
 	}
@@ -211,7 +211,7 @@ func (o *policyDeleteOptions) run() error {
 		if err != nil {
 			return err
 		}
-		err = g.LBPolicies.Delete(policy.Name)
+		err = policyClient.LBPolicies.Delete(policy.Name)
 		if err != nil {
 			return err
 		}
@@ -223,7 +223,7 @@ func (o *policyDeleteOptions) run() error {
 		if err != nil {
 			return err
 		}
-		err = g.AccessPolicies.Delete(policy.Name)
+		err = policyClient.AccessPolicies.Delete(policy.Name)
 		if err != nil {
 			return err
 		}

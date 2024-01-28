@@ -122,7 +122,8 @@ func (pH *PolicyHandler) decideOutgoingConnection(requestAttr *event.ConnectionR
 	peerList, err := pH.loadBalancer.GetTargetPeers(requestAttr.DstService)
 	if err != nil || len(peerList) == 0 {
 		plog.Errorf("error getting target peers for service %s: %v", requestAttr.DstService, err)
-		return event.ConnectionRequestResp{Action: event.Deny}, nil // this can be caused by a user typo - so only log this error
+		// this can be caused by a user typo - so only log this error
+		return event.ConnectionRequestResp{Action: event.Deny}, nil
 	}
 
 	peerList = pH.filterOutDisabledPeers(peerList)
@@ -242,7 +243,7 @@ func (pH *PolicyHandler) AddAccessPolicy(policy *api.Policy) error {
 	if err != nil {
 		return err
 	}
-	return pH.connectivityPDP.AddOrUpdatePolicy(*connPolicy)
+	return pH.connectivityPDP.AddOrUpdatePolicy(connPolicy)
 }
 
 func (pH *PolicyHandler) DeleteAccessPolicy(policy *api.Policy) error {

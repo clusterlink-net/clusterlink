@@ -56,7 +56,8 @@ func (d *Dataplane) serveEgressConnections(name string, listener net.Listener) e
 			return err
 		}
 
-		d.logger.Debugf("Received an egress connection at listener for imported service %s from %s.", name, conn.RemoteAddr().String())
+		d.logger.Debugf(
+			"Received an egress connection at listener for imported service %s from %s.", name, conn.RemoteAddr().String())
 		d.logger.Debugf("Connection: %+v.", conn)
 
 		targetPeer, accessToken, err := d.getEgressAuth(name, strings.Split(conn.RemoteAddr().String(), ":")[0])
@@ -85,9 +86,10 @@ func (d *Dataplane) serveEgressConnections(name string, listener net.Listener) e
 	}
 }
 
-func (d *Dataplane) getEgressAuth(name, sourceIP string) (string, string, error) {
+// getEgressAuth returns the target cluster and authorization token for the outgoing connection.
+func (d *Dataplane) getEgressAuth(name, sourceIP string) (string, string, error) { //nolint:gocritic // unnamedResult
 	url := "https://" + d.controlplaneTarget + api.DataplaneEgressAuthorizationPath
-	egressAuthReq, err := http.NewRequest(http.MethodPost, url, nil)
+	egressAuthReq, err := http.NewRequest(http.MethodPost, url, http.NoBody)
 	if err != nil {
 		return "", "", err
 	}
