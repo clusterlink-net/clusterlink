@@ -16,6 +16,7 @@ package controlplane
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -144,7 +145,7 @@ func (cp *Instance) DeletePeer(name string) (*cpstore.Peer, error) {
 		return nil, err
 	}
 	if peer == nil {
-		return nil, nil
+		return nil, errors.New("peer not found")
 	}
 
 	cp.peerClient[name].StopMonitor()
@@ -253,7 +254,7 @@ func (cp *Instance) DeleteExport(name string) (*cpstore.Export, error) {
 		return nil, err
 	}
 	if export == nil {
-		return nil, nil
+		return nil, errors.New("export not found")
 	}
 
 	// Deleting a k8s external service.
@@ -348,7 +349,7 @@ func (cp *Instance) DeleteImport(name string) (*cpstore.Import, error) {
 		return nil, err
 	}
 	if imp == nil {
-		return nil, nil
+		return nil, errors.New("import not found")
 	}
 
 	if err := cp.xdsManager.DeleteImport(name); err != nil {
@@ -471,7 +472,7 @@ func (cp *Instance) DeleteAccessPolicy(name string) (*cpstore.AccessPolicy, erro
 		return nil, err
 	}
 	if policy == nil {
-		return nil, nil
+		return nil, errors.New("access policy not found")
 	}
 
 	if err := cp.policyDecider.DeleteAccessPolicy(&policy.Policy); err != nil {
@@ -529,7 +530,7 @@ func (cp *Instance) DeleteLBPolicy(name string) (*cpstore.LBPolicy, error) {
 		return nil, err
 	}
 	if policy == nil {
-		return nil, nil
+		return nil, errors.New("load-balancing policy not found")
 	}
 
 	if err := cp.policyDecider.DeleteLBPolicy(&policy.Policy); err != nil {
