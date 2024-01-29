@@ -24,10 +24,10 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
-	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	cpstore "github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 	"github.com/clusterlink-net/clusterlink/pkg/platform"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/pkg/store"
 	"github.com/clusterlink-net/clusterlink/pkg/util"
 	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
@@ -175,13 +175,10 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 	if eSpec.ExternalService != "" && !netutils.IsIP(eSpec.ExternalService) && !netutils.IsDNS(eSpec.ExternalService) {
 		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
 	}
-	resp, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
+	// TODO: check policyDecider's answer
+	_, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
 	if err != nil {
 		return err
-	}
-	if resp.Action != event.AllowAll {
-		cp.logger.Warnf("Access policies deny creating export '%s'.", export.Name)
-		return nil
 	}
 
 	if cp.initialized {
@@ -210,13 +207,10 @@ func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
 	}
 
-	resp, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
+	// TODO: check policyDecider's answer
+	_, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
 	if err != nil {
 		return err
-	}
-	if resp.Action != event.AllowAll {
-		cp.logger.Warnf("Access policies deny creating export '%s'.", export.Name)
-		return nil
 	}
 
 	err = cp.exports.Update(export.Name, func(old *cpstore.Export) *cpstore.Export {
@@ -377,7 +371,7 @@ func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 	if err != nil {
 		return err
 	}
-	if action != event.Allow {
+	if action != policytypes.ActionAllow {
 		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
 		return nil
 	}
@@ -399,7 +393,7 @@ func (cp *Instance) UpdateBinding(binding *cpstore.Binding) error {
 	if err != nil {
 		return err
 	}
-	if action != event.Allow {
+	if action != policytypes.ActionAllow {
 		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
 		return nil
 	}

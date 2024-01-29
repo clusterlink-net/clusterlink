@@ -11,21 +11,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package util
+package policytypes
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+// Direction indicates whether a given request is for an incoming or an outgoing connection.
+type Direction int
 
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
+const (
+	Incoming Direction = iota
+	Outgoing
 )
 
-var PolicyAllowAll = &policytypes.ConnectivityPolicy{
-	Name:   "allow-all",
-	Action: policytypes.ActionAllow,
-	From: policytypes.WorkloadSetOrSelectorList{{
-		WorkloadSelector: &metav1.LabelSelector{},
-	}},
-	To: policytypes.WorkloadSetOrSelectorList{{
-		WorkloadSelector: &metav1.LabelSelector{},
-	}},
+// ConnectionRequest encapsulates all the information needed to decide on a given incoming/outgoing connection.
+type ConnectionRequest struct {
+	SrcWorkloadAttrs WorkloadAttrs
+	DstSvcName       string
+
+	Direction Direction
+}
+
+// ConnectionResponse encapsulates the returned decision on a given incoming incoming/outgoing connection.
+type ConnectionResponse struct {
+	Action  PolicyAction
+	DstPeer string
 }

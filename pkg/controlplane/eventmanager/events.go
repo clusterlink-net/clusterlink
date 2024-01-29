@@ -22,19 +22,6 @@ const (
 	Outgoing
 )
 
-func (d Direction) String() string {
-	return [...]string{"Incoming", "Outgoing"}[d]
-}
-
-type Action int
-
-const (
-	Allow Action = iota
-	Deny
-	AllowAll
-	AllowPartial
-)
-
 type ConnectionState int
 
 const (
@@ -44,34 +31,9 @@ const (
 	PeerDenied
 )
 
-func (a Action) String() string {
-	return [...]string{"Allow", "Deny", "AllowAll", "AllowPartial"}[a]
-}
-
-const Wildcard = "*"
-
 const (
-	NewConnectionRequest = "NewConnectionRequest"
-	ConnectionStatus     = "ConnectionStatus"
-	AddPeerRequest       = "AddPeerRequest"
-	NewRemoteService     = "NewRemoteService"
-	ExposeRequest        = "ExposeRequest"
-	RemovePeerRequest    = "RemovePeerRequest"
-	RemoveRemoteService  = "RemoveRemoteService"
+	ConnectionStatus = "ConnectionStatus"
 )
-
-type ConnectionRequestAttr struct {
-	SrcService string
-	DstService string
-	Direction  Direction
-	OtherPeer  string // Optional: Would not be set if its an outgoing connection
-}
-
-type ConnectionRequestResp struct {
-	Action     Action
-	TargetPeer string
-	BitRate    int // Mbps
-}
 
 type ConnectionStatusAttr struct {
 	ConnectionID    string // Unique ID to track a connection from start to end within the gateway
@@ -84,56 +46,4 @@ type ConnectionStatusAttr struct {
 	LastTstamp      time.Time
 	Direction       Direction // Incoming/Outgoing
 	State           ConnectionState
-}
-
-type NewRemoteServiceAttr struct {
-	Service string
-	Peer    string
-}
-
-type RemoveRemoteServiceAttr struct {
-	Service string
-	Peer    string
-}
-
-type NewRemoteServiceResp struct {
-	Action Action
-}
-
-type ExposeRequestAttr struct {
-	Service string
-}
-
-type ExposeRequestResp struct {
-	Action      Action
-	TargetPeers []string
-}
-
-type AddPeerAttr struct {
-	Peer string
-}
-
-type AddPeerResp struct {
-	Action Action
-}
-
-type RemovePeerAttr struct {
-	Peer string
-}
-
-type ServiceListRequestAttr struct {
-	SrcPeer string
-}
-
-type ServiceListRequestResp struct {
-	Action   Action
-	Services []string
-}
-
-type ServiceRequestAttr struct {
-	SrcPeer string
-}
-
-type ServiceRequestResp struct {
-	Action Action
 }

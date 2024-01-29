@@ -21,7 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
-	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
@@ -42,7 +41,7 @@ var (
 	policy = policytypes.ConnectivityPolicy{
 		Name:       "test-policy",
 		Privileged: false,
-		Action:     policytypes.PolicyActionAllow,
+		Action:     policytypes.ActionAllow,
 		From:       []policytypes.WorkloadSetOrSelector{simpleWorkloadSet},
 		To:         []policytypes.WorkloadSetOrSelector{simpleWorkloadSet},
 	}
@@ -97,14 +96,16 @@ func TestIncomingConnectionRequests(t *testing.T) {
 	policy2.To = []policytypes.WorkloadSetOrSelector{{WorkloadSelector: &selectAllSelector}}
 	addPolicy(t, &policy2, ph)
 
-	requestAttr := event.ConnectionRequestAttr{SrcService: svcName, Direction: event.Incoming}
-	connReqResp, err := ph.AuthorizeAndRouteConnection(&requestAttr)
-	require.Equal(t, event.Allow, connReqResp.Action)
+	srcAttrs := policytypes.WorkloadAttrs{policyengine.ServiceNameLabel: svcName}
+	connReq := policytypes.ConnectionRequest{SrcWorkloadAttrs: srcAttrs, Direction: policytypes.Incoming}
+	connReqResp, err := ph.AuthorizeAndRouteConnection(&connReq)
+	require.Equal(t, policytypes.ActionAllow, connReqResp.Action)
 	require.Nil(t, err)
 
-	requestAttr = event.ConnectionRequestAttr{SrcService: badSvcName, Direction: event.Incoming}
-	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
-	require.Equal(t, event.Deny, connReqResp.Action)
+	srcAttrs[policyengine.ServiceNameLabel] = badSvcName
+	connReq = policytypes.ConnectionRequest{SrcWorkloadAttrs: srcAttrs, Direction: policytypes.Incoming}
+	connReqResp, err = ph.AuthorizeAndRouteConnection(&connReq)
+	require.Equal(t, policytypes.ActionDeny, connReqResp.Action)
 	require.Nil(t, err)
 }
 
@@ -122,30 +123,32 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	addRemoteSvc(t, svcName, peer2, ph)
 
 	// Should choose between peer1 and peer2, but only peer2 is allowed by the single access policy
-	requestAttr := event.ConnectionRequestAttr{SrcService: svcName, DstService: svcName, Direction: event.Outgoing}
+	srcAttrs := policytypes.WorkloadAttrs{policyengine.ServiceNameLabel: svcName}
+	badSrcAttrs := policytypes.WorkloadAttrs{policyengine.ServiceNameLabel: badSvcName}
+	requestAttr := policytypes.ConnectionRequest{SrcWorkloadAttrs: srcAttrs, DstSvcName: svcName, Direction: policytypes.Outgoing}
 	connReqResp, err := ph.AuthorizeAndRouteConnection(&requestAttr)
-	require.Equal(t, event.Allow, connReqResp.Action)
-	require.Equal(t, peer2, connReqResp.TargetPeer)
+	require.Equal(t, policytypes.ActionAllow, connReqResp.Action)
+	require.Equal(t, peer2, connReqResp.DstPeer)
 	require.Nil(t, err)
 
 	// Src service does not match the spec of the single access policy
-	requestAttr = event.ConnectionRequestAttr{SrcService: badSvcName, DstService: svcName, Direction: event.Outgoing}
+	requestAttr = policytypes.ConnectionRequest{SrcWorkloadAttrs: badSrcAttrs, DstSvcName: svcName, Direction: policytypes.Outgoing}
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
-	require.Equal(t, event.Deny, connReqResp.Action)
+	require.Equal(t, policytypes.ActionDeny, connReqResp.Action)
 	require.Nil(t, err)
 
 	// Dst service does not match the spec of the single access policy
-	requestAttr = event.ConnectionRequestAttr{SrcService: svcName, DstService: badSvcName, Direction: event.Outgoing}
+	requestAttr = policytypes.ConnectionRequest{SrcWorkloadAttrs: srcAttrs, DstSvcName: badSvcName, Direction: policytypes.Outgoing}
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
-	require.Equal(t, event.Deny, connReqResp.Action)
+	require.Equal(t, policytypes.ActionDeny, connReqResp.Action)
 	require.Nil(t, err)
 
 	// peer2 is removed as a remote for the requested service,
 	// so now the single allow policy does not allow the remaining peers
 	removeRemoteSvc(svcName, peer2, ph)
-	requestAttr = event.ConnectionRequestAttr{SrcService: svcName, DstService: svcName, Direction: event.Outgoing}
+	requestAttr = policytypes.ConnectionRequest{SrcWorkloadAttrs: srcAttrs, DstSvcName: svcName, Direction: policytypes.Outgoing}
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
-	require.Equal(t, event.Deny, connReqResp.Action)
+	require.Equal(t, policytypes.ActionDeny, connReqResp.Action)
 	require.Nil(t, err)
 }
 
@@ -167,35 +170,36 @@ func TestLoadBalancer(t *testing.T) {
 	err = ph.AddLBPolicy(&apiLBPolicy)
 	require.Nil(t, err)
 
-	requestAttr := event.ConnectionRequestAttr{SrcService: svcName, DstService: svcName, Direction: event.Outgoing}
+	srcAttrs := policytypes.WorkloadAttrs{policyengine.ServiceNameLabel: svcName}
+	requestAttr := policytypes.ConnectionRequest{SrcWorkloadAttrs: srcAttrs, DstSvcName: svcName, Direction: policytypes.Outgoing}
 	connReqResp, err := ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
-	require.Equal(t, event.Allow, connReqResp.Action)
-	require.Equal(t, peer1, connReqResp.TargetPeer) // LB policy requires this request to be served by peer1
+	require.Equal(t, policytypes.ActionAllow, connReqResp.Action)
+	require.Equal(t, peer1, connReqResp.DstPeer) // LB policy requires this request to be served by peer1
 
 	err = ph.DeleteLBPolicy(&apiLBPolicy) // LB policy is deleted - the random default policy now takes effect
 	require.Nil(t, err)
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
-	require.Equal(t, event.Allow, connReqResp.Action)
-	require.Contains(t, []string{peer1, peer2}, connReqResp.TargetPeer)
+	require.Equal(t, policytypes.ActionAllow, connReqResp.Action)
+	require.Contains(t, []string{peer1, peer2}, connReqResp.DstPeer)
 
 	ph.DeletePeer(peer1) // peer1 is deleted, so all requests should go to peer2
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
-	require.Equal(t, event.Allow, connReqResp.Action)
-	require.Equal(t, peer2, connReqResp.TargetPeer)
+	require.Equal(t, policytypes.ActionAllow, connReqResp.Action)
+	require.Equal(t, peer2, connReqResp.DstPeer)
 
 	ph.DeletePeer(peer1) // deleting peer1 again should make no change
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
-	require.Equal(t, event.Allow, connReqResp.Action)
-	require.Equal(t, peer2, connReqResp.TargetPeer)
+	require.Equal(t, policytypes.ActionAllow, connReqResp.Action)
+	require.Equal(t, peer2, connReqResp.DstPeer)
 
 	ph.DeletePeer(peer2) // deleting peer2 should result in an deny, as there are no available peers left
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
-	require.Equal(t, event.Deny, connReqResp.Action)
+	require.Equal(t, policytypes.ActionDeny, connReqResp.Action)
 }
 
 func TestBadLBPolicy(t *testing.T) {
@@ -228,33 +232,34 @@ func TestDisableEnablePeers(t *testing.T) {
 	err = ph.AddLBPolicy(&apiLBPolicy)
 	require.Nil(t, err)
 
-	requestAttr := event.ConnectionRequestAttr{SrcService: svcName, DstService: svcName, Direction: event.Outgoing}
+	srcAttrs := policytypes.WorkloadAttrs{policyengine.ServiceNameLabel: svcName}
+	requestAttr := policytypes.ConnectionRequest{SrcWorkloadAttrs: srcAttrs, DstSvcName: svcName, Direction: policytypes.Outgoing}
 	connReqResp, err := ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
-	require.Equal(t, event.Allow, connReqResp.Action)
-	require.Equal(t, peer1, connReqResp.TargetPeer) // LB policy defaults this request to be served by peer1
+	require.Equal(t, policytypes.ActionAllow, connReqResp.Action)
+	require.Equal(t, peer1, connReqResp.DstPeer) // LB policy defaults this request to be served by peer1
 
 	ph.DeletePeer(peer1)
 
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
-	require.Equal(t, event.Allow, connReqResp.Action)
-	require.Equal(t, peer2, connReqResp.TargetPeer) // peer1 is now disabled, so peer2 must be used
+	require.Equal(t, policytypes.ActionAllow, connReqResp.Action)
+	require.Equal(t, peer2, connReqResp.DstPeer) // peer1 is now disabled, so peer2 must be used
 
 	ph.DeletePeer(peer2)
 
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
-	require.Equal(t, event.Deny, connReqResp.Action) // no enabled peers - a Deny is returned
-	require.Equal(t, "", connReqResp.TargetPeer)
+	require.Equal(t, policytypes.ActionDeny, connReqResp.Action) // no enabled peers - a Deny is returned
+	require.Equal(t, "", connReqResp.DstPeer)
 
 	ph.AddPeer(peer1)
 	ph.AddPeer(peer2)
 
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
-	require.Equal(t, event.Allow, connReqResp.Action)
-	require.Equal(t, peer1, connReqResp.TargetPeer) // peer1 was re-enabled, so it is now chosen again
+	require.Equal(t, policytypes.ActionAllow, connReqResp.Action)
+	require.Equal(t, peer1, connReqResp.DstPeer) // peer1 was re-enabled, so it is now chosen again
 }
 
 //nolint:unparam // `svc` always receives `svcName` (allow passing other names in future)
@@ -263,7 +268,7 @@ func addRemoteSvc(t *testing.T, svc, peer string, ph policyengine.PolicyDecider)
 	ph.AddPeer(peer) // just in case it was not already added
 	action, err := ph.AddBinding(&api.Binding{Spec: api.BindingSpec{Import: svc, Peer: peer}})
 	require.Nil(t, err)
-	require.Equal(t, event.Allow, action)
+	require.Equal(t, policytypes.ActionAllow, action)
 }
 
 func removeRemoteSvc(svc, peer string, ph policyengine.PolicyDecider) {
