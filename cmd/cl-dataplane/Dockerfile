@@ -1,4 +1,4 @@
-FROM envoyproxy/envoy:v1.26.3
+FROM envoyproxy/envoy:v1.29.0
 
 # Copy binary
 RUN mkdir -p /usr/local/bin

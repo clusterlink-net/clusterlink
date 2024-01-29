@@ -72,7 +72,7 @@ func TestMarshall(t *testing.T) {
 		From:   []policytypes.WorkloadSetOrSelector{trivialWorkloadSet},
 		To:     []policytypes.WorkloadSetOrSelector{trivialWorkloadSet},
 	}
-	b, err := json.Marshal(trivialConnPol)
+	buf, err := json.Marshal(trivialConnPol)
 	require.Nil(t, err)
 	expected := `{` +
 		`"name":"",` +
@@ -80,10 +80,10 @@ func TestMarshall(t *testing.T) {
 		`"action":"allow",` +
 		`"from":[{"workloadSelector":{"matchLabels":{"key":"val"}}}],` +
 		`"to":[{"workloadSelector":{"matchLabels":{"key":"val"}}}]}`
-	require.Equal(t, expected, string(b))
+	require.Equal(t, expected, string(buf))
 
 	trivialConnPol.Name = "trivialPol"
-	b, err = json.Marshal(trivialConnPol)
+	buf, err = json.Marshal(trivialConnPol)
 	require.Nil(t, err)
 	expected = `{` +
 		`"name":"trivialPol",` +
@@ -91,7 +91,7 @@ func TestMarshall(t *testing.T) {
 		`"action":"allow",` +
 		`"from":[{"workloadSelector":{"matchLabels":{"key":"val"}}}],` +
 		`"to":[{"workloadSelector":{"matchLabels":{"key":"val"}}}]}`
-	require.Equal(t, expected, string(b))
+	require.Equal(t, expected, string(buf))
 }
 
 func TestBadSelector(t *testing.T) {

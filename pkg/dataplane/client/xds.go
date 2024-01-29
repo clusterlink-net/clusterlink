@@ -59,7 +59,7 @@ func (x *XDSClient) runFetcher(resourceType string) error {
 			continue
 		}
 
-		f, err := newFetcher(context.Background(), conn, resourceType, x.dataplane)
+		fetcher, err := newFetcher(context.Background(), conn, resourceType, x.dataplane)
 		if err != nil {
 			x.logger.Errorf("Failed to initialize %s fetcher: %v.", resourceType, err)
 			continue
@@ -75,7 +75,7 @@ func (x *XDSClient) runFetcher(resourceType string) error {
 			x.logger.Infof("Done waiting for cluster fetcher")
 		}
 		x.logger.Infof("Starting to run %s fetcher.", resourceType)
-		err = f.Run()
+		err = fetcher.Run()
 		x.logger.Infof("Fetcher '%s' stopped: %v.", resourceType, err)
 	}
 }

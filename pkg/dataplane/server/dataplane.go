@@ -82,7 +82,7 @@ func (d *Dataplane) AddListener(ln *listener.Listener) {
 
 // NewDataplane returns a new dataplane HTTP server.
 func NewDataplane(dataplaneID, controlplaneTarget, peerName string, parsedCertData *util.ParsedCertData) *Dataplane {
-	d := &Dataplane{
+	dp := &Dataplane{
 		ID:       dataplaneID,
 		peerName: peerName,
 		router:   chi.NewRouter(),
@@ -100,6 +100,6 @@ func NewDataplane(dataplaneID, controlplaneTarget, peerName string, parsedCertDa
 		logger:             logrus.WithField("component", "dataplane.server.http"),
 	}
 
-	d.addAuthzHandlers()
-	return d
+	dp.addAuthzHandlers()
+	return dp
 }

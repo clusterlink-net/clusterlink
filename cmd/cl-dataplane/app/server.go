@@ -67,18 +67,18 @@ func (o *Options) RequiredFlags() []string {
 func (o *Options) Run() error {
 	// set log file
 	if o.LogFile != "" {
-		f, err := os.OpenFile(o.LogFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o666)
+		fn, err := os.OpenFile(o.LogFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o666)
 		if err != nil {
 			return fmt.Errorf("unable to open log file: %w", err)
 		}
 
 		defer func() {
-			if err := f.Close(); err != nil {
+			if err := fn.Close(); err != nil {
 				log.Errorf("Cannot close log file: %v", err)
 			}
 		}()
 
-		log.SetOutput(f)
+		log.SetOutput(fn)
 	}
 
 	// set log level
