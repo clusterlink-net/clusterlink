@@ -100,6 +100,7 @@ build:
 	$(GO) build -o ./bin/cl-dataplane ./cmd/cl-dataplane
 	$(GO) build -o ./bin/cl-go-dataplane ./cmd/cl-go-dataplane
 	$(GO) build -o ./bin/cl-adm ./cmd/cl-adm
+	$(GO) build -o bin/manager ./cmd/cl-operator/main.go
 
 
 docker-build: build
@@ -107,6 +108,7 @@ docker-build: build
 	docker build --progress=plain --rm --tag cl-dataplane -f ./cmd/cl-dataplane/Dockerfile .
 	docker build --progress=plain --rm --tag cl-go-dataplane -f ./cmd/cl-go-dataplane/Dockerfile .
 	docker build --progress=plain --rm --tag gwctl -f ./cmd/gwctl/Dockerfile .
+	docker build --progress=plain --rm --tag cl-operator -f ./cmd/cl-operator/Dockerfile .
 
 push-image: docker-build
 	docker tag cl-dataplane:latest $(IMAGE_BASE)/cl-dataplane:$(IMAGE_VERSION)
