@@ -57,6 +57,7 @@ metadata:
 data:
   cert: {{.dataplaneCert}}
   key: {{.dataplaneKey}}
+{{ if not .crdMode }}
 ---
 apiVersion: v1
 kind: Secret
@@ -65,9 +66,10 @@ metadata:
 data:
   cert: {{.gwctlCert}}
   key: {{.gwctlKey}}
+{{ end }}
 `
 
-	k8sTemplate = `---
+	k8sTemplate = `{{ if not .crdMode }}---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -78,6 +80,7 @@ spec:
   resources:
     requests:
       storage: 100Mi
+{{ end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -108,7 +111,7 @@ spec:
       containers:
         - name: cl-controlplane
           image: {{.containerRegistry}}cl-controlplane
-          args: ["--log-level", "{{.logLevel}}"]
+          args: ["--log-level", "{{.logLevel}}"{{if .crdMode }}, "--crd-mode"{{ end }}]
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: {{.controlplanePort}}
@@ -125,8 +128,10 @@ spec:
               mountPath: {{.controlplaneKeyMountPath}}
               subPath: "key"
               readOnly: true
+{{ if not .crdMode }}
             - name: cl-controlplane
               mountPath: {{.persistencyDirectoryMountPath}}
+{{ end }}
           env:
             - name: CL-NAMESPACE
               valueFrom:
@@ -178,6 +183,7 @@ spec:
               mountPath: {{.dataplaneKeyMountPath}}
               subPath: "key"
               readOnly: true
+{{ if not .crdMode }}
 ---
 apiVersion: v1
 kind: Pod
@@ -222,6 +228,7 @@ spec:
           mountPath: /root/key.pem
           subPath: "key"
           readOnly: true
+{{ end }}
 ---
 apiVersion: v1
 kind: Service
@@ -316,6 +323,8 @@ func K8SConfig(config *Config) ([]byte, error) {
 
 		"controlplanePort": cpapi.ListenPort,
 		"dataplanePort":    dpapi.ListenPort,
+
+		"crdMode": config.CRDMode,
 	}
 
 	var k8sConfig bytes.Buffer
