@@ -48,7 +48,7 @@ run-dev-container: dev-container ; $(info running dev-container...)
 .PHONY: precommit format lint tests-e2e-k8s
 precommit: format lint copr-fix
 format: fmt
-fmt: format-go tidy-go vet-go
+fmt: gofumpt format-go tidy-go vet-go
 vet: vet-go
 
 lint:  ; $(info running linters...)
@@ -59,6 +59,9 @@ tidy-go: ; $(info tidying up go.mod...)
 
 format-go: tidy-go vet-go ; $(info formatting code...)
 	@goimports -l -w .
+
+gofumpt: ; $(info running gofumpt...)
+	@gofumpt -l -w .
 
 vet-go: ; $(info vetting code...)
 	@go vet ./...
