@@ -33,11 +33,11 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/platform/unknown"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv/bolt"
-	"github.com/clusterlink-net/clusterlink/pkg/util"
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
 	"github.com/clusterlink-net/clusterlink/pkg/util/log"
 	"github.com/clusterlink-net/clusterlink/pkg/util/runnable"
 	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 const (
@@ -101,7 +101,7 @@ func (o *Options) Run() error {
 			}
 		}()
 	}
-	parsedCertData, err := util.ParseTLSFiles(CAFile, CertificateFile, KeyFile)
+	parsedCertData, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
 	if err != nil {
 		return err
 	}

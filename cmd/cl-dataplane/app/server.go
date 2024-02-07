@@ -23,8 +23,8 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
-	"github.com/clusterlink-net/clusterlink/pkg/util"
 	"github.com/clusterlink-net/clusterlink/pkg/util/log"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 const (
@@ -79,7 +79,7 @@ func (o *Options) Run() error {
 	}
 
 	// parse TLS files
-	parsedCertData, err := util.ParseTLSFiles(CAFile, CertificateFile, KeyFile)
+	parsedCertData, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
 	if err != nil {
 		return err
 	}

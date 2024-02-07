@@ -29,8 +29,8 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/pkg/store"
-	"github.com/clusterlink-net/clusterlink/pkg/util"
 	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 const (
@@ -40,7 +40,7 @@ const (
 
 // Instance of a controlplane, where all API servers delegate their requested actions to.
 type Instance struct {
-	peerTLS *util.ParsedCertData
+	peerTLS *tls.ParsedCertData
 
 	peers      *cpstore.Peers
 	exports    *cpstore.Exports
@@ -629,7 +629,7 @@ func (cp *Instance) generateJWK() error {
 }
 
 // NewInstance returns a new controlplane instance.
-func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, pp platform.Platform) (*Instance, error) {
+func NewInstance(peerTLS *tls.ParsedCertData, storeManager store.Manager, pp platform.Platform) (*Instance, error) {
 	logger := logrus.WithField("component", "controlplane")
 
 	peers, err := cpstore.NewPeers(storeManager)

@@ -28,8 +28,8 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 	dpclient "github.com/clusterlink-net/clusterlink/pkg/dataplane/client"
 	dpserver "github.com/clusterlink-net/clusterlink/pkg/dataplane/server"
-	"github.com/clusterlink-net/clusterlink/pkg/util"
 	"github.com/clusterlink-net/clusterlink/pkg/util/log"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 const (
@@ -73,7 +73,7 @@ func (o *Options) RequiredFlags() []string {
 }
 
 // Run the go dataplane.
-func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *util.ParsedCertData) error {
+func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *tls.ParsedCertData) error {
 	controlplaneTarget := net.JoinHostPort(o.ControlplaneHost, strconv.Itoa(cpapi.ListenPort))
 
 	logrus.Infof("Starting go dataplane, Name: %s, ID: %s", peerName, dataplaneID)
@@ -111,7 +111,7 @@ func (o *Options) Run() error {
 	}
 
 	// parse TLS files
-	parsedCertData, err := util.ParseTLSFiles(CAFile, CertificateFile, KeyFile)
+	parsedCertData, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
 	if err != nil {
 		return err
 	}
