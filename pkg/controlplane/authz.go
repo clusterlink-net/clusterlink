@@ -33,8 +33,10 @@ const (
 
 // EgressAuthorizationRequest (from local dataplane) represents a request for accessing an imported service.
 type EgressAuthorizationRequest struct {
-	// Import is the name of the requested imported service.
-	Import string
+	// ImportName is the name of the requested imported service.
+	ImportName string
+	// ImportNamespace is the namespace of the requested imported service.
+	ImportNamespace string
 	// IP address of the client connecting to the service.
 	IP string
 }
@@ -53,8 +55,10 @@ type EgressAuthorizationResponse struct {
 
 // IngressAuthorizationRequest (to remote peer controlplane) represents a request for accessing an exported service.
 type IngressAuthorizationRequest struct {
-	// Service is the name of the requested exported service.
-	Service string
+	// ServiceName is the name of the requested exported service.
+	ServiceName string
+	// ServiceNamespace is the namespace of the requested exported service.
+	ServiceNamespace string
 }
 
 // IngressAuthorizationResponse (from remote peer controlplane)
@@ -72,16 +76,20 @@ type IngressAuthorizationResponse struct {
 func (cp *Instance) AuthorizeEgress(req *EgressAuthorizationRequest) (*EgressAuthorizationResponse, error) {
 	cp.logger.Infof("Received egress authorization request: %v.", req)
 
-	if imp := cp.GetImport(req.Import); imp == nil {
-		return nil, fmt.Errorf("import '%s' not found", req.Import)
+	if imp := cp.GetImport(req.ImportName); imp == nil {
+		return nil, fmt.Errorf("import '%s' not found", req.ImportName)
 	}
 
-	bindings := cp.GetBindings(req.Import)
+	bindings := cp.GetBindings(req.ImportName)
 	if len(bindings) == 0 {
-		return nil, fmt.Errorf("no bindings found for import '%s'", req.Import)
+		return nil, fmt.Errorf("no bindings found for import '%s'", req.ImportName)
 	}
 
-	connReq := policytypes.ConnectionRequest{DstSvcName: req.Import, Direction: policytypes.Outgoing}
+	connReq := policytypes.ConnectionRequest{
+		DstSvcName:      req.ImportName,
+		DstSvcNamespace: req.ImportNamespace,
+		Direction:       policytypes.Outgoing,
+	}
 	srcLabels := cp.platform.GetLabelsFromIP(req.IP)
 	if src, ok := srcLabels["app"]; ok { // TODO: Add support for labels other than just the "app" key.
 		cp.logger.Infof("Received egress authorization srcLabels[app]: %v.", srcLabels["app"])
@@ -111,7 +119,10 @@ func (cp *Instance) AuthorizeEgress(req *EgressAuthorizationRequest) (*EgressAut
 		return nil, fmt.Errorf("missing client for peer: %s", peer.Name)
 	}
 
-	serverResp, err := client.Authorize(&api.AuthorizationRequest{Service: req.Import})
+	serverResp, err := client.Authorize(&api.AuthorizationRequest{
+		ServiceName:      req.ImportName,
+		ServiceNamespace: req.ImportNamespace,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to get access token from peer: %w", err)
 	}
@@ -135,7 +146,7 @@ func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest, peer stri
 
 	resp := &IngressAuthorizationResponse{}
 
-	export := cp.GetExport(req.Service)
+	export := cp.GetExport(req.ServiceName)
 	if export == nil {
 		return resp, nil
 	}
@@ -143,7 +154,8 @@ func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest, peer stri
 	resp.ServiceExists = true
 
 	connReq := policytypes.ConnectionRequest{
-		DstSvcName:       req.Service,
+		DstSvcName:       req.ServiceName,
+		DstSvcNamespace:  req.ServiceNamespace,
 		Direction:        policytypes.Incoming,
 		SrcWorkloadAttrs: policytypes.WorkloadAttrs{policyengine.GatewayNameLabel: peer},
 	}
@@ -161,7 +173,8 @@ func (cp *Instance) AuthorizeIngress(req *IngressAuthorizationRequest, peer stri
 	// TODO: include client name as a claim
 	token, err := jwt.NewBuilder().
 		Expiration(time.Now().Add(time.Second*jwtExpirySeconds)).
-		Claim(api.ExportNameJWTClaim, export.Name).
+		Claim(api.ExportNameJWTClaim, req.ServiceName).
+		Claim(api.ExportNamespaceJWTClaim, req.ServiceNamespace).
 		Build()
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate access token: %w", err)
@@ -190,10 +203,15 @@ func (cp *Instance) ParseAuthorizationHeader(token string) (string, error) {
 
 	// TODO: verify client name
 
-	export, ok := parsedToken.PrivateClaims()[api.ExportNameJWTClaim]
+	exportName, ok := parsedToken.PrivateClaims()[api.ExportNameJWTClaim]
 	if !ok {
 		return "", fmt.Errorf("token missing '%s' claim", api.ExportNameJWTClaim)
 	}
 
-	return api.ExportClusterName(export.(string)), nil
+	exportNamespace, ok := parsedToken.PrivateClaims()[api.ExportNamespaceJWTClaim]
+	if !ok {
+		return "", fmt.Errorf("token missing '%s' claim", api.ExportNamespaceJWTClaim)
+	}
+
+	return api.ExportClusterName(exportName.(string), exportNamespace.(string)), nil
 }
