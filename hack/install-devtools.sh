@@ -73,6 +73,13 @@ if [ -z "$(which tparse)" ] || [ "$1" = "--force" ]; then
   go install "golang.org/x/tools/cmd/goimports@$VERSION"
 fi
 
+#-- gofumpt
+VERSION=latest
+if [ -z "$(which gofumpt)" ] || [ "$1" = "--force" ]; then
+  echo installing gofumpt "($VERSION)"
+  go install "mvdan.cc/gofumpt@$VERSION"
+fi
+
 #-- tparse
 VERSION=latest
 if [ -z "$(which tparse)" ] || [ "$1" = "--force" ]; then
