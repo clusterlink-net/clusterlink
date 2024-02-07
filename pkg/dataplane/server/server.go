@@ -59,7 +59,7 @@ func (d *Dataplane) StartSNIServer(dataplaneServerAddress string) error {
 		return fmt.Errorf("unable to create listener for server on %s: %w",
 			dataplaneListenAddress, err)
 	}
-	return sniProxy.Serve()
+	return sniProxy.Start()
 }
 
 func (d *Dataplane) addAuthzHandlers() {

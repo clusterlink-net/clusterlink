@@ -34,8 +34,8 @@ func (s *Server) GetGRPCServer() *grpc.Server {
 	return s.server
 }
 
-// Serve starts the server.
-func (s *Server) Serve() error {
+// Start the server.
+func (s *Server) Start() error {
 	return s.server.Serve(s.GetListener())
 }
 

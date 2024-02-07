@@ -19,10 +19,13 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/grpc"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/http"
 	"github.com/clusterlink-net/clusterlink/pkg/platform"
@@ -31,7 +34,9 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv/bolt"
 	"github.com/clusterlink-net/clusterlink/pkg/util"
+	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
 	logutils "github.com/clusterlink-net/clusterlink/pkg/util/log"
+	"github.com/clusterlink-net/clusterlink/pkg/util/runnable"
 	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
 )
 
@@ -115,6 +120,26 @@ func (o *Options) Run() error {
 			expectedGRPCServerName, grpcServerName)
 	}
 
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return fmt.Errorf("unable to get k8s config: %w", err)
+	}
+
+	scheme, err := v1alpha1.SchemeBuilder.Build()
+	if err != nil {
+		return fmt.Errorf("unable to build k8s scheme: %w", err)
+	}
+
+	if err := v1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("unable to add core v1 objects to scheme: %w", err)
+	}
+
+	mgr, err := manager.New(config, manager.Options{Scheme: scheme})
+	if err != nil {
+		return fmt.Errorf(
+			"unable to create k8s controller manager: %w", err)
+	}
+
 	// open store
 	kvStore, err := bolt.Open(StoreFile)
 	if err != nil {
@@ -154,12 +179,13 @@ func (o *Options) Run() error {
 		grpcServerName: grpcServerAddress,
 	})
 
-	servers := server.NewController()
-	servers.Add(httpServerAddress, http.NewServer(cp, parsedCertData.ServerConfig()))
-	servers.Add(grpcServerAddress, grpc.NewServer(cp, parsedCertData.ServerConfig()))
-	servers.Add(controlplaneServerListenAddress, sniProxy)
+	runnableManager := runnable.NewManager()
+	runnableManager.Add(controller.NewManager(mgr))
+	runnableManager.AddServer(httpServerAddress, http.NewServer(cp, parsedCertData.ServerConfig()))
+	runnableManager.AddServer(grpcServerAddress, grpc.NewServer(cp, parsedCertData.ServerConfig()))
+	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
 
-	return servers.Run()
+	return runnableManager.Run()
 }
 
 // NewCLControlplaneCommand creates a *cobra.Command object with default parameters.

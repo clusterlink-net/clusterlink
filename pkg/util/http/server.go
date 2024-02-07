@@ -45,8 +45,8 @@ func (s *Server) Router() chi.Router {
 	return s.router
 }
 
-// Serve starts the server.
-func (s *Server) Serve() error {
+// Start the server.
+func (s *Server) Start() error {
 	defer func() {
 		s.server.ErrorLog = nil
 		if err := s.logWriter.Close(); err != nil {
