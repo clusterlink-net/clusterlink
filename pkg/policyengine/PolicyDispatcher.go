@@ -48,7 +48,7 @@ type PolicyDecider interface {
 	AddPeer(name string)
 	DeletePeer(name string)
 
-	AddBinding(imp *api.Binding) (policytypes.PolicyAction, error)
+	AddBinding(imp *api.Binding) policytypes.PolicyAction
 	DeleteBinding(imp *api.Binding)
 
 	AddExport(exp *api.Export) ([]string, error) // Returns a list of peers to which export is allowed
@@ -177,9 +177,9 @@ func (pH *PolicyHandler) DeletePeer(name string) {
 	plog.Infof("Removed Peer %s", name)
 }
 
-func (pH *PolicyHandler) AddBinding(binding *api.Binding) (policytypes.PolicyAction, error) {
+func (pH *PolicyHandler) AddBinding(binding *api.Binding) policytypes.PolicyAction {
 	pH.loadBalancer.AddToServiceMap(binding.Spec.Import, binding.Spec.Peer)
-	return policytypes.ActionAllow, nil
+	return policytypes.ActionAllow
 }
 
 func (pH *PolicyHandler) DeleteBinding(binding *api.Binding) {

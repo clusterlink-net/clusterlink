@@ -266,8 +266,7 @@ func TestDisableEnablePeers(t *testing.T) {
 func addRemoteSvc(t *testing.T, svc, peer string, ph policyengine.PolicyDecider) {
 	t.Helper()
 	ph.AddPeer(peer) // just in case it was not already added
-	action, err := ph.AddBinding(&api.Binding{Spec: api.BindingSpec{Import: svc, Peer: peer}})
-	require.Nil(t, err)
+	action := ph.AddBinding(&api.Binding{Spec: api.BindingSpec{Import: svc, Peer: peer}})
 	require.Equal(t, policytypes.ActionAllow, action)
 }
 

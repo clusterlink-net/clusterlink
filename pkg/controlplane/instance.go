@@ -367,10 +367,7 @@ func (cp *Instance) GetAllImports() []*cpstore.Import {
 func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 	cp.logger.Infof("Creating binding '%s'->'%s'.", binding.Import, binding.Peer)
 
-	action, err := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
-	if err != nil {
-		return err
-	}
+	action := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
 	if action != policytypes.ActionAllow {
 		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
 		return nil
@@ -389,16 +386,13 @@ func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 func (cp *Instance) UpdateBinding(binding *cpstore.Binding) error {
 	cp.logger.Infof("Updating binding '%s'->'%s'.", binding.Import, binding.Peer)
 
-	action, err := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
-	if err != nil {
-		return err
-	}
+	action := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
 	if action != policytypes.ActionAllow {
 		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
 		return nil
 	}
 
-	err = cp.bindings.Update(binding, func(old *cpstore.Binding) *cpstore.Binding {
+	err := cp.bindings.Update(binding, func(old *cpstore.Binding) *cpstore.Binding {
 		return binding
 	})
 	if err != nil {
