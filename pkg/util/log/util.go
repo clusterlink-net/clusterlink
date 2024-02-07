@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package logutils
+package log
 
 import (
 	"fmt"
@@ -28,8 +28,8 @@ const (
 	logrusFieldStack = 6
 )
 
-// SetLog sets logrus logger (format, file, level).
-func SetLog(logLevel, logFileName string) (*os.File, error) {
+// Set logrus logger (format, file, level).
+func Set(logLevel, logFileName string) (*os.File, error) {
 	var logfile *os.File
 
 	if logFileName != "" {

@@ -16,7 +16,7 @@ package app
 import (
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
@@ -35,7 +35,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv/bolt"
 	"github.com/clusterlink-net/clusterlink/pkg/util"
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
-	logutils "github.com/clusterlink-net/clusterlink/pkg/util/log"
+	"github.com/clusterlink-net/clusterlink/pkg/util/log"
 	"github.com/clusterlink-net/clusterlink/pkg/util/runnable"
 	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
 )
@@ -90,14 +90,14 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 func (o *Options) Run() error {
 	// set log file
 
-	f, err := logutils.SetLog(o.LogLevel, o.LogFile)
+	f, err := log.Set(o.LogLevel, o.LogFile)
 	if err != nil {
 		return err
 	}
 	if f != nil {
 		defer func() {
 			if err := f.Close(); err != nil {
-				log.Errorf("Cannot close log file: %v", err)
+				logrus.Errorf("Cannot close log file: %v", err)
 			}
 		}()
 	}
@@ -148,7 +148,7 @@ func (o *Options) Run() error {
 
 	defer func() {
 		if err := kvStore.Close(); err != nil {
-			log.Warnf("Cannot close store: %v.", err)
+			logrus.Warnf("Cannot close store: %v.", err)
 		}
 	}()
 
