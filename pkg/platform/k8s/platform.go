@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
+	"github.com/clusterlink-net/clusterlink/pkg/util/net"
 )
 
 const (
@@ -46,7 +46,7 @@ type Platform struct {
 
 func (p *Platform) setExternalNameService(host, externalName string) *corev1.Service {
 	eName := externalName
-	if netutils.IsIP(eName) {
+	if net.IsIP(eName) {
 		eName += ".nip.io" // Convert IP to DNS address.
 	}
 
