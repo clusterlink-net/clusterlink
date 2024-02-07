@@ -33,8 +33,8 @@ type Server struct {
 	logger *logrus.Entry
 }
 
-// Serve starts the server.
-func (s *Server) Serve() error {
+// Start the server.
+func (s *Server) Start() error {
 	listenAddress := s.GetAddress()
 	for sni, targetAddress := range s.routes {
 		target := tcpproxy.To(targetAddress)

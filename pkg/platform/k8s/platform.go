@@ -25,6 +25,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
 )
@@ -128,7 +129,7 @@ func NewPlatform() (*Platform, error) {
 		return nil, err
 	}
 
-	manager, err := ctrl.NewManager(cfg, ctrl.Options{})
+	manager, err := ctrl.NewManager(cfg, ctrl.Options{Metrics: metricsserver.Options{BindAddress: "0"}})
 	if err != nil {
 		return nil, err
 	}
