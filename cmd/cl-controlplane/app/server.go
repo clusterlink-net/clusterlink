@@ -14,6 +14,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -27,12 +28,15 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/grpc"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/http"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz"
+	cprest "github.com/clusterlink-net/clusterlink/pkg/controlplane/rest"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/xds"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv/bolt"
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
+	"github.com/clusterlink-net/clusterlink/pkg/util/grpc"
 	"github.com/clusterlink-net/clusterlink/pkg/util/log"
+	utilrest "github.com/clusterlink-net/clusterlink/pkg/util/rest"
 	"github.com/clusterlink-net/clusterlink/pkg/util/runnable"
 	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
@@ -145,6 +149,21 @@ func (o *Options) Run() error {
 			"unable to create k8s controller manager: %w", err)
 	}
 
+	controlplaneServerListenAddress := fmt.Sprintf("0.0.0.0:%d", api.ListenPort)
+	sniProxy := sniproxy.NewServer(map[string]string{
+		serverName:     httpServerAddress,
+		grpcServerName: grpcServerAddress,
+	})
+
+	httpServer := utilrest.NewServer("controlplane-http", parsedCertData.ServerConfig())
+	grpcServer := grpc.NewServer("controlplane-grpc", parsedCertData.ServerConfig())
+
+	runnableManager := runnable.NewManager()
+	runnableManager.Add(controller.NewManager(mgr))
+	runnableManager.AddServer(httpServerAddress, httpServer)
+	runnableManager.AddServer(grpcServerAddress, grpcServer)
+	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
+
 	// open store
 	kvStore, err := bolt.Open(StoreFile)
 	if err != nil {
@@ -164,17 +183,10 @@ func (o *Options) Run() error {
 		return err
 	}
 
-	controlplaneServerListenAddress := fmt.Sprintf("0.0.0.0:%d", api.ListenPort)
-	sniProxy := sniproxy.NewServer(map[string]string{
-		serverName:     httpServerAddress,
-		grpcServerName: grpcServerAddress,
-	})
-
-	runnableManager := runnable.NewManager()
-	runnableManager.Add(controller.NewManager(mgr))
-	runnableManager.AddServer(httpServerAddress, http.NewServer(cp, parsedCertData.ServerConfig()))
-	runnableManager.AddServer(grpcServerAddress, grpc.NewServer(cp, parsedCertData.ServerConfig()))
-	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
+	authz.RegisterHandlers(cp, &httpServer.Server)
+	xds.RegisterService(
+		context.Background(), cp, grpcServer.GetGRPCServer())
+	cprest.RegisterHandlers(cp, httpServer)
 
 	return runnableManager.Run()
 }
