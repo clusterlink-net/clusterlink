@@ -244,7 +244,7 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 				Name:            ControlPlaneName,
 				Image:           instance.Spec.ContainerRegistry + ControlPlaneName + ":" + instance.Spec.ImageTag,
 				ImagePullPolicy: corev1.PullIfNotPresent,
-				Args:            []string{"--log-level", instance.Spec.LogLevel, "--platform", "k8s"},
+				Args:            []string{"--log-level", instance.Spec.LogLevel},
 				Ports: []corev1.ContainerPort{
 					{
 						ContainerPort: cpapi.ListenPort,

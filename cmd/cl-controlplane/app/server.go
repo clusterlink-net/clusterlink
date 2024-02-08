@@ -28,9 +28,6 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/grpc"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/http"
-	"github.com/clusterlink-net/clusterlink/pkg/platform"
-	"github.com/clusterlink-net/clusterlink/pkg/platform/k8s"
-	"github.com/clusterlink-net/clusterlink/pkg/platform/unknown"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv/bolt"
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
@@ -58,17 +55,10 @@ const (
 	httpServerAddress = "127.0.0.1:1100"
 	// grpcServerAddress is the address of the localhost gRPC server.
 	grpcServerAddress = "127.0.0.1:1101"
-
-	// platformUnknown represents an unknown platform.
-	platformUnknown = ""
-	// platformK8S represents a Kubernetes platform.
-	platformK8S = "k8s"
 )
 
 // Options contains everything necessary to create and run a controlplane.
 type Options struct {
-	// platform environment.
-	Platform string
 	// LogFile is the path to file where logs will be written.
 	LogFile string
 	// LogLevel is the log level.
@@ -77,9 +67,6 @@ type Options struct {
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.Platform, "platform", platformUnknown,
-		fmt.Sprintf("Platform environment (supported values: \"%q\" (default), \"%q\").",
-			platformUnknown, platformK8S))
 	fs.StringVar(&o.LogFile, "log-file", "",
 		"Path to a file where logs will be written. If not specified, logs will be printed to stderr.")
 	fs.StringVar(&o.LogLevel, "log-level", logLevel,
@@ -154,21 +141,7 @@ func (o *Options) Run() error {
 
 	storeManager := kv.NewManager(kvStore)
 
-	// initialize platform
-	var pp platform.Platform
-	switch o.Platform {
-	case platformUnknown:
-		pp = unknown.NewPlatform()
-	case platformK8S:
-		pp, err = k8s.NewPlatform()
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unknown platform type: %s", o.Platform)
-	}
-
-	cp, err := controlplane.NewInstance(parsedCertData, storeManager, pp)
+	cp, err := controlplane.NewInstance(parsedCertData, storeManager)
 	if err != nil {
 		return err
 	}
