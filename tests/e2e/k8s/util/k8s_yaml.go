@@ -215,7 +215,7 @@ metadata:
 
 func removeControlplanePVC(yaml string) (string, error) {
 	var err error
-	search := `
+	search := `---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -226,7 +226,7 @@ spec:
   resources:
     requests:
       storage: 100Mi
----`
+`
 	yaml, err = replaceOnce(yaml, search, "")
 	if err != nil {
 		return "", err

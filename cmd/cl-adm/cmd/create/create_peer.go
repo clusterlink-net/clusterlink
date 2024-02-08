@@ -39,6 +39,9 @@ type PeerOptions struct {
 	LogLevel string
 	// ContainerRegistry is the container registry to pull the project images.
 	ContainerRegistry string
+	// CRDMode indicates whether to run a k8s CRD-based controlplane.
+	// This flag will be removed once the CRD-based controlplane feature is complete and stable.
+	CRDMode bool
 }
 
 // AddFlags adds flags to fs and binds them to options.
@@ -51,6 +54,7 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 		"The log level. One of fatal, error, warn, info, debug.")
 	fs.StringVar(&o.ContainerRegistry, "container-registry", "ghcr.io/clusterlink-net",
 		"The container registry to pull the project images. If empty will use local registry.")
+	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -196,6 +200,7 @@ func (o *PeerOptions) Run() error {
 		DataplaneType:           o.DataplaneType,
 		LogLevel:                o.LogLevel,
 		ContainerRegistry:       o.ContainerRegistry,
+		CRDMode:                 o.CRDMode,
 	}
 	k8sConfig, err := platform.K8SConfig(platformCfg)
 	if err != nil {

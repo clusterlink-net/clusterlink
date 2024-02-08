@@ -63,6 +63,9 @@ type Options struct {
 	LogFile string
 	// LogLevel is the log level.
 	LogLevel string
+	// CRDMode indicates a k8s CRD-based controlplane.
+	// This flag will be removed once the CRD-based controlplane feature is complete and stable.
+	CRDMode bool
 }
 
 // AddFlags adds flags to fs and binds them to options.
@@ -71,6 +74,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 		"Path to a file where logs will be written. If not specified, logs will be printed to stderr.")
 	fs.StringVar(&o.LogLevel, "log-level", logLevel,
 		"The log level. One of fatal, error, warn, info, debug.")
+	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }
 
 // Run the various controlplane servers.

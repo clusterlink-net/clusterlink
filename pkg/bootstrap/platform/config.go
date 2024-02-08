@@ -42,6 +42,8 @@ type Config struct {
 	LogLevel string
 	// ContainerRegistry is the container registry to pull the project images.
 	ContainerRegistry string
+	// CRDMode indicates a CRD-based controlplane.
+	CRDMode bool
 }
 
 const (
