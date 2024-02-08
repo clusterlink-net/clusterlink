@@ -25,7 +25,7 @@ import (
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	cpstore "github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
-	"github.com/clusterlink-net/clusterlink/pkg/platform"
+	"github.com/clusterlink-net/clusterlink/pkg/platform/k8s"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/pkg/store"
@@ -55,7 +55,7 @@ type Instance struct {
 	xdsManager    *xdsManager
 	ports         *portManager
 	policyDecider policyengine.PolicyDecider
-	platform      platform.Platform
+	platform      *k8s.Platform
 
 	jwkSignKey   jwk.Key
 	jwkVerifyKey jwk.Key
@@ -629,8 +629,14 @@ func (cp *Instance) generateJWK() error {
 }
 
 // NewInstance returns a new controlplane instance.
-func NewInstance(peerTLS *tls.ParsedCertData, storeManager store.Manager, pp platform.Platform) (*Instance, error) {
+func NewInstance(peerTLS *tls.ParsedCertData, storeManager store.Manager) (*Instance, error) {
 	logger := logrus.WithField("component", "controlplane")
+
+	// initialize platform
+	pp, err := k8s.NewPlatform()
+	if err != nil {
+		return nil, err
+	}
 
 	peers, err := cpstore.NewPeers(storeManager)
 	if err != nil {
