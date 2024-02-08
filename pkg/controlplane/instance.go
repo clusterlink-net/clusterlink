@@ -24,6 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/peer"
 	cpstore "github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 	"github.com/clusterlink-net/clusterlink/pkg/platform/k8s"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
@@ -50,7 +51,7 @@ type Instance struct {
 	lbPolicies *cpstore.LBPolicies
 
 	peerLock   sync.RWMutex
-	peerClient map[string]*client
+	peerClient map[string]*peer.Client
 
 	xdsManager    *xdsManager
 	ports         *portManager
@@ -66,65 +67,65 @@ type Instance struct {
 }
 
 // CreatePeer defines a new route target for egress dataplane connections.
-func (cp *Instance) CreatePeer(peer *cpstore.Peer) error {
-	cp.logger.Infof("Creating peer '%s'.", peer.Name)
+func (cp *Instance) CreatePeer(pr *cpstore.Peer) error {
+	cp.logger.Infof("Creating peer '%s'.", pr.Name)
 
 	if cp.initialized {
-		if err := cp.peers.Create(peer); err != nil {
+		if err := cp.peers.Create(pr); err != nil {
 			return err
 		}
 	}
 
 	// initialize peer client
-	client := newClient(peer, cp.peerTLS.ClientConfig(peer.Name))
+	client := peer.NewClient(pr, cp.peerTLS.ClientConfig(pr.Name))
 
 	cp.peerLock.Lock()
-	cp.peerClient[peer.Name] = client
+	cp.peerClient[pr.Name] = client
 	cp.peerLock.Unlock()
 
-	if err := cp.xdsManager.AddPeer(peer); err != nil {
+	if err := cp.xdsManager.AddPeer(pr); err != nil {
 		// practically impossible
 		return err
 	}
 
-	cp.policyDecider.AddPeer(peer.Name)
+	cp.policyDecider.AddPeer(pr.Name)
 
 	client.SetPeerStatusCallback(func(isActive bool) {
 		if isActive {
-			cp.policyDecider.AddPeer(peer.Name)
+			cp.policyDecider.AddPeer(pr.Name)
 			return
 		}
 
-		cp.policyDecider.DeletePeer(peer.Name)
+		cp.policyDecider.DeletePeer(pr.Name)
 	})
 
 	return nil
 }
 
 // UpdatePeer updates new route target for egress dataplane connections.
-func (cp *Instance) UpdatePeer(peer *cpstore.Peer) error {
-	cp.logger.Infof("Updating peer '%s'.", peer.Name)
+func (cp *Instance) UpdatePeer(pr *cpstore.Peer) error {
+	cp.logger.Infof("Updating peer '%s'.", pr.Name)
 
-	err := cp.peers.Update(peer.Name, func(old *cpstore.Peer) *cpstore.Peer {
-		return peer
+	err := cp.peers.Update(pr.Name, func(old *cpstore.Peer) *cpstore.Peer {
+		return pr
 	})
 	if err != nil {
 		return err
 	}
 
 	// initialize peer client
-	client := newClient(peer, cp.peerTLS.ClientConfig(peer.Name))
+	client := peer.NewClient(pr, cp.peerTLS.ClientConfig(pr.Name))
 
 	cp.peerLock.Lock()
-	cp.peerClient[peer.Name] = client
+	cp.peerClient[pr.Name] = client
 	cp.peerLock.Unlock()
 
-	if err := cp.xdsManager.AddPeer(peer); err != nil {
+	if err := cp.xdsManager.AddPeer(pr); err != nil {
 		// practically impossible
 		return err
 	}
 
-	cp.policyDecider.AddPeer(peer.Name)
+	cp.policyDecider.AddPeer(pr.Name)
 
 	return nil
 }
@@ -139,11 +140,11 @@ func (cp *Instance) GetPeer(name string) *cpstore.Peer {
 func (cp *Instance) DeletePeer(name string) (*cpstore.Peer, error) {
 	cp.logger.Infof("Deleting peer '%s'.", name)
 
-	peer, err := cp.peers.Delete(name)
+	pr, err := cp.peers.Delete(name)
 	if err != nil {
 		return nil, err
 	}
-	if peer == nil {
+	if pr == nil {
 		return nil, nil
 	}
 
@@ -159,7 +160,7 @@ func (cp *Instance) DeletePeer(name string) (*cpstore.Peer, error) {
 
 	cp.policyDecider.DeletePeer(name)
 
-	return peer, nil
+	return pr, nil
 }
 
 // GetAllPeers returns the list of all peers.
@@ -676,7 +677,7 @@ func NewInstance(peerTLS *tls.ParsedCertData, storeManager store.Manager) (*Inst
 
 	cp := &Instance{
 		peerTLS:       peerTLS,
-		peerClient:    make(map[string]*client),
+		peerClient:    make(map[string]*peer.Client),
 		peers:         peers,
 		exports:       exports,
 		imports:       imports,

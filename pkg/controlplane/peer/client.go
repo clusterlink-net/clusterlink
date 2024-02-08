@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package controlplane
+package peer
 
 import (
 	"crypto/tls"
@@ -36,8 +36,8 @@ const (
 	heartbeatRetransmissionTime = 60 * time.Second
 )
 
-// client for accessing a remote peer.
-type client struct {
+// Client for accessing a remote peer.
+type Client struct {
 	// jsonapi clients for connecting to the remote peer (one per each gateway)
 	clients            []*jsonapi.Client
 	lastSeen           time.Time
@@ -48,8 +48,8 @@ type client struct {
 	peerStatusCallback func(bool) // Callback function for notifying changes in peer
 }
 
-// remoteServerAuthorizationResponse represents an authorization response received from a remote controlplane server.
-type remoteServerAuthorizationResponse struct {
+// RemoteServerAuthorizationResponse represents an authorization response received from a remote controlplane server.
+type RemoteServerAuthorizationResponse struct {
 	// ServiceExists is true if the requested service exists.
 	ServiceExists bool
 	// Allowed is true if the request is allowed.
@@ -59,7 +59,7 @@ type remoteServerAuthorizationResponse struct {
 }
 
 // authorize a request for accessing a peer exported service, yielding an access token.
-func (c *client) Authorize(req *api.AuthorizationRequest) (*remoteServerAuthorizationResponse, error) {
+func (c *Client) Authorize(req *api.AuthorizationRequest) (*RemoteServerAuthorizationResponse, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to serialize authorization request: %w", err)
@@ -80,7 +80,7 @@ func (c *client) Authorize(req *api.AuthorizationRequest) (*remoteServerAuthoriz
 		return nil, err
 	}
 
-	resp := &remoteServerAuthorizationResponse{}
+	resp := &RemoteServerAuthorizationResponse{}
 	if serverResp.Status == http.StatusNotFound {
 		return resp, nil
 	}
@@ -106,14 +106,14 @@ func (c *client) Authorize(req *api.AuthorizationRequest) (*remoteServerAuthoriz
 }
 
 // IsActive returns if the peer is active or not.
-func (c *client) IsActive() bool {
+func (c *Client) IsActive() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	return c.active
 }
 
 // setActive the peer status (active or not).
-func (c *client) setActive(active bool) {
+func (c *Client) setActive(active bool) {
 	c.lock.Lock()
 	activePrevState := c.active
 	c.active = active
@@ -129,7 +129,7 @@ func (c *client) setActive(active bool) {
 }
 
 // GetHeartbeat get a heartbeat from other peers.
-func (c *client) getHeartbeat() error {
+func (c *Client) getHeartbeat() error {
 	var retErr error
 	// copy peer clients array aside
 	peerClients := make([]*jsonapi.Client, len(c.clients))
@@ -156,12 +156,12 @@ func (c *client) getHeartbeat() error {
 }
 
 // StopMonitor send signal to stop heartbeat monitor.
-func (c *client) StopMonitor() {
+func (c *Client) StopMonitor() {
 	close(c.stopSignal)
 }
 
 // heartbeatMonitor checks all peers for responsiveness, every fixed amount of time.
-func (c *client) heartbeatMonitor() {
+func (c *Client) heartbeatMonitor() {
 	c.logger.Info("Start sending heartbeat requests to peer")
 	ticker := time.NewTicker(heartbeatInterval)
 	defer ticker.Stop()
@@ -189,23 +189,23 @@ func (c *client) heartbeatMonitor() {
 }
 
 // SetPeerStatusCallback set the peerStatusCallback.
-func (c *client) SetPeerStatusCallback(callback func(bool)) {
+func (c *Client) SetPeerStatusCallback(callback func(bool)) {
 	c.peerStatusCallback = callback
 }
 
-// newClient returns a new Peer API client.
-func newClient(peer *store.Peer, tlsConfig *tls.Config) *client {
+// NewClient returns a new Peer API client.
+func NewClient(peer *store.Peer, tlsConfig *tls.Config) *Client {
 	clients := make([]*jsonapi.Client, len(peer.Gateways))
 	for i, endpoint := range peer.Gateways {
 		clients[i] = jsonapi.NewClient(endpoint.Host, endpoint.Port, tlsConfig)
 	}
-	clnt := &client{
+	clnt := &Client{
 		clients:    clients,
 		active:     false,
 		lastSeen:   time.Time{},
 		stopSignal: make(chan struct{}),
 		logger: logrus.WithFields(logrus.Fields{
-			"component": "peer-client",
+			"component": "controlplane.peer.client",
 			"peer":      peer,
 		}),
 	}
