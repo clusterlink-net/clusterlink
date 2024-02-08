@@ -26,7 +26,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-net/clusterlink/pkg/util"
+	utiltls "github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 // Dataplane implements the server and api client which sends authorization to the control plane.
@@ -35,7 +35,7 @@ type Dataplane struct {
 	peerName           string
 	router             *chi.Mux
 	apiClient          *http.Client
-	parsedCertData     *util.ParsedCertData
+	parsedCertData     *utiltls.ParsedCertData
 	controlplaneTarget string
 	clusters           map[string]*cluster.Cluster
 	listeners          map[string]*listener.Listener
@@ -81,7 +81,7 @@ func (d *Dataplane) AddListener(ln *listener.Listener) {
 }
 
 // NewDataplane returns a new dataplane HTTP server.
-func NewDataplane(dataplaneID, controlplaneTarget, peerName string, parsedCertData *util.ParsedCertData) *Dataplane {
+func NewDataplane(dataplaneID, controlplaneTarget, peerName string, parsedCertData *utiltls.ParsedCertData) *Dataplane {
 	dp := &Dataplane{
 		ID:       dataplaneID,
 		peerName: peerName,

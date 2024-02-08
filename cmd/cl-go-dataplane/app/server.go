@@ -20,7 +20,7 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -28,7 +28,8 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 	dpclient "github.com/clusterlink-net/clusterlink/pkg/dataplane/client"
 	dpserver "github.com/clusterlink-net/clusterlink/pkg/dataplane/server"
-	"github.com/clusterlink-net/clusterlink/pkg/util"
+	"github.com/clusterlink-net/clusterlink/pkg/util/log"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 const (
@@ -72,20 +73,20 @@ func (o *Options) RequiredFlags() []string {
 }
 
 // Run the go dataplane.
-func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *util.ParsedCertData) error {
+func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *tls.ParsedCertData) error {
 	controlplaneTarget := net.JoinHostPort(o.ControlplaneHost, strconv.Itoa(cpapi.ListenPort))
 
-	log.Infof("Starting go dataplane, Name: %s, ID: %s", peerName, dataplaneID)
+	logrus.Infof("Starting go dataplane, Name: %s, ID: %s", peerName, dataplaneID)
 
 	dataplane := dpserver.NewDataplane(dataplaneID, controlplaneTarget, peerName, parsedCertData)
 	go func() {
 		err := dataplane.StartDataplaneServer(dataplaneServerAddress)
-		log.Errorf("Failed to start dataplane server: %v.", err)
+		logrus.Errorf("Failed to start dataplane server: %v.", err)
 	}()
 
 	go func() {
 		err := dataplane.StartSNIServer(dataplaneServerAddress)
-		log.Error("Failed to start dataplane server", err)
+		logrus.Error("Failed to start dataplane server", err)
 	}()
 
 	// Start xDS client, if it fails to start we keep retrying to connect to the controlplane host
@@ -97,31 +98,20 @@ func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *u
 
 // Run the dataplane.
 func (o *Options) Run() error {
-	// set log file
-	if o.LogFile != "" {
-		f, err := os.OpenFile(o.LogFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o666)
-		if err != nil {
-			return fmt.Errorf("unable to open log file: %w", err)
-		}
-
+	f, err := log.Set(o.LogLevel, o.LogFile)
+	if err != nil {
+		return err
+	}
+	if f != nil {
 		defer func() {
 			if err := f.Close(); err != nil {
-				log.Errorf("Cannot close log file: %v", err)
+				logrus.Errorf("Cannot close log file: %v", err)
 			}
 		}()
-
-		log.SetOutput(f)
 	}
-
-	// set log level
-	logLevel, err := log.ParseLevel(o.LogLevel)
-	if err != nil {
-		return fmt.Errorf("unable to set log level: %w", err)
-	}
-	log.SetLevel(logLevel)
 
 	// parse TLS files
-	parsedCertData, err := util.ParseTLSFiles(CAFile, CertificateFile, KeyFile)
+	parsedCertData, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
 	if err != nil {
 		return err
 	}
@@ -138,7 +128,7 @@ func (o *Options) Run() error {
 
 	// generate random dataplane ID
 	dataplaneID := uuid.New().String()
-	log.Infof("Dataplane ID: %s.", dataplaneID)
+	logrus.Infof("Dataplane ID: %s.", dataplaneID)
 
 	return o.runGoDataplane(peerName, dataplaneID, parsedCertData)
 }

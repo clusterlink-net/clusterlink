@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package util
+package tls
 
 import (
 	"crypto/tls"
@@ -20,8 +20,8 @@ import (
 	"os"
 )
 
-// ParseTLSFiles parses the given TLS-related files.
-func ParseTLSFiles(ca, cert, key string) (*ParsedCertData, error) {
+// ParseFiles parses the given TLS-related files.
+func ParseFiles(ca, cert, key string) (*ParsedCertData, error) {
 	rawCA, err := os.ReadFile(ca)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read CA file '%s': %w", ca, err)
