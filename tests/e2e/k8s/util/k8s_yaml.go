@@ -65,6 +65,7 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 		DataplaneType:           cfg.DataplaneType,
 		LogLevel:                logLevel,
 		ContainerRegistry:       "",
+		Namespace:               f.namespace,
 	})
 	if err != nil {
 		return "", err
@@ -75,11 +76,6 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 	k8sYAML, err = switchDataplaneServiceToNodeport(k8sYAML)
 	if err != nil {
 		return "", fmt.Errorf("cannot switch dataplane type to nodeport: %w", err)
-	}
-
-	k8sYAML, err = switchNamespace(k8sYAML, f.namespace)
-	if err != nil {
-		return "", fmt.Errorf("cannot switch namespace: %w", err)
 	}
 
 	k8sYAML, err = switchClusterRoleName(k8sYAML, f.namespace)
@@ -108,7 +104,7 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 	}
 
 	if !cfg.ControlplanePersistency {
-		k8sYAML, err = removeControlplanePVC(k8sYAML)
+		k8sYAML, err = removeControlplanePVC(k8sYAML, f.namespace)
 		if err != nil {
 			return "", fmt.Errorf("cannot remove controlplane PVC: %w", err)
 		}
@@ -138,10 +134,6 @@ func switchDataplaneServiceToNodeport(yaml string) (string, error) {
   ports:
     - name: dataplane`
 	return replaceOnce(yaml, search, replace)
-}
-
-func switchNamespace(yaml, namespace string) (string, error) {
-	return replaceOnce(yaml, "namespace: default", "namespace: "+namespace)
 }
 
 func switchClusterRoleName(yaml, name string) (string, error) {
@@ -213,13 +205,14 @@ metadata:
 	return remove(yaml, search, "\n---")
 }
 
-func removeControlplanePVC(yaml string) (string, error) {
+func removeControlplanePVC(yaml, namespace string) (string, error) {
 	var err error
 	search := `---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: cl-controlplane
+  namespace: ` + namespace + `
 spec:
   accessModes:
     - ReadWriteOnce
