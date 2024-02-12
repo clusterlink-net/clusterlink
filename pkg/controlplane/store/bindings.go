@@ -14,6 +14,7 @@
 package store
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -124,12 +125,12 @@ func (s *Bindings) Delete(binding *Binding) (*Binding, error) {
 	// delete from cache
 	valMap, ok := s.cache[binding.Import]
 	if !ok {
-		return nil, nil
+		return nil, errors.New("binding import not found")
 	}
 
 	val, ok := valMap[binding.Peer]
 	if !ok {
-		return nil, nil
+		return nil, errors.New("binding peer not found")
 	}
 
 	delete(valMap, binding.Peer)
