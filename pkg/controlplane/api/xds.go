@@ -48,8 +48,8 @@ const (
 )
 
 // ExportClusterName returns the cluster name of an exported service.
-func ExportClusterName(name string) string {
-	return ExportClusterPrefix + name
+func ExportClusterName(name, namespace string) string {
+	return ExportClusterPrefix + namespace + "/" + name
 }
 
 // RemotePeerClusterName returns the cluster name of a remote peer.
@@ -58,6 +58,6 @@ func RemotePeerClusterName(name string) string {
 }
 
 // ImportListenerName returns the listener name of an imported service.
-func ImportListenerName(name string) string {
-	return ImportListenerPrefix + name
+func ImportListenerName(name, namespace string) string {
+	return ImportListenerPrefix + namespace + "/" + name
 }

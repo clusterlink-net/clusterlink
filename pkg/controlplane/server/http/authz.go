@@ -51,7 +51,12 @@ func (s *Server) PeerAuthorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	peerName := r.TLS.PeerCertificates[0].DNSNames[0]
-	resp, err := s.cp.AuthorizeIngress(&controlplane.IngressAuthorizationRequest{Service: req.Service}, peerName)
+	resp, err := s.cp.AuthorizeIngress(
+		&controlplane.IngressAuthorizationRequest{
+			ServiceName:      req.ServiceName,
+			ServiceNamespace: req.ServiceNamespace,
+		},
+		peerName)
 	switch {
 	case err != nil:
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -86,15 +91,22 @@ func (s *Server) DataplaneEgressAuthorize(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	imp := r.Header.Get(api.ImportHeader)
-	if imp == "" {
-		http.Error(w, fmt.Sprintf("missing '%s' header", api.ImportHeader), http.StatusBadRequest)
+	importName := r.Header.Get(api.ImportNameHeader)
+	if importName == "" {
+		http.Error(w, fmt.Sprintf("missing '%s' header", api.ImportNameHeader), http.StatusBadRequest)
+		return
+	}
+
+	importNamespace := r.Header.Get(api.ImportNamespaceHeader)
+	if importNamespace == "" {
+		http.Error(w, fmt.Sprintf("missing '%s' header", api.ImportNamespaceHeader), http.StatusBadRequest)
 		return
 	}
 
 	resp, err := s.cp.AuthorizeEgress(&controlplane.EgressAuthorizationRequest{
-		Import: imp,
-		IP:     ip,
+		ImportName:      importName,
+		ImportNamespace: importNamespace,
+		IP:              ip,
 	})
 
 	switch {

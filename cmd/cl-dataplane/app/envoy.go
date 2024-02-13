@@ -60,10 +60,11 @@ func (o *Options) runEnvoy(peerName, dataplaneID string) error {
 		"dataplaneEgressAuthorizationPrefix":  strings.TrimSuffix(cpapi.DataplaneEgressAuthorizationPath, "/"),
 		"dataplaneIngressAuthorizationPrefix": strings.TrimSuffix(cpapi.DataplaneIngressAuthorizationPath, "/"),
 
-		"importHeader":        cpapi.ImportHeader,
-		"clientIPHeader":      cpapi.ClientIPHeader,
-		"authorizationHeader": cpapi.AuthorizationHeader,
-		"targetClusterHeader": cpapi.TargetClusterHeader,
+		"importNameHeader":      cpapi.ImportNameHeader,
+		"importNamespaceHeader": cpapi.ImportNamespaceHeader,
+		"clientIPHeader":        cpapi.ClientIPHeader,
+		"authorizationHeader":   cpapi.AuthorizationHeader,
+		"targetClusterHeader":   cpapi.TargetClusterHeader,
 	}
 
 	var envoyConf bytes.Buffer
