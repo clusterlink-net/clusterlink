@@ -39,14 +39,6 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: cl-peer
-  namespace: {{.namespace}}
-data:
-  ca: {{.peerCA}}
----
-apiVersion: v1
-kind: Secret
-metadata:
   name: cl-controlplane
   namespace: {{.namespace}}
 data:
@@ -62,6 +54,14 @@ data:
   cert: {{.dataplaneCert}}
   key: {{.dataplaneKey}}
 {{ if not .crdMode }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cl-peer
+  namespace: {{.namespace}}
+data:
+  ca: {{.peerCA}}
 ---
 apiVersion: v1
 kind: Secret
@@ -112,9 +112,11 @@ spec:
         - name: tls
           secret:
             secretName: cl-controlplane
+{{ if not .crdMode }}
         - name: cl-controlplane
           persistentVolumeClaim:
             claimName: cl-controlplane
+{{ end }}
       containers:
         - name: cl-controlplane
           image: {{.containerRegistry}}cl-controlplane
