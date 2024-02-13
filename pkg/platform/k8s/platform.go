@@ -15,7 +15,6 @@ package k8s
 
 import (
 	"context"
-	"os"
 
 	logrusr "github.com/bombsimon/logrusr/v4"
 	"github.com/sirupsen/logrus"
@@ -120,7 +119,7 @@ func (p *Platform) GetLabelsFromIP(ip string) map[string]string {
 }
 
 // NewPlatform returns a new Kubernetes platform.
-func NewPlatform() (*Platform, error) {
+func NewPlatform(namespace string) (*Platform, error) {
 	logger := logrus.WithField("component", "platform.k8s")
 	ctrl.SetLogger(logrusr.New(logrus.WithField("component", "k8s.controller-runtime")))
 
@@ -151,13 +150,6 @@ func NewPlatform() (*Platform, error) {
 			logger.Error(err, "problem running manager")
 		}
 	}()
-
-	// Get namespace
-	namespace := os.Getenv("CL-NAMESPACE")
-	if namespace == "" {
-		namespace = defaultNamespace
-		logger.Logger.Infoln("the CL-NAMESPACE environment variable is not set- use default namespace")
-	}
 
 	return &Platform{
 		client:            manager.GetClient(),
