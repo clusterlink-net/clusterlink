@@ -310,6 +310,16 @@ func (f *Fabric) DeployClusterlinks(peerCount uint8, cfg *PeerConfig) ([]*Cluste
 	return clusterlinks, nil
 }
 
+// PeerKindCluster returns the peer kind cluster.
+func (f *Fabric) PeerKindCluster(num int) *KindCluster {
+	return f.peers[num].cluster
+}
+
+// Namespace returns fabric namespace.
+func (f *Fabric) Namespace() string {
+	return f.namespace
+}
+
 // NewFabric returns a new empty fabric.
 func NewFabric() (*Fabric, error) {
 	cert, err := bootstrap.CreateFabricCertificate()
