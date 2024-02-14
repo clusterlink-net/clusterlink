@@ -32,7 +32,7 @@ const (
 	clusterCount = 3
 )
 
-var images = [...]string{"cl-controlplane", "cl-dataplane", "cl-go-dataplane"}
+var images = [...]string{"cl-controlplane", "cl-dataplane", "cl-go-dataplane", "cl-operator"}
 
 var iperf3Service = util.Service{
 	Name:      "iperf3-server",
@@ -98,8 +98,21 @@ func (s *TestSuite) SetupSuite() {
 		if err != nil {
 			s.T().Fatal(fmt.Errorf("cannot create iperf3-server service: %w", err))
 		}
-	}
 
+		// create the project operator.
+		if err := s.clusters[i].CreateFromPath("./../../../config/operator/manager/"); err != nil {
+			s.T().Fatal(fmt.Errorf("cannot create k8s operator deployment files: %w", err))
+		}
+
+		if err := s.clusters[i].CreateFromPath("./../../../config/operator/rbac/"); err != nil {
+			s.T().Fatal(fmt.Errorf("cannot create k8s operator rbac files: %w", err))
+		}
+
+		// create the project CRDs.
+		if err := s.clusters[i].CreateFromPath("./../../../config/operator/crds/"); err != nil {
+			s.T().Fatal(fmt.Errorf("cannot create project CRDs: %w", err))
+		}
+	}
 	// wait for fabric
 	if err := fabric.Wait(); err != nil {
 		s.T().Fatal(err)
