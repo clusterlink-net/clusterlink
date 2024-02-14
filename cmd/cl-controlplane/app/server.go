@@ -15,6 +15,7 @@ package app
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -55,6 +56,12 @@ const (
 	httpServerAddress = "127.0.0.1:1100"
 	// grpcServerAddress is the address of the localhost gRPC server.
 	grpcServerAddress = "127.0.0.1:1101"
+
+	// NamespaceEnvVariable is the environment variable
+	// which should hold the clusterlink system namespace name.
+	NamespaceEnvVariable = "CL_NAMESPACE"
+	// SystemNamespace represents the default clusterlink system namespace.
+	SystemNamespace = "clusterlink-system"
 )
 
 // Options contains everything necessary to create and run a controlplane.
@@ -92,6 +99,13 @@ func (o *Options) Run() error {
 			}
 		}()
 	}
+
+	namespace := os.Getenv(NamespaceEnvVariable)
+	if namespace == "" {
+		namespace = SystemNamespace
+	}
+	logrus.Infof("ClusterLink namespace: %s", namespace)
+
 	parsedCertData, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
 	if err != nil {
 		return err
@@ -145,7 +159,7 @@ func (o *Options) Run() error {
 
 	storeManager := kv.NewManager(kvStore)
 
-	cp, err := controlplane.NewInstance(parsedCertData, storeManager)
+	cp, err := controlplane.NewInstance(parsedCertData, storeManager, namespace)
 	if err != nil {
 		return err
 	}

@@ -630,11 +630,11 @@ func (cp *Instance) generateJWK() error {
 }
 
 // NewInstance returns a new controlplane instance.
-func NewInstance(peerTLS *tls.ParsedCertData, storeManager store.Manager) (*Instance, error) {
+func NewInstance(peerTLS *tls.ParsedCertData, storeManager store.Manager, namespace string) (*Instance, error) {
 	logger := logrus.WithField("component", "controlplane")
 
 	// initialize platform
-	pp, err := k8s.NewPlatform()
+	pp, err := k8s.NewPlatform(namespace)
 	if err != nil {
 		return nil, err
 	}

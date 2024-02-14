@@ -142,7 +142,7 @@ spec:
               mountPath: {{.persistencyDirectoryMountPath}}
 {{ end }}
           env:
-            - name: CL-NAMESPACE
+            - name: {{ .namespaceEnvVariable }}
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
@@ -326,7 +326,8 @@ func K8SConfig(config *Config) ([]byte, error) {
 		"logLevel":          config.LogLevel,
 		"containerRegistry": containerRegistry,
 
-		"dataplaneTypeEnvoy": DataplaneTypeEnvoy,
+		"dataplaneTypeEnvoy":   DataplaneTypeEnvoy,
+		"namespaceEnvVariable": cpapp.NamespaceEnvVariable,
 
 		"persistencyDirectoryMountPath": filepath.Dir(cpapp.StoreFile),
 

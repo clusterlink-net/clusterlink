@@ -23,6 +23,7 @@ import (
 	"golang.org/x/net/idna"
 
 	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
+	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 )
@@ -49,7 +50,7 @@ type PeerOptions struct {
 // AddFlags adds flags to fs and binds them to options.
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
-	fs.StringVar(&o.Namespace, "namespace", platform.SystemNamespace, "Namespace where the ClusterLink components are deployed.")
+	fs.StringVar(&o.Namespace, "namespace", app.SystemNamespace, "Namespace where the ClusterLink components are deployed.")
 	fs.Uint16Var(&o.Dataplanes, "dataplanes", 1, "Number of dataplanes.")
 	fs.StringVar(&o.DataplaneType, "dataplane-type", platform.DataplaneTypeEnvoy,
 		"Type of dataplane, Supported values: \"envoy\" (default), \"go\"")

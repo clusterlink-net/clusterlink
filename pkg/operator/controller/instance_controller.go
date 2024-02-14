@@ -276,7 +276,7 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 				},
 				Env: []corev1.EnvVar{
 					{
-						Name: "CL-NAMESPACE",
+						Name: cpapp.NamespaceEnvVariable,
 						ValueFrom: &corev1.EnvVarSource{
 							FieldRef: &corev1.ObjectFieldSelector{
 								FieldPath: "metadata.namespace",

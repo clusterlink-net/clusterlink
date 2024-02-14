@@ -55,6 +55,4 @@ const (
 	DataplaneTypeEnvoy = "envoy"
 	// DataplaneTypeGo represents a go-type dataplane.
 	DataplaneTypeGo = "go"
-	// SystemNamespace represents the default namespace the system use.
-	SystemNamespace = "clusterlink-system"
 )
