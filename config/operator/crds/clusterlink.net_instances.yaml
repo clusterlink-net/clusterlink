@@ -78,7 +78,7 @@ spec:
                     default: none
                     description: 'Type represents the type of service used to expose
                       the ClusterLink deployment. Supported values: "LoadBalancer","NodePort",
-                      "none". The service name will be "cl-external-svc".'
+                      "none". The service name will be "clusterlink".'
                     enum:
                     - none
                     - LoadBalancer

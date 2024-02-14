@@ -100,10 +100,10 @@ func main() {
 	}
 
 	if err = (&controller.InstanceReconciler{
-		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		Logger:        logrus.WithField("component", "reconciler"),
-		InstancesMeta: make(map[string]string),
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Logger:    logrus.WithField("component", "reconciler"),
+		Instances: make(map[string]string),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Operator")
 		os.Exit(1)
