@@ -1,9 +1,10 @@
 ---
 title: Getting Started
+description: This guide provides instructions for installing and configuring ClusterLink on Kubernetes. 
 weight: 20
 ---
 
-This guide will give you a quick start on installing and setting up the ClusterLink project on a Kubernetes cluster.
+This guide will give you a quick start on installing and setting up the ClusterLink on a Kubernetes cluster.
 
 ## Prerequisites
 
@@ -13,7 +14,7 @@ Before you start, you must have access to a Kubernetes cluster. For example, you
 
 1. To install ClusterLink on Linux or Mac, use the installation script:
 
-        curl -L <https://Clusterlink.net/install> | sh -
+       $ curl -L <https://Clusterlink.net/install> | sh -
 
 1. Move to the ClusterLink project folder:
 
@@ -34,11 +35,11 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
 1. Create fabric certificates.
 
     The ClusterLink Fabric is defined as all Kubernetes clusters (sites) that install ClusterLink gateways and can share services between the clusters, enabling communication among those services.
-    First, create the fabric Certificate Authority(CA):
+    First, create the fabric Certificate Authority (CA):
 
         clusterlink create fabric --name <fabric_name>
 
-    This command will create the CA files `cert.pem` and `key.pem` in the current folder.
+    This command will create the CA files `<fabric_name>.cert` and `<fabric_name>.key` in the current folder.
 
 2. Create site certificates.
 
@@ -46,14 +47,17 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
 
         clusterlink create site --name <site_name> --fabric <fabric_name>
 
-    This command will create the CA files `cert.pem` and `key.pem` in a  <site_name> folder.
+    This command will create the CA files `<site_name>.cert` and `<site_name>.key` in a  <site_name> folder.
 
 3. Install ClusterLink deployment operator.
+
     To install ClusterLink on the site, first, install the ClusterLink deployment operator.
 
         clusterlink site init
 
     This command will deploy the ClusterLink deployment operator on the `clusterlink-operator` namespace and convert the site certificates to secrets in the namespace.
+    The command assumes that kubectl is set to the correct site (Kubernetes cluster) and that the certificates were created in the local folder. If they were not, use the flag -f 
+    <certificate_folder>.
 
 4. Deploy clusterlink CRD instance.
 
