@@ -489,7 +489,7 @@ func (r *InstanceReconciler) createExternalService(ctx context.Context, instance
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				"app": "cl-dataplane",
+				"app": dpapp.Name,
 			},
 			Ports: []corev1.ServicePort{
 				{

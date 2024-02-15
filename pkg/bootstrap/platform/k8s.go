@@ -153,16 +153,16 @@ metadata:
   name: cl-dataplane
   namespace: {{.namespace}}
   labels:
-    app: cl-dataplane
+    app: {{ .dataplaneAppName }}
 spec:
   replicas: {{.dataplanes}}
   selector:
     matchLabels:
-      app: cl-dataplane
+      app: {{ .dataplaneAppName }}
   template:
     metadata:
       labels:
-        app: cl-dataplane
+        app: {{ .dataplaneAppName }}
     spec:
       volumes:
         - name: ca
@@ -260,7 +260,7 @@ metadata:
   namespace: {{.namespace}}
 spec:
   selector:
-    app: cl-dataplane
+    app: {{ .dataplaneAppName }}
   ports:
     - name: dataplane
       port: {{.dataplanePort}}
@@ -328,6 +328,7 @@ func K8SConfig(config *Config) ([]byte, error) {
 
 		"dataplaneTypeEnvoy":   DataplaneTypeEnvoy,
 		"namespaceEnvVariable": cpapp.NamespaceEnvVariable,
+		"dataplaneAppName":     dpapp.Name,
 
 		"persistencyDirectoryMountPath": filepath.Dir(cpapp.StoreFile),
 
