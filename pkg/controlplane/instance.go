@@ -23,6 +23,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/sirupsen/logrus"
 
+	"github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/peer"
 	cpstore "github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
@@ -35,8 +36,7 @@ import (
 )
 
 const (
-	dataplaneAppName = "cl-dataplane"
-	exportPrefix     = "export_"
+	exportPrefix = "export_"
 )
 
 // Instance of a controlplane, where all API servers delegate their requested actions to.
@@ -300,7 +300,7 @@ func (cp *Instance) CreateImport(imp *cpstore.Import) error {
 
 	// TODO: handle a crash happening between storing an import and creating a service
 	if cp.initialized {
-		cp.platform.CreateService(imp.Name, imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
+		cp.platform.CreateService(imp.Name, imp.Service.Host, app.Name, imp.Service.Port, imp.Port)
 	}
 
 	return nil
@@ -323,7 +323,7 @@ func (cp *Instance) UpdateImport(imp *cpstore.Import) error {
 		return err
 	}
 
-	cp.platform.UpdateService(imp.Name, imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
+	cp.platform.UpdateService(imp.Name, imp.Service.Host, app.Name, imp.Service.Port, imp.Port)
 
 	return nil
 }
