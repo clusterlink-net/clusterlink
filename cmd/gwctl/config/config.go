@@ -23,7 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/clusterlink-net/clusterlink/pkg/client"
-	"github.com/clusterlink-net/clusterlink/pkg/util"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 const (
@@ -216,7 +216,7 @@ func GetClientFromID(id string) (*client.Client, error) {
 		return nil, err
 	}
 
-	parsedCertData, err := util.ParseTLSFiles(c.CaFile, c.CertFile, c.KeyFile)
+	parsedCertData, err := tls.ParseFiles(c.CaFile, c.CertFile, c.KeyFile)
 	if err != nil {
 		return nil, err
 	}

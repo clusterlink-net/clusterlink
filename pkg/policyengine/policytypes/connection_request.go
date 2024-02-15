@@ -25,6 +25,7 @@ const (
 type ConnectionRequest struct {
 	SrcWorkloadAttrs WorkloadAttrs
 	DstSvcName       string
+	DstSvcNamespace  string
 
 	Direction Direction
 }

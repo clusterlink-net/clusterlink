@@ -24,7 +24,6 @@ import (
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
-	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
 )
 
 const (
@@ -34,13 +33,16 @@ const (
 // StartDataplaneServer starts the Dataplane server.
 func (d *Dataplane) StartDataplaneServer(dataplaneServerAddress string) error {
 	d.logger.Infof("Dataplane server starting at %s.", dataplaneServerAddress)
-	server := netutils.CreateResilientHTTPServer(
-		dataplaneServerAddress,
-		d.router,
-		d.parsedCertData.ServerConfig(),
-		nil,
-		nil,
-		nil)
+	server := &http.Server{
+		Addr:              dataplaneServerAddress,
+		Handler:           d.router,
+		ReadHeaderTimeout: 2 * time.Second,
+		ReadTimeout:       time.Duration(0), // use header timeout only
+		WriteTimeout:      2 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    10 * 1024,
+		TLSConfig:         d.parsedCertData.ServerConfig(),
+	}
 
 	return server.ListenAndServeTLS("", "")
 }
@@ -59,7 +61,7 @@ func (d *Dataplane) StartSNIServer(dataplaneServerAddress string) error {
 		return fmt.Errorf("unable to create listener for server on %s: %w",
 			dataplaneListenAddress, err)
 	}
-	return sniProxy.Serve()
+	return sniProxy.Start()
 }
 
 func (d *Dataplane) addAuthzHandlers() {

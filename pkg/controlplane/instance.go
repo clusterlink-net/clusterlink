@@ -23,24 +23,25 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/sirupsen/logrus"
 
+	"github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/peer"
 	cpstore "github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
-	"github.com/clusterlink-net/clusterlink/pkg/platform"
+	"github.com/clusterlink-net/clusterlink/pkg/platform/k8s"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/pkg/store"
-	"github.com/clusterlink-net/clusterlink/pkg/util"
-	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
+	"github.com/clusterlink-net/clusterlink/pkg/util/net"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 const (
-	dataplaneAppName = "cl-dataplane"
-	exportPrefix     = "export_"
+	exportPrefix = "export_"
 )
 
 // Instance of a controlplane, where all API servers delegate their requested actions to.
 type Instance struct {
-	peerTLS *util.ParsedCertData
+	peerTLS *tls.ParsedCertData
 
 	peers      *cpstore.Peers
 	exports    *cpstore.Exports
@@ -50,12 +51,12 @@ type Instance struct {
 	lbPolicies *cpstore.LBPolicies
 
 	peerLock   sync.RWMutex
-	peerClient map[string]*client
+	peerClient map[string]*peer.Client
 
 	xdsManager    *xdsManager
 	ports         *portManager
 	policyDecider policyengine.PolicyDecider
-	platform      platform.Platform
+	platform      *k8s.Platform
 
 	jwkSignKey   jwk.Key
 	jwkVerifyKey jwk.Key
@@ -66,65 +67,65 @@ type Instance struct {
 }
 
 // CreatePeer defines a new route target for egress dataplane connections.
-func (cp *Instance) CreatePeer(peer *cpstore.Peer) error {
-	cp.logger.Infof("Creating peer '%s'.", peer.Name)
+func (cp *Instance) CreatePeer(pr *cpstore.Peer) error {
+	cp.logger.Infof("Creating peer '%s'.", pr.Name)
 
 	if cp.initialized {
-		if err := cp.peers.Create(peer); err != nil {
+		if err := cp.peers.Create(pr); err != nil {
 			return err
 		}
 	}
 
 	// initialize peer client
-	client := newClient(peer, cp.peerTLS.ClientConfig(peer.Name))
+	client := peer.NewClient(pr, cp.peerTLS.ClientConfig(pr.Name))
 
 	cp.peerLock.Lock()
-	cp.peerClient[peer.Name] = client
+	cp.peerClient[pr.Name] = client
 	cp.peerLock.Unlock()
 
-	if err := cp.xdsManager.AddPeer(peer); err != nil {
+	if err := cp.xdsManager.AddPeer(pr); err != nil {
 		// practically impossible
 		return err
 	}
 
-	cp.policyDecider.AddPeer(peer.Name)
+	cp.policyDecider.AddPeer(pr.Name)
 
 	client.SetPeerStatusCallback(func(isActive bool) {
 		if isActive {
-			cp.policyDecider.AddPeer(peer.Name)
+			cp.policyDecider.AddPeer(pr.Name)
 			return
 		}
 
-		cp.policyDecider.DeletePeer(peer.Name)
+		cp.policyDecider.DeletePeer(pr.Name)
 	})
 
 	return nil
 }
 
 // UpdatePeer updates new route target for egress dataplane connections.
-func (cp *Instance) UpdatePeer(peer *cpstore.Peer) error {
-	cp.logger.Infof("Updating peer '%s'.", peer.Name)
+func (cp *Instance) UpdatePeer(pr *cpstore.Peer) error {
+	cp.logger.Infof("Updating peer '%s'.", pr.Name)
 
-	err := cp.peers.Update(peer.Name, func(old *cpstore.Peer) *cpstore.Peer {
-		return peer
+	err := cp.peers.Update(pr.Name, func(old *cpstore.Peer) *cpstore.Peer {
+		return pr
 	})
 	if err != nil {
 		return err
 	}
 
 	// initialize peer client
-	client := newClient(peer, cp.peerTLS.ClientConfig(peer.Name))
+	client := peer.NewClient(pr, cp.peerTLS.ClientConfig(pr.Name))
 
 	cp.peerLock.Lock()
-	cp.peerClient[peer.Name] = client
+	cp.peerClient[pr.Name] = client
 	cp.peerLock.Unlock()
 
-	if err := cp.xdsManager.AddPeer(peer); err != nil {
+	if err := cp.xdsManager.AddPeer(pr); err != nil {
 		// practically impossible
 		return err
 	}
 
-	cp.policyDecider.AddPeer(peer.Name)
+	cp.policyDecider.AddPeer(pr.Name)
 
 	return nil
 }
@@ -139,11 +140,11 @@ func (cp *Instance) GetPeer(name string) *cpstore.Peer {
 func (cp *Instance) DeletePeer(name string) (*cpstore.Peer, error) {
 	cp.logger.Infof("Deleting peer '%s'.", name)
 
-	peer, err := cp.peers.Delete(name)
+	pr, err := cp.peers.Delete(name)
 	if err != nil {
 		return nil, err
 	}
-	if peer == nil {
+	if pr == nil {
 		return nil, nil
 	}
 
@@ -159,7 +160,7 @@ func (cp *Instance) DeletePeer(name string) (*cpstore.Peer, error) {
 
 	cp.policyDecider.DeletePeer(name)
 
-	return peer, nil
+	return pr, nil
 }
 
 // GetAllPeers returns the list of all peers.
@@ -172,7 +173,7 @@ func (cp *Instance) GetAllPeers() []*cpstore.Peer {
 func (cp *Instance) CreateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Creating export '%s'.", export.Name)
 	eSpec := export.ExportSpec
-	if eSpec.ExternalService != "" && !netutils.IsIP(eSpec.ExternalService) && !netutils.IsDNS(eSpec.ExternalService) {
+	if eSpec.ExternalService != "" && !net.IsIP(eSpec.ExternalService) && !net.IsDNS(eSpec.ExternalService) {
 		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
 	}
 	// TODO: check policyDecider's answer
@@ -203,7 +204,7 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Updating export '%s'.", export.Name)
 	eSpec := export.ExportSpec
-	if eSpec.ExternalService != "" && !netutils.IsIP(eSpec.ExternalService) && !netutils.IsDNS(eSpec.ExternalService) {
+	if eSpec.ExternalService != "" && !net.IsIP(eSpec.ExternalService) && !net.IsDNS(eSpec.ExternalService) {
 		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
 	}
 
@@ -299,7 +300,7 @@ func (cp *Instance) CreateImport(imp *cpstore.Import) error {
 
 	// TODO: handle a crash happening between storing an import and creating a service
 	if cp.initialized {
-		cp.platform.CreateService(imp.Name, imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
+		cp.platform.CreateService(imp.Name, imp.Service.Host, app.Name, imp.Service.Port, imp.Port)
 	}
 
 	return nil
@@ -322,7 +323,7 @@ func (cp *Instance) UpdateImport(imp *cpstore.Import) error {
 		return err
 	}
 
-	cp.platform.UpdateService(imp.Name, imp.Service.Host, dataplaneAppName, imp.Service.Port, imp.Port)
+	cp.platform.UpdateService(imp.Name, imp.Service.Host, app.Name, imp.Service.Port, imp.Port)
 
 	return nil
 }
@@ -367,10 +368,7 @@ func (cp *Instance) GetAllImports() []*cpstore.Import {
 func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 	cp.logger.Infof("Creating binding '%s'->'%s'.", binding.Import, binding.Peer)
 
-	action, err := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
-	if err != nil {
-		return err
-	}
+	action := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
 	if action != policytypes.ActionAllow {
 		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
 		return nil
@@ -389,16 +387,13 @@ func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 func (cp *Instance) UpdateBinding(binding *cpstore.Binding) error {
 	cp.logger.Infof("Updating binding '%s'->'%s'.", binding.Import, binding.Peer)
 
-	action, err := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
-	if err != nil {
-		return err
-	}
+	action := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
 	if action != policytypes.ActionAllow {
 		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
 		return nil
 	}
 
-	err = cp.bindings.Update(binding, func(old *cpstore.Binding) *cpstore.Binding {
+	err := cp.bindings.Update(binding, func(old *cpstore.Binding) *cpstore.Binding {
 		return binding
 	})
 	if err != nil {
@@ -635,8 +630,14 @@ func (cp *Instance) generateJWK() error {
 }
 
 // NewInstance returns a new controlplane instance.
-func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, pp platform.Platform) (*Instance, error) {
+func NewInstance(peerTLS *tls.ParsedCertData, storeManager store.Manager, namespace string) (*Instance, error) {
 	logger := logrus.WithField("component", "controlplane")
+
+	// initialize platform
+	pp, err := k8s.NewPlatform(namespace)
+	if err != nil {
+		return nil, err
+	}
 
 	peers, err := cpstore.NewPeers(storeManager)
 	if err != nil {
@@ -676,7 +677,7 @@ func NewInstance(peerTLS *util.ParsedCertData, storeManager store.Manager, pp pl
 
 	cp := &Instance{
 		peerTLS:       peerTLS,
-		peerClient:    make(map[string]*client),
+		peerClient:    make(map[string]*peer.Client),
 		peers:         peers,
 		exports:       exports,
 		imports:       imports,

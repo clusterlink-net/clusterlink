@@ -15,7 +15,6 @@ package k8s
 
 import (
 	"context"
-	"os"
 
 	logrusr "github.com/bombsimon/logrusr/v4"
 	"github.com/sirupsen/logrus"
@@ -25,8 +24,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	"github.com/clusterlink-net/clusterlink/pkg/utils/netutils"
+	"github.com/clusterlink-net/clusterlink/pkg/util/net"
 )
 
 const (
@@ -45,7 +45,7 @@ type Platform struct {
 
 func (p *Platform) setExternalNameService(host, externalName string) *corev1.Service {
 	eName := externalName
-	if netutils.IsIP(eName) {
+	if net.IsIP(eName) {
 		eName += ".nip.io" // Convert IP to DNS address.
 	}
 
@@ -119,7 +119,7 @@ func (p *Platform) GetLabelsFromIP(ip string) map[string]string {
 }
 
 // NewPlatform returns a new Kubernetes platform.
-func NewPlatform() (*Platform, error) {
+func NewPlatform(namespace string) (*Platform, error) {
 	logger := logrus.WithField("component", "platform.k8s")
 	ctrl.SetLogger(logrusr.New(logrus.WithField("component", "k8s.controller-runtime")))
 
@@ -128,7 +128,7 @@ func NewPlatform() (*Platform, error) {
 		return nil, err
 	}
 
-	manager, err := ctrl.NewManager(cfg, ctrl.Options{})
+	manager, err := ctrl.NewManager(cfg, ctrl.Options{Metrics: metricsserver.Options{BindAddress: "0"}})
 	if err != nil {
 		return nil, err
 	}
@@ -150,13 +150,6 @@ func NewPlatform() (*Platform, error) {
 			logger.Error(err, "problem running manager")
 		}
 	}()
-
-	// Get namespace
-	namespace := os.Getenv("CL-NAMESPACE")
-	if namespace == "" {
-		namespace = defaultNamespace
-		logger.Logger.Infoln("the CL-NAMESPACE environment variable is not set- use default namespace")
-	}
 
 	return &Platform{
 		client:            manager.GetClient(),

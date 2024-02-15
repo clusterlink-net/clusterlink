@@ -23,6 +23,7 @@ import (
 	"golang.org/x/net/idna"
 
 	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
+	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 )
@@ -31,6 +32,8 @@ import (
 type PeerOptions struct {
 	// Name of the peer to create.
 	Name string
+	// Namespace where the ClusterLink components are deployed.
+	Namespace string
 	// Dataplanes is the number of dataplanes to create.
 	Dataplanes uint16
 	// DataplaneType is the type of dataplane to create (envoy or go-based)
@@ -39,11 +42,15 @@ type PeerOptions struct {
 	LogLevel string
 	// ContainerRegistry is the container registry to pull the project images.
 	ContainerRegistry string
+	// CRDMode indicates whether to run a k8s CRD-based controlplane.
+	// This flag will be removed once the CRD-based controlplane feature is complete and stable.
+	CRDMode bool
 }
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
+	fs.StringVar(&o.Namespace, "namespace", app.SystemNamespace, "Namespace where the ClusterLink components are deployed.")
 	fs.Uint16Var(&o.Dataplanes, "dataplanes", 1, "Number of dataplanes.")
 	fs.StringVar(&o.DataplaneType, "dataplane-type", platform.DataplaneTypeEnvoy,
 		"Type of dataplane, Supported values: \"envoy\" (default), \"go\"")
@@ -51,6 +58,7 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 		"The log level. One of fatal, error, warn, info, debug.")
 	fs.StringVar(&o.ContainerRegistry, "container-registry", "ghcr.io/clusterlink-net",
 		"The container registry to pull the project images. If empty will use local registry.")
+	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -196,6 +204,8 @@ func (o *PeerOptions) Run() error {
 		DataplaneType:           o.DataplaneType,
 		LogLevel:                o.LogLevel,
 		ContainerRegistry:       o.ContainerRegistry,
+		CRDMode:                 o.CRDMode,
+		Namespace:               o.Namespace,
 	}
 	k8sConfig, err := platform.K8SConfig(platformCfg)
 	if err != nil {

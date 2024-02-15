@@ -200,7 +200,8 @@ static_resources:
               transport_api_version: V3
               allowed_headers:
                 patterns:
-                - exact: {{.importHeader}}
+                - exact: {{.importNameHeader}}
+                - exact: {{.importNamespaceHeader}}
                 - exact: {{.clientIPHeader}}
           - name: envoy.filters.http.router
             typed_config:

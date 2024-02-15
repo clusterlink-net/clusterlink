@@ -21,8 +21,10 @@ const (
 	// DataplaneIngressAuthorizationPath is the path the dataplane uses to authorize an ingress connection.
 	DataplaneIngressAuthorizationPath = "/authz/ingress/"
 
-	// ImportHeader holds the name of the imported service.
-	ImportHeader = "x-import"
+	// ImportNameHeader holds the name of the imported service.
+	ImportNameHeader = "x-import-name"
+	// ImportNamespaceHeader holds the namespace of the imported service.
+	ImportNamespaceHeader = "x-import-namespace"
 	// ClientIPHeader holds the IP address of the source client.
 	ClientIPHeader = "x-client-ip"
 
@@ -34,12 +36,16 @@ const (
 
 	// ExportNameJWTClaim holds the name of the requested exported service.
 	ExportNameJWTClaim = "export_name"
+	// ExportNamespaceJWTClaim holds the namespace of the requested exported service.
+	ExportNamespaceJWTClaim = "export_namespace"
 )
 
 // AuthorizationRequest represents an authorization request for accessing an exported service.
 type AuthorizationRequest struct {
-	// Service is the name of the requested exported service.
-	Service string
+	// ServiceName is the name of the requested exported service.
+	ServiceName string
+	// ServiceNamespace is the namespace of the requested exported service.
+	ServiceNamespace string
 }
 
 // AuthorizationResponse represents a response for a successful AuthorizationRequest.

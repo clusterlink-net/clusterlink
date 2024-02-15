@@ -99,7 +99,7 @@ func (m *xdsManager) DeletePeer(name string) error {
 func (m *xdsManager) AddExport(export *store.Export) error {
 	m.logger.Infof("Adding export '%s'.", export.Name)
 
-	clusterName := cpapi.ExportClusterName(export.Name)
+	clusterName := cpapi.ExportClusterName(export.Name, "default")
 	c, err := makeAddressCluster(
 		clusterName, export.Service.Host, export.Service.Port, "")
 	if err != nil {
@@ -113,7 +113,7 @@ func (m *xdsManager) AddExport(export *store.Export) error {
 func (m *xdsManager) DeleteExport(name string) error {
 	m.logger.Infof("Deleting export '%s'.", name)
 
-	clusterName := cpapi.ExportClusterName(name)
+	clusterName := cpapi.ExportClusterName(name, "default")
 	return m.clusters.DeleteResource(clusterName)
 }
 
@@ -121,7 +121,7 @@ func (m *xdsManager) DeleteExport(name string) error {
 func (m *xdsManager) AddImport(imp *store.Import) error {
 	m.logger.Infof("Adding import '%s'.", imp.Name)
 
-	listenerName := cpapi.ImportListenerName(imp.Name)
+	listenerName := cpapi.ImportListenerName(imp.Name, "default")
 	egressRouterHostname := "egress-router:443"
 
 	tunnelingConfig := &tcpproxy.TcpProxy_TunnelingConfig{
@@ -130,8 +130,15 @@ func (m *xdsManager) AddImport(imp *store.Import) error {
 		HeadersToAdd: []*core.HeaderValueOption{
 			{
 				Header: &core.HeaderValue{
-					Key:   cpapi.ImportHeader,
+					Key:   cpapi.ImportNameHeader,
 					Value: imp.Name,
+				},
+				KeepEmptyValue: true,
+			},
+			{
+				Header: &core.HeaderValue{
+					Key:   cpapi.ImportNamespaceHeader,
+					Value: "default",
 				},
 				KeepEmptyValue: true,
 			},
@@ -176,7 +183,7 @@ func (m *xdsManager) AddImport(imp *store.Import) error {
 func (m *xdsManager) DeleteImport(name string) error {
 	m.logger.Infof("Deleting import '%s'.", name)
 
-	listenerName := cpapi.ImportListenerName(name)
+	listenerName := cpapi.ImportListenerName(name, "default")
 	return m.listeners.DeleteResource(listenerName)
 }
 

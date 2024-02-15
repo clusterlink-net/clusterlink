@@ -18,12 +18,13 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
-	"github.com/clusterlink-net/clusterlink/pkg/util"
+	"github.com/clusterlink-net/clusterlink/pkg/util/log"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 const (
@@ -36,6 +37,9 @@ const (
 	CertificateFile = "/etc/ssl/certs/clink-dataplane.pem"
 	// KeyFile is the path to the private-key file.
 	KeyFile = "/etc/ssl/private/clink-dataplane.pem"
+
+	// Name is the app label of dataplane pods.
+	Name = "cl-dataplane"
 )
 
 // Options contains everything necessary to create and run a dataplane.
@@ -65,31 +69,20 @@ func (o *Options) RequiredFlags() []string {
 
 // Run the dataplane.
 func (o *Options) Run() error {
-	// set log file
-	if o.LogFile != "" {
-		fn, err := os.OpenFile(o.LogFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o666)
-		if err != nil {
-			return fmt.Errorf("unable to open log file: %w", err)
-		}
-
+	f, err := log.Set(o.LogLevel, o.LogFile)
+	if err != nil {
+		return err
+	}
+	if f != nil {
 		defer func() {
-			if err := fn.Close(); err != nil {
-				log.Errorf("Cannot close log file: %v", err)
+			if err := f.Close(); err != nil {
+				logrus.Errorf("Cannot close log file: %v", err)
 			}
 		}()
-
-		log.SetOutput(fn)
 	}
-
-	// set log level
-	logLevel, err := log.ParseLevel(o.LogLevel)
-	if err != nil {
-		return fmt.Errorf("unable to set log level: %w", err)
-	}
-	log.SetLevel(logLevel)
 
 	// parse TLS files
-	parsedCertData, err := util.ParseTLSFiles(CAFile, CertificateFile, KeyFile)
+	parsedCertData, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
 	if err != nil {
 		return err
 	}
@@ -106,7 +99,7 @@ func (o *Options) Run() error {
 
 	// generate random dataplane ID
 	dataplaneID := uuid.New().String()
-	log.Infof("Dataplane ID: %s.", dataplaneID)
+	logrus.Infof("Dataplane ID: %s.", dataplaneID)
 
 	return o.runEnvoy(peerName, dataplaneID)
 }

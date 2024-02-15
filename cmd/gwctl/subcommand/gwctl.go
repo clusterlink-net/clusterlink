@@ -22,8 +22,8 @@ import (
 
 	"github.com/clusterlink-net/clusterlink/cmd/gwctl/config"
 	cmdutil "github.com/clusterlink-net/clusterlink/cmd/util"
-	"github.com/clusterlink-net/clusterlink/pkg/util"
 	"github.com/clusterlink-net/clusterlink/pkg/util/rest"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 // initOptions is the command line options for 'init'.
@@ -70,7 +70,7 @@ func (o *initOptions) addFlags(fs *pflag.FlagSet) {
 
 // run performs the execution of the 'init' subcommand.
 func (o *initOptions) run() error {
-	if _, err := util.ParseTLSFiles(o.certCa, o.cert, o.key); err != nil {
+	if _, err := tls.ParseFiles(o.certCa, o.cert, o.key); err != nil {
 		return err
 	}
 

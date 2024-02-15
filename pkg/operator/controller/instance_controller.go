@@ -244,7 +244,7 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 				Name:            ControlPlaneName,
 				Image:           instance.Spec.ContainerRegistry + ControlPlaneName + ":" + instance.Spec.ImageTag,
 				ImagePullPolicy: corev1.PullIfNotPresent,
-				Args:            []string{"--log-level", instance.Spec.LogLevel, "--platform", "k8s"},
+				Args:            []string{"--log-level", instance.Spec.LogLevel},
 				Ports: []corev1.ContainerPort{
 					{
 						ContainerPort: cpapi.ListenPort,
@@ -276,7 +276,7 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 				},
 				Env: []corev1.EnvVar{
 					{
-						Name: "CL-NAMESPACE",
+						Name: cpapp.NamespaceEnvVariable,
 						ValueFrom: &corev1.EnvVarSource{
 							FieldRef: &corev1.ObjectFieldSelector{
 								FieldPath: "metadata.namespace",
@@ -489,7 +489,7 @@ func (r *InstanceReconciler) createExternalService(ctx context.Context, instance
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				"app": "cl-dataplane",
+				"app": dpapp.Name,
 			},
 			Ports: []corev1.ServicePort{
 				{

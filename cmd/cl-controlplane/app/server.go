@@ -15,24 +15,27 @@ package app
 
 import (
 	"fmt"
+	"os"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/grpc"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/server/http"
-	"github.com/clusterlink-net/clusterlink/pkg/platform"
-	"github.com/clusterlink-net/clusterlink/pkg/platform/k8s"
-	"github.com/clusterlink-net/clusterlink/pkg/platform/unknown"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv/bolt"
-	"github.com/clusterlink-net/clusterlink/pkg/util"
-	logutils "github.com/clusterlink-net/clusterlink/pkg/util/log"
+	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
+	"github.com/clusterlink-net/clusterlink/pkg/util/log"
+	"github.com/clusterlink-net/clusterlink/pkg/util/runnable"
 	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 const (
@@ -54,49 +57,56 @@ const (
 	// grpcServerAddress is the address of the localhost gRPC server.
 	grpcServerAddress = "127.0.0.1:1101"
 
-	// platformUnknown represents an unknown platform.
-	platformUnknown = ""
-	// platformK8S represents a Kubernetes platform.
-	platformK8S = "k8s"
+	// NamespaceEnvVariable is the environment variable
+	// which should hold the clusterlink system namespace name.
+	NamespaceEnvVariable = "CL_NAMESPACE"
+	// SystemNamespace represents the default clusterlink system namespace.
+	SystemNamespace = "clusterlink-system"
 )
 
 // Options contains everything necessary to create and run a controlplane.
 type Options struct {
-	// platform environment.
-	Platform string
 	// LogFile is the path to file where logs will be written.
 	LogFile string
 	// LogLevel is the log level.
 	LogLevel string
+	// CRDMode indicates a k8s CRD-based controlplane.
+	// This flag will be removed once the CRD-based controlplane feature is complete and stable.
+	CRDMode bool
 }
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.Platform, "platform", platformUnknown,
-		fmt.Sprintf("Platform environment (supported values: \"%q\" (default), \"%q\").",
-			platformUnknown, platformK8S))
 	fs.StringVar(&o.LogFile, "log-file", "",
 		"Path to a file where logs will be written. If not specified, logs will be printed to stderr.")
 	fs.StringVar(&o.LogLevel, "log-level", logLevel,
 		"The log level. One of fatal, error, warn, info, debug.")
+	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }
 
 // Run the various controlplane servers.
 func (o *Options) Run() error {
 	// set log file
 
-	f, err := logutils.SetLog(o.LogLevel, o.LogFile)
+	f, err := log.Set(o.LogLevel, o.LogFile)
 	if err != nil {
 		return err
 	}
 	if f != nil {
 		defer func() {
 			if err := f.Close(); err != nil {
-				log.Errorf("Cannot close log file: %v", err)
+				logrus.Errorf("Cannot close log file: %v", err)
 			}
 		}()
 	}
-	parsedCertData, err := util.ParseTLSFiles(CAFile, CertificateFile, KeyFile)
+
+	namespace := os.Getenv(NamespaceEnvVariable)
+	if namespace == "" {
+		namespace = SystemNamespace
+	}
+	logrus.Infof("ClusterLink namespace: %s", namespace)
+
+	parsedCertData, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
 	if err != nil {
 		return err
 	}
@@ -115,6 +125,26 @@ func (o *Options) Run() error {
 			expectedGRPCServerName, grpcServerName)
 	}
 
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return fmt.Errorf("unable to get k8s config: %w", err)
+	}
+
+	scheme, err := v1alpha1.SchemeBuilder.Build()
+	if err != nil {
+		return fmt.Errorf("unable to build k8s scheme: %w", err)
+	}
+
+	if err := v1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("unable to add core v1 objects to scheme: %w", err)
+	}
+
+	mgr, err := manager.New(config, manager.Options{Scheme: scheme})
+	if err != nil {
+		return fmt.Errorf(
+			"unable to create k8s controller manager: %w", err)
+	}
+
 	// open store
 	kvStore, err := bolt.Open(StoreFile)
 	if err != nil {
@@ -123,27 +153,13 @@ func (o *Options) Run() error {
 
 	defer func() {
 		if err := kvStore.Close(); err != nil {
-			log.Warnf("Cannot close store: %v.", err)
+			logrus.Warnf("Cannot close store: %v.", err)
 		}
 	}()
 
 	storeManager := kv.NewManager(kvStore)
 
-	// initialize platform
-	var pp platform.Platform
-	switch o.Platform {
-	case platformUnknown:
-		pp = unknown.NewPlatform()
-	case platformK8S:
-		pp, err = k8s.NewPlatform()
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unknown platform type: %s", o.Platform)
-	}
-
-	cp, err := controlplane.NewInstance(parsedCertData, storeManager, pp)
+	cp, err := controlplane.NewInstance(parsedCertData, storeManager, namespace)
 	if err != nil {
 		return err
 	}
@@ -154,12 +170,13 @@ func (o *Options) Run() error {
 		grpcServerName: grpcServerAddress,
 	})
 
-	servers := server.NewController()
-	servers.Add(httpServerAddress, http.NewServer(cp, parsedCertData.ServerConfig()))
-	servers.Add(grpcServerAddress, grpc.NewServer(cp, parsedCertData.ServerConfig()))
-	servers.Add(controlplaneServerListenAddress, sniProxy)
+	runnableManager := runnable.NewManager()
+	runnableManager.Add(controller.NewManager(mgr))
+	runnableManager.AddServer(httpServerAddress, http.NewServer(cp, parsedCertData.ServerConfig()))
+	runnableManager.AddServer(grpcServerAddress, grpc.NewServer(cp, parsedCertData.ServerConfig()))
+	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
 
-	return servers.Run()
+	return runnableManager.Run()
 }
 
 // NewCLControlplaneCommand creates a *cobra.Command object with default parameters.

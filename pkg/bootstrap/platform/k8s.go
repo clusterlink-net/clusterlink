@@ -32,20 +32,15 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: cl-fabric
+  namespace: {{.namespace}}
 data:
   ca: {{.fabricCA}}
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: cl-peer
-data:
-  ca: {{.peerCA}}
----
-apiVersion: v1
-kind: Secret
-metadata:
   name: cl-controlplane
+  namespace: {{.namespace}}
 data:
   cert: {{.controlplaneCert}}
   key: {{.controlplaneKey}}
@@ -54,35 +49,50 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: cl-dataplane
+  namespace: {{.namespace}}
 data:
   cert: {{.dataplaneCert}}
   key: {{.dataplaneKey}}
+{{ if not .crdMode }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cl-peer
+  namespace: {{.namespace}}
+data:
+  ca: {{.peerCA}}
 ---
 apiVersion: v1
 kind: Secret
 metadata:
   name: gwctl
+  namespace: {{.namespace}}
 data:
   cert: {{.gwctlCert}}
   key: {{.gwctlKey}}
+{{ end }}
 `
 
-	k8sTemplate = `---
+	k8sTemplate = `{{ if not .crdMode }}---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: cl-controlplane
+  namespace: {{.namespace}}
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 100Mi
+{{ end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cl-controlplane
+  namespace: {{.namespace}}
   labels:
     app: cl-controlplane
 spec:
@@ -102,13 +112,15 @@ spec:
         - name: tls
           secret:
             secretName: cl-controlplane
+{{ if not .crdMode }}
         - name: cl-controlplane
           persistentVolumeClaim:
             claimName: cl-controlplane
+{{ end }}
       containers:
         - name: cl-controlplane
           image: {{.containerRegistry}}cl-controlplane
-          args: ["--log-level", "{{.logLevel}}", "--platform", "k8s"]
+          args: ["--log-level", "{{.logLevel}}"{{if .crdMode }}, "--crd-mode"{{ end }}]
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: {{.controlplanePort}}
@@ -125,10 +137,12 @@ spec:
               mountPath: {{.controlplaneKeyMountPath}}
               subPath: "key"
               readOnly: true
+{{ if not .crdMode }}
             - name: cl-controlplane
               mountPath: {{.persistencyDirectoryMountPath}}
+{{ end }}
           env:
-            - name: CL-NAMESPACE
+            - name: {{ .namespaceEnvVariable }}
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
@@ -137,17 +151,18 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cl-dataplane
+  namespace: {{.namespace}}
   labels:
-    app: cl-dataplane
+    app: {{ .dataplaneAppName }}
 spec:
   replicas: {{.dataplanes}}
   selector:
     matchLabels:
-      app: cl-dataplane
+      app: {{ .dataplaneAppName }}
   template:
     metadata:
       labels:
-        app: cl-dataplane
+        app: {{ .dataplaneAppName }}
     spec:
       volumes:
         - name: ca
@@ -178,11 +193,13 @@ spec:
               mountPath: {{.dataplaneKeyMountPath}}
               subPath: "key"
               readOnly: true
+{{ if not .crdMode }}
 ---
 apiVersion: v1
 kind: Pod
 metadata:
   name: gwctl
+  namespace: {{.namespace}}
   labels:
     app: gwctl
 spec:
@@ -222,11 +239,13 @@ spec:
           mountPath: /root/key.pem
           subPath: "key"
           readOnly: true
+{{ end }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: cl-controlplane
+  namespace: {{.namespace}}
 spec:
   selector:
     app: cl-controlplane
@@ -238,9 +257,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cl-dataplane
+  namespace: {{.namespace}}
 spec:
   selector:
-    app: cl-dataplane
+    app: {{ .dataplaneAppName }}
   ports:
     - name: dataplane
       port: {{.dataplanePort}}
@@ -268,7 +288,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: default`
+  namespace: {{.namespace}}`
 	ClusterLinkInstanceTemplate = `apiVersion: clusterlink.net/v1alpha1
 kind: Instance
 metadata:
@@ -278,11 +298,14 @@ metadata:
     app.kubernetes.io/part-of: clusterlink
     app.kubernetes.io/created-by: clusterlink
   name: cl-instance
+  namespace: clusterlink-operator
 spec:
   dataplane:
     type: {{.dataplaneType}}
-    replicas: {{.dataplanes}} 
-  logLevel: {{.logLevel}} 
+    replicas: {{.dataplanes}}
+  ingress:
+    type: {{.ingressType}}
+  logLevel: {{.logLevel}}
   containerRegistry: {{.containerRegistry}}
   namespace: {{.namespace}}
 `
@@ -297,12 +320,15 @@ func K8SConfig(config *Config) ([]byte, error) {
 
 	args := map[string]interface{}{
 		"peer":              config.Peer,
+		"namespace":         config.Namespace,
 		"dataplanes":        config.Dataplanes,
 		"dataplaneType":     config.DataplaneType,
 		"logLevel":          config.LogLevel,
 		"containerRegistry": containerRegistry,
 
-		"dataplaneTypeEnvoy": DataplaneTypeEnvoy,
+		"dataplaneTypeEnvoy":   DataplaneTypeEnvoy,
+		"namespaceEnvVariable": cpapp.NamespaceEnvVariable,
+		"dataplaneAppName":     dpapp.Name,
 
 		"persistencyDirectoryMountPath": filepath.Dir(cpapp.StoreFile),
 
@@ -316,6 +342,8 @@ func K8SConfig(config *Config) ([]byte, error) {
 
 		"controlplanePort": cpapi.ListenPort,
 		"dataplanePort":    dpapi.ListenPort,
+
+		"crdMode": config.CRDMode,
 	}
 
 	var k8sConfig bytes.Buffer
@@ -345,6 +373,7 @@ func K8SCertificateConfig(config *Config) ([]byte, error) {
 		"dataplaneKey":     base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawKey()),
 		"gwctlCert":        base64.StdEncoding.EncodeToString(config.GWCTLCertificate.RawCert()),
 		"gwctlKey":         base64.StdEncoding.EncodeToString(config.GWCTLCertificate.RawKey()),
+		"namespace":        config.Namespace,
 	}
 
 	var certConfig bytes.Buffer
@@ -368,7 +397,8 @@ func K8SClusterLinkInstanceConfig(config *Config) ([]byte, error) {
 		"dataplaneType":     config.DataplaneType,
 		"logLevel":          config.LogLevel,
 		"containerRegistry": containerRegistry,
-		"namespace":         "default",
+		"namespace":         config.Namespace,
+		"ingressType":       config.IngressType,
 	}
 
 	var clConfig bytes.Buffer

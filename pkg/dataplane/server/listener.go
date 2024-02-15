@@ -95,8 +95,11 @@ func (d *Dataplane) getEgressAuth(name, sourceIP string) (string, string, error)
 	}
 	egressAuthReq.Close = true
 
+	components := strings.SplitN(name, "/", 2)
+
 	egressAuthReq.Header.Add(api.ClientIPHeader, sourceIP)
-	egressAuthReq.Header.Add(api.ImportHeader, name)
+	egressAuthReq.Header.Add(api.ImportNamespaceHeader, components[0])
+	egressAuthReq.Header.Add(api.ImportNameHeader, components[1])
 	egressAuthResp, err := d.apiClient.Do(egressAuthReq)
 	if err != nil {
 		d.logger.Errorf("Unable to send auth/egress request: %v.", err)
