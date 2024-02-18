@@ -36,7 +36,7 @@ def createGw(name, dir, logLevel="info",dataplane="envoy",localImage=False):
 # createPeer creates peer certificates and yaml
 def createPeer(name, dir, logLevel="info", dataplane="envoy",localImage=False):
     flag = "--container-registry=""" if localImage else ""
-    runcmdDir(f"{clAdm} create peer --name {name} --log-level {logLevel} --dataplane-type {dataplane} {flag}",dir)
+    runcmdDir(f"{clAdm} create peer --name {name} --log-level {logLevel} --dataplane-type {dataplane} {flag} --namespace default",dir)
     
 # applyPeer deploys the peer certificates and yaml to the cluster. 
 def applyPeer(name,dir):
