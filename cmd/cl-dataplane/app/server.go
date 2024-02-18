@@ -37,6 +37,9 @@ const (
 	CertificateFile = "/etc/ssl/certs/clink-dataplane.pem"
 	// KeyFile is the path to the private-key file.
 	KeyFile = "/etc/ssl/private/clink-dataplane.pem"
+
+	// Name is the app label of dataplane pods.
+	Name = "cl-dataplane"
 )
 
 // Options contains everything necessary to create and run a dataplane.

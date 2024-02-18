@@ -46,7 +46,7 @@ const (
 	ControlPlaneName  = "cl-controlplane"
 	DataPlaneName     = "cl-dataplane"
 	GoDataPlaneName   = "cl-go-dataplane"
-	IngressName       = "cl-external-svc"
+	IngressName       = "clusterlink"
 	OperatorNameSpace = "clusterlink-operator" // TODO -should be removed
 	InstanceNamespace = "clusterlink-system"
 	FinalizerName     = "instance.clusterlink.net/finalizer"
@@ -59,9 +59,9 @@ const (
 // InstanceReconciler reconciles a ClusterLink instance object.
 type InstanceReconciler struct {
 	client.Client
-	Scheme        *runtime.Scheme
-	Logger        *logrus.Entry
-	InstancesMeta map[string]string
+	Scheme    *runtime.Scheme
+	Logger    *logrus.Entry
+	Instances map[string]string
 }
 
 // +kubebuilder:rbac:groups=clusterlink.net,resources=instances,verbs=list;get;watch;update;patch
@@ -116,14 +116,16 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	// Check one clusterlink per namespace
-	if name, exist := r.InstancesMeta[instance.Namespace]; exist {
+	if name, exist := r.Instances[instance.Spec.Namespace]; exist {
 		if instance.Name != name {
-			err := fmt.Errorf("instance %s in Namespace %s is  already exist- Only one instance are permit in  a Namespace",
-				name, instance.Namespace)
+			r.Logger.Errorf(
+				"Can't create instance %s in namespace %s, instance %s already exists and only one instance is permitted in a Namespace",
+				instance.Name, instance.Spec.Namespace, name)
+			err := r.updateFailureStatus(ctx, instance)
 			return ctrl.Result{}, err
 		}
 	} else {
-		r.InstancesMeta[instance.Namespace] = instance.Name
+		r.Instances[instance.Spec.Namespace] = instance.Name
 	}
 	// Examine DeletionTimestamp to determine if object is under deletion
 	if !instance.DeletionTimestamp.IsZero() {
@@ -132,6 +134,12 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		if err := r.deleteFinalizer(ctx, instance); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		delete(r.Instances, instance.Spec.Namespace)
+		r.Logger.Infof("Delete instance: %s Namespace: %s", instance.Name, instance.Namespace)
+		if err := r.triggerAnotherInstance(ctx, instance.Name, instance.Spec.Namespace); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
@@ -156,16 +164,17 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// Set Finalizer if needed
 	if err := r.createFinalizer(ctx, instance); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("can't create Finalizer %w", err)
+	}
+
+	// Check ClusterLink components status
+	if err := r.checkStatus(ctx, instance); err != nil {
+		return ctrl.Result{}, fmt.Errorf("can't check components status %w", err)
 	}
 
 	// Apply ClusterLink components if needed
 	if err := r.applyClusterLink(ctx, instance); err != nil {
-		return ctrl.Result{}, err
-	}
-	// Check ClusterLink components status
-	if err := r.checkStatus(ctx, instance); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("can't apply clusterlink components %w", err)
 	}
 
 	// Wait until status is ready or error
@@ -434,7 +443,7 @@ func (r *InstanceReconciler) createAccessControl(ctx context.Context, name, name
 	// Create the ClusterRole for the controlplane.
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name: name + namespace,
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -457,12 +466,12 @@ func (r *InstanceReconciler) createAccessControl(ctx context.Context, name, name
 	// Create ClusterRoleBinding for the controlplane.
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name: name + namespace,
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "ClusterRole",
-			Name:     name,
+			Name:     name + namespace,
 		},
 		Subjects: []rbacv1.Subject{
 			{
@@ -489,7 +498,7 @@ func (r *InstanceReconciler) createExternalService(ctx context.Context, instance
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				"app": "cl-dataplane",
+				"app": dpapp.Name,
 			},
 			Ports: []corev1.ServicePort{
 				{
@@ -803,6 +812,34 @@ func (r *InstanceReconciler) checkServiceStatus(ctx context.Context, name types.
 	return s, status, nil
 }
 
+// updateFailureStatuse updates the component status conditions to failure status.
+func (r *InstanceReconciler) updateFailureStatus(ctx context.Context, instance *clusterlink.Instance) error {
+	r.Logger.Info("updateFailureStatuse insert function")
+	cond := []metav1.Condition{{
+		Type:               string(clusterlink.DeploymentReady),
+		Status:             metav1.ConditionFalse,
+		Reason:             StatusModeNotExist,
+		LastTransitionTime: metav1.Now(),
+	}}
+
+	if instance.Status.Controlplane.Conditions == nil {
+		instance.Status.Controlplane.Conditions = make(map[string]metav1.Condition)
+	}
+
+	if instance.Status.Dataplane.Conditions == nil {
+		instance.Status.Dataplane.Conditions = make(map[string]metav1.Condition)
+	}
+
+	cpUpdate := r.updateCondition(instance.Status.Controlplane.Conditions, cond)
+	dpUpdate := r.updateCondition(instance.Status.Dataplane.Conditions, cond)
+
+	if cpUpdate || dpUpdate {
+		r.Logger.Info("updateFailureStatuse update")
+		return r.Status().Update(ctx, instance)
+	}
+	return nil
+}
+
 // updateCondition updates the component status conditions.
 func (r *InstanceReconciler) updateCondition(conditions map[string]metav1.Condition, newConditions []metav1.Condition) bool {
 	update := false
@@ -820,6 +857,35 @@ func (r *InstanceReconciler) updateCondition(conditions map[string]metav1.Condit
 	}
 
 	return update
+}
+
+// triggerAnotherInstance checks if another CRD instance exists and triggers it.
+func (r *InstanceReconciler) triggerAnotherInstance(ctx context.Context, name, namespace string) error {
+	var earliestInstance *clusterlink.Instance
+	instanceList := &clusterlink.InstanceList{}
+	if err := r.List(ctx, instanceList, client.InNamespace(OperatorNameSpace)); err != nil {
+		return err
+	}
+
+	for i := range instanceList.Items {
+		// Checks for new instnace in the same namespace.
+		if instanceList.Items[i].Spec.Namespace == namespace && instanceList.Items[i].Name != name {
+			// Check if the earliest instance is not yet set or if this instance is earlier than the current earliest.
+			if earliestInstance == nil || instanceList.Items[i].CreationTimestamp.Before(&earliestInstance.CreationTimestamp) {
+				earliestInstance = &instanceList.Items[i]
+			}
+		}
+	}
+
+	// Trigger the earliestInstance
+	if earliestInstance != nil {
+		req := ctrl.Request{NamespacedName: types.NamespacedName{Name: earliestInstance.Name, Namespace: earliestInstance.Namespace}}
+		r.Logger.Infof("Trigger again the earliest instance: %s", earliestInstance.Name)
+		_, err := r.Reconcile(ctx, req)
+		return err
+	}
+
+	return nil
 }
 
 // updateCondition updates the component status conditions.

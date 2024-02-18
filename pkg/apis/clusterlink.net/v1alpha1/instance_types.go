@@ -96,7 +96,7 @@ type IngressSpec struct {
 	// +kubebuilder:default=none
 	// Type represents the type of service used to expose the ClusterLink deployment.
 	// Supported values: "LoadBalancer","NodePort", "none".
-	// The service name will be "cl-external-svc".
+	// The service name will be "clusterlink".
 	Type IngressType `json:"type,omitempty"`
 
 	// Port represents the port number of the external service.
