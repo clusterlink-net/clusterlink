@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package http
+package authz
 
 import (
 	"encoding/json"
@@ -19,70 +19,39 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	utilhttp "github.com/clusterlink-net/clusterlink/pkg/util/http"
 )
 
 const (
 	bearerSchemaPrefix = "Bearer "
 )
 
-func (s *Server) addAuthzHandlers() {
-	r := s.Router()
-
-	r.Post(api.RemotePeerAuthorizationPath, s.PeerAuthorize)
-	r.Post(api.DataplaneEgressAuthorizationPath, s.DataplaneEgressAuthorize)
-	r.Post(api.DataplaneIngressAuthorizationPath, s.DataplaneIngressAuthorize)
+type server struct {
+	cp     *controlplane.Instance
+	logger *logrus.Entry
 }
 
-// PeerAuthorize authorizes a remote peer controlplane request for accessing an exported service,
-// yielding an access token.
-func (s *Server) PeerAuthorize(w http.ResponseWriter, r *http.Request) {
-	var req api.AuthorizationRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+// RegisterHandlers registers the HTTP handlers for dataplane authz requests.
+func RegisterHandlers(cp *controlplane.Instance, srv *utilhttp.Server) {
+	router := srv.Router()
+	server := &server{
+		cp:     cp,
+		logger: logrus.WithField("component", "controlplane.authz.server"),
 	}
 
-	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 || len(r.TLS.PeerCertificates[0].DNSNames) != 2 ||
-		r.TLS.PeerCertificates[0].DNSNames[0] == "" {
-		http.Error(w, "certificate does not contain a valid DNS name for the peer gateway", http.StatusBadRequest)
-		return
-	}
+	router.Post(api.DataplaneEgressAuthorizationPath, server.DataplaneEgressAuthorize)
+	router.Post(api.DataplaneIngressAuthorizationPath, server.DataplaneIngressAuthorize)
 
-	peerName := r.TLS.PeerCertificates[0].DNSNames[0]
-	resp, err := s.cp.AuthorizeIngress(
-		&controlplane.IngressAuthorizationRequest{
-			ServiceName:      req.ServiceName,
-			ServiceNamespace: req.ServiceNamespace,
-		},
-		peerName)
-	switch {
-	case err != nil:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	case !resp.ServiceExists:
-		w.WriteHeader(http.StatusNotFound)
-		return
-	case !resp.Allowed:
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	responseBody, err := json.Marshal(api.AuthorizationResponse{AccessToken: resp.AccessToken})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	if _, err := w.Write(responseBody); err != nil {
-		s.logger.Errorf("Cannot write http response: %v.", err)
-	}
+	router.Get(api.HeartbeatPath, server.Heartbeat)
+	router.Post(api.RemotePeerAuthorizationPath, server.PeerAuthorize)
 }
 
 // DataplaneEgressAuthorize authorizes access to an imported service.
-func (s *Server) DataplaneEgressAuthorize(w http.ResponseWriter, r *http.Request) {
+func (s *server) DataplaneEgressAuthorize(w http.ResponseWriter, r *http.Request) {
 	// TODO: verify that request originates from local dataplane
 
 	ip := r.Header.Get(api.ClientIPHeader)
@@ -126,7 +95,7 @@ func (s *Server) DataplaneEgressAuthorize(w http.ResponseWriter, r *http.Request
 }
 
 // DataplaneIngressAuthorize authorizes a remote peer dataplane access to an exported service.
-func (s *Server) DataplaneIngressAuthorize(w http.ResponseWriter, r *http.Request) {
+func (s *server) DataplaneIngressAuthorize(w http.ResponseWriter, r *http.Request) {
 	authorization := r.Header.Get(api.AuthorizationHeader)
 	if authorization == "" {
 		http.Error(w, fmt.Sprintf("missing '%s' header", api.AuthorizationHeader), http.StatusBadRequest)
@@ -148,4 +117,55 @@ func (s *Server) DataplaneIngressAuthorize(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set(api.TargetClusterHeader, targetCluster)
+}
+
+// Heartbeat returns a response for heartbeat checks from remote peers.
+func (s *server) Heartbeat(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+// PeerAuthorize authorizes a remote peer controlplane request for accessing an exported service,
+// yielding an access token.
+func (s *server) PeerAuthorize(w http.ResponseWriter, r *http.Request) {
+	var req api.AuthorizationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 || len(r.TLS.PeerCertificates[0].DNSNames) != 2 ||
+		r.TLS.PeerCertificates[0].DNSNames[0] == "" {
+		http.Error(w, "certificate does not contain a valid DNS name for the peer gateway", http.StatusBadRequest)
+		return
+	}
+
+	peerName := r.TLS.PeerCertificates[0].DNSNames[0]
+	resp, err := s.cp.AuthorizeIngress(
+		&controlplane.IngressAuthorizationRequest{
+			ServiceName:      req.ServiceName,
+			ServiceNamespace: req.ServiceNamespace,
+		},
+		peerName)
+	switch {
+	case err != nil:
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	case !resp.ServiceExists:
+		w.WriteHeader(http.StatusNotFound)
+		return
+	case !resp.Allowed:
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	responseBody, err := json.Marshal(api.AuthorizationResponse{AccessToken: resp.AccessToken})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	if _, err := w.Write(responseBody); err != nil {
+		s.logger.Errorf("Cannot write http response: %v.", err)
+	}
 }

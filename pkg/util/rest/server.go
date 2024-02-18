@@ -278,8 +278,8 @@ func (s *Server) AddObjectHandlers(spec *ServerObjectSpec) {
 }
 
 // NewServer returns a new empty REST-JSON server.
-func NewServer(name string, tlsConfig *tls.Config) Server {
-	return Server{
+func NewServer(name string, tlsConfig *tls.Config) *Server {
+	return &Server{
 		Server: utilhttp.NewServer(name, tlsConfig),
 		logger: logrus.WithFields(logrus.Fields{
 			"component": "rest-server",
