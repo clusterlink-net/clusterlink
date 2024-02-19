@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -31,6 +32,7 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 	"sigs.k8s.io/e2e-framework/support/kind"
 
+	clusterlink "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 )
 
@@ -141,6 +143,7 @@ func (c *KindCluster) initializeClients() error {
 	}
 
 	cfg := c.cluster.KubernetesRestConfig()
+
 	c.resources, err = resources.New(cfg)
 	if err != nil {
 		return fmt.Errorf("unable to initialize REST client: %w", err)
@@ -149,6 +152,11 @@ func (c *KindCluster) initializeClients() error {
 	c.clientset, err = kubernetes.NewForConfig(cfg)
 	if err != nil {
 		return fmt.Errorf("unable to initialize k8s clientset: %w", err)
+	}
+
+	// Add instance CRD to scheme.
+	if err := clusterlink.AddToScheme(c.resources.GetScheme()); err != nil {
+		return fmt.Errorf("unable to add clusterlink CRD: %w", err)
 	}
 
 	return nil
@@ -359,6 +367,11 @@ func (c *KindCluster) CreateFromYAML(yaml, namespace string) error {
 		strings.NewReader(yaml),
 		decoder.CreateHandler(c.resources),
 		decoder.MutateNamespace(namespace))
+}
+
+// CreateFromPath creates k8s objects from a yaml in a folder.
+func (c *KindCluster) CreateFromPath(folder string) error {
+	return decoder.DecodeEachFile(context.Background(), os.DirFS(folder), "*", decoder.CreateHandler(c.resources))
 }
 
 // ExposeNodeport returns a nodeport (uint16) for accessing a given k8s service.
