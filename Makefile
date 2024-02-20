@@ -91,7 +91,7 @@ $(CONTROLLER_GEN):
 
 .PHONY: codegen
 codegen: controller-gen  ## Generate ClusterRole, CRDs and DeepCopyObject.
-	$(CONTROLLER_GEN) crd paths="./pkg/apis/..." output:crd:artifacts:config=config/operator/crds/
+	$(CONTROLLER_GEN) crd paths="./pkg/apis/..." output:crd:artifacts:config=config/crds/
 	$(CONTROLLER_GEN) rbac:roleName=cl-operator-manager-role paths="./pkg/operator/..." output:rbac:dir=config/operator/rbac
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="././pkg/apis/..."
 	@goimports -l -w ./pkg/apis/clusterlink.net/v1alpha1/zz_generated.deepcopy.go

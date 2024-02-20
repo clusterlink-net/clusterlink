@@ -109,7 +109,7 @@ func (s *TestSuite) SetupSuite() {
 		}
 
 		// create the project CRDs.
-		if err := s.clusters[i].CreateFromPath("./../../../config/operator/crds/"); err != nil {
+		if err := s.clusters[i].CreateFromPath("./../../../config/crds/"); err != nil {
 			s.T().Fatal(fmt.Errorf("cannot create project CRDs: %w", err))
 		}
 	}
