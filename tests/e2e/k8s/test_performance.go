@@ -42,7 +42,7 @@ func (s *TestSuite) TestPerformance() {
 		require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
 
 		importedService := &util.Service{
-			Name:      "iperf3-" + cfg.DataplaneType,
+			Name:      "iperf3",
 			Namespace: cl[1].Namespace(),
 			Port:      80,
 		}

@@ -29,6 +29,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/control"
 	cprest "github.com/clusterlink-net/clusterlink/pkg/controlplane/rest"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/xds"
 	"github.com/clusterlink-net/clusterlink/pkg/store/kv"
@@ -164,6 +165,8 @@ func (o *Options) Run() error {
 	runnableManager.AddServer(grpcServerAddress, grpcServer)
 	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
 
+	controlManager := control.NewManager(mgr.GetClient())
+
 	xdsManager := xds.NewManager()
 	xds.RegisterService(
 		context.Background(), xdsManager, grpcServer.GetGRPCServer())
@@ -182,7 +185,7 @@ func (o *Options) Run() error {
 
 	storeManager := kv.NewManager(kvStore)
 
-	cp, err := controlplane.NewInstance(parsedCertData, storeManager, xdsManager, namespace)
+	cp, err := controlplane.NewInstance(parsedCertData, storeManager, controlManager, xdsManager, namespace)
 	if err != nil {
 		return err
 	}

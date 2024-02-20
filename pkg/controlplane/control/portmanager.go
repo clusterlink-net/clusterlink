@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package controlplane
+package control
 
 import (
 	"fmt"
@@ -111,7 +111,7 @@ func (m *portManager) Release(port uint16) {
 
 // newPortManager returns a new empty portManager.
 func newPortManager() *portManager {
-	logger := logrus.WithField("component", "portmanager")
+	logger := logrus.WithField("component", "controlplane.control.portmanager")
 
 	logger.WithFields(logrus.Fields{
 		"start": startPort,

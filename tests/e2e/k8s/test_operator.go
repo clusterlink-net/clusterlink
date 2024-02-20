@@ -64,7 +64,7 @@ func (s *TestSuite) TestOperator() {
 	require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
 
 	importedService := &util.Service{
-		Name: "echo1",
+		Name: "echo",
 		Port: 80,
 	}
 	require.Nil(s.T(), cl[1].CreateImport("echo", importedService))
