@@ -229,7 +229,7 @@ func (o *PeerOptions) Run() error {
 	}
 
 	// Create clusterlink instance YAML for the operator.
-	clConfig, err := platform.K8SClusterLinkInstanceConfig(platformCfg)
+	clConfig, err := platform.K8SClusterLinkInstanceConfig(platformCfg, "cl-instance")
 	if err != nil {
 		return err
 	}
