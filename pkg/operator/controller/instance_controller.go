@@ -47,7 +47,7 @@ const (
 	DataPlaneName     = "cl-dataplane"
 	GoDataPlaneName   = "cl-go-dataplane"
 	IngressName       = "clusterlink"
-	OperatorNameSpace = "clusterlink-operator" // TODO -should be removed
+	OperatorNamespace = "clusterlink-operator"
 	InstanceNamespace = "clusterlink-system"
 	FinalizerName     = "instance.clusterlink.net/finalizer"
 
@@ -863,7 +863,7 @@ func (r *InstanceReconciler) updateCondition(conditions map[string]metav1.Condit
 func (r *InstanceReconciler) triggerAnotherInstance(ctx context.Context, name, namespace string) error {
 	var earliestInstance *clusterlink.Instance
 	instanceList := &clusterlink.InstanceList{}
-	if err := r.List(ctx, instanceList, client.InNamespace(OperatorNameSpace)); err != nil {
+	if err := r.List(ctx, instanceList, client.InNamespace(OperatorNamespace)); err != nil {
 		return err
 	}
 

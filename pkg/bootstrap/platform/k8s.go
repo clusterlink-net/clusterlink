@@ -294,10 +294,10 @@ kind: Instance
 metadata:
   labels:
     app.kubernetes.io/name: instance
-    app.kubernetes.io/instance: cl-instance
+    app.kubernetes.io/instance: {{.name}}
     app.kubernetes.io/part-of: clusterlink
     app.kubernetes.io/created-by: clusterlink
-  name: cl-instance
+  name: {{.name}}
   namespace: clusterlink-operator
 spec:
   dataplane:
@@ -386,13 +386,14 @@ func K8SCertificateConfig(config *Config) ([]byte, error) {
 }
 
 // K8SClusterLinkInstanceConfig returns a YAML file for the ClusterLink instance.
-func K8SClusterLinkInstanceConfig(config *Config) ([]byte, error) {
+func K8SClusterLinkInstanceConfig(config *Config, name string) ([]byte, error) {
 	containerRegistry := config.ContainerRegistry
 	if containerRegistry != "" {
 		containerRegistry = config.ContainerRegistry + "/"
 	}
 
 	args := map[string]interface{}{
+		"name":              name,
 		"dataplanes":        config.Dataplanes,
 		"dataplaneType":     config.DataplaneType,
 		"logLevel":          config.LogLevel,
