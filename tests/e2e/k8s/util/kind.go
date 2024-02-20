@@ -96,6 +96,11 @@ func (c *KindCluster) IP() string {
 	return c.ip
 }
 
+// Resources returns the cluster resources.
+func (c *KindCluster) Resources() *resources.Resources {
+	return c.resources
+}
+
 // Start the kind cluster.
 // Should be called only once.
 func (c *KindCluster) Start() {
