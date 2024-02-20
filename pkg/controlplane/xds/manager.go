@@ -11,9 +11,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package controlplane
+package xds
 
 import (
+	"fmt"
 	"time"
 
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -29,20 +30,20 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 )
 
-// xdsManager manages the core routing components of the dataplane.
+// Manager manages the core routing components of the dataplane.
 // It maps the following controlplane types to xDS types:
 // - Peer -> Cluster (whose name starts with a designated prefix)
 // - Export -> Cluster (whose name starts with a designated prefix)
 // - Import -> Listener (whose name starts with a designated prefix)
 // Note that imported service bindings are handled by the egress authz server.
-type xdsManager struct {
+type Manager struct {
 	clusters  *cache.LinearCache
 	listeners *cache.LinearCache
 
@@ -50,12 +51,12 @@ type xdsManager struct {
 }
 
 // AddPeer defines a new route target for egress dataplane connections.
-func (m *xdsManager) AddPeer(peer *store.Peer) error {
+func (m *Manager) AddPeer(peer *v1alpha1.Peer) error {
 	m.logger.Infof("Adding peer '%s'.", peer.Name)
 
 	clusterName := cpapi.RemotePeerClusterName(peer.Name)
 	dataplaneSNI := dpapi.DataplaneSNI(peer.Name)
-	epc, err := makeEndpointsCluster(clusterName, peer.Gateways, dataplaneSNI)
+	epc, err := makeEndpointsCluster(clusterName, peer.Spec.Gateways, dataplaneSNI)
 	if err != nil {
 		return err
 	}
@@ -88,7 +89,7 @@ func (m *xdsManager) AddPeer(peer *store.Peer) error {
 }
 
 // DeletePeer removes the possibility for egress dataplane connections to be routed to a given peer.
-func (m *xdsManager) DeletePeer(name string) error {
+func (m *Manager) DeletePeer(name string) error {
 	m.logger.Infof("Deleting peer '%s'.", name)
 
 	clusterName := cpapi.RemotePeerClusterName(name)
@@ -96,32 +97,47 @@ func (m *xdsManager) DeletePeer(name string) error {
 }
 
 // AddExport defines a new route target for ingress dataplane connections.
-func (m *xdsManager) AddExport(export *store.Export) error {
-	m.logger.Infof("Adding export '%s'.", export.Name)
+func (m *Manager) AddExport(export *v1alpha1.Export) error {
+	m.logger.Infof("Adding export '%s/%s'.", export.Namespace, export.Name)
 
-	clusterName := cpapi.ExportClusterName(export.Name, "default")
-	c, err := makeAddressCluster(
-		clusterName, export.Service.Host, export.Service.Port, "")
+	clusterName := cpapi.ExportClusterName(export.Name, export.Namespace)
+	cc, err := makeAddressCluster(
+		clusterName,
+		fmt.Sprintf("%s.%s.svc.cluster.local", export.Name, export.Namespace),
+		export.Spec.Port, "")
 	if err != nil {
 		return err
 	}
 
-	return m.clusters.UpdateResource(clusterName, c)
+	return m.clusters.UpdateResource(clusterName, cc)
+}
+
+// AddLegacyExport defines a new route target for ingress dataplane connections.
+func (m *Manager) AddLegacyExport(name, namespace, host string, port uint16) error {
+	m.logger.Infof("Adding export '%s'.", name)
+
+	clusterName := cpapi.ExportClusterName(name, namespace)
+	cc, err := makeAddressCluster(clusterName, host, port, "")
+	if err != nil {
+		return err
+	}
+
+	return m.clusters.UpdateResource(clusterName, cc)
 }
 
 // DeleteExport removes the possibility for ingress dataplane connections to access a given service.
-func (m *xdsManager) DeleteExport(name string) error {
-	m.logger.Infof("Deleting export '%s'.", name)
+func (m *Manager) DeleteExport(name types.NamespacedName) error {
+	m.logger.Infof("Deleting export '%v'.", name)
 
-	clusterName := cpapi.ExportClusterName(name, "default")
+	clusterName := cpapi.ExportClusterName(name.Name, name.Namespace)
 	return m.clusters.DeleteResource(clusterName)
 }
 
 // AddImport adds a listening socket for an imported remote service.
-func (m *xdsManager) AddImport(imp *store.Import) error {
-	m.logger.Infof("Adding import '%s'.", imp.Name)
+func (m *Manager) AddImport(imp *v1alpha1.Import) error {
+	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
 
-	listenerName := cpapi.ImportListenerName(imp.Name, "default")
+	listenerName := cpapi.ImportListenerName(imp.Name, imp.Namespace)
 	egressRouterHostname := "egress-router:443"
 
 	tunnelingConfig := &tcpproxy.TcpProxy_TunnelingConfig{
@@ -138,7 +154,7 @@ func (m *xdsManager) AddImport(imp *store.Import) error {
 			{
 				Header: &core.HeaderValue{
 					Key:   cpapi.ImportNamespaceHeader,
-					Value: "default",
+					Value: imp.Namespace,
 				},
 				KeepEmptyValue: true,
 			},
@@ -166,7 +182,7 @@ func (m *xdsManager) AddImport(imp *store.Import) error {
 				SocketAddress: &core.SocketAddress{
 					Address: "0.0.0.0",
 					PortSpecifier: &core.SocketAddress_PortValue{
-						PortValue: uint32(imp.Port),
+						PortValue: uint32(imp.Spec.TargetPort),
 					},
 				},
 			},
@@ -180,18 +196,18 @@ func (m *xdsManager) AddImport(imp *store.Import) error {
 }
 
 // DeleteImport removes the listening socket of a previously imported service.
-func (m *xdsManager) DeleteImport(name string) error {
-	m.logger.Infof("Deleting import '%s'.", name)
+func (m *Manager) DeleteImport(name types.NamespacedName) error {
+	m.logger.Infof("Deleting import '%v'.", name)
 
-	listenerName := cpapi.ImportListenerName(name, "default")
+	listenerName := cpapi.ImportListenerName(name.Name, name.Namespace)
 	return m.listeners.DeleteResource(listenerName)
 }
 
 func makeAddressCluster(name, addr string, port uint16, hostname string) (*cluster.Cluster, error) {
-	return makeEndpointsCluster(name, []api.Endpoint{{Host: addr, Port: port}}, hostname)
+	return makeEndpointsCluster(name, []v1alpha1.Endpoint{{Host: addr, Port: port}}, hostname)
 }
 
-func makeEndpointsCluster(name string, endpoints []api.Endpoint, hostname string) (*cluster.Cluster, error) {
+func makeEndpointsCluster(name string, endpoints []v1alpha1.Endpoint, hostname string) (*cluster.Cluster, error) {
 	lbEndpoints := make([]*endpoint.LbEndpoint, len(endpoints))
 
 	for i, ep := range endpoints {
@@ -265,11 +281,11 @@ func makeTCPProxyFilter(clusterName, statPrefix string,
 	}, nil
 }
 
-// newXDSManager creates an uninitialized, non-registered xDS manager.
-func newXDSManager() *xdsManager {
-	logger := logrus.WithField("component", "xdsmanager")
+// NewManager creates an uninitialized, non-registered xDS manager.
+func NewManager() *Manager {
+	logger := logrus.WithField("component", "controlplane.xds.manager")
 
-	return &xdsManager{
+	return &Manager{
 		clusters:  cache.NewLinearCache(resource.ClusterType, cache.WithLogger(logger)),
 		listeners: cache.NewLinearCache(resource.ListenerType, cache.WithLogger(logger)),
 		logger:    logger,

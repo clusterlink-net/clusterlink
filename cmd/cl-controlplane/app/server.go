@@ -164,6 +164,10 @@ func (o *Options) Run() error {
 	runnableManager.AddServer(grpcServerAddress, grpcServer)
 	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
 
+	xdsManager := xds.NewManager()
+	xds.RegisterService(
+		context.Background(), xdsManager, grpcServer.GetGRPCServer())
+
 	// open store
 	kvStore, err := bolt.Open(StoreFile)
 	if err != nil {
@@ -178,14 +182,12 @@ func (o *Options) Run() error {
 
 	storeManager := kv.NewManager(kvStore)
 
-	cp, err := controlplane.NewInstance(parsedCertData, storeManager, namespace)
+	cp, err := controlplane.NewInstance(parsedCertData, storeManager, xdsManager, namespace)
 	if err != nil {
 		return err
 	}
 
 	authz.RegisterHandlers(cp, &httpServer.Server)
-	xds.RegisterService(
-		context.Background(), cp, grpcServer.GetGRPCServer())
 	cprest.RegisterHandlers(cp, httpServer)
 
 	return runnableManager.Run()

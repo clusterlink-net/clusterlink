@@ -21,12 +21,10 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"google.golang.org/grpc"
-
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
 )
 
-// RegisterService registers an xDS service backed by cp to the given gRPC server.
-func RegisterService(ctx context.Context, cp *controlplane.Instance, grpcServer *grpc.Server) {
+// RegisterService registers an xDS service backed by Manager to the given gRPC server.
+func RegisterService(ctx context.Context, manager *Manager, grpcServer *grpc.Server) {
 	// create a combined mux cache of listeners, clusters and secrets
 	muxCache := &cache.MuxCache{
 		Classify: func(req *cache.Request) string {
@@ -36,8 +34,8 @@ func RegisterService(ctx context.Context, cp *controlplane.Instance, grpcServer 
 			return req.TypeUrl
 		},
 		Caches: map[string]cache.Cache{
-			resource.ClusterType:  cp.GetXDSClusterManager(),
-			resource.ListenerType: cp.GetXDSListenerManager(),
+			resource.ClusterType:  manager.clusters,
+			resource.ListenerType: manager.listeners,
 		},
 	}
 
