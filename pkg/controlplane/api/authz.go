@@ -13,6 +13,8 @@
 
 package api
 
+import "github.com/lestrrat-go/jwx/jwa"
+
 const (
 	// RemotePeerAuthorizationPath is the path remote peers use to send an authorization request.
 	RemotePeerAuthorizationPath = "/authz"
@@ -34,6 +36,8 @@ const (
 	// TargetClusterHeader holds the name of the target cluster.
 	TargetClusterHeader = "host"
 
+	// JWTSignatureAlgorithm defines the signing algorithm for JWT tokens.
+	JWTSignatureAlgorithm = jwa.RS256
 	// ExportNameJWTClaim holds the name of the requested exported service.
 	ExportNameJWTClaim = "export_name"
 	// ExportNamespaceJWTClaim holds the namespace of the requested exported service.
