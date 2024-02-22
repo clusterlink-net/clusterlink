@@ -175,7 +175,7 @@ func (o *Options) Run() error {
 		return fmt.Errorf("cannot create authz controllers: %w", err)
 	}
 
-	controlManager := control.NewManager(mgr.GetClient())
+	controlManager := control.NewManager(mgr.GetClient(), o.CRDMode)
 
 	xdsManager := xds.NewManager()
 	xds.RegisterService(
