@@ -24,6 +24,8 @@ jobs:
         run: go install golang.org/x/tools/cmd/goimports@v0.13.0
       - name: Check go.mod and go.sum
         run: go mod tidy && git diff --exit-code
+      - name: Check generated code
+        run: GOPATH=$(go env GOPATH) make codegen && git diff --exit-code
       - name: Check format
         run: goimports -l -w . && git diff --exit-code
       - name: Run vet check

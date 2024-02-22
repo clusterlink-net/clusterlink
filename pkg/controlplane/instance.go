@@ -14,6 +14,7 @@
 package controlplane
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
@@ -24,9 +25,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/control"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/peer"
 	cpstore "github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/xds"
@@ -34,12 +35,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/pkg/store"
-	"github.com/clusterlink-net/clusterlink/pkg/util/net"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
-)
-
-const (
-	exportPrefix = "export_"
 )
 
 // Instance of a controlplane, where all API servers delegate their requested actions to.
@@ -57,10 +53,10 @@ type Instance struct {
 	peerLock   sync.RWMutex
 	peerClient map[string]*peer.Client
 
-	xdsManager    *xds.Manager
-	ports         *portManager
-	policyDecider policyengine.PolicyDecider
-	platform      *k8s.Platform
+	controlManager *control.Manager
+	xdsManager     *xds.Manager
+	policyDecider  policyengine.PolicyDecider
+	platform       *k8s.Platform
 
 	jwkSignKey   jwk.Key
 	jwkVerifyKey jwk.Key
@@ -205,10 +201,7 @@ func (cp *Instance) GetAllPeers() []*cpstore.Peer {
 // CreateExport defines a new route target for ingress dataplane connections.
 func (cp *Instance) CreateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Creating export '%s'.", export.Name)
-	eSpec := export.ExportSpec
-	if eSpec.ExternalService != "" && !net.IsIP(eSpec.ExternalService) && !net.IsDNS(eSpec.ExternalService) {
-		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
-	}
+
 	// TODO: check policyDecider's answer
 	_, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
 	if err != nil {
@@ -219,9 +212,11 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 		if err := cp.exports.Create(export); err != nil {
 			return err
 		}
-		// create a k8s external service.
-		if eSpec.ExternalService != "" {
-			cp.platform.CreateExternalService(exportPrefix+export.Name, eSpec.Service.Host, eSpec.ExternalService)
+
+		err := cp.controlManager.AddLegacyExport(
+			export.Name, cp.namespace, &export.ExportSpec)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -232,10 +227,6 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 // UpdateExport updates a new route target for ingress dataplane connections.
 func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Updating export '%s'.", export.Name)
-	eSpec := export.ExportSpec
-	if eSpec.ExternalService != "" && !net.IsIP(eSpec.ExternalService) && !net.IsDNS(eSpec.ExternalService) {
-		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
-	}
 
 	// TODO: check policyDecider's answer
 	_, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
@@ -249,9 +240,11 @@ func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	if err != nil {
 		return err
 	}
-	// Update a k8s external service.
-	if eSpec.ExternalService != "" {
-		cp.platform.UpdateExternalService(exportPrefix+export.Name, eSpec.Service.Host, eSpec.ExternalService)
+
+	err = cp.controlManager.AddLegacyExport(
+		export.Name, cp.namespace, &export.ExportSpec)
+	if err != nil {
+		return err
 	}
 
 	return cp.xdsManager.AddLegacyExport(export.Name, cp.namespace, export.Service.Host, export.Service.Port)
@@ -275,12 +268,9 @@ func (cp *Instance) DeleteExport(name string) (*cpstore.Export, error) {
 		return nil, nil
 	}
 
-	// Deleting a k8s external service.
-	if export.ExportSpec.ExternalService != "" {
-		cp.platform.DeleteService(exportPrefix+name, export.Name)
-		if err != nil {
-			return nil, err
-		}
+	err = cp.controlManager.DeleteLegacyExport(cp.namespace, &export.ExportSpec)
+	if err != nil {
+		return nil, err
 	}
 
 	namespacedName := types.NamespacedName{
@@ -307,29 +297,31 @@ func (cp *Instance) GetAllExports() []*cpstore.Export {
 func (cp *Instance) CreateImport(imp *cpstore.Import) error {
 	cp.logger.Infof("Creating import '%s'.", imp.Name)
 
-	port, err := cp.ports.Lease(imp.Port)
-	if err != nil {
-		return fmt.Errorf("cannot generate listening port: %w", err)
-	}
-
-	imp.Port = port
+	k8sImp := toK8SImport(imp, cp.namespace)
 
 	if cp.initialized {
 		if err := cp.imports.Create(imp); err != nil {
-			cp.ports.Release(port)
+			return err
+		}
+
+		err := cp.controlManager.AddImport(context.Background(), k8sImp)
+		if err != nil {
+			return err
+		}
+
+		imp.Port = k8sImp.Spec.TargetPort
+
+		err = cp.imports.Update(imp.Name, func(old *cpstore.Import) *cpstore.Import {
+			return imp
+		})
+		if err != nil {
 			return err
 		}
 	}
 
-	k8sImp := toK8SImport(imp, cp.namespace)
 	if err := cp.xdsManager.AddImport(k8sImp); err != nil {
 		// practically impossible
 		return err
-	}
-
-	// TODO: handle a crash happening between storing an import and creating a service
-	if cp.initialized {
-		cp.platform.CreateService(imp.Name, imp.Service.Host, app.Name, imp.Service.Port, imp.Port)
 	}
 
 	return nil
@@ -340,7 +332,6 @@ func (cp *Instance) UpdateImport(imp *cpstore.Import) error {
 	cp.logger.Infof("Updating import '%s'.", imp.Name)
 
 	err := cp.imports.Update(imp.Name, func(old *cpstore.Import) *cpstore.Import {
-		imp.Port = old.Port
 		return imp
 	})
 	if err != nil {
@@ -348,12 +339,24 @@ func (cp *Instance) UpdateImport(imp *cpstore.Import) error {
 	}
 
 	k8sImp := toK8SImport(imp, cp.namespace)
+	err = cp.controlManager.AddImport(context.Background(), k8sImp)
+	if err != nil {
+		return err
+	}
+
+	imp.Port = k8sImp.Spec.TargetPort
+
+	err = cp.imports.Update(imp.Name, func(old *cpstore.Import) *cpstore.Import {
+		return imp
+	})
+	if err != nil {
+		return err
+	}
+
 	if err := cp.xdsManager.AddImport(k8sImp); err != nil {
 		// practically impossible
 		return err
 	}
-
-	cp.platform.UpdateService(imp.Name, imp.Service.Host, app.Name, imp.Service.Port, imp.Port)
 
 	return nil
 }
@@ -385,9 +388,12 @@ func (cp *Instance) DeleteImport(name string) (*cpstore.Import, error) {
 		return imp, err
 	}
 
-	cp.ports.Release(imp.Port)
-
-	cp.platform.DeleteService(imp.Name, imp.Service.Host)
+	err = cp.controlManager.DeleteImport(
+		context.Background(),
+		toK8SImport(imp, cp.namespace))
+	if err != nil {
+		return nil, err
+	}
 
 	return imp, nil
 }
@@ -657,13 +663,14 @@ func (cp *Instance) generateJWK() error {
 func NewInstance(
 	peerTLS *tls.ParsedCertData,
 	storeManager store.Manager,
+	controlManager *control.Manager,
 	xdsManager *xds.Manager,
 	namespace string,
 ) (*Instance, error) {
 	logger := logrus.WithField("component", "controlplane")
 
 	// initialize platform
-	pp, err := k8s.NewPlatform(namespace)
+	pp, err := k8s.NewPlatform()
 	if err != nil {
 		return nil, err
 	}
@@ -705,21 +712,21 @@ func NewInstance(
 	logger.Infof("Loaded %d load-balancing policies.", lbPolicies.Len())
 
 	cp := &Instance{
-		namespace:     namespace,
-		peerTLS:       peerTLS,
-		peerClient:    make(map[string]*peer.Client),
-		peers:         peers,
-		exports:       exports,
-		imports:       imports,
-		bindings:      bindings,
-		acPolicies:    acPolicies,
-		lbPolicies:    lbPolicies,
-		xdsManager:    xdsManager,
-		ports:         newPortManager(),
-		policyDecider: policyengine.NewPolicyHandler(),
-		platform:      pp,
-		initialized:   false,
-		logger:        logger,
+		namespace:      namespace,
+		peerTLS:        peerTLS,
+		peerClient:     make(map[string]*peer.Client),
+		peers:          peers,
+		exports:        exports,
+		imports:        imports,
+		bindings:       bindings,
+		acPolicies:     acPolicies,
+		lbPolicies:     lbPolicies,
+		xdsManager:     xdsManager,
+		controlManager: controlManager,
+		policyDecider:  policyengine.NewPolicyHandler(),
+		platform:       pp,
+		initialized:    false,
+		logger:         logger,
 	}
 
 	// initialize instance

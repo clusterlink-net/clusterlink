@@ -4,7 +4,7 @@
 
 **Begin Design Discussion**: 2023-11-22
 
-**(optional) Status:** draft
+**(optional) Status:** approved
 
 ## Summary/Abstract
 
@@ -287,6 +287,10 @@ type ImportSpec struct {
   Sources []string // Sources for the Service (e.g., in the form of "peer/namespace/export")
      // TODO: should we create a structure for this instead of using a string scheme?
      // TODO: is it reasonable to expect users to know remote values? Easier in central management...
+     //       Alternative: define "Import" CRDs as catalog in the ClusterLink namespace and use object
+     //       references in per namespace Import objects, acting as "binding" to the catalog?
+     //       The application namespace Import Spec simply becomes a reference (name only suffices?)
+     //       and this Spec moves to "Import" catalog objects.
   LoadBalancingPolicy struct{} // TODO: TBD (e.g., take example from Envoy's simpler policies).
 }
  
@@ -298,12 +302,14 @@ type ImportStatus struct {
 ```
 
 Each `Import` object results in the creation of a local (to the namespace)
- Service and an additional "tarhet" Service created in the dedicated ClusterLink
+ Service and an additional "target" Service created in the dedicated ClusterLink
  namespace. The local Service is created of type `ExternalName` and has the name
  of the `Import`, as set by the user. It sole purpose is to refer to the target
  Service in the dedicated namespace. This required since k8s Services can only
  Select Pods in their own namespace. The target Service can be randomly named,
  but should be marked/annotate to allow back tracking to the user's `Import`.
+ An alternative implementation could use a single Service backed by an `EndpointSlice`
+ referring to the appropriate port open on ClusterLink data plane gateways.
 
 The status of the import can reflect the following errors:
 
@@ -312,7 +318,7 @@ The status of the import can reflect the following errors:
  of the `Import` (i.e., no overwrites of user Services is allowed, only updates
  to `Import` objects).
 - The k8s service for the import cannot be created.
-
+ 
 #### Policy
 
 TBD. The topic possibly requires its own design spec to address below questions.

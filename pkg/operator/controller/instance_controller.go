@@ -449,7 +449,9 @@ func (r *InstanceReconciler) createAccessControl(ctx context.Context, name, name
 			{
 				APIGroups: []string{""},
 				Resources: []string{"services"},
-				Verbs:     []string{"create", "delete", "update"},
+				Verbs: []string{
+					"get", "list", "watch", "create", "delete", "update",
+				},
 			},
 			{
 				APIGroups: []string{""},
