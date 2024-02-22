@@ -107,7 +107,7 @@ build:
 	$(GO) build -o ./bin/cl-dataplane ./cmd/cl-dataplane
 	$(GO) build -o ./bin/cl-go-dataplane ./cmd/cl-go-dataplane
 	$(GO) build -o ./bin/cl-adm ./cmd/cl-adm
-	$(GO) build -o bin/manager ./cmd/cl-operator/main.go
+	$(GO) build -o ./bin/cl-operator ./cmd/cl-operator/main.go
 
 docker-build: build
 	docker build --progress=plain --rm --tag cl-controlplane -f ./cmd/cl-controlplane/Dockerfile .
