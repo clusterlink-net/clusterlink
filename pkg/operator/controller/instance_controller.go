@@ -158,10 +158,6 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		", ImageTag: ", instance.Spec.ImageTag,
 	)
 
-	if instance.Spec.ContainerRegistry != "" && instance.Spec.ContainerRegistry[len(instance.Spec.ContainerRegistry)-1:] != "/" {
-		instance.Spec.ContainerRegistry += "/"
-	}
-
 	// Set Finalizer if needed
 	if err := r.createFinalizer(ctx, instance); err != nil {
 		return ctrl.Result{}, fmt.Errorf("can't create Finalizer %w", err)
@@ -187,6 +183,9 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 // applyClusterLink sets up all the components for the ClusterLink project.
 func (r *InstanceReconciler) applyClusterLink(ctx context.Context, instance *clusterlink.Instance) error {
+	if instance.Spec.ContainerRegistry != "" && instance.Spec.ContainerRegistry[len(instance.Spec.ContainerRegistry)-1:] != "/" {
+		instance.Spec.ContainerRegistry += "/"
+	}
 	// Create controlplane components
 	if err := r.createPVC(ctx, ControlPlaneName, instance.Spec.Namespace); err != nil {
 		return err
@@ -296,7 +295,6 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 			},
 		},
 	}
-
 	return r.createOrUpdateResource(ctx, &cpDeployment)
 }
 
@@ -545,18 +543,20 @@ func (r *InstanceReconciler) deleteFinalizer(ctx context.Context, instance *clus
 	return r.Update(ctx, instance)
 }
 
-// createOrUpdateResource uses for creates or updates k8s resource, in our case used only for deployments.
 func (r *InstanceReconciler) createOrUpdateResource(ctx context.Context, object client.Object) error {
-	// Use CreateOrUpdate to create or update the PVC for cl-controlplane
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, object, func() error {
-		createTime := object.GetCreationTimestamp()
-		if createTime.IsZero() {
-			r.Logger.Infof("Create resource %v Name: %s Namespace: %s", reflect.TypeOf(object), object.GetName(), object.GetNamespace())
-		}
+	key := client.ObjectKeyFromObject(object)
+	err := r.Client.Create(ctx, object)
+	if err == nil {
+		r.Logger.Infof("Create resource %s Name: %s Namespace: %s", reflect.TypeOf(object), object.GetName(), object.GetNamespace())
 		return nil
-	})
+	}
+
+	if errors.IsAlreadyExists(err) { // If resource already exists, update it
+		err = r.Client.Update(ctx, object)
+	}
+
 	if err != nil {
-		r.Logger.Error("create resource:", err)
+		r.Logger.Errorf("Failed to create/update resource %v %s: %v", reflect.TypeOf(object), key, err)
 	}
 
 	return err
@@ -649,6 +649,7 @@ func (r *InstanceReconciler) checkStatus(ctx context.Context, instance *clusterl
 			return err
 		}
 	}
+
 	if cpUpdate || dpUpdate || ingressUpdate {
 		return r.Status().Update(ctx, instance)
 	}
@@ -781,7 +782,7 @@ func (r *InstanceReconciler) checkExternalServiceStatus(ctx context.Context, nam
 			if err == nil {
 				ingressStatus.IP = ip
 			} else {
-				r.Logger.Error("fail to get noeport IP:", err)
+				r.Logger.Error("fail to get nodeport IP:", err)
 			}
 		}
 	}

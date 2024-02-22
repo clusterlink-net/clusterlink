@@ -76,16 +76,20 @@ GO ?= CGO_ENABLED=0 go
 # Allow setting of go build flags from the command line.
 GOFLAGS := 
 
-# Location to install dependencies to
-GOBIN ?= $(GOPATH)/bin
-
+# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
+ifeq (,$(shell go env GOBIN))
+GOBIN=$(shell go env GOPATH)/bin
+else
+GOBIN=$(shell go env GOBIN)
+endif
 
 # Controller Gen for crds
 CONTROLLER_GEN ?= $(GOBIN)/controller-gen
 CONTROLLER_TOOLS_VERSION ?= v0.13.0
 
+.PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary. If wrong version is installed, it will be overwritten.
-$(CONTROLLER_GEN):
+$(CONTROLLER_GEN): $(GOBIN)
 	test -s $(GOBIN)/controller-gen && $(GOBIN)/controller-gen --version | grep -q $(CONTROLLER_TOOLS_VERSION) || \
 	go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
@@ -104,7 +108,6 @@ build:
 	$(GO) build -o ./bin/cl-go-dataplane ./cmd/cl-go-dataplane
 	$(GO) build -o ./bin/cl-adm ./cmd/cl-adm
 	$(GO) build -o bin/manager ./cmd/cl-operator/main.go
-
 
 docker-build: build
 	docker build --progress=plain --rm --tag cl-controlplane -f ./cmd/cl-controlplane/Dockerfile .
@@ -133,8 +136,18 @@ clean-tests:
 #------------------------------------------------------
 # Run Targets
 #------------------------------------------------------
-unit-tests:
+# Envtest use for checking the deployment operator
+ENVTEST ?= $(GOBIN)/setup-envtest
+ENVTEST_VERSION ?= latest
+ENVTEST_K8S_VERSION = 1.28.0
+.PHONY: envtest
+envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST): $(GOBIN)
+	test -s $(GOBIN)/setup-envtest || GOBIN=$(GOBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(ENVTEST_VERSION)
+
+unit-tests: envtest
 	@echo "Running unit tests..."
+	export KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(GOBIN) -p path)";\
 	$(GO) test -v -count=1 ./pkg/...  -json -cover | tparse --all
 
 tests-e2e-k8s:
