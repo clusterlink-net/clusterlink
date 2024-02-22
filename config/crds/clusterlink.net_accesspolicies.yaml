@@ -38,23 +38,20 @@ spec:
             description: Spec represents the attributes of the exported service.
             properties:
               action:
-                description: AccessPolicyAction specifies whether an AccessPolicy
-                  allows or denies the connection specified by its 'From' and 'To'
-                  fields.
+                description: Action specifies whether the policy allows or denies
+                  connections matching its From and To fields.
                 type: string
               from:
-                description: WorkloadSetOrSelectorList is a collection of WorkloadSetOrSelector
-                  objects.
+                description: From specifies the set of source workload to which this
+                  policy refers.
                 items:
                   description: WorkloadSetOrSelector describes a set of workloads,
-                    based on their attributes (labels) Exactly one of the two fields
+                    based on their attributes (labels). Exactly one of the two fields
                     should be non-empty.
                   properties:
                     workloadSelector:
-                      description: A label selector is a label query over a set of
-                        resources. The result of matchLabels and matchExpressions
-                        are ANDed. An empty label selector matches all objects. A
-                        null label selector matches no objects.
+                      description: WorkloadSelector is a K8s-style label selector,
+                        selecting Pods and Services according to their labels.
                       properties:
                         matchExpressions:
                           description: matchExpressions is a list of label selector
@@ -99,26 +96,28 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     workloadSets:
+                      description: WorkloadSets allows specifying predefined sets
+                        of workloads - not yet supported.
                       items:
                         type: string
                       type: array
                   type: object
                 type: array
               privileged:
+                description: Privileged is true if the policy has higher priority
+                  over non-privileged policies.
                 type: boolean
               to:
-                description: WorkloadSetOrSelectorList is a collection of WorkloadSetOrSelector
-                  objects.
+                description: To specifies the set of destination services to which
+                  this policy refers.
                 items:
                   description: WorkloadSetOrSelector describes a set of workloads,
-                    based on their attributes (labels) Exactly one of the two fields
+                    based on their attributes (labels). Exactly one of the two fields
                     should be non-empty.
                   properties:
                     workloadSelector:
-                      description: A label selector is a label query over a set of
-                        resources. The result of matchLabels and matchExpressions
-                        are ANDed. An empty label selector matches all objects. A
-                        null label selector matches no objects.
+                      description: WorkloadSelector is a K8s-style label selector,
+                        selecting Pods and Services according to their labels.
                       properties:
                         matchExpressions:
                           description: matchExpressions is a list of label selector
@@ -163,6 +162,8 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     workloadSets:
+                      description: WorkloadSets allows specifying predefined sets
+                        of workloads - not yet supported.
                       items:
                         type: string
                       type: array
