@@ -43,24 +43,24 @@ const (
 // WorkloadSetOrSelectorList is a collection of WorkloadSetOrSelector objects.
 type WorkloadSetOrSelectorList []WorkloadSetOrSelector
 
-// WorkloadSetOrSelector describes a set of workloads, based on their attributes (labels)
+// WorkloadSetOrSelector describes a set of workloads, based on their attributes (labels).
 // Exactly one of the two fields should be non-empty.
 type WorkloadSetOrSelector struct {
-	// WorkloadSets allows specifying predefined sets of workloads - not yet supported
+	// WorkloadSets allows specifying predefined sets of workloads - not yet supported.
 	WorkloadSets []string `json:"workloadSets,omitempty"`
-	// WorkloadSelector is a K8s-style label selector, selecting Pods and Services according to their labels
+	// WorkloadSelector is a K8s-style label selector, selecting Pods and Services according to their labels.
 	WorkloadSelector *metav1.LabelSelector `json:"workloadSelector,omitempty"`
 }
 
 // AccessPolicySpec contains all attributes of an access policy.
 type AccessPolicySpec struct {
-	// Privileged is true if the policy has higher priority over non-privileged policies
+	// Privileged is true if the policy has higher priority over non-privileged policies.
 	Privileged bool `json:"privileged"`
-	// Action specifies whether the policy allows or denies connections matching its From and To fields
+	// Action specifies whether the policy allows or denies connections matching its From and To fields.
 	Action AccessPolicyAction `json:"action"`
-	// From specifies the set of source workload to which this policy refers
+	// From specifies the set of source workload to which this policy refers.
 	From WorkloadSetOrSelectorList `json:"from"`
-	// To specifies the set of destination services to which this policy refers
+	// To specifies the set of destination services to which this policy refers.
 	To WorkloadSetOrSelectorList `json:"to"`
 }
 
