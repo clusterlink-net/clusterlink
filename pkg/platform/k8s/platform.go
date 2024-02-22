@@ -19,98 +19,17 @@ import (
 	logrusr "github.com/bombsimon/logrusr/v4"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-
-	"github.com/clusterlink-net/clusterlink/pkg/util/net"
-)
-
-const (
-	defaultNamespace = "default"
 )
 
 // Platform represents a k8s platform.
 type Platform struct {
 	podReconciler *PodReconciler
-	//	endpointReconciler *Reconciler
-	serviceReconciler *Reconciler
-	client            client.Client
-	namespace         string
-	logger            *logrus.Entry
-}
-
-func (p *Platform) setExternalNameService(host, externalName string) *corev1.Service {
-	eName := externalName
-	if net.IsIP(eName) {
-		eName += ".nip.io" // Convert IP to DNS address.
-	}
-
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: host, Namespace: p.namespace},
-		Spec: corev1.ServiceSpec{
-			Type:         corev1.ServiceTypeExternalName,
-			ExternalName: eName,
-		},
-	}
-}
-
-func (p *Platform) setClusterIPService(host, targetApp string, port, targetPort uint16) *corev1.Service {
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: host, Namespace: p.namespace},
-		Spec: corev1.ServiceSpec{
-			Ports: []corev1.ServicePort{
-				{
-					Protocol:   corev1.ProtocolTCP,
-					Port:       int32(port),
-					TargetPort: intstr.FromInt(int(targetPort)),
-				},
-			},
-			Type:     corev1.ServiceTypeClusterIP,
-			Selector: map[string]string{"app": targetApp},
-		},
-	}
-}
-
-// CreateService creates a service.
-func (p *Platform) CreateService(name, host, targetApp string, port, targetPort uint16) {
-	serviceSpec := p.setClusterIPService(host, targetApp, port, targetPort)
-	p.logger.Infof("Creating K8s service at %s:%d.", host, port)
-	go p.serviceReconciler.CreateResource(name, serviceSpec)
-}
-
-// UpdateService updates a service.
-func (p *Platform) UpdateService(name, host, targetApp string, port, targetPort uint16) {
-	serviceSpec := p.setClusterIPService(host, targetApp, port, targetPort)
-	p.logger.Infof("Updating K8s service at %s:%d.", host, port)
-	go p.serviceReconciler.UpdateResource(name, serviceSpec)
-}
-
-// CreateExternalService creates an external service.
-func (p *Platform) CreateExternalService(name, host, externalName string) {
-	serviceSpec := p.setExternalNameService(host, externalName)
-	p.logger.Infof("Creating Kubernetes service %s of type ExternalName linked to %s.", host, externalName)
-	go p.serviceReconciler.CreateResource(name, serviceSpec)
-}
-
-// UpdateExternalService updates an external service.
-func (p *Platform) UpdateExternalService(name, host, externalName string) {
-	serviceSpec := p.setExternalNameService(host, externalName)
-	p.logger.Infof("Updating Kubernetes service %s of type ExternalName linked to %s.", host, externalName)
-	go p.serviceReconciler.UpdateResource(name, serviceSpec)
-}
-
-// DeleteService deletes a service.
-func (p *Platform) DeleteService(name, host string) {
-	serviceSpec := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{Name: host, Namespace: p.namespace},
-	}
-
-	p.logger.Infof("Deleting K8s service %s.", host)
-	go p.serviceReconciler.DeleteResource(name, serviceSpec)
+	client        client.Client
+	logger        *logrus.Entry
 }
 
 // GetLabelsFromIP return all the labels for specific ip.
@@ -119,7 +38,7 @@ func (p *Platform) GetLabelsFromIP(ip string) map[string]string {
 }
 
 // NewPlatform returns a new Kubernetes platform.
-func NewPlatform(namespace string) (*Platform, error) {
+func NewPlatform() (*Platform, error) {
 	logger := logrus.WithField("component", "platform.k8s")
 	ctrl.SetLogger(logrusr.New(logrus.WithField("component", "k8s.controller-runtime")))
 
@@ -152,10 +71,8 @@ func NewPlatform(namespace string) (*Platform, error) {
 	}()
 
 	return &Platform{
-		client:            manager.GetClient(),
-		podReconciler:     podReconciler,
-		serviceReconciler: NewReconciler(manager.GetClient()),
-		namespace:         namespace,
-		logger:            logger,
+		client:        manager.GetClient(),
+		podReconciler: podReconciler,
+		logger:        logger,
 	}, nil
 }
