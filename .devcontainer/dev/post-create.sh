@@ -17,3 +17,5 @@
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2
 go install golang.org/x/tools/cmd/goimports@latest
 go install github.com/mfridman/tparse@latest
+go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.13.0
+go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest

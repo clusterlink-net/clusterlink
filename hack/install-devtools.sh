@@ -86,3 +86,10 @@ if [ -z "$(which tparse)" ] || [ "$1" = "--force" ]; then
   echo installing tparse "($VERSION)"
   go install "github.com/mfridman/tparse@$VERSION"
 fi
+
+#--  setup-envtest
+VERSION=latest
+if [ -z "$(which  setup-envtest)" ] || [ "$1" = "--force" ]; then
+  echo installing  setup-envtest "($VERSION)"
+  go install "sigs.k8s.io/controller-runtime/tools/setup-envtest@$VERSION"
+fi
