@@ -38,7 +38,7 @@ const (
 // portManager leases ports for use by imported services.
 type portManager struct {
 	lock        sync.Mutex
-	leasedPorts map[uint16]struct{}
+	leasedPorts map[uint16]string
 
 	logger *logrus.Entry
 }
@@ -74,8 +74,8 @@ func (m *portManager) getRandomFreePort() uint16 {
 	return port
 }
 
-// Lease marks a port as taken. If port is 0, some random free port is returned.
-func (m *portManager) Lease(port uint16) (uint16, error) {
+// Lease marks a port as taken by the given name. If port is 0, some random free port is returned.
+func (m *portManager) Lease(name string, port uint16) (uint16, error) {
 	m.logger.Infof("Leasing: %d.", port)
 
 	m.lock.Lock()
@@ -89,13 +89,13 @@ func (m *portManager) Lease(port uint16) (uint16, error) {
 		port = m.getRandomFreePort()
 		m.logger.Infof("Generated port: %d.", port)
 	} else {
-		if _, ok := m.leasedPorts[port]; ok {
-			return 0, fmt.Errorf("port %d is already leased", port)
+		if leaseName, ok := m.leasedPorts[port]; ok && leaseName != name {
+			return 0, fmt.Errorf("port %d is already leased to '%s'", port, leaseName)
 		}
 	}
 
 	// mark port is leased
-	m.leasedPorts[port] = struct{}{}
+	m.leasedPorts[port] = name
 
 	return port, nil
 }
@@ -120,7 +120,7 @@ func newPortManager() *portManager {
 	).Info("Initialized.")
 
 	return &portManager{
-		leasedPorts: make(map[uint16]struct{}),
+		leasedPorts: make(map[uint16]string),
 		logger:      logger,
 	}
 }

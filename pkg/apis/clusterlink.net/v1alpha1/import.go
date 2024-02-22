@@ -44,6 +44,7 @@ type ImportSpec struct {
 	// Port of the imported service.
 	Port uint16 `json:"port"`
 	// TargetPort of the imported service.
+	// This is the internal (non user-facing) listening port used by the dataplane pods.
 	TargetPort uint16 `json:"targetPort,omitempty"`
 	// Sources to import from.
 	Sources []ImportSource `json:"sources"`

@@ -60,6 +60,12 @@ rules:
 - apiGroups:
   - clusterlink.net
   resources:
+  - imports
+  verbs:
+  - update
+- apiGroups:
+  - clusterlink.net
+  resources:
   - instances
   verbs:
   - get
