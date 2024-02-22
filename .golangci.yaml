@@ -140,3 +140,7 @@ issues:
   new: true
   # do not automatically fix (until AI assisted code improves)
   fix: false
+
+godot:
+  # Which comments to check.
+  scope: toplevel
