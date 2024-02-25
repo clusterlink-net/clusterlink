@@ -11,26 +11,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package config
 
-import (
-	"github.com/spf13/cobra"
+import "embed"
 
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/cmd/create"
-	initcmd "github.com/clusterlink-net/clusterlink/cmd/cl-adm/cmd/init"
-)
-
-// NewCLADMCommand returns a cobra.Command to run the cl-adm command.
-func NewCLADMCommand() *cobra.Command {
-	cmds := &cobra.Command{
-		Use:          "cl-adm",
-		Short:        "cl-adm: bootstrap a clink fabric",
-		Long:         `cl-adm: bootstrap a clink fabric`,
-		SilenceUsage: true,
-	}
-
-	cmds.AddCommand(create.NewCmdCreate())
-	cmds.AddCommand(initcmd.NewCmdInit())
-
-	return cmds
-}
+//go:embed *
+var ConfigFiles embed.FS

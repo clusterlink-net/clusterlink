@@ -11,26 +11,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package initcmd
 
 import (
 	"github.com/spf13/cobra"
-
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/cmd/create"
-	initcmd "github.com/clusterlink-net/clusterlink/cmd/cl-adm/cmd/init"
 )
 
-// NewCLADMCommand returns a cobra.Command to run the cl-adm command.
-func NewCLADMCommand() *cobra.Command {
+// NewCmdInit returns a cobra.Command to run the init command.
+func NewCmdInit() *cobra.Command {
 	cmds := &cobra.Command{
-		Use:          "cl-adm",
-		Short:        "cl-adm: bootstrap a clink fabric",
-		Long:         `cl-adm: bootstrap a clink fabric`,
-		SilenceUsage: true,
+		Use: "init",
 	}
 
-	cmds.AddCommand(create.NewCmdCreate())
-	cmds.AddCommand(initcmd.NewCmdInit())
+	cmds.AddCommand(NewCmdInitPeer())
 
 	return cmds
 }
