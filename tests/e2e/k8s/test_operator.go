@@ -19,7 +19,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	apimachinerywait "k8s.io/apimachinery/pkg/util/wait"
+	apiwait "k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait"
 
 	clusterlink "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
@@ -75,23 +75,15 @@ func (s *TestSuite) TestOperator() {
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), cl[0].Name(), data)
 
-	// Check that instance1 deployment succeeded.
-	instance1 := &clusterlink.Instance{}
-	err = peerResource.Get(context.Background(), "cl-instance"+s.fabric.Namespace(), controller.OperatorNamespace, instance1)
-	require.Nil(s.T(), err)
-	require.Equal(s.T(), v1.ConditionTrue, instance1.Status.Controlplane.Conditions[string(clusterlink.DeploymentReady)].Status)
-	require.Equal(s.T(), v1.ConditionTrue, instance1.Status.Dataplane.Conditions[string(clusterlink.DeploymentReady)].Status)
-	require.Equal(s.T(), v1.ConditionTrue, instance1.Status.Ingress.Conditions[string(clusterlink.ServiceReady)].Status)
-
 	// Verify that instance2 failed.
-	instance2ReadyCondition := func(conditionStatus v1.ConditionStatus) apimachinerywait.ConditionWithContextFunc {
+	instanceReadyCondition := func(instance *clusterlink.Instance, condStatus v1.ConditionStatus) apiwait.ConditionWithContextFunc {
 		return func(ctx context.Context) (bool, error) {
 			done := false
-			if err := peerResource.Get(ctx, instance2.GetName(), instance2.GetNamespace(), instance2); err != nil {
+			if err := peerResource.Get(ctx, instance.GetName(), instance.GetNamespace(), instance); err != nil {
 				return false, err
 			}
-			if c, ok := instance2.Status.Controlplane.Conditions[string(clusterlink.DeploymentReady)]; ok {
-				if c.Status == conditionStatus {
+			if c, ok := instance.Status.Controlplane.Conditions[string(clusterlink.DeploymentReady)]; ok {
+				if c.Status == condStatus {
 					done = true
 				}
 			}
@@ -99,7 +91,21 @@ func (s *TestSuite) TestOperator() {
 		}
 	}
 
-	err = wait.For(instance2ReadyCondition(v1.ConditionFalse), wait.WithTimeout(time.Second*60))
+	// Check that instance1 deployment succeeded.
+	instance1 := &clusterlink.Instance{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "cl-instance" + s.fabric.Namespace(),
+			Namespace: controller.OperatorNamespace,
+		},
+	}
+	err = wait.For(instanceReadyCondition(instance1, v1.ConditionTrue), wait.WithTimeout(time.Second*60))
+	require.Nil(s.T(), err)
+	err = peerResource.Get(context.Background(), "cl-instance"+s.fabric.Namespace(), controller.OperatorNamespace, instance1)
+	require.Nil(s.T(), err)
+	require.Equal(s.T(), v1.ConditionTrue, instance1.Status.Dataplane.Conditions[string(clusterlink.DeploymentReady)].Status)
+	require.Equal(s.T(), v1.ConditionTrue, instance1.Status.Ingress.Conditions[string(clusterlink.ServiceReady)].Status)
+
+	err = wait.For(instanceReadyCondition(instance2, v1.ConditionFalse), wait.WithTimeout(time.Second*60))
 	require.Nil(s.T(), err)
 	err = peerResource.Get(context.Background(), "instance2", controller.OperatorNamespace, instance2)
 	require.Nil(s.T(), err)
@@ -111,7 +117,7 @@ func (s *TestSuite) TestOperator() {
 	require.Nil(s.T(), err)
 
 	// Check that instance2 succeeded.
-	err = wait.For(instance2ReadyCondition(v1.ConditionTrue), wait.WithTimeout(time.Second*60))
+	err = wait.For(instanceReadyCondition(instance2, v1.ConditionTrue), wait.WithTimeout(time.Second*60))
 	require.Nil(s.T(), err)
 	err = peerResource.Get(context.Background(), "instance2", controller.OperatorNamespace, instance2)
 	require.Nil(s.T(), err)
