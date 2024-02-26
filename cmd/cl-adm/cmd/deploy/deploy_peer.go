@@ -30,7 +30,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
 	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
 	configFiles "github.com/clusterlink-net/clusterlink/config"
-	clv1a1 "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+	apis "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 )
 
@@ -80,8 +80,8 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Namespace, "namespace", app.SystemNamespace, "Namespace where the ClusterLink components are deployed.")
 	fs.StringVar(&o.CertDir, "cert-dir", ".", "The directory where the certificates for the fabric and peer are located.")
 	fs.BoolVar(&o.RunInstance, "run", false, "If true, deploys a ClusterLink instance that will create the ClusterLink components.")
-	fs.StringVar(&o.Ingress, "ingress", string(clv1a1.IngressTypeLoadBalancer),
-		"Represents the type of service used to expose the ClusterLink deployment.")
+	fs.StringVar(&o.Ingress, "ingress", string(apis.IngressTypeLoadBalancer),
+		"Represents the type of service used to expose the ClusterLink deployment (LoadBalancer/NodePort/none).")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -91,7 +91,7 @@ func (o *PeerOptions) RequiredFlags() []string {
 
 // Run the 'create peer' subcommand.
 func (o *PeerOptions) Run() error {
-	peerDir := path.Join(o.CertDir, "/", o.Name)
+	peerDir := path.Join(o.CertDir, o.Name)
 	if err := o.verifyExists(peerDir); err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (o *PeerOptions) Run() error {
 	}
 
 	// Create cl-secret
-	secretFileName := path.Join(peerDir, "/", config.K8SSecretYAMLFile)
+	secretFileName := path.Join(peerDir, config.K8SSecretYAMLFile)
 	secretFile, err := os.ReadFile(secretFileName)
 	if err != nil {
 		return err
