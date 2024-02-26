@@ -11,19 +11,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package initcmd
+package deploy
 
 import (
 	"github.com/spf13/cobra"
 )
 
-// NewCmdInit returns a cobra.Command to run the init command.
-func NewCmdInit() *cobra.Command {
+// NewCmdDeploy returns a cobra.Command to run the deploy command.
+func NewCmdDeploy() *cobra.Command {
 	cmds := &cobra.Command{
-		Use: "init",
+		Use: "deploy",
 	}
 
-	cmds.AddCommand(NewCmdInitPeer())
+	cmds.AddCommand(NewCmdDeployPeer())
 
 	return cmds
 }

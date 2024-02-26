@@ -11,17 +11,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package initcmd
+package deploy
 
 import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/e2e-framework/klient/decoder"
@@ -30,29 +30,32 @@ import (
 	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
 	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
 	configFiles "github.com/clusterlink-net/clusterlink/config"
+	clv1a1 "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 )
 
-// InitPeerOptions contains everything necessary to create and run a 'init peer' subcommand.
-type InitPeerOptions struct {
+// PeerOptions contains everything necessary to create and run a 'deploy peer' subcommand.
+type PeerOptions struct {
 	// Name of the peer to create.
 	Name string
 	// Namespace where the ClusterLink components are deployed.
 	Namespace string
-	// CertFolder is the folder where the certificates for the fabric and peer are located.
-	CertFolder string
+	// CertDir is the directory where the certificates for the fabric and peer are located.
+	CertDir string
 	// RunInstance, if set to true, deploys a ClusterLink instance that will create the ClusterLink components.
 	RunInstance bool
+	// Ingress, represents the type of service used to expose the ClusterLink deployment.
+	Ingress string
 }
 
-// NewCmdInitPeer returns a cobra.Command to run the 'create peer' subcommand.
-func NewCmdInitPeer() *cobra.Command {
-	opts := &InitPeerOptions{}
+// NewCmdDeployPeer returns a cobra.Command to run the 'create peer' subcommand.
+func NewCmdDeployPeer() *cobra.Command {
+	opts := &PeerOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "peer",
-		Short: "Init a peer",
-		Long:  `Init a peer`,
+		Short: "Deploy a peer",
+		Long:  `Deploy a peer`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Run()
@@ -72,22 +75,24 @@ func NewCmdInitPeer() *cobra.Command {
 }
 
 // AddFlags adds flags to fs and binds them to options.
-func (o *InitPeerOptions) AddFlags(fs *pflag.FlagSet) {
+func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
 	fs.StringVar(&o.Namespace, "namespace", app.SystemNamespace, "Namespace where the ClusterLink components are deployed.")
-	fs.StringVar(&o.CertFolder, "cert-folder", ".", "The folder where the certificates for the fabric and peer are located.")
+	fs.StringVar(&o.CertDir, "cert-dir", ".", "The directory where the certificates for the fabric and peer are located.")
 	fs.BoolVar(&o.RunInstance, "run", false, "If true, deploys a ClusterLink instance that will create the ClusterLink components.")
+	fs.StringVar(&o.Ingress, "ingress", string(clv1a1.IngressTypeLoadBalancer),
+		"Represents the type of service used to expose the ClusterLink deployment.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
-func (o *InitPeerOptions) RequiredFlags() []string {
+func (o *PeerOptions) RequiredFlags() []string {
 	return []string{"name"}
 }
 
 // Run the 'create peer' subcommand.
-func (o *InitPeerOptions) Run() error {
-	peerFolder := o.CertFolder + "/" + o.Name
-	if err := o.verifyExists(peerFolder); err != nil {
+func (o *PeerOptions) Run() error {
+	peerDir := path.Join(o.CertDir, "/", o.Name)
+	if err := o.verifyExists(peerDir); err != nil {
 		return err
 	}
 
@@ -103,25 +108,31 @@ func (o *InitPeerOptions) Run() error {
 	}
 
 	// Create operator
-	if err := o.deployFolder("operator/manager/*", resource); err != nil {
+	if err := o.deployDir("operator/manager/*", resource); err != nil {
 		return err
 	}
 
-	if err := o.deployFolder("operator/rbac/*", resource); err != nil {
+	if err := o.deployDir("operator/rbac/*", resource); err != nil {
 		return err
 	}
-	if err := o.deployFolder("crds/*", resource); err != nil {
+	if err := o.deployDir("crds/*", resource); err != nil {
 		return err
 	}
 
 	// Create cl-secret
-	secretFileName := peerFolder + "/" + config.K8SSecretYAMLFile
+	secretFileName := path.Join(peerDir, "/", config.K8SSecretYAMLFile)
 	secretFile, err := os.ReadFile(secretFileName)
 	if err != nil {
 		return err
 	}
 
-	if err := o.deploySecretFile(string(secretFile), o.Namespace, resource); err != nil {
+	err = decoder.DecodeEach(
+		context.Background(),
+		strings.NewReader(string(secretFile)),
+		decoder.CreateHandler(resource),
+		decoder.MutateNamespace(o.Namespace),
+	)
+	if err != nil {
 		return err
 	}
 
@@ -134,7 +145,7 @@ func (o *InitPeerOptions) Run() error {
 			LogLevel:          "info",
 			ContainerRegistry: "ghcr.io/clusterlink-net", // Tell kind to use local image.
 			Namespace:         o.Namespace,
-			IngressType:       "NodePort",
+			IngressType:       o.Ingress,
 		}, "cl-instance")
 		if err != nil {
 			return err
@@ -150,51 +161,17 @@ func (o *InitPeerOptions) Run() error {
 }
 
 // verifyExists verifies a given path exist.
-func (o *InitPeerOptions) verifyExists(path string) error {
-	_, err := os.Stat(path)
+func (o *PeerOptions) verifyExists(dir string) error {
+	_, err := os.Stat(dir)
 	return err
 }
 
-// deployFolder deploys K8s yaml from a folder.
-func (o *InitPeerOptions) deployFolder(path string, resource *resources.Resources) error {
-	err := decoder.DecodeEachFile(context.Background(), configFiles.ConfigFiles, path, decoder.CreateHandler(resource))
+// deployDir deploys K8s yaml from a directory.
+func (o *PeerOptions) deployDir(dir string, resource *resources.Resources) error {
+	err := decoder.DecodeEachFile(context.Background(), configFiles.ConfigFiles, dir, decoder.CreateHandler(resource))
 	if errors.IsAlreadyExists(err) {
 		return nil
 	}
 
 	return err
-}
-
-// deploySecretFile deploys all the secret in YAML file.
-func (o *InitPeerOptions) deploySecretFile(yamlContent, newNamespace string, resource *resources.Resources) error {
-	// Split the YAML content into separate documents
-	yamlDocuments := strings.Split(yamlContent, "---")
-
-	for _, doc := range yamlDocuments {
-		if strings.TrimSpace(doc) == "" {
-			continue
-		}
-
-		var secretMap map[string]interface{}
-		if err := yaml.Unmarshal([]byte(doc), &secretMap); err != nil {
-			return err
-		}
-		// Update namespce
-		if metadata, ok := secretMap["metadata"].(map[interface{}]interface{}); ok {
-			metadata["namespace"] = newNamespace
-			secretMap["metadata"] = metadata
-		}
-
-		secretMapUpdate, err := yaml.Marshal(&secretMap)
-		if err != nil {
-			return err
-		}
-		// Create secrets
-		err = decoder.DecodeEach(context.Background(), strings.NewReader(string(secretMapUpdate)), decoder.CreateHandler(resource))
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

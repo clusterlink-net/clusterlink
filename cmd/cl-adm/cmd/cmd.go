@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/cmd/create"
-	initcmd "github.com/clusterlink-net/clusterlink/cmd/cl-adm/cmd/init"
+	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/cmd/deploy"
 )
 
 // NewCLADMCommand returns a cobra.Command to run the cl-adm command.
@@ -30,7 +30,7 @@ func NewCLADMCommand() *cobra.Command {
 	}
 
 	cmds.AddCommand(create.NewCmdCreate())
-	cmds.AddCommand(initcmd.NewCmdInit())
+	cmds.AddCommand(deploy.NewCmdDeploy())
 
 	return cmds
 }
