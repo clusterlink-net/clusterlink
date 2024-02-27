@@ -14,7 +14,7 @@ Before you start, you must have access to a Kubernetes cluster. For example, you
 1. To install ClusterLink on Linux or Mac, use the installation script:
 
     ```sh
-    curl -L <https://Clusterlink.net/install> | sh -
+    curl -L https://github.com/clusterlink-net/clusterlink/releases/latest/clusterlink.sh | sh -
     ```
 
 1. Move to the ClusterLink project folder:
