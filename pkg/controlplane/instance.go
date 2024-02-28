@@ -15,33 +15,24 @@ package controlplane
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"fmt"
-	"sync"
 
-	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/control"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/peer"
 	cpstore "github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/xds"
-	"github.com/clusterlink-net/clusterlink/pkg/platform/k8s"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/pkg/store"
-	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 // Instance of a controlplane, where all API servers delegate their requested actions to.
 type Instance struct {
 	namespace string
-	peerTLS   *tls.ParsedCertData
 
 	peers      *cpstore.Peers
 	exports    *cpstore.Exports
@@ -50,20 +41,22 @@ type Instance struct {
 	acPolicies *cpstore.AccessPolicies
 	lbPolicies *cpstore.LBPolicies
 
-	peerLock   sync.RWMutex
-	peerClient map[string]*peer.Client
-
+	authzManager   *authz.Manager
 	controlManager *control.Manager
 	xdsManager     *xds.Manager
-	policyDecider  policyengine.PolicyDecider
-	platform       *k8s.Platform
-
-	jwkSignKey   jwk.Key
-	jwkVerifyKey jwk.Key
 
 	initialized bool
 
 	logger *logrus.Entry
+}
+
+func toK8SExport(export *cpstore.Export, namespace string) *v1alpha1.Export {
+	return &v1alpha1.Export{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      export.Name,
+			Namespace: namespace,
+		},
+	}
 }
 
 func toK8SImport(imp *cpstore.Import, namespace string) *v1alpha1.Import {
@@ -96,67 +89,34 @@ func toK8SPeer(pr *cpstore.Peer) *v1alpha1.Peer {
 }
 
 // CreatePeer defines a new route target for egress dataplane connections.
-func (cp *Instance) CreatePeer(pr *cpstore.Peer) error {
-	cp.logger.Infof("Creating peer '%s'.", pr.Name)
+func (cp *Instance) CreatePeer(peer *cpstore.Peer) error {
+	cp.logger.Infof("Creating peer '%s'.", peer.Name)
 
 	if cp.initialized {
-		if err := cp.peers.Create(pr); err != nil {
+		if err := cp.peers.Create(peer); err != nil {
 			return err
 		}
 	}
 
-	// initialize peer client
-	client := peer.NewClient(pr, cp.peerTLS.ClientConfig(pr.Name))
-
-	cp.peerLock.Lock()
-	cp.peerClient[pr.Name] = client
-	cp.peerLock.Unlock()
-
-	if err := cp.xdsManager.AddPeer(toK8SPeer(pr)); err != nil {
-		// practically impossible
-		return err
-	}
-
-	cp.policyDecider.AddPeer(pr.Name)
-
-	client.SetPeerStatusCallback(func(isActive bool) {
-		if isActive {
-			cp.policyDecider.AddPeer(pr.Name)
-			return
-		}
-
-		cp.policyDecider.DeletePeer(pr.Name)
-	})
-
-	return nil
+	k8sPeer := toK8SPeer(peer)
+	cp.authzManager.AddPeer(k8sPeer)
+	return cp.xdsManager.AddPeer(k8sPeer)
 }
 
 // UpdatePeer updates new route target for egress dataplane connections.
-func (cp *Instance) UpdatePeer(pr *cpstore.Peer) error {
-	cp.logger.Infof("Updating peer '%s'.", pr.Name)
+func (cp *Instance) UpdatePeer(peer *cpstore.Peer) error {
+	cp.logger.Infof("Updating peer '%s'.", peer.Name)
 
-	err := cp.peers.Update(pr.Name, func(old *cpstore.Peer) *cpstore.Peer {
-		return pr
+	err := cp.peers.Update(peer.Name, func(old *cpstore.Peer) *cpstore.Peer {
+		return peer
 	})
 	if err != nil {
 		return err
 	}
 
-	// initialize peer client
-	client := peer.NewClient(pr, cp.peerTLS.ClientConfig(pr.Name))
-
-	cp.peerLock.Lock()
-	cp.peerClient[pr.Name] = client
-	cp.peerLock.Unlock()
-
-	if err := cp.xdsManager.AddPeer(toK8SPeer(pr)); err != nil {
-		// practically impossible
-		return err
-	}
-
-	cp.policyDecider.AddPeer(pr.Name)
-
-	return nil
+	k8sPeer := toK8SPeer(peer)
+	cp.authzManager.AddPeer(k8sPeer)
+	return cp.xdsManager.AddPeer(k8sPeer)
 }
 
 // GetPeer returns an existing peer.
@@ -177,17 +137,13 @@ func (cp *Instance) DeletePeer(name string) (*cpstore.Peer, error) {
 		return nil, nil
 	}
 
-	cp.peerClient[name].StopMonitor()
-	cp.peerLock.Lock()
-	delete(cp.peerClient, name)
-	cp.peerLock.Unlock()
+	cp.authzManager.DeletePeer(name)
 
-	if err := cp.xdsManager.DeletePeer(name); err != nil {
+	err = cp.xdsManager.DeletePeer(name)
+	if err != nil {
 		// practically impossible
 		return nil, err
 	}
-
-	cp.policyDecider.DeletePeer(name)
 
 	return pr, nil
 }
@@ -202,11 +158,7 @@ func (cp *Instance) GetAllPeers() []*cpstore.Peer {
 func (cp *Instance) CreateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Creating export '%s'.", export.Name)
 
-	// TODO: check policyDecider's answer
-	_, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
-	if err != nil {
-		return err
-	}
+	cp.authzManager.AddExport(toK8SExport(export, cp.namespace))
 
 	if cp.initialized {
 		if err := cp.exports.Create(export); err != nil {
@@ -228,13 +180,9 @@ func (cp *Instance) CreateExport(export *cpstore.Export) error {
 func (cp *Instance) UpdateExport(export *cpstore.Export) error {
 	cp.logger.Infof("Updating export '%s'.", export.Name)
 
-	// TODO: check policyDecider's answer
-	_, err := cp.policyDecider.AddExport(&api.Export{Name: export.Name, Spec: export.ExportSpec})
-	if err != nil {
-		return err
-	}
+	cp.authzManager.AddExport(toK8SExport(export, cp.namespace))
 
-	err = cp.exports.Update(export.Name, func(old *cpstore.Export) *cpstore.Export {
+	err := cp.exports.Update(export.Name, func(old *cpstore.Export) *cpstore.Export {
 		return export
 	})
 	if err != nil {
@@ -282,7 +230,7 @@ func (cp *Instance) DeleteExport(name string) (*cpstore.Export, error) {
 		return export, err
 	}
 
-	cp.policyDecider.DeleteExport(name)
+	cp.authzManager.DeleteExport(namespacedName)
 
 	return export, nil
 }
@@ -408,11 +356,17 @@ func (cp *Instance) GetAllImports() []*cpstore.Import {
 func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 	cp.logger.Infof("Creating binding '%s'->'%s'.", binding.Import, binding.Peer)
 
-	action := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
-	if action != policytypes.ActionAllow {
-		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
-		return nil
-	}
+	cp.authzManager.AddImport(&v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{Name: binding.Import},
+		Spec: v1alpha1.ImportSpec{
+			Sources: []v1alpha1.ImportSource{
+				{
+					Peer:       binding.Peer,
+					ExportName: binding.Import,
+				},
+			},
+		},
+	})
 
 	if cp.initialized {
 		if err := cp.bindings.Create(binding); err != nil {
@@ -427,11 +381,17 @@ func (cp *Instance) CreateBinding(binding *cpstore.Binding) error {
 func (cp *Instance) UpdateBinding(binding *cpstore.Binding) error {
 	cp.logger.Infof("Updating binding '%s'->'%s'.", binding.Import, binding.Peer)
 
-	action := cp.policyDecider.AddBinding(&api.Binding{Spec: binding.BindingSpec})
-	if action != policytypes.ActionAllow {
-		cp.logger.Warnf("Access policies deny creating binding '%s'->'%s' .", binding.Import, binding.Peer)
-		return nil
-	}
+	cp.authzManager.AddImport(&v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{Name: binding.Import},
+		Spec: v1alpha1.ImportSpec{
+			Sources: []v1alpha1.ImportSource{
+				{
+					Peer:       binding.Peer,
+					ExportName: binding.Import,
+				},
+			},
+		},
+	})
 
 	err := cp.bindings.Update(binding, func(old *cpstore.Binding) *cpstore.Binding {
 		return binding
@@ -453,7 +413,7 @@ func (cp *Instance) GetBindings(imp string) []*cpstore.Binding {
 func (cp *Instance) DeleteBinding(binding *cpstore.Binding) (*cpstore.Binding, error) {
 	cp.logger.Infof("Deleting binding '%s'->'%s'.", binding.Import, binding.Peer)
 
-	cp.policyDecider.DeleteBinding(&api.Binding{Spec: binding.BindingSpec})
+	// TODO: m.authzManager.Delete*
 
 	return cp.bindings.Delete(binding)
 }
@@ -474,7 +434,7 @@ func (cp *Instance) CreateAccessPolicy(policy *cpstore.AccessPolicy) error {
 		}
 	}
 
-	return cp.policyDecider.AddAccessPolicy(&api.Policy{Spec: policy.Spec})
+	return cp.authzManager.AddAccessPolicy(&api.Policy{Spec: policy.Spec})
 }
 
 // UpdateAccessPolicy updates an access policy to allow/deny specific connections.
@@ -488,7 +448,7 @@ func (cp *Instance) UpdateAccessPolicy(policy *cpstore.AccessPolicy) error {
 		return err
 	}
 
-	return cp.policyDecider.AddAccessPolicy(&api.Policy{Spec: policy.Spec})
+	return cp.authzManager.AddAccessPolicy(&api.Policy{Spec: policy.Spec})
 }
 
 // DeleteAccessPolicy removes an access policy to allow/deny specific connections.
@@ -503,7 +463,7 @@ func (cp *Instance) DeleteAccessPolicy(name string) (*cpstore.AccessPolicy, erro
 		return nil, nil
 	}
 
-	if err := cp.policyDecider.DeleteAccessPolicy(&policy.Policy); err != nil {
+	if err := cp.authzManager.DeleteAccessPolicy(&policy.Policy); err != nil {
 		return nil, err
 	}
 
@@ -532,7 +492,7 @@ func (cp *Instance) CreateLBPolicy(policy *cpstore.LBPolicy) error {
 		}
 	}
 
-	return cp.policyDecider.AddLBPolicy(&api.Policy{Spec: policy.Spec})
+	return cp.authzManager.AddLBPolicy(&api.Policy{Spec: policy.Spec})
 }
 
 // UpdateLBPolicy updates a load-balancing policy.
@@ -546,7 +506,7 @@ func (cp *Instance) UpdateLBPolicy(policy *cpstore.LBPolicy) error {
 		return err
 	}
 
-	return cp.policyDecider.AddLBPolicy(&api.Policy{Spec: policy.Spec})
+	return cp.authzManager.AddLBPolicy(&api.Policy{Spec: policy.Spec})
 }
 
 // DeleteLBPolicy removes a load-balancing policy.
@@ -561,7 +521,7 @@ func (cp *Instance) DeleteLBPolicy(name string) (*cpstore.LBPolicy, error) {
 		return nil, nil
 	}
 
-	if err := cp.policyDecider.DeleteLBPolicy(&policy.Policy); err != nil {
+	if err := cp.authzManager.DeleteLBPolicy(&policy.Policy); err != nil {
 		return nil, err
 	}
 
@@ -582,11 +542,6 @@ func (cp *Instance) GetAllLBPolicies() []*cpstore.LBPolicy {
 
 // init initializes the controlplane manager.
 func (cp *Instance) init() error {
-	// generate the JWK key
-	if err := cp.generateJWK(); err != nil {
-		return fmt.Errorf("unable to generate JWK key: %w", err)
-	}
-
 	// add peers
 	for _, p := range cp.GetAllPeers() {
 		if err := cp.CreatePeer(p); err != nil {
@@ -634,46 +589,15 @@ func (cp *Instance) init() error {
 	return nil
 }
 
-// generateJWK generates a new JWK for signing JWT access tokens.
-func (cp *Instance) generateJWK() error {
-	cp.logger.Infof("Updating the JWK.")
-
-	// generate RSA key-pair
-	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return fmt.Errorf("unable to generate RSA keys: %w", err)
-	}
-
-	jwkSignKey, err := jwk.New(rsaKey)
-	if err != nil {
-		return fmt.Errorf("unable to create JWK signing key: %w", err)
-	}
-
-	jwkVerifyKey, err := jwk.New(rsaKey.PublicKey)
-	if err != nil {
-		return fmt.Errorf("unable to create JWK verifing key: %w", err)
-	}
-
-	cp.jwkSignKey = jwkSignKey
-	cp.jwkVerifyKey = jwkVerifyKey
-	return nil
-}
-
 // NewInstance returns a new controlplane instance.
 func NewInstance(
-	peerTLS *tls.ParsedCertData,
 	storeManager store.Manager,
+	authzManager *authz.Manager,
 	controlManager *control.Manager,
 	xdsManager *xds.Manager,
 	namespace string,
 ) (*Instance, error) {
 	logger := logrus.WithField("component", "controlplane")
-
-	// initialize platform
-	pp, err := k8s.NewPlatform()
-	if err != nil {
-		return nil, err
-	}
 
 	peers, err := cpstore.NewPeers(storeManager)
 	if err != nil {
@@ -713,18 +637,15 @@ func NewInstance(
 
 	cp := &Instance{
 		namespace:      namespace,
-		peerTLS:        peerTLS,
-		peerClient:     make(map[string]*peer.Client),
 		peers:          peers,
 		exports:        exports,
 		imports:        imports,
 		bindings:       bindings,
 		acPolicies:     acPolicies,
 		lbPolicies:     lbPolicies,
-		xdsManager:     xdsManager,
+		authzManager:   authzManager,
 		controlManager: controlManager,
-		policyDecider:  policyengine.NewPolicyHandler(),
-		platform:       pp,
+		xdsManager:     xdsManager,
 		initialized:    false,
 		logger:         logger,
 	}

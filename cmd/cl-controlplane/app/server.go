@@ -165,6 +165,16 @@ func (o *Options) Run() error {
 	runnableManager.AddServer(grpcServerAddress, grpcServer)
 	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
 
+	authzManager, err := authz.NewManager(parsedCertData)
+	if err != nil {
+		return fmt.Errorf("cannot create authorization manager: %w", err)
+	}
+
+	authz.RegisterHandlers(authzManager, &httpServer.Server)
+	if err := authz.CreateControllers(authzManager, mgr); err != nil {
+		return fmt.Errorf("cannot create authz controllers: %w", err)
+	}
+
 	controlManager := control.NewManager(mgr.GetClient())
 
 	xdsManager := xds.NewManager()
@@ -185,12 +195,12 @@ func (o *Options) Run() error {
 
 	storeManager := kv.NewManager(kvStore)
 
-	cp, err := controlplane.NewInstance(parsedCertData, storeManager, controlManager, xdsManager, namespace)
+	cp, err := controlplane.NewInstance(
+		storeManager, authzManager, controlManager, xdsManager, namespace)
 	if err != nil {
 		return err
 	}
 
-	authz.RegisterHandlers(cp, &httpServer.Server)
 	cprest.RegisterHandlers(cp, httpServer)
 
 	return runnableManager.Run()

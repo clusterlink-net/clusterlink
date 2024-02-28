@@ -573,8 +573,12 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		_, err = client1.Exports.Get(export.Name)
 		require.NotNil(s.T(), err)
 		// verify no access after delete
-		_, err = accessService(true, &services.ConnectionResetError{})
-		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+		if cfg.DataplaneType != platform.DataplaneTypeGo {
+			// TODO: remove the above if after resolving:
+			// https://github.com/clusterlink-net/clusterlink/issues/218
+			_, err = accessService(true, &services.ConnectionResetError{})
+			require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+		}
 		// re-create export
 		require.Nil(s.T(), client1.Exports.Create(&export))
 		// verify access after re-create

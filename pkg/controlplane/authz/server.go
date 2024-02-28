@@ -21,7 +21,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	utilhttp "github.com/clusterlink-net/clusterlink/pkg/util/http"
 )
@@ -31,16 +30,16 @@ const (
 )
 
 type server struct {
-	cp     *controlplane.Instance
-	logger *logrus.Entry
+	manager *Manager
+	logger  *logrus.Entry
 }
 
 // RegisterHandlers registers the HTTP handlers for dataplane authz requests.
-func RegisterHandlers(cp *controlplane.Instance, srv *utilhttp.Server) {
+func RegisterHandlers(manager *Manager, srv *utilhttp.Server) {
 	router := srv.Router()
 	server := &server{
-		cp:     cp,
-		logger: logrus.WithField("component", "controlplane.authz.server"),
+		manager: manager,
+		logger:  logrus.WithField("component", "controlplane.authz.server"),
 	}
 
 	router.Post(api.DataplaneEgressAuthorizationPath, server.DataplaneEgressAuthorize)
@@ -72,7 +71,7 @@ func (s *server) DataplaneEgressAuthorize(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	resp, err := s.cp.AuthorizeEgress(&controlplane.EgressAuthorizationRequest{
+	resp, err := s.manager.authorizeEgress(&egressAuthorizationRequest{
 		ImportName:      importName,
 		ImportNamespace: importNamespace,
 		IP:              ip,
@@ -109,7 +108,7 @@ func (s *server) DataplaneIngressAuthorize(w http.ResponseWriter, r *http.Reques
 	}
 	token := strings.TrimPrefix(authorization, bearerSchemaPrefix)
 
-	targetCluster, err := s.cp.ParseAuthorizationHeader(token)
+	targetCluster, err := s.manager.parseAuthorizationHeader(token)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -140,8 +139,8 @@ func (s *server) PeerAuthorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	peerName := r.TLS.PeerCertificates[0].DNSNames[0]
-	resp, err := s.cp.AuthorizeIngress(
-		&controlplane.IngressAuthorizationRequest{
+	resp, err := s.manager.authorizeIngress(
+		&ingressAuthorizationRequest{
 			ServiceName:      req.ServiceName,
 			ServiceNamespace: req.ServiceNamespace,
 		},

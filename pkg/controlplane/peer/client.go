@@ -24,8 +24,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 	"github.com/clusterlink-net/clusterlink/pkg/util/jsonapi"
 )
 
@@ -194,9 +194,9 @@ func (c *Client) SetPeerStatusCallback(callback func(bool)) {
 }
 
 // NewClient returns a new Peer API client.
-func NewClient(peer *store.Peer, tlsConfig *tls.Config) *Client {
-	clients := make([]*jsonapi.Client, len(peer.Gateways))
-	for i, endpoint := range peer.Gateways {
+func NewClient(peer *v1alpha1.Peer, tlsConfig *tls.Config) *Client {
+	clients := make([]*jsonapi.Client, len(peer.Spec.Gateways))
+	for i, endpoint := range peer.Spec.Gateways {
 		clients[i] = jsonapi.NewClient(endpoint.Host, endpoint.Port, tlsConfig)
 	}
 	clnt := &Client{
