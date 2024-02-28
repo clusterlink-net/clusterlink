@@ -36,8 +36,9 @@ import (
 // This includes target port generation for imported services, as well as
 // k8s service creation per imported service.
 type Manager struct {
-	client client.Client
-	ports  *portManager
+	client  client.Client
+	crdMode bool
+	ports   *portManager
 
 	logger *logrus.Entry
 }
@@ -103,14 +104,6 @@ func (m *Manager) DeleteLegacyExport(namespace string, exportSpec *api.ExportSpe
 func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
 
-	// TODO: port manager should map ports to imports, and be able to detect conflicts
-	port, err := m.ports.Lease(imp.Spec.TargetPort)
-	if err != nil {
-		return fmt.Errorf("cannot generate listening port: %w", err)
-	}
-
-	imp.Spec.TargetPort = port
-
 	newService := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imp.Name,
@@ -130,7 +123,8 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 	}
 
 	var oldService v1.Service
-	err = m.client.Get(
+	var create bool
+	err := m.client.Get(
 		ctx,
 		types.NamespacedName{
 			Name:      imp.Name,
@@ -138,18 +132,50 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 		},
 		&oldService)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return m.client.Create(ctx, newService)
+		if !errors.IsNotFound(err) {
+			return err
 		}
 
-		return err
+		create = true
 	}
 
-	if serviceChanged(&oldService, newService) {
-		return m.client.Update(ctx, newService)
+	// if service exists, and import specifies a random (0) target port,
+	// then use existing service target port instead of allocating a new port
+	if !create && len(oldService.Spec.Ports) == 1 && imp.Spec.TargetPort == 0 {
+		imp.Spec.TargetPort = uint16(oldService.Spec.Ports[0].TargetPort.IntVal)
 	}
 
-	return nil
+	newPort := imp.Spec.TargetPort == 0
+
+	fullName := imp.Namespace + "/" + imp.Name
+	port, err := m.ports.Lease(fullName, imp.Spec.TargetPort)
+	if err != nil {
+		return fmt.Errorf("cannot generate listening port: %w", err)
+	}
+
+	if newPort {
+		imp.Spec.TargetPort = port
+		newService.Spec.Ports[0].TargetPort = intstr.FromInt32(int32(port))
+
+		if m.crdMode {
+			if err := m.client.Update(ctx, imp); err != nil {
+				m.ports.Release(port)
+				return err
+			}
+		}
+	}
+
+	if create {
+		err = m.client.Create(ctx, newService)
+	} else if serviceChanged(&oldService, newService) {
+		err = m.client.Update(ctx, newService)
+	}
+
+	if err != nil && newPort {
+		m.ports.Release(port)
+	}
+
+	return err
 }
 
 // DeleteImport removes the listening socket of a previously imported service.
@@ -193,12 +219,13 @@ func serviceChanged(svc1, svc2 *v1.Service) bool {
 }
 
 // NewManager returns a new control manager.
-func NewManager(cl client.Client) *Manager {
+func NewManager(cl client.Client, crdMode bool) *Manager {
 	logger := logrus.WithField("component", "controlplane.control.manager")
 
 	return &Manager{
-		client: cl,
-		ports:  newPortManager(),
-		logger: logger,
+		client:  cl,
+		crdMode: crdMode,
+		ports:   newPortManager(),
+		logger:  logger,
 	}
 }

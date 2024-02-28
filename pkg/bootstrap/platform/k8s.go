@@ -276,6 +276,11 @@ rules:
 - apiGroups: [""]
   resources: ["pods"]
   verbs: ["get", "list", "watch"]
+{{ if .crdMode }}
+- apiGroups: ["clusterlink.net"]
+  resources: ["imports"]
+  verbs: ["update"]
+{{ end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
