@@ -75,6 +75,7 @@ copr-fix: ; $(info adding copyright header...)
 GO ?= CGO_ENABLED=0 go
 # Allow setting of go build flags from the command line.
 GOFLAGS := 
+BIN_DIR := ./bin
 TAG := $(shell git describe --tags --abbrev=0)
 LDFLAGS=-ldflags "-X github.com/clusterlink-net/clusterlink/pkg/versioninfo.GitTag=$(TAG)"
 
@@ -102,14 +103,17 @@ codegen: controller-gen  ## Generate ClusterRole, CRDs and DeepCopyObject.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="././pkg/apis/..."
 	@goimports -l -w ./pkg/apis/clusterlink.net/v1alpha1/zz_generated.deepcopy.go
 
-build:
+cli-build:
 	@echo "Start go build phase"
-	$(GO) build $(LDFLAGS) -o ./bin/gwctl ./cmd/gwctl
-	$(GO) build -o ./bin/cl-controlplane ./cmd/cl-controlplane
-	$(GO) build -o ./bin/cl-dataplane ./cmd/cl-dataplane
-	$(GO) build -o ./bin/cl-go-dataplane ./cmd/cl-go-dataplane
-	$(GO) build $(LDFLAGS) -o ./bin/cl-adm ./cmd/cl-adm
-	$(GO) build -o ./bin/cl-operator ./cmd/cl-operator/main.go
+	$(GO) build $(LDFLAGS) -o $(BIN_DIR)/gwctl ./cmd/gwctl
+	$(GO) build $(LDFLAGS) -o $(BIN_DIR)/cl-adm ./cmd/cl-adm
+
+build: cli-build
+	$(GO) build -o $(BIN_DIR)/cl-controlplane ./cmd/cl-controlplane
+	$(GO) build -o $(BIN_DIR)/cl-dataplane ./cmd/cl-dataplane
+	$(GO) build -o $(BIN_DIR)/cl-go-dataplane ./cmd/cl-go-dataplane
+	$(GO) build -o $(BIN_DIR)/cl-operator ./cmd/cl-operator/main.go
+
 
 docker-build: build
 	docker build --progress=plain --rm --tag cl-controlplane -f ./cmd/cl-controlplane/Dockerfile .
@@ -127,9 +131,11 @@ push-image: docker-build
 	docker push $(IMAGE_BASE)/cl-go-dataplane:$(IMAGE_VERSION)
 	docker tag gwctl:latest $(IMAGE_BASE)/gwctl:$(IMAGE_VERSION)
 	docker push $(IMAGE_BASE)/gwctl:$(IMAGE_VERSION)
+	docker tag cl-operator:latest $(IMAGE_BASE)/cl-operator:$(IMAGE_VERSION)
+	docker push $(IMAGE_BASE)/cl-operator:$(IMAGE_VERSION)
 
 install:
-	cp ./bin/gwctl /usr/local/bin/
+	cp ./bin/gwctl ~/.local/bin/
 
 clean-tests:
 	kind delete cluster --name=peer1
