@@ -20,6 +20,10 @@ Once a `Site` has been added to a `Fabric`, it can communicate with any other `S
 
 ## Initializing a new Site
 
+{{< notice warning >}}
+Creating a new Site is a **Fabric** administrator level operation and should be appropriately protected.
+{{< /notice >}}
+
 ### Prerequisites
 
 The following assume that you have access to the `clusterlink` CLI and one or more
@@ -30,13 +34,13 @@ The following assume that you have access to the `clusterlink` CLI and one or mo
 
 ### Create a new Site certificate
 
-Creating a new Site is a **Fabric** administrator level operation and should be appropriately protected.
-
 To create a new Site certificate belonging to a fabric, confirm that the Fabric CA files
  are available in the current working directory, and then execute the following CLI command:
 
-> Note: The Fabric CA files (certificate and private key) are expected in the current
-> working directory (i.e., `./<fabric_name>.crt` and `./<fabric_name>.key`).
+{{< notice tip >}}
+The Fabric CA files (certificate and private key) are expected in the current
+working directory (i.e., `./<fabric_name>.crt` and `./<fabric_name>.key`).
+{{< /notice >}}
 
 ```sh
 clusterlink create site --name <site_name> --fabric <fabric_name>
@@ -47,16 +51,22 @@ This will create the certificate and private key files (`<site_name>.cert` and
  created in a subdirectory named `<site_name>` under the current working directory.
  You can override the default by setting the `--output <path>` option.
 
+{{< notice info >}}
 You will need the CA certificate (but **not** the CA private key) and the site certificate
  and private in the next step. They can be provided out of band (e.g., over email) to the
  site administrator.
+{{< /notice >}}
 
 ### Deploy ClusterLink to a Site
 
-This operation is typically done by a local *Site administrator*, typically different
- than the *Fabric administrator*. Before proceeding, ensure that the CA certificate
- (the CA private key is not needed), and the site certificate and key files which were
- created in the previous step are in the current working directory.
+{{< notice info >}}
+This operation is typically done by a local *Site administrator*, usually different
+ than the *Fabric administrator*.
+{{< /notice >}}
+
+Before proceeding, ensure that the CA certificate (the CA private key is not needed),
+ and the site certificate and key files which were created in the previous step are
+ in the current working directory.
 
 1. Install the ClusterLink deployment operator.
 
