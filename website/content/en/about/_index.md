@@ -13,12 +13,12 @@ ClusterLink is in **alpha** status and not ready for production use.
 {{% /pageinfo %}}
 ClusterLink is a secure interconnectivity solution for working across the multi-cloud. It simplifies the connection between application services that are located in different domains, networks, and cloud infrastructures.
 
-### The main usage scenarios
+## The main usage scenarios
 
 * Efficiently connecting services across multiple cloud clusters
 * Providing seamless application-centric connectivity across existing private networks
 
-### Core features
+## Core features
 
 * Ensures global presence and availability
 * Avoids vendor lock-in

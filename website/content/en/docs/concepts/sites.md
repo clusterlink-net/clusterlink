@@ -5,11 +5,11 @@ weight: 34
 ---
 
 A `Site` represents a location, such as a Kubernetes cluster, participating in a
- [Fabric](/docs/concepts/fabric/). Each site may host one or more [Services](/docs/concepts/services/)
+ [Fabric]({{< ref "fabric" >}}). Each site may host one or more [Services]({{< ref "services" >}})
  it wishes to share with other sites. A site is managed by a site administrator,
  which is responsible for running the ClusterLink control and data planes. The
  administrator will typically deploy the ClusterLink components by configuring
- the [deployment CRD](/docs/getting-started/#setup). They may also wish to provide
+ the [deployment CRD]({{< ref "getting-started#setup" >}}). They may also wish to provide
  (often) coarse-grained access policies in accordance with high level corporate
  policies (e.g., "production sites should only communicate with other production sites").
 
@@ -25,7 +25,7 @@ Once a `Site` has been added to a `Fabric`, it can communicate with any other `S
 The following assume that you have access to the `clusterlink` CLI and one or more
  sites (i.e., clusters) where you'll deploy ClusterLink. The CLI can be downloaded
  from the ClusterLink [releases page on GitHub](https://github.com/clusterlink-net/clusterlink/releases/latest).
- It also assumes that you have access to the [previously created](/docs/concepts/fabric/#create-a-new-fabric-ca)
+ It also assumes that you have access to the [previously created]({{< ref "fabric#create-a-new-fabric-ca" >}})
  Fabric CA files.
 
 ### Create a new Site certificate
@@ -90,12 +90,12 @@ This operation is typically done by a local *Site administrator*, typically diff
 
     After the operator is installed, you can deploy ClusterLink by applying
     the ClusterLink instance CRD.
-    Refer to the [getting started guide](/docs/getting-started/#setup) for a description
+    Refer to the [getting started guide]({{< ref "getting-started#setup" >}}) for a description
     of the CRD instance fields.
 
 ## Related tasks
 
 Once a `Site` has been created and initialized with the ClusterLink control and data
- planes, you can proceed with configuring [services](/docs/concepts/services/)
- and [policies](/docs/concepts/policies/).
- For a complete end to end use case, refer to [iperf toturial](/docs/tutorials/iperf/).
+ planes, you can proceed with configuring [services]({{< ref "services" >}})
+ and [policies]({{< ref "policies" >}}).
+ For a complete end to end use case, refer to [iperf toturial]({{< ref "iperf" >}}).

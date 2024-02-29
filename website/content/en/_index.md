@@ -8,7 +8,6 @@ title: ClusterLink
 
 {{< /blocks/cover >}}
 
-
 {{% blocks/lead color="primary" height="auto" %}}
 
 {{% clusterlink/main %}}ClusterLink simplifies the connection between application services that are located in different domains, networks, and cloud infrastructures.{{% /clusterlink/main %}}
