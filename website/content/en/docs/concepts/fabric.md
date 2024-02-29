@@ -4,9 +4,9 @@ description: Defining a ClusterLink fabric
 weight: 32
 ---
 
-The concept of a `Fabric` encapsulates a set of cooperating [sites](/docs/concepts/sites/).
- All sites in a fabric can communicate and may share [services](/docs/concepts/services)
- between them, with access governed by [policies](/docs/concepts/policies/).
+The concept of a `Fabric` encapsulates a set of cooperating [sites]({{< ref "sites" >}}/).
+ All sites in a fabric can communicate and may share [services]({{< ref "services" >}})
+ between them, with access governed by [policies]({{< ref "policies" >}}).
  The `Fabric` acts as a root of trust for site to site communications (i.e.,
  it functions as the certificate authority enabling mutual authentication between
  sites).
@@ -43,5 +43,5 @@ This command will create the CA files `<fabric_name>.cert` and `<fabric_name>.ke
 ## Related tasks
 
 Once a `Fabric` has been created and initialized, you can proceed with configuring
- [sites](/docs/concepts/sites/). For a complete, end to end, use case please refer to the
- [iperf toturial](/docs/tutorials/iperf/).
+ [sites]({{< ref "sites" >}}). For a complete, end to end, use case please refer to the
+ [iperf toturial]({{< ref "iperf" >}}).
