@@ -27,6 +27,8 @@ type Peer struct {
 
 	// Spec represents the peer attributes.
 	Spec PeerSpec `json:"spec"`
+	// Status represents the peer status.
+	Status PeerStatus `json:"status,omitempty"`
 }
 
 // Endpoint represents a network endpoint (i.e., host or IP and a port).
@@ -43,9 +45,15 @@ type PeerSpec struct {
 	Gateways []Endpoint `json:"gateways"`
 }
 
+const (
+	// PeerReachable is a condition type for indicating whether a peer is reachable (heartbeat responding).
+	PeerReachable string = "PeerReachable"
+)
+
 // PeerStatus represents the status of a peer.
 type PeerStatus struct {
-	// TODO: add fields
+	// Conditions of the peer.
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

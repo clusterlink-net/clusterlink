@@ -158,12 +158,6 @@ func (o *Options) Run() error {
 	httpServer := utilrest.NewServer("controlplane-http", parsedCertData.ServerConfig())
 	grpcServer := grpc.NewServer("controlplane-grpc", parsedCertData.ServerConfig())
 
-	runnableManager := runnable.NewManager()
-	runnableManager.Add(controller.NewManager(mgr))
-	runnableManager.AddServer(httpServerAddress, httpServer)
-	runnableManager.AddServer(grpcServerAddress, grpcServer)
-	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
-
 	authzManager, err := authz.NewManager(parsedCertData)
 	if err != nil {
 		return fmt.Errorf("cannot create authorization manager: %w", err)
@@ -174,7 +168,7 @@ func (o *Options) Run() error {
 		return fmt.Errorf("cannot create authz controllers: %w", err)
 	}
 
-	controlManager := control.NewManager(mgr.GetClient(), o.CRDMode)
+	controlManager := control.NewManager(mgr.GetClient(), parsedCertData, o.CRDMode)
 
 	xdsManager := xds.NewManager()
 	xds.RegisterService(
@@ -202,7 +196,18 @@ func (o *Options) Run() error {
 		}
 
 		cprest.RegisterHandlers(restManager, httpServer)
+
+		controlManager.SetStatusCallback(func(pr *v1alpha1.Peer) {
+			authzManager.AddPeer(pr)
+		})
 	}
+
+	runnableManager := runnable.NewManager()
+	runnableManager.Add(controller.NewManager(mgr))
+	runnableManager.Add(controlManager)
+	runnableManager.AddServer(httpServerAddress, httpServer)
+	runnableManager.AddServer(grpcServerAddress, grpcServer)
+	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
 
 	return runnableManager.Run()
 }
