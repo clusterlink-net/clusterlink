@@ -44,6 +44,7 @@ func (d *Dataplane) CreateListener(name, ip string, port uint32) {
 		}
 	}()
 	<-d.listenerEnd[name]
+	d.logger.Infof("Ending the listener for imported service %s at %s.", name, listenTarget)
 	acceptor.Close()
 }
 
