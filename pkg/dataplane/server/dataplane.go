@@ -71,7 +71,7 @@ func (d *Dataplane) RemoveCluster(name string) {
 	delete(d.clusters, name)
 }
 
-// GetClusters returns the listeners map
+// GetClusters returns the listeners map.
 func (d *Dataplane) GetClusters() map[string]*cluster.Cluster {
 	return d.clusters
 }
@@ -79,10 +79,10 @@ func (d *Dataplane) GetClusters() map[string]*cluster.Cluster {
 // AddListener adds a listener to the map.
 func (d *Dataplane) AddListener(ln *listener.Listener) {
 	listenerName := strings.TrimPrefix(ln.Name, api.ImportListenerPrefix)
-	if listener, ok := d.listeners[listenerName]; ok {
+	if le, ok := d.listeners[listenerName]; ok {
 		// Check if there is an update to the listener address/port
-		if ln.Address.GetSocketAddress().GetAddress() == listener.Address.GetSocketAddress().GetAddress() &&
-			ln.Address.GetSocketAddress().GetPortValue() == listener.Address.GetSocketAddress().GetPortValue() {
+		if ln.Address.GetSocketAddress().GetAddress() == le.Address.GetSocketAddress().GetAddress() &&
+			ln.Address.GetSocketAddress().GetPortValue() == le.Address.GetSocketAddress().GetPortValue() {
 			return
 		}
 		d.DeleteListener(listenerName)
@@ -95,13 +95,13 @@ func (d *Dataplane) AddListener(ln *listener.Listener) {
 	}()
 }
 
-// RemoveListener removes a listener
+// RemoveListener removes a listener.
 func (d *Dataplane) RemoveListener(name string) {
 	delete(d.listeners, name)
 	d.DeleteListener(name)
 }
 
-// GetListeners returns the listeners map
+// GetListeners returns the listeners map.
 func (d *Dataplane) GetListeners() map[string]*listener.Listener {
 	return d.listeners
 }
