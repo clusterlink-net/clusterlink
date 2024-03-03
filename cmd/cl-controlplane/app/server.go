@@ -23,6 +23,8 @@ import (
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
@@ -143,7 +145,21 @@ func (o *Options) Run() error {
 		return fmt.Errorf("unable to add core v1 objects to scheme: %w", err)
 	}
 
-	mgr, err := manager.New(config, manager.Options{Scheme: scheme})
+	// limit watch for v1alpha1.Peer to the namespace given by 'namespace'
+	managerOptions := manager.Options{
+		Cache: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				&v1alpha1.Peer{}: {
+					Namespaces: map[string]cache.Config{
+						namespace: {},
+					},
+				},
+			},
+		},
+		Scheme: scheme,
+	}
+
+	mgr, err := manager.New(config, managerOptions)
 	if err != nil {
 		return fmt.Errorf(
 			"unable to create k8s controller manager: %w", err)
@@ -163,10 +179,12 @@ func (o *Options) Run() error {
 		return fmt.Errorf("cannot create authorization manager: %w", err)
 	}
 
-	authz.RegisterHandlers(authzManager, &httpServer.Server)
-	if err := authz.CreateControllers(authzManager, mgr); err != nil {
+	err = authz.CreateControllers(authzManager, mgr, o.CRDMode)
+	if err != nil {
 		return fmt.Errorf("cannot create authz controllers: %w", err)
 	}
+
+	authz.RegisterHandlers(authzManager, &httpServer.Server)
 
 	controlManager := control.NewManager(mgr.GetClient(), parsedCertData, o.CRDMode)
 
@@ -174,7 +192,17 @@ func (o *Options) Run() error {
 	xds.RegisterService(
 		context.Background(), xdsManager, grpcServer.GetGRPCServer())
 
-	if !o.CRDMode {
+	if o.CRDMode {
+		err := xds.CreateControllers(xdsManager, mgr)
+		if err != nil {
+			return fmt.Errorf("cannot create xDS controllers: %w", err)
+		}
+
+		err = control.CreateControllers(controlManager, mgr)
+		if err != nil {
+			return fmt.Errorf("cannot create control controllers: %w", err)
+		}
+	} else {
 		// open store
 		kvStore, err := bolt.Open(StoreFile)
 		if err != nil {
