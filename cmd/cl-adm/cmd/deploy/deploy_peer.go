@@ -42,8 +42,8 @@ type PeerOptions struct {
 	Namespace string
 	// CertDir is the directory where the certificates for the fabric and peer are located.
 	CertDir string
-	// RunInstance, if set to true, deploys a ClusterLink instance that will create the ClusterLink components.
-	RunInstance bool
+	// StartInstance, if set to true, deploys a ClusterLink instance that will create the ClusterLink components.
+	StartInstance bool
 	// Ingress, represents the type of service used to expose the ClusterLink deployment.
 	Ingress string
 }
@@ -77,11 +77,12 @@ func NewCmdDeployPeer() *cobra.Command {
 // AddFlags adds flags to fs and binds them to options.
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
-	fs.StringVar(&o.Namespace, "namespace", app.SystemNamespace, "Namespace where the ClusterLink components are deployed.")
 	fs.StringVar(&o.CertDir, "cert-dir", ".", "The directory where the certificates for the fabric and peer are located.")
-	fs.BoolVar(&o.RunInstance, "run", false, "If true, deploys a ClusterLink instance that will create the ClusterLink components.")
-	fs.StringVar(&o.Ingress, "ingress", string(apis.IngressTypeLoadBalancer),
-		"Represents the type of service used to expose the ClusterLink deployment (LoadBalancer/NodePort/none).")
+	fs.BoolVar(&o.StartInstance, "start", false, "If true, deploys a ClusterLink instance that will create the ClusterLink components.")
+	fs.StringVar(&o.Namespace, "start-namespace", app.SystemNamespace,
+		"Namespace where the ClusterLink components are deployed if --start is set.")
+	fs.StringVar(&o.Ingress, "start-ingress", string(apis.IngressTypeLoadBalancer),
+		"Represents the type of service used to expose the ClusterLink deployment (LoadBalancer/NodePort/none) if --start is set.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -137,7 +138,7 @@ func (o *PeerOptions) Run() error {
 	}
 
 	// Create ClusterLink instance
-	if o.RunInstance {
+	if o.StartInstance {
 		instance, err := platform.K8SClusterLinkInstanceConfig(&platform.Config{
 			Peer:              o.Name,
 			Dataplanes:        1,
