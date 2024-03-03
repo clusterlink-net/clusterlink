@@ -78,7 +78,7 @@ func NewCmdDeployPeer() *cobra.Command {
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
 	fs.StringVar(&o.CertDir, "cert-dir", ".", "The directory where the certificates for the fabric and peer are located.")
-	fs.BoolVar(&o.StartInstance, "start", false, "If true, deploys a ClusterLink instance that will create the ClusterLink components.")
+	fs.BoolVar(&o.StartInstance, "start", false, "If true, deploy a ClusterLink instance that will create ClusterLink components")
 	fs.StringVar(&o.Namespace, "start-namespace", app.SystemNamespace,
 		"Namespace where the ClusterLink components are deployed if --start is set.")
 	fs.StringVar(&o.Ingress, "start-ingress", string(apis.IngressTypeLoadBalancer),
