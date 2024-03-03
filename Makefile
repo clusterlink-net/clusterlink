@@ -75,6 +75,8 @@ copr-fix: ; $(info adding copyright header...)
 GO ?= CGO_ENABLED=0 go
 # Allow setting of go build flags from the command line.
 GOFLAGS := 
+TAG := $(shell git describe --tags --abbrev=0)
+LDFLAGS=-ldflags "-X github.com/clusterlink-net/clusterlink/pkg/versioninfo.GitTag=$(TAG)"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -102,11 +104,11 @@ codegen: controller-gen  ## Generate ClusterRole, CRDs and DeepCopyObject.
 
 build:
 	@echo "Start go build phase"
-	$(GO) build -o ./bin/gwctl ./cmd/gwctl
+	$(GO) build $(LDFLAGS) -o ./bin/gwctl ./cmd/gwctl
 	$(GO) build -o ./bin/cl-controlplane ./cmd/cl-controlplane
 	$(GO) build -o ./bin/cl-dataplane ./cmd/cl-dataplane
 	$(GO) build -o ./bin/cl-go-dataplane ./cmd/cl-go-dataplane
-	$(GO) build -o ./bin/cl-adm ./cmd/cl-adm
+	$(GO) build $(LDFLAGS) -o ./bin/cl-adm ./cmd/cl-adm
 	$(GO) build -o ./bin/cl-operator ./cmd/cl-operator/main.go
 
 docker-build: build
