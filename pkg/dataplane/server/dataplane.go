@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -40,6 +41,8 @@ type Dataplane struct {
 	clusters           map[string]*cluster.Cluster
 	listeners          map[string]*listener.Listener
 	listenerEnd        map[string]chan bool
+	clustersLock       sync.Mutex
+	listenerLock       sync.Mutex
 	logger             *logrus.Entry
 }
 
@@ -63,12 +66,16 @@ func (d *Dataplane) GetClusterHost(name string) (string, error) {
 
 // AddCluster adds/updates a cluster to the map.
 func (d *Dataplane) AddCluster(c *cluster.Cluster) {
+	d.clustersLock.Lock()
 	d.clusters[c.Name] = c
+	d.clustersLock.Unlock()
 }
 
 // RemoveCluster adds a cluster to the map.
 func (d *Dataplane) RemoveCluster(name string) {
+	d.clustersLock.Lock()
 	delete(d.clusters, name)
+	d.clustersLock.Unlock()
 }
 
 // GetClusters returns the listeners map.
@@ -85,9 +92,11 @@ func (d *Dataplane) AddListener(ln *listener.Listener) {
 			ln.Address.GetSocketAddress().GetPortValue() == le.Address.GetSocketAddress().GetPortValue() {
 			return
 		}
-		d.DeleteListener(listenerName)
+		d.listenerEnd[listenerName] <- true
 	}
+	d.listenerLock.Lock()
 	d.listeners[listenerName] = ln
+	d.listenerLock.Unlock()
 	go func() {
 		d.CreateListener(listenerName,
 			ln.Address.GetSocketAddress().GetAddress(),
@@ -97,8 +106,10 @@ func (d *Dataplane) AddListener(ln *listener.Listener) {
 
 // RemoveListener removes a listener.
 func (d *Dataplane) RemoveListener(name string) {
+	d.listenerLock.Lock()
 	delete(d.listeners, name)
-	d.DeleteListener(name)
+	d.listenerLock.Unlock()
+	d.listenerEnd[name] <- true
 }
 
 // GetListeners returns the listeners map.
