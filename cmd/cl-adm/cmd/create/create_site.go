@@ -28,9 +28,9 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 )
 
-// PeerOptions contains everything necessary to create and run a 'create peer' subcommand.
-type PeerOptions struct {
-	// Name of the peer to create.
+// SiteOptions contains everything necessary to create and run a 'create site' subcommand.
+type SiteOptions struct {
+	// Name of the site to create.
 	Name string
 	// Namespace where the ClusterLink components are deployed.
 	Namespace string
@@ -50,8 +50,8 @@ type PeerOptions struct {
 }
 
 // AddFlags adds flags to fs and binds them to options.
-func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.Name, "name", "", "Peer name.")
+func (o *SiteOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.Name, "name", "", "Site name.")
 	fs.StringVar(&o.Namespace, "namespace", app.SystemNamespace, "Namespace where the ClusterLink components are deployed.")
 	fs.Uint16Var(&o.Dataplanes, "dataplanes", 1, "Number of dataplanes.")
 	fs.StringVar(&o.DataplaneType, "dataplane-type", platform.DataplaneTypeEnvoy,
@@ -65,11 +65,11 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
-func (o *PeerOptions) RequiredFlags() []string {
+func (o *SiteOptions) RequiredFlags() []string {
 	return []string{"name"}
 }
 
-func (o *PeerOptions) saveCertificate(cert *bootstrap.Certificate, outDirectory string) error {
+func (o *SiteOptions) saveCertificate(cert *bootstrap.Certificate, outDirectory string) error {
 	// save certificate to file
 	err := os.WriteFile(filepath.Join(outDirectory, config.CertificateFileName), cert.RawCert(), 0o600)
 	if err != nil {
@@ -80,8 +80,8 @@ func (o *PeerOptions) saveCertificate(cert *bootstrap.Certificate, outDirectory 
 	return os.WriteFile(filepath.Join(outDirectory, config.PrivateKeyFileName), cert.RawKey(), 0o600)
 }
 
-func (o *PeerOptions) createControlplane(peerCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
-	cert, err := bootstrap.CreateControlplaneCertificate(o.Name, peerCert)
+func (o *SiteOptions) createControlplane(siteCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
+	cert, err := bootstrap.CreateControlplaneCertificate(o.Name, siteCert)
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +98,8 @@ func (o *PeerOptions) createControlplane(peerCert *bootstrap.Certificate) (*boot
 	return cert, nil
 }
 
-func (o *PeerOptions) createDataplane(peerCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
-	cert, err := bootstrap.CreateDataplaneCertificate(o.Name, peerCert)
+func (o *SiteOptions) createDataplane(siteCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
+	cert, err := bootstrap.CreateDataplaneCertificate(o.Name, siteCert)
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +116,8 @@ func (o *PeerOptions) createDataplane(peerCert *bootstrap.Certificate) (*bootstr
 	return cert, nil
 }
 
-func (o *PeerOptions) createGWCTL(peerCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
-	cert, err := bootstrap.CreateGWCTLCertificate(peerCert)
+func (o *SiteOptions) createGWCTL(siteCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
+	cert, err := bootstrap.CreateGWCTLCertificate(siteCert)
 	if err != nil {
 		return nil, err
 	}
@@ -134,10 +134,10 @@ func (o *PeerOptions) createGWCTL(peerCert *bootstrap.Certificate) (*bootstrap.C
 	return cert, nil
 }
 
-// Run the 'create peer' subcommand.
-func (o *PeerOptions) Run() error {
+// Run the 'create site' subcommand.
+func (o *SiteOptions) Run() error {
 	if _, err := idna.Lookup.ToASCII(o.Name); err != nil {
-		return fmt.Errorf("peer name is not a valid DNS name: %w", err)
+		return fmt.Errorf("site name is not a valid DNS name: %w", err)
 	}
 
 	if err := verifyNotExists(o.Name); err != nil {
@@ -165,41 +165,41 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	peerDirectory := config.PeerDirectory(o.Name)
-	if err := os.Mkdir(peerDirectory, 0o755); err != nil {
+	siteDirectory := config.SiteDirectory(o.Name)
+	if err := os.Mkdir(siteDirectory, 0o755); err != nil {
 		return err
 	}
 
-	peerCertificate, err := bootstrap.CreatePeerCertificate(o.Name, fabricCert)
+	siteCertificate, err := bootstrap.CreateSiteCertificate(o.Name, fabricCert)
 	if err != nil {
 		return err
 	}
 
-	err = o.saveCertificate(peerCertificate, config.PeerDirectory(o.Name))
+	err = o.saveCertificate(siteCertificate, config.SiteDirectory(o.Name))
 	if err != nil {
 		return err
 	}
 
-	controlplaneCert, err := o.createControlplane(peerCertificate)
+	controlplaneCert, err := o.createControlplane(siteCertificate)
 	if err != nil {
 		return err
 	}
 
-	dataplaneCert, err := o.createDataplane(peerCertificate)
+	dataplaneCert, err := o.createDataplane(siteCertificate)
 	if err != nil {
 		return err
 	}
 
-	gwctlCert, err := o.createGWCTL(peerCertificate)
+	gwctlCert, err := o.createGWCTL(siteCertificate)
 	if err != nil {
 		return err
 	}
 
 	// create k8s deployment YAML
 	platformCfg := &platform.Config{
-		Peer:                    o.Name,
+		Name:                    o.Name,
 		FabricCertificate:       fabricCert,
-		PeerCertificate:         peerCertificate,
+		SiteCertificate:         siteCertificate,
 		ControlplaneCertificate: controlplaneCert,
 		DataplaneCertificate:    dataplaneCert,
 		GWCTLCertificate:        gwctlCert,
@@ -216,7 +216,7 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	outPath := filepath.Join(peerDirectory, config.K8SYAMLFile)
+	outPath := filepath.Join(siteDirectory, config.K8SYAMLFile)
 	if err := os.WriteFile(outPath, k8sConfig, 0o600); err != nil {
 		return err
 	}
@@ -227,7 +227,7 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	certOutPath := filepath.Join(peerDirectory, config.K8SSecretYAMLFile)
+	certOutPath := filepath.Join(siteDirectory, config.K8SSecretYAMLFile)
 	if err := os.WriteFile(certOutPath, certConfig, 0o600); err != nil {
 		return err
 	}
@@ -238,18 +238,18 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	clOutPath := filepath.Join(peerDirectory, config.K8SClusterLinkInstanceYAMLFile)
+	clOutPath := filepath.Join(siteDirectory, config.K8SClusterLinkInstanceYAMLFile)
 	return os.WriteFile(clOutPath, clConfig, 0o600)
 }
 
-// NewCmdCreatePeer returns a cobra.Command to run the 'create peer' subcommand.
-func NewCmdCreatePeer() *cobra.Command {
-	opts := &PeerOptions{}
+// NewCmdCreateSite returns a cobra.Command to run the 'create site' subcommand.
+func NewCmdCreateSite() *cobra.Command {
+	opts := &SiteOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "peer",
-		Short: "Create a peer",
-		Long:  `Create a peer`,
+		Use:   "site",
+		Short: "Create a site",
+		Long:  `Create a site`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Run()

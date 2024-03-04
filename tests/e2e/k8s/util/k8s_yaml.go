@@ -56,9 +56,9 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 
 	k8sYAMLBytes, err := platform.K8SConfig(&platform.Config{
 		CRDMode:                 cfg.CRDMode,
-		Peer:                    p.cluster.Name(),
+		Name:                    p.cluster.Name(),
 		FabricCertificate:       f.cert,
-		PeerCertificate:         p.peerCert,
+		SiteCertificate:         p.siteCert,
 		ControlplaneCertificate: p.controlplaneCert,
 		DataplaneCertificate:    p.dataplaneCert,
 		GWCTLCertificate:        p.gwctlCert,
@@ -205,7 +205,7 @@ func removePeerSecret(yaml string) (string, error) {
 apiVersion: v1
 kind: Secret
 metadata:
-  name: cl-peer`
+  name: cl-site`
 	return remove(yaml, search, "\n---")
 }
 
@@ -253,9 +253,9 @@ func changeDataplaneDebugLevel(yaml, logLevel string) (string, error) {
 // generateClusterlinkSecrets ClusterLink secretes.
 func (f *Fabric) generateClusterlinkSecrets(p *peer) (string, error) {
 	certConfig, err := platform.K8SCertificateConfig(&platform.Config{
-		Peer:                    p.cluster.Name(),
+		Name:                    p.cluster.Name(),
 		FabricCertificate:       f.cert,
-		PeerCertificate:         p.peerCert,
+		SiteCertificate:         p.siteCert,
 		ControlplaneCertificate: p.controlplaneCert,
 		DataplaneCertificate:    p.dataplaneCert,
 		GWCTLCertificate:        p.gwctlCert,
@@ -275,7 +275,7 @@ func (f *Fabric) generateClusterlinkInstance(name string, p *peer, cfg *PeerConf
 	}
 
 	instance, err := platform.K8SClusterLinkInstanceConfig(&platform.Config{
-		Peer:              p.cluster.Name(),
+		Name:              p.cluster.Name(),
 		Dataplanes:        cfg.Dataplanes,
 		DataplaneType:     cfg.DataplaneType,
 		LogLevel:          logLevel,

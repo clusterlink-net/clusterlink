@@ -59,10 +59,10 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: cl-peer
+  name: cl-site
   namespace: {{.namespace}}
 data:
-  ca: {{.peerCA}}
+  ca: {{.siteCA}}
 ---
 apiVersion: v1
 kind: Secret
@@ -207,7 +207,7 @@ spec:
   volumes:
     - name: ca
       secret:
-        secretName: cl-peer
+        secretName: cl-site
     - name: tls
       secret:
         secretName: gwctl
@@ -219,13 +219,13 @@ spec:
       args:
         - -c
         - >-
-            gwctl init --id {{.peer}} \
+            gwctl init --id {{.name}} \
                        --gwIP cl-dataplane \
                        --gwPort {{.dataplanePort}} \
                        --certca /root/ca.pem \
                        --cert /root/cert.pem \
                        --key /root/key.pem &&
-            gwctl config use-context --myid {{.peer}} &&
+            gwctl config use-context --myid {{.name}} &&
             sleep infinity
       volumeMounts:
         - name: ca
@@ -335,7 +335,7 @@ func K8SConfig(config *Config) ([]byte, error) {
 	}
 
 	args := map[string]interface{}{
-		"peer":              config.Peer,
+		"name":              config.Name,
 		"namespace":         config.Namespace,
 		"dataplanes":        config.Dataplanes,
 		"dataplaneType":     config.DataplaneType,
@@ -383,7 +383,7 @@ func K8SConfig(config *Config) ([]byte, error) {
 func K8SCertificateConfig(config *Config) ([]byte, error) {
 	args := map[string]interface{}{
 		"fabricCA":         base64.StdEncoding.EncodeToString(config.FabricCertificate.RawCert()),
-		"peerCA":           base64.StdEncoding.EncodeToString(config.PeerCertificate.RawCert()),
+		"siteCA":           base64.StdEncoding.EncodeToString(config.SiteCertificate.RawCert()),
 		"controlplaneCert": base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawCert()),
 		"controlplaneKey":  base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawKey()),
 		"dataplaneCert":    base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawCert()),

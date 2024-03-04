@@ -53,22 +53,22 @@ func FabricDirectory() string {
 	return "."
 }
 
-// PeerDirectory returns the base path for a specific peer.
-func PeerDirectory(peer string) string {
+// SiteDirectory returns the base path for a specific peer.
+func SiteDirectory(peer string) string {
 	return filepath.Join(FabricDirectory(), peer)
 }
 
 // ControlplaneDirectory returns the path for a controlplane server.
 func ControlplaneDirectory(peer string) string {
-	return filepath.Join(PeerDirectory(peer), ControlplaneDirectoryName)
+	return filepath.Join(SiteDirectory(peer), ControlplaneDirectoryName)
 }
 
 // DataplaneDirectory returns the path for a dataplane server.
 func DataplaneDirectory(peer string) string {
-	return filepath.Join(PeerDirectory(peer), DataplaneDirectoryName)
+	return filepath.Join(SiteDirectory(peer), DataplaneDirectoryName)
 }
 
 // GWCTLDirectory returns the path for a gwctl instance.
 func GWCTLDirectory(peer string) string {
-	return filepath.Join(PeerDirectory(peer), GWCTLDirectoryName)
+	return filepath.Join(SiteDirectory(peer), GWCTLDirectoryName)
 }

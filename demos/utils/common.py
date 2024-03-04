@@ -30,16 +30,16 @@ def createFabric(dir):
 
 # createGw creates peer certificates and yaml and deploys it to the cluster. 
 def createGw(name, dir, logLevel="info",dataplane="envoy",localImage=False):
-    createPeer(name, dir, logLevel, dataplane,localImage)
-    applyPeer(name, dir)
+    createSite(name, dir, logLevel, dataplane,localImage)
+    applySite(name, dir)
 
-# createPeer creates peer certificates and yaml
-def createPeer(name, dir, logLevel="info", dataplane="envoy",localImage=False):
+# createSite creates site certificates and yaml
+def createSite(name, dir, logLevel="info", dataplane="envoy",localImage=False):
     flag = "--container-registry=""" if localImage else ""
-    runcmdDir(f"{clAdm} create peer --name {name} --log-level {logLevel} --dataplane-type {dataplane} {flag} --namespace default",dir)
+    runcmdDir(f"{clAdm} create site --name {name} --log-level {logLevel} --dataplane-type {dataplane} {flag} --namespace default",dir)
     
-# applyPeer deploys the peer certificates and yaml to the cluster. 
-def applyPeer(name,dir):
+# applySite deploys the site certificates and yaml to the cluster. 
+def applySite(name,dir):
     runcmd(f"kubectl apply -f {dir}/{name}/k8s.yaml")
     waitPod("cl-controlplane")
     waitPod("cl-dataplane")

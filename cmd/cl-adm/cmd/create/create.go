@@ -24,7 +24,7 @@ func NewCmdCreate() *cobra.Command {
 	}
 
 	cmds.AddCommand(NewCmdCreateFabric())
-	cmds.AddCommand(NewCmdCreatePeer())
+	cmds.AddCommand(NewCmdCreateSite())
 
 	return cmds
 }

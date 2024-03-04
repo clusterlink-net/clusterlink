@@ -34,13 +34,13 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 )
 
-// PeerOptions contains everything necessary to create and run a 'deploy peer' subcommand.
-type PeerOptions struct {
-	// Name of the peer to create.
+// SiteOptions contains everything necessary to create and run a 'deploy site' subcommand.
+type SiteOptions struct {
+	// Name of the site to create.
 	Name string
 	// Namespace where the ClusterLink components are deployed.
 	Namespace string
-	// CertDir is the directory where the certificates for the fabric and peer are located.
+	// CertDir is the directory where the certificates for the fabric and site are located.
 	CertDir string
 	// StartInstance, if set to true, deploys a ClusterLink instance that will create the ClusterLink components.
 	StartInstance bool
@@ -54,14 +54,14 @@ type PeerOptions struct {
 	Tag string
 }
 
-// NewCmdDeployPeer returns a cobra.Command to run the 'create peer' subcommand.
-func NewCmdDeployPeer() *cobra.Command {
-	opts := &PeerOptions{}
+// NewCmdDeploySite returns a cobra.Command to run the 'create site' subcommand.
+func NewCmdDeploySite() *cobra.Command {
+	opts := &SiteOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "peer",
-		Short: "Deploy a peer",
-		Long:  `Deploy a peer`,
+		Use:   "site",
+		Short: "Deploy a site",
+		Long:  `Deploy a site`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Run()
@@ -81,9 +81,9 @@ func NewCmdDeployPeer() *cobra.Command {
 }
 
 // AddFlags adds flags to fs and binds them to options.
-func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.Name, "name", "", "Peer name.")
-	fs.StringVar(&o.CertDir, "cert-dir", ".", "The directory where the certificates for the fabric and peer are located.")
+func (o *SiteOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.Name, "name", "", "Site name.")
+	fs.StringVar(&o.CertDir, "cert-dir", ".", "The directory where the certificates for the fabric and site are located.")
 	fs.StringVar(&o.Namespace, "namespace", app.SystemNamespace,
 		"Namespace where the ClusterLink components are deployed.")
 	fs.StringVar(&o.ContainerRegistry, "container-registry", config.DefaultRegistry,
@@ -100,14 +100,14 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
-func (o *PeerOptions) RequiredFlags() []string {
+func (o *SiteOptions) RequiredFlags() []string {
 	return []string{"name"}
 }
 
-// Run the 'create peer' subcommand.
-func (o *PeerOptions) Run() error {
-	peerDir := path.Join(o.CertDir, o.Name)
-	if _, err := os.Stat(peerDir); err != nil {
+// Run the 'create site' subcommand.
+func (o *SiteOptions) Run() error {
+	siteDir := path.Join(o.CertDir, o.Name)
+	if _, err := os.Stat(siteDir); err != nil {
 		return fmt.Errorf("failed to open certificates folder: %w", err)
 	}
 
@@ -144,7 +144,7 @@ func (o *PeerOptions) Run() error {
 	}
 
 	// Create cl-secret
-	secretFileName := path.Join(peerDir, config.K8SSecretYAMLFile)
+	secretFileName := path.Join(siteDir, config.K8SSecretYAMLFile)
 	secretFile, err := os.ReadFile(secretFileName)
 	if err != nil {
 		return err
@@ -163,7 +163,7 @@ func (o *PeerOptions) Run() error {
 	// Create ClusterLink instance
 	if o.StartInstance {
 		cfg := &platform.Config{
-			Peer:              o.Name,
+			Name:              o.Name,
 			Dataplanes:        1,
 			DataplaneType:     platform.DataplaneTypeEnvoy,
 			LogLevel:          "info",
@@ -200,7 +200,7 @@ func (o *PeerOptions) Run() error {
 }
 
 // deployDir deploys K8s yaml from a directory.
-func (o *PeerOptions) deployDir(dir string, resource *resources.Resources) error {
+func (o *SiteOptions) deployDir(dir string, resource *resources.Resources) error {
 	err := decoder.DecodeEachFile(context.Background(), configFiles.ConfigFiles, dir, decoder.CreateHandler(resource))
 	if errors.IsAlreadyExists(err) {
 		return nil

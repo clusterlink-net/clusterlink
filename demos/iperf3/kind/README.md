@@ -36,11 +36,11 @@ Create certificates and deployments files:
 
 3) Create peer1 certificates and deployment file:
 
-        $PROJECT_DIR/bin/cl-adm create peer --name peer1 --namespace default
+        $PROJECT_DIR/bin/cl-adm create site --name peer1 --namespace default
 
 4) Create peer2 certificates and deployment file:
 
-        $PROJECT_DIR/bin/cl-adm create peer --name peer2 --namespace default
+        $PROJECT_DIR/bin/cl-adm create site --name peer2 --namespace default
 
 Build the first Kind cluster with gateway, and iperf3-client:
 1) Create a Kind cluster with the gateway image:

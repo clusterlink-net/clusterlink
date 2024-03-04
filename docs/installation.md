@@ -30,7 +30,7 @@ In this step, we generate the ClusterLink certificates and deployment files.
     Note: This step needs to be done only once per fabric.
 3) Create certificates and a deployment file for the cluster (e.g., peer1):
 
-        $PROJECT_DIR/bin/cl-adm create peer --name peer1 --namespace default
+        $PROJECT_DIR/bin/cl-adm create site --name peer1 --namespace default
 
     Note: By default, the images are pulled from ghcr.io/clusterlink-net. To change the container registry, you can use the ```--container-registry``` flag.  
     This step needs to be performed for every K8s cluster.
@@ -115,7 +115,7 @@ To create a single gwctl that controls one or more ClusterLink gateways, follow 
 
 To run ClusterLink components in debug mode, use ```--log-level``` flag when creating the ClusterLink deployment
 
-    $PROJECT_DIR/bin/cl-adm create peer --name peer1 --log-level debug
+    $PROJECT_DIR/bin/cl-adm create site --name peer1 --log-level debug
 
 ### Running self-built images
 
@@ -125,10 +125,10 @@ To create and run a local image, first build the project's local images:
 
 Change the container-registry in the peer deployment to use the local image:
 
-    $PROJECT_DIR/bin/cl-adm create peer --name peer1 --container-registry=""
+    $PROJECT_DIR/bin/cl-adm create site --name peer1 --container-registry=""
 
 ### Running on a different namespace
 
 To run ClusterLink components in a different namespace, use the `--namespace flag` when creating the ClusterLink deployment.
 
-    $PROJECT_DIR/bin/cl-adm create peer --name peer1 --namespace <namespace>
+    $PROJECT_DIR/bin/cl-adm create site --name peer1 --namespace <namespace>

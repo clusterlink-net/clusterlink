@@ -50,8 +50,8 @@ func CreateFabricCertificate() (*Certificate, error) {
 	return &Certificate{cert: cert}, nil
 }
 
-// CreatePeerCertificate creates a peer certificate.
-func CreatePeerCertificate(name string, fabricCert *Certificate) (*Certificate, error) {
+// CreateSiteCertificate creates a site certificate.
+func CreateSiteCertificate(name string, fabricCert *Certificate) (*Certificate, error) {
 	cert, err := createCertificate(&certificateConfig{
 		Parent:   fabricCert.cert,
 		Name:     name,
@@ -65,7 +65,7 @@ func CreatePeerCertificate(name string, fabricCert *Certificate) (*Certificate, 
 	return &Certificate{cert: cert}, nil
 }
 
-// CreatePeerCertificate creates a controlplane certificate.
+// CreateControlplaneCertificate creates a controlplane certificate.
 func CreateControlplaneCertificate(peer string, peerCert *Certificate) (*Certificate, error) {
 	cert, err := createCertificate(&certificateConfig{
 		Parent:   peerCert.cert,
@@ -81,7 +81,7 @@ func CreateControlplaneCertificate(peer string, peerCert *Certificate) (*Certifi
 	return &Certificate{cert: cert}, nil
 }
 
-// CreatePeerCertificate creates a dataplane certificate.
+// CreateDataplaneCertificate creates a dataplane certificate.
 func CreateDataplaneCertificate(peer string, peerCert *Certificate) (*Certificate, error) {
 	cert, err := createCertificate(&certificateConfig{
 		Parent:   peerCert.cert,
@@ -97,7 +97,7 @@ func CreateDataplaneCertificate(peer string, peerCert *Certificate) (*Certificat
 	return &Certificate{cert: cert}, nil
 }
 
-// CreatePeerCertificate creates a gwctl certificate.
+// CreateGWCTLCertificate creates a gwctl certificate.
 func CreateGWCTLCertificate(peerCert *Certificate) (*Certificate, error) {
 	cert, err := createCertificate(&certificateConfig{
 		Parent:   peerCert.cert,

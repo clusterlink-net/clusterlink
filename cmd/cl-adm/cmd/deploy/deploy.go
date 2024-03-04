@@ -23,7 +23,7 @@ func NewCmdDeploy() *cobra.Command {
 		Use: "deploy",
 	}
 
-	cmds.AddCommand(NewCmdDeployPeer())
+	cmds.AddCommand(NewCmdDeploySite())
 
 	return cmds
 }

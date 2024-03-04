@@ -53,7 +53,7 @@ type peer struct {
 	AsyncRunner
 
 	cluster          *KindCluster
-	peerCert         *bootstrap.Certificate
+	siteCert         *bootstrap.Certificate
 	controlplaneCert *bootstrap.Certificate
 	dataplaneCert    *bootstrap.Certificate
 	gwctlCert        *bootstrap.Certificate
@@ -62,7 +62,7 @@ type peer struct {
 // CreateControlplaneCertificate creates the controlplane certificate.
 func (p *peer) CreateControlplaneCertificate() {
 	p.Run(func() error {
-		cert, err := bootstrap.CreateControlplaneCertificate(p.cluster.Name(), p.peerCert)
+		cert, err := bootstrap.CreateControlplaneCertificate(p.cluster.Name(), p.siteCert)
 		if err != nil {
 			return fmt.Errorf("cannot create controlplane certificate: %w", err)
 		}
@@ -75,7 +75,7 @@ func (p *peer) CreateControlplaneCertificate() {
 // CreateDataplaneCertificate creates the dataplane certificate.
 func (p *peer) CreateDataplaneCertificate() {
 	p.Run(func() error {
-		cert, err := bootstrap.CreateDataplaneCertificate(p.cluster.Name(), p.peerCert)
+		cert, err := bootstrap.CreateDataplaneCertificate(p.cluster.Name(), p.siteCert)
 		if err != nil {
 			return fmt.Errorf("cannot create dataplane certificate: %w", err)
 		}
@@ -88,7 +88,7 @@ func (p *peer) CreateDataplaneCertificate() {
 // CreateGWCTLCertificate creates the gwctl certificate.
 func (p *peer) CreateGWCTLCertificate() {
 	p.Run(func() error {
-		cert, err := bootstrap.CreateGWCTLCertificate(p.peerCert)
+		cert, err := bootstrap.CreateGWCTLCertificate(p.siteCert)
 		if err != nil {
 			return fmt.Errorf("cannot create controlplane certificate: %w", err)
 		}
@@ -113,12 +113,12 @@ func (f *Fabric) CreatePeer(cluster *KindCluster) {
 	p := &peer{cluster: cluster}
 	f.peers = append(f.peers, p)
 	f.Run(func() error {
-		cert, err := bootstrap.CreatePeerCertificate(p.cluster.Name(), f.cert)
+		cert, err := bootstrap.CreateSiteCertificate(p.cluster.Name(), f.cert)
 		if err != nil {
 			return fmt.Errorf("cannot create peer certificate: %w", err)
 		}
 
-		p.peerCert = cert
+		p.siteCert = cert
 		p.CreateControlplaneCertificate()
 		p.CreateDataplaneCertificate()
 		p.CreateGWCTLCertificate()
@@ -275,8 +275,8 @@ func (f *Fabric) deployClusterLink(target *peer, cfg *PeerConfig) (*ClusterLink,
 	}
 
 	caCertPool := x509.NewCertPool()
-	if !caCertPool.AppendCertsFromPEM(target.peerCert.RawCert()) {
-		return nil, fmt.Errorf("unable to parse peer certificate")
+	if !caCertPool.AppendCertsFromPEM(target.siteCert.RawCert()) {
+		return nil, fmt.Errorf("unable to parse site certificate")
 	}
 
 	c := client.New(target.cluster.IP(), port, &tls.Config{

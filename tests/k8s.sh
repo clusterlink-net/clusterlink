@@ -35,7 +35,7 @@ function clean_up_with_logs {
 function test_k8s {
   # create fabric with a single peer (peer1)
   $CLADM create fabric
-  $CLADM create peer --name peer1 --dataplane-type $DATAPLANE_TYPE
+  $CLADM create site --name peer1 --dataplane-type $DATAPLANE_TYPE
 
   # create kind cluster
   kind create cluster --name peer1

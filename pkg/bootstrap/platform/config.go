@@ -19,15 +19,15 @@ import (
 
 // Config holds a configuration to instantiate a template.
 type Config struct {
-	// Peer is the peer name.
-	Peer string
+	// Name is the site name.
+	Name string
 	// Namespace is the namespace the components deployed.
 	Namespace string
 
 	// FabricCertificate is the fabric certificate.
 	FabricCertificate *bootstrap.Certificate
-	// PeerCertificate is the peer certificate.
-	PeerCertificate *bootstrap.Certificate
+	// SiteCertificate is the site certificate.
+	SiteCertificate *bootstrap.Certificate
 	// ControlplaneCertificate is the controlplane certificate.
 	ControlplaneCertificate *bootstrap.Certificate
 	// DataplaneCertificate is the dataplane certificate.
