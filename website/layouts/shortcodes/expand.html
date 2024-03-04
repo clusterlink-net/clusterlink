@@ -1,0 +1,20 @@
+<!--
+<details>
+    <summary>{{ (.Get 0) | markdownify | safeHTML}}</summary>
+    {{ .Inner | markdownify | safeHTML }}
+</details>
+-->
+
+{{- $summary := "" }}
+{{- $open := false }}
+{{- if .IsNamedParams }}
+  {{- $summary = .Get "summary" }}
+  {{- with .Get "open" }}{{ $open = . }}{{ end }}
+{{- else }}
+  {{- $summary = .Get 0 }}
+  {{- with .Get 1 }}{{ $open = . }}{{ end }}
+{{- end }}
+<details {{ if $open }}open{{ end }}>
+  <summary>{{ $summary | markdownify }}</summary>
+  {{ .Inner | markdownify }}
+</details>
