@@ -17,13 +17,15 @@ import (
 	"encoding/json"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/clusterlink-net/clusterlink/pkg/api"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 )
 
 type bindingHandler struct {
-	cp *controlplane.Instance
+	manager *Manager
 }
 
 func bindingsToAPI(bindings []*store.Binding) []*api.Binding {
@@ -32,6 +34,78 @@ func bindingsToAPI(bindings []*store.Binding) []*api.Binding {
 		apiBindings[i] = &api.Binding{Spec: binding.BindingSpec}
 	}
 	return apiBindings
+}
+
+// CreateBinding creates a binding of an imported service to a remote exported service.
+func (m *Manager) CreateBinding(binding *store.Binding) error {
+	m.logger.Infof("Creating binding '%s'->'%s'.", binding.Import, binding.Peer)
+
+	m.authzManager.AddImport(&v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{Name: binding.Import},
+		Spec: v1alpha1.ImportSpec{
+			Sources: []v1alpha1.ImportSource{
+				{
+					Peer:       binding.Peer,
+					ExportName: binding.Import,
+				},
+			},
+		},
+	})
+
+	if m.initialized {
+		if err := m.bindings.Create(binding); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// UpdateBinding updates a binding of an imported service to a remote exported service.
+func (m *Manager) UpdateBinding(binding *store.Binding) error {
+	m.logger.Infof("Updating binding '%s'->'%s'.", binding.Import, binding.Peer)
+
+	m.authzManager.AddImport(&v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{Name: binding.Import},
+		Spec: v1alpha1.ImportSpec{
+			Sources: []v1alpha1.ImportSource{
+				{
+					Peer:       binding.Peer,
+					ExportName: binding.Import,
+				},
+			},
+		},
+	})
+
+	err := m.bindings.Update(binding, func(old *store.Binding) *store.Binding {
+		return binding
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetBindings returns all bindings for a given imported service.
+func (m *Manager) GetBindings(imp string) []*store.Binding {
+	m.logger.Infof("Getting bindings for import '%s'.", imp)
+	return m.bindings.Get(imp)
+}
+
+// DeleteBinding removes a binding of an imported service to a remote exported service.
+func (m *Manager) DeleteBinding(binding *store.Binding) (*store.Binding, error) {
+	m.logger.Infof("Deleting binding '%s'->'%s'.", binding.Import, binding.Peer)
+
+	// TODO: m.authzManager.Delete*
+
+	return m.bindings.Delete(binding)
+}
+
+// GetAllBindings returns the list of all bindings.
+func (m *Manager) GetAllBindings() []*store.Binding {
+	m.logger.Info("Listing all bindings.")
+	return m.bindings.GetAll()
 }
 
 // Decode a binding.
@@ -54,17 +128,17 @@ func (h *bindingHandler) Decode(data []byte) (any, error) {
 
 // Create a binding.
 func (h *bindingHandler) Create(object any) error {
-	return h.cp.CreateBinding(object.(*store.Binding))
+	return h.manager.CreateBinding(object.(*store.Binding))
 }
 
 // Create a binding.
 func (h *bindingHandler) Update(object any) error {
-	return h.cp.UpdateBinding(object.(*store.Binding))
+	return h.manager.UpdateBinding(object.(*store.Binding))
 }
 
 // Get a binding.
 func (h *bindingHandler) Get(name string) (any, error) {
-	binding := bindingsToAPI(h.cp.GetBindings(name))
+	binding := bindingsToAPI(h.manager.GetBindings(name))
 	if binding == nil {
 		return nil, nil
 	}
@@ -73,10 +147,10 @@ func (h *bindingHandler) Get(name string) (any, error) {
 
 // Delete a binding.
 func (h *bindingHandler) Delete(object any) (any, error) {
-	return h.cp.DeleteBinding(object.(*store.Binding))
+	return h.manager.DeleteBinding(object.(*store.Binding))
 }
 
 // List all bindings.
 func (h *bindingHandler) List() (any, error) {
-	return bindingsToAPI(h.cp.GetAllBindings()), nil
+	return bindingsToAPI(h.manager.GetAllBindings()), nil
 }
