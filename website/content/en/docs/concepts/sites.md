@@ -16,12 +16,15 @@ A `Site` represents a location, such as a Kubernetes cluster, participating in a
 Once a `Site` has been added to a `Fabric`, it can communicate with any other `Site`
  belonging to it. All configuration relating to service sharing (e.g., the exporting
  and importing of Services, and the setting of fine grained application policies) can be
- done with lowered privileges (e.g., by users, such as application owners).
+ done with lowered privileges (e.g., by users, such as application owners). Remote sites are
+ represented by the `Peer` Custom Resource Definition (CRD). Each `Peer` CRD instance
+ defines a remote cluster and the network endpoints of its ClusterLink gateways.
 
 ## Initializing a new Site
 
 {{< notice warning >}}
-Creating a new Site is a **Fabric** administrator level operation and should be appropriately protected.
+Creating a new Site is a **Fabric administrator** level operation and should be appropriately
+ protected.
 {{< /notice >}}
 
 ### Prerequisites
@@ -57,7 +60,7 @@ You will need the CA certificate (but **not** the CA private key) and the site c
  site administrator.
 {{< /notice >}}
 
-### Deploy ClusterLink to a Site
+## Deploy ClusterLink to a new Site
 
 {{< notice info >}}
 This operation is typically done by a local *Site administrator*, usually different
@@ -68,40 +71,72 @@ Before proceeding, ensure that the CA certificate (the CA private key is not nee
  and the site certificate and key files which were created in the previous step are
  in the current working directory.
 
-1. Install the ClusterLink deployment operator.
+### Install the ClusterLink deployment operator
 
-    ```sh
-    clusterlink site init
-    ```
+Install the ClusterLink operator by running the following command
 
-    The command assumes that kubectl is set to the correct context and credentials
-    and that the certificates were created in the local folder. If they were not,
-    add `-f <path>` to set the correct path to the certificate files.
+```sh
+clusterlink site init
+```
 
-    This command will deploy the ClusterLink deployment CRDs using the current
-    `kubectl` context. The operation requires cluster administrator privileges
-    in order to install CRDs into the cluster.
-    The ClusterLink operator is installed to the `clusterlink-operator` namespace
-    and the CA and site certificate and key are set as Kubernetes secrets
-    in the namespace. You can confirm the successful completion of the step using
-    the following commands (TODO: describe output):
+The command assumes that kubectl is set to the correct context and credentials
+and that the certificates were created in the local folder. If they were not,
+add `-f <path>` to set the correct path to the certificate files.
 
-    ```sh
-    kubectl get crds
-    ```
+This command will deploy the ClusterLink deployment CRDs using the current
+`kubectl` context. The operation requires cluster administrator privileges
+in order to install CRDs into the cluster.
+The ClusterLink operator is installed to the `clusterlink-operator` namespace
+and the CA and site certificate and key are set as Kubernetes secrets
+in the namespace. You can confirm the successful completion of the step using
+the following commands:
 
-    and
+ {{% expand summary="kubectl get crds" open="true" %}}
 
-    ```sh
-    kubectl get secret --namespace clusterlink-operator
-    ```
+ ```sh
+ output of `kubectl get crds` command
+ ```
 
-1. Deploy ClusterLink CRD instance.
+ {{% /expand %}}
 
-    After the operator is installed, you can deploy ClusterLink by applying
-    the ClusterLink instance CRD.
-    Refer to the [getting started guide]({{< ref "getting-started#setup" >}}) for a description
-    of the CRD instance fields.
+ {{% expand "_kubectl get secret --namespace clusterlink-operator_" %}}
+
+ ```sh
+ output of kubectl get secret --namespace clusterlink-operator
+ ```
+
+ {{% /expand %}}
+
+#### Deploy ClusterLink CRD instance
+
+After the operator is installed, you can deploy ClusterLink by applying
+the ClusterLink instance CRD.
+Refer to the [getting started guide]({{< ref "getting-started#setup" >}}) for a description
+of the CRD instance fields.
+
+<!-- TODO expand the sample CRD file? -->
+
+## Add or remove Sites
+
+{{< notice info >}}
+This operation is typically done by a local *Site administrator*, usually different
+ than the *Fabric administrator*.
+{{< /notice >}}
+
+Peers are added to the ClusterLink namespace by the site administrator. Information
+ regarding peer gateways and attributes is communicated out of band and not in scope
+ for this design. Not having any gateways is an error but other than that there is
+ no actual state for a Peer and the object can be reconciled immediately. Besides the
+ recommended reconciliation condition types, a Peer should also support a
+ `Reachable` (or `Seen`) condition indicating whether the peer is currently reachable,
+ and the last time it successfully responded to heartbeats.
+
+Peer names are unique and must align with the Subject name present in their certificate
+ during connection establishment. The name is used by importers in referencing an export.
+
+{{% expand summary="example CRD" %}}
+{{< readfile file="data/peer_crd.md" code="true" lang="go" >}}
+{{% /expand %}}
 
 ## Related tasks
 
