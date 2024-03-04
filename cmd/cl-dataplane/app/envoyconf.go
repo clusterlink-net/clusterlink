@@ -92,6 +92,7 @@ static_resources:
       typed_config:
         "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
         sni: {{.controlplaneGRPCSNI}}
+        max_session_keys: 0 # TODO: remove once controlplane no longer uses inet.af/tcpproxy
         common_tls_context:
           tls_certificate_sds_secret_configs:
           - name: {{.certificateSecret}}
@@ -120,6 +121,7 @@ static_resources:
       typed_config:
         "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
         sni: {{.peerName}}
+        max_session_keys: 0 # TODO: remove once controlplane no longer uses inet.af/tcpproxy
         common_tls_context:
           tls_certificate_sds_secret_configs:
           - name: {{.certificateSecret}}
