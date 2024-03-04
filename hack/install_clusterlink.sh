@@ -26,12 +26,12 @@ case "${OS_ARCH}" in
 esac
 
 filename="clusterlink-${CL_OS}-${CL_ARCH}.tar.gz"
-url="https://github.com/clusterlinl-net/clusterlink/releases/download/${VERSION}/${filename}"
+url="https://github.com/clusterlink-net/clusterlink/releases/download/${VERSION}/${filename}"
 
 # Set version to latest if not define and update the url.
 if [ "${VERSION}" = "" ] ; then
   VERSION="latest"
-  url="https://github.com/clusterlinl-net/clusterlink/releases/${VERSION}/download/${filename}"
+  url="https://github.com/clusterlink-net/clusterlink/releases/${VERSION}/download/${filename}"
 fi
 
 printf "\n Downloading %s from %s ...\n" "$filename" "$url"
@@ -49,6 +49,12 @@ rm "${filename}"
 current_path=$(pwd)/clusterlink
 
 install_path=${HOME}/.local/bin
+
+# Check if the .local/bin exists, if not, create it.
+if [ ! -d "$install_path" ]; then
+    mkdir -p "$install_path" || { echo "Error: Failed to create directory $install_path"; exit 1; }
+fi
+
 mv $current_path/* $install_path
 rm -rf $current_path
 
@@ -62,7 +68,7 @@ printf "\n\n"
 
 printf "%s has been successfully downloaded.\n" "$filename"
 printf "\n"
-printf "ClusterLink CLI (gwctl and cl-adm) added to your environment path:\n"
+printf "ClusterLink CLI (gwctl and cl-adm) has been installed in the following directory:\n"
 printf "\n"
 printf "\t\e[1;33m%s\n\e[0m" "$install_path"
 printf "\n"

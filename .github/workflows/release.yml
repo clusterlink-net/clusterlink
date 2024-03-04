@@ -23,6 +23,10 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build images
       run: make docker-build
+    - name: Tag and push ClusterLink images with tag 'latest'
+      run: make push-image
+    - name: Tag and push ClusterLink images latest with tag ${{ github.ref_name }}
+      run: make push-image IMAGE_VERSION=${{ github.ref_name }}
     - name: Build and compress linux binaries
       run: |
         GOOS=linux GOARCH=amd64 CGO_ENABLED=0 make cli-build BIN_DIR=linux
@@ -47,11 +51,7 @@ jobs:
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ./hack/clusterlink.sh
+        file: ./hack/install_clusterlink.sh
         asset_name: clusterlink.sh
         tag: ${{ github.ref }}
         overwrite: true
-    - name: Tag and push ClusterLink images with tag 'latest'
-      run: make push-image
-    - name: Tag and push ClusterLink images latest with tag ${{ github.ref_name }}
-      run: make push-image IMAGE_VERSION=${{ github.ref_name }}
