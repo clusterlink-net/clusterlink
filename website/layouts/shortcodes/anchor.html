@@ -1,0 +1,13 @@
+<!-- 
+    usage: anchor "anchor-name" (or anchor id="anchor name")
+        this will output an HTML anchor element named `anchor-name`
+        which can then be referenced elsewhere
+-->
+
+{{ if .IsNamedParams }}
+{{ $id := .Get `id` | lower | safeHTML }}{{ $anchor := anchorize $id }}
+<a id="{{ $anchor }}"></a>
+{{ else }}
+{{ $id := .Get 0 | lower | safeHTML }}{{ $anchor := anchorize $id }}
+<a id="{{ $anchor }}"></a>
+{{ end }}

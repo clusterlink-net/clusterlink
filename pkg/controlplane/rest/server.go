@@ -14,45 +14,44 @@
 package rest
 
 import (
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
 	"github.com/clusterlink-net/clusterlink/pkg/util/rest"
 )
 
 // RegisteHandlers registers the HTTP handlers for REST requests.
-func RegisterHandlers(cp *controlplane.Instance, srv *rest.Server) {
+func RegisterHandlers(manager *Manager, srv *rest.Server) {
 	srv.AddObjectHandlers(&rest.ServerObjectSpec{
 		BasePath:      "/peers",
-		Handler:       &peerHandler{cp: cp},
+		Handler:       &peerHandler{manager: manager},
 		DeleteByValue: false,
 	})
 
 	srv.AddObjectHandlers(&rest.ServerObjectSpec{
 		BasePath:      "/exports",
-		Handler:       &exportHandler{cp: cp},
+		Handler:       &exportHandler{manager: manager},
 		DeleteByValue: false,
 	})
 
 	srv.AddObjectHandlers(&rest.ServerObjectSpec{
 		BasePath:      "/imports",
-		Handler:       &importHandler{cp: cp},
+		Handler:       &importHandler{manager: manager},
 		DeleteByValue: false,
 	})
 
 	srv.AddObjectHandlers(&rest.ServerObjectSpec{
 		BasePath:      "/bindings",
-		Handler:       &bindingHandler{cp: cp},
+		Handler:       &bindingHandler{manager: manager},
 		DeleteByValue: true,
 	})
 
 	srv.AddObjectHandlers(&rest.ServerObjectSpec{
 		BasePath:      "/policies",
-		Handler:       &accessPolicyHandler{cp: cp},
+		Handler:       &accessPolicyHandler{manager: manager},
 		DeleteByValue: false,
 	})
 
 	srv.AddObjectHandlers(&rest.ServerObjectSpec{
 		BasePath:      "/lbpolicies",
-		Handler:       &lbPolicyHandler{cp: cp},
+		Handler:       &lbPolicyHandler{manager: manager},
 		DeleteByValue: false,
 	})
 }

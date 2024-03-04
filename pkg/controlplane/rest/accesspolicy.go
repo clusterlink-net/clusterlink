@@ -18,16 +18,73 @@ import (
 	"fmt"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 )
 
 type accessPolicyHandler struct {
-	cp *controlplane.Instance
+	manager *Manager
 }
 
 func accessPolicyToAPI(policy *store.AccessPolicy) *api.Policy {
 	return &policy.Policy
+}
+
+// CreateAccessPolicy creates an access policy to allow/deny specific connections.
+func (m *Manager) CreateAccessPolicy(policy *store.AccessPolicy) error {
+	m.logger.Infof("Creating access policy '%s'.", policy.Spec.Blob)
+
+	if m.initialized {
+		if err := m.acPolicies.Create(policy); err != nil {
+			return err
+		}
+	}
+
+	return m.authzManager.AddAccessPolicy(&api.Policy{Spec: policy.Spec})
+}
+
+// UpdateAccessPolicy updates an access policy to allow/deny specific connections.
+func (m *Manager) UpdateAccessPolicy(policy *store.AccessPolicy) error {
+	m.logger.Infof("Updating access policy '%s'.", policy.Spec.Blob)
+
+	err := m.acPolicies.Update(policy.Name, func(old *store.AccessPolicy) *store.AccessPolicy {
+		return policy
+	})
+	if err != nil {
+		return err
+	}
+
+	return m.authzManager.AddAccessPolicy(&api.Policy{Spec: policy.Spec})
+}
+
+// DeleteAccessPolicy removes an access policy to allow/deny specific connections.
+func (m *Manager) DeleteAccessPolicy(name string) (*store.AccessPolicy, error) {
+	m.logger.Infof("Deleting access policy '%s'.", name)
+
+	policy, err := m.acPolicies.Delete(name)
+	if err != nil {
+		return nil, err
+	}
+	if policy == nil {
+		return nil, nil
+	}
+
+	if err := m.authzManager.DeleteAccessPolicy(&policy.Policy); err != nil {
+		return nil, err
+	}
+
+	return policy, err
+}
+
+// GetAccessPolicy returns an access policy with the given name.
+func (m *Manager) GetAccessPolicy(name string) *store.AccessPolicy {
+	m.logger.Infof("Getting access policy '%s'.", name)
+	return m.acPolicies.Get(name)
+}
+
+// GetAllAccessPolicies returns the list of all AccessPolicies.
+func (m *Manager) GetAllAccessPolicies() []*store.AccessPolicy {
+	m.logger.Info("Listing all access policies.")
+	return m.acPolicies.GetAll()
 }
 
 // Decode an access policy.
@@ -46,22 +103,22 @@ func (h *accessPolicyHandler) Decode(data []byte) (any, error) {
 
 // Create an access policy.
 func (h *accessPolicyHandler) Create(object any) error {
-	return h.cp.CreateAccessPolicy(object.(*store.AccessPolicy))
+	return h.manager.CreateAccessPolicy(object.(*store.AccessPolicy))
 }
 
 // Update an access policy.
 func (h *accessPolicyHandler) Update(object any) error {
-	return h.cp.UpdateAccessPolicy(object.(*store.AccessPolicy))
+	return h.manager.UpdateAccessPolicy(object.(*store.AccessPolicy))
 }
 
 // Delete an access policy.
 func (h *accessPolicyHandler) Delete(name any) (any, error) {
-	return h.cp.DeleteAccessPolicy(name.(string))
+	return h.manager.DeleteAccessPolicy(name.(string))
 }
 
 // Get an access policy.
 func (h *accessPolicyHandler) Get(name string) (any, error) {
-	policy := h.cp.GetAccessPolicy(name)
+	policy := h.manager.GetAccessPolicy(name)
 	if policy == nil {
 		return nil, nil
 	}
@@ -70,7 +127,7 @@ func (h *accessPolicyHandler) Get(name string) (any, error) {
 
 // List all access policies.
 func (h *accessPolicyHandler) List() (any, error) {
-	policies := h.cp.GetAllAccessPolicies()
+	policies := h.manager.GetAllAccessPolicies()
 	apiPolicies := make([]*api.Policy, len(policies))
 	for i, policy := range policies {
 		apiPolicies[i] = accessPolicyToAPI(policy)

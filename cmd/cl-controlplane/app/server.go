@@ -26,7 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/control"
@@ -181,27 +180,29 @@ func (o *Options) Run() error {
 	xds.RegisterService(
 		context.Background(), xdsManager, grpcServer.GetGRPCServer())
 
-	// open store
-	kvStore, err := bolt.Open(StoreFile)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err := kvStore.Close(); err != nil {
-			logrus.Warnf("Cannot close store: %v.", err)
+	if !o.CRDMode {
+		// open store
+		kvStore, err := bolt.Open(StoreFile)
+		if err != nil {
+			return err
 		}
-	}()
 
-	storeManager := kv.NewManager(kvStore)
+		defer func() {
+			if err := kvStore.Close(); err != nil {
+				logrus.Warnf("Cannot close store: %v.", err)
+			}
+		}()
 
-	cp, err := controlplane.NewInstance(
-		storeManager, authzManager, controlManager, xdsManager, namespace)
-	if err != nil {
-		return err
+		storeManager := kv.NewManager(kvStore)
+
+		restManager, err := cprest.NewManager(
+			namespace, storeManager, xdsManager, authzManager, controlManager)
+		if err != nil {
+			return err
+		}
+
+		cprest.RegisterHandlers(restManager, httpServer)
 	}
-
-	cprest.RegisterHandlers(cp, httpServer)
 
 	return runnableManager.Run()
 }

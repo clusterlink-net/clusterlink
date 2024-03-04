@@ -1,0 +1,7 @@
+<!--
+    from https://doc.huc.fr.eu.org/en/web/hugo/hugo-shortcodes/
+    usage: abbr acronym "meaning of acronym"
+        this will output `acronym` as text on page and add a tooltip displaying
+        "meaning of acronym" when hovering above the acronym
+-->
+<abbr {{ .Get 1 | printf `title=%q` | safeHTMLAttr }}>{{ .Get 0 | safeHTML }}</abbr>

@@ -58,7 +58,7 @@ If you want to run your own local Hugo server to preview your changes as you wor
 
 <!-- TODO should add a dedicated getting-started for website authoring -->
 
-1. Follow the instructions in [Getting started](/docs/getting-started) to install Hugo
+1. Follow the instructions in [Getting started]({{< ref "getting-started" >}}) to install Hugo
  and any other tools you need. You'll need at least **Hugo version 0.110** (we recommend
  using the most recent available version), and it must be the **extended** version,
  which supports SCSS.

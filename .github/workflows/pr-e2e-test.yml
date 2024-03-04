@@ -20,7 +20,7 @@ jobs:
       with:
         go-version: ${{ matrix.go }}
     - name: Install kind
-      uses: helm/kind-action@v1.8.0
+      uses: helm/kind-action@v1.9.0
       with:
         install_only: true
     - name: Run build
