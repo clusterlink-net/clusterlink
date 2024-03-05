@@ -82,7 +82,7 @@ func (d *Dataplane) RemoveCluster(name string) {
 	delete(d.clusters, name)
 }
 
-// GetClusters returns the listeners map.
+// GetClusters returns the clusters map.
 func (d *Dataplane) GetClusters() map[string]*cluster.Cluster {
 	return d.clusters
 }
