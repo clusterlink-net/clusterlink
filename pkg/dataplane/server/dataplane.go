@@ -78,7 +78,7 @@ func (d *Dataplane) RemoveCluster(name string) {
 	d.clustersLock.Unlock()
 }
 
-// GetClusters returns the listeners map.
+// GetClusters returns the clusters map.
 func (d *Dataplane) GetClusters() map[string]*cluster.Cluster {
 	return d.clusters
 }
