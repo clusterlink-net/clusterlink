@@ -41,13 +41,15 @@ type Dataplane struct {
 	clusters           map[string]*cluster.Cluster
 	listeners          map[string]*listener.Listener
 	listenerEnd        map[string]chan bool
-	clustersLock       sync.Mutex
-	listenerLock       sync.Mutex
+	clustersLock       sync.RWMutex
+	listenerLock       sync.RWMutex
 	logger             *logrus.Entry
 }
 
 // GetClusterTarget returns the cluster address:port from the cluster map.
 func (d *Dataplane) GetClusterTarget(name string) (string, error) {
+	d.clustersLock.RLock()
+	defer d.clustersLock.RUnlock()
 	if _, ok := d.clusters[name]; !ok {
 		return "", fmt.Errorf("unable to find %s in cluster map", name)
 	}
@@ -57,6 +59,8 @@ func (d *Dataplane) GetClusterTarget(name string) (string, error) {
 
 // GetClusterHost returns the cluster hostname after trimming ":".
 func (d *Dataplane) GetClusterHost(name string) (string, error) {
+	d.clustersLock.RLock()
+	defer d.clustersLock.RUnlock()
 	if _, ok := d.clusters[name]; !ok {
 		return "", fmt.Errorf("unable to find %s in cluster map", name)
 	}
@@ -67,15 +71,15 @@ func (d *Dataplane) GetClusterHost(name string) (string, error) {
 // AddCluster adds/updates a cluster to the map.
 func (d *Dataplane) AddCluster(c *cluster.Cluster) {
 	d.clustersLock.Lock()
+	defer d.clustersLock.Unlock()
 	d.clusters[c.Name] = c
-	d.clustersLock.Unlock()
 }
 
 // RemoveCluster adds a cluster to the map.
 func (d *Dataplane) RemoveCluster(name string) {
 	d.clustersLock.Lock()
+	defer d.clustersLock.Unlock()
 	delete(d.clusters, name)
-	d.clustersLock.Unlock()
 }
 
 // GetClusters returns the listeners map.
@@ -86,17 +90,20 @@ func (d *Dataplane) GetClusters() map[string]*cluster.Cluster {
 // AddListener adds a listener to the map.
 func (d *Dataplane) AddListener(ln *listener.Listener) {
 	listenerName := strings.TrimPrefix(ln.Name, api.ImportListenerPrefix)
+	d.listenerLock.RLock()
 	if le, ok := d.listeners[listenerName]; ok {
 		// Check if there is an update to the listener address/port
 		if ln.Address.GetSocketAddress().GetAddress() == le.Address.GetSocketAddress().GetAddress() &&
 			ln.Address.GetSocketAddress().GetPortValue() == le.Address.GetSocketAddress().GetPortValue() {
+			d.listenerLock.RUnlock()
 			return
 		}
 		d.listenerEnd[listenerName] <- true
 	}
+	d.listenerLock.RUnlock()
 	d.listenerLock.Lock()
+	defer d.listenerLock.Unlock()
 	d.listeners[listenerName] = ln
-	d.listenerLock.Unlock()
 	go func() {
 		d.CreateListener(listenerName,
 			ln.Address.GetSocketAddress().GetAddress(),
