@@ -88,6 +88,12 @@ rules:
   - patch
   - update
 - apiGroups:
+  - clusterlink.net
+  resources:
+  - peers/status
+  verbs:
+  - update
+- apiGroups:
   - rbac.authorization.k8s.io
   resources:
   - clusterrolebindings

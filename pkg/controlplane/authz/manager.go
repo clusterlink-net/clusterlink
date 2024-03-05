@@ -24,6 +24,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
@@ -113,24 +114,14 @@ func (m *Manager) AddPeer(pr *v1alpha1.Peer) {
 	client := peer.NewClient(pr, m.peerTLS.ClientConfig(pr.Name))
 
 	m.peerLock.Lock()
-	oldClient := m.peerClient[pr.Name]
 	m.peerClient[pr.Name] = client
 	m.peerLock.Unlock()
 
-	if oldClient != nil {
-		oldClient.StopMonitor()
-	}
-
-	m.policyDecider.AddPeer(pr.Name)
-
-	client.SetPeerStatusCallback(func(isActive bool) {
-		if isActive {
-			m.policyDecider.AddPeer(pr.Name)
-			return
-		}
-
+	if meta.IsStatusConditionTrue(pr.Status.Conditions, v1alpha1.PeerReachable) {
+		m.policyDecider.AddPeer(pr.Name)
+	} else {
 		m.policyDecider.DeletePeer(pr.Name)
-	})
+	}
 }
 
 // DeletePeer removes the possibility for egress dataplane connections to be routed to a given peer.
@@ -138,13 +129,8 @@ func (m *Manager) DeletePeer(name string) {
 	m.logger.Infof("Deleting peer '%s'.", name)
 
 	m.peerLock.Lock()
-	oldClient := m.peerClient[name]
 	delete(m.peerClient, name)
 	m.peerLock.Unlock()
-
-	if oldClient != nil {
-		oldClient.StopMonitor()
-	}
 
 	m.policyDecider.DeletePeer(name)
 }

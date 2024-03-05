@@ -280,6 +280,9 @@ rules:
 - apiGroups: ["clusterlink.net"]
   resources: ["imports"]
   verbs: ["update"]
+- apiGroups: ["clusterlink.net"]
+  resources: ["peers/status"]
+  verbs: ["update"]
 {{ end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1

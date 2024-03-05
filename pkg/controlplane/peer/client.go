@@ -19,8 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"sync"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -29,23 +27,11 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/util/jsonapi"
 )
 
-const (
-	// heartbeatInterval is the time lapse between consecutive heartbeat requests to a responding peer.
-	heartbeatInterval = 10 * time.Second
-	// heartbeatRetransmissionTime is the time lapse between consecutive heartbeat requests to a non-responding peer.
-	heartbeatRetransmissionTime = 60 * time.Second
-)
-
 // Client for accessing a remote peer.
 type Client struct {
 	// jsonapi clients for connecting to the remote peer (one per each gateway)
-	clients            []*jsonapi.Client
-	lastSeen           time.Time
-	active             bool
-	stopSignal         chan struct{}
-	lock               sync.RWMutex
-	logger             *logrus.Entry
-	peerStatusCallback func(bool) // Callback function for notifying changes in peer
+	clients []*jsonapi.Client
+	logger  *logrus.Entry
 }
 
 // RemoteServerAuthorizationResponse represents an authorization response received from a remote controlplane server.
@@ -105,39 +91,10 @@ func (c *Client) Authorize(req *api.AuthorizationRequest) (*RemoteServerAuthoriz
 	return resp, nil
 }
 
-// IsActive returns if the peer is active or not.
-func (c *Client) IsActive() bool {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return c.active
-}
-
-// setActive the peer status (active or not).
-func (c *Client) setActive(active bool) {
-	c.lock.Lock()
-	activePrevState := c.active
-	c.active = active
-	if active || c.lastSeen.IsZero() {
-		c.lastSeen = time.Now()
-	}
-	c.lock.Unlock()
-
-	// Update other components like the policy engine with the peer status.
-	if active != activePrevState && c.peerStatusCallback != nil {
-		c.peerStatusCallback(active)
-	}
-}
-
 // GetHeartbeat get a heartbeat from other peers.
-func (c *Client) getHeartbeat() error {
+func (c *Client) GetHeartbeat() error {
 	var retErr error
-	// copy peer clients array aside
-	peerClients := make([]*jsonapi.Client, len(c.clients))
-	c.lock.RLock()
-	copy(peerClients, c.clients)
-	c.lock.RUnlock()
-
-	for _, client := range peerClients {
+	for _, client := range c.clients {
 		serverResp, err := client.Get(api.HeartbeatPath)
 		if err != nil {
 			retErr = errors.Join(retErr, err)
@@ -155,61 +112,18 @@ func (c *Client) getHeartbeat() error {
 	return retErr // Return an error if all client targets are unreachable
 }
 
-// StopMonitor send signal to stop heartbeat monitor.
-func (c *Client) StopMonitor() {
-	close(c.stopSignal)
-}
-
-// heartbeatMonitor checks all peers for responsiveness, every fixed amount of time.
-func (c *Client) heartbeatMonitor() {
-	c.logger.Info("Start sending heartbeat requests to peer")
-	ticker := time.NewTicker(heartbeatInterval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-c.stopSignal:
-			return
-		default:
-			t := time.Now()
-			if c.IsActive() || (!c.IsActive() && (t.Sub(c.lastSeen) > heartbeatRetransmissionTime)) ||
-				c.lastSeen.IsZero() {
-				if err := c.getHeartbeat(); err != nil {
-					if c.IsActive() {
-						c.logger.Errorf("Unable to get heartbeat from peer error: %v", err.Error())
-						c.setActive(false)
-					}
-				} else {
-					c.setActive(true)
-				}
-			}
-		}
-		// wait till it's time for next heartbeat round
-		<-ticker.C
-	}
-}
-
-// SetPeerStatusCallback set the peerStatusCallback.
-func (c *Client) SetPeerStatusCallback(callback func(bool)) {
-	c.peerStatusCallback = callback
-}
-
 // NewClient returns a new Peer API client.
 func NewClient(peer *v1alpha1.Peer, tlsConfig *tls.Config) *Client {
 	clients := make([]*jsonapi.Client, len(peer.Spec.Gateways))
 	for i, endpoint := range peer.Spec.Gateways {
 		clients[i] = jsonapi.NewClient(endpoint.Host, endpoint.Port, tlsConfig)
 	}
-	clnt := &Client{
-		clients:    clients,
-		active:     false,
-		lastSeen:   time.Time{},
-		stopSignal: make(chan struct{}),
+
+	return &Client{
+		clients: clients,
 		logger: logrus.WithFields(logrus.Fields{
 			"component": "controlplane.peer.client",
 			"peer":      peer,
 		}),
 	}
-
-	go clnt.heartbeatMonitor()
-	return clnt
 }
