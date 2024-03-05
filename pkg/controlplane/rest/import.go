@@ -154,9 +154,7 @@ func (m *Manager) DeleteImport(name string) (*store.Import, error) {
 		return imp, err
 	}
 
-	err = m.controlManager.DeleteImport(
-		context.Background(),
-		toK8SImport(imp, m.namespace))
+	err = m.controlManager.DeleteImport(context.Background(), namespacedName)
 	if err != nil {
 		return nil, err
 	}

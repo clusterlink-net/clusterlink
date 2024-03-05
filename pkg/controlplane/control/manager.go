@@ -159,7 +159,7 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 
 		if m.crdMode {
 			if err := m.client.Update(ctx, imp); err != nil {
-				m.ports.Release(port)
+				m.ports.Release(fullName)
 				return err
 			}
 		}
@@ -172,22 +172,23 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 	}
 
 	if err != nil && newPort {
-		m.ports.Release(port)
+		m.ports.Release(fullName)
 	}
 
 	return err
 }
 
 // DeleteImport removes the listening socket of a previously imported service.
-func (m *Manager) DeleteImport(ctx context.Context, imp *v1alpha1.Import) error {
-	m.logger.Infof("Deleting import '%s/%s'.", imp.Namespace, imp.Name)
-	m.ports.Release(imp.Spec.TargetPort)
+func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) error {
+	m.logger.Infof("Deleting import '%s/%s'.", name.Namespace, name.Name)
+
+	m.ports.Release(name.Namespace + "/" + name.Name)
 	return m.client.Delete(
 		ctx,
 		&v1.Service{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      imp.Name,
-				Namespace: imp.Namespace,
+				Name:      name.Name,
+				Namespace: name.Namespace,
 			},
 		})
 }
