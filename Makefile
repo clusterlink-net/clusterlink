@@ -135,6 +135,7 @@ push-image: docker-build
 	docker push $(IMAGE_BASE)/cl-operator:$(IMAGE_VERSION)
 
 install:
+	mkdir -p ~/.local/bin
 	cp ./bin/gwctl ~/.local/bin/
 
 clean-tests:
