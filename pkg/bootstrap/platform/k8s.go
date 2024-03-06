@@ -278,7 +278,13 @@ rules:
   verbs: ["get", "list", "watch"]
 {{ if .crdMode }}
 - apiGroups: ["clusterlink.net"]
+  resources: ["exports", "peers", "accesspolicies"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["clusterlink.net"]
   resources: ["imports"]
+  verbs: ["get", "list", "watch", "update"]
+- apiGroups: ["clusterlink.net"]
+  resources: ["peers/status"]
   verbs: ["update"]
 {{ end }}
 ---

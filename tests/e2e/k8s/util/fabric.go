@@ -34,6 +34,8 @@ import (
 
 // PeerConfig is a peer configuration.
 type PeerConfig struct {
+	// CRDMode indicates a k8s CRD-based controlplane.
+	CRDMode bool
 	// DataplaneType is the dataplane type (envoy / go).
 	DataplaneType string
 	// Dataplanes is the number of dataplane instances.
@@ -251,6 +253,7 @@ func (f *Fabric) deployClusterLink(target *peer, cfg *PeerConfig) (*ClusterLink,
 		namespace: f.namespace,
 		client:    c,
 		port:      port,
+		crdMode:   cfg.CRDMode,
 	}
 
 	// wait for default service account to be created
@@ -264,8 +267,10 @@ func (f *Fabric) deployClusterLink(target *peer, cfg *PeerConfig) (*ClusterLink,
 		return nil, fmt.Errorf("error getting default service account: %w", err)
 	}
 
-	if err := clink.WaitForControlplaneAPI(); err != nil {
-		return nil, fmt.Errorf("error waiting for controlplane API server: %w", err)
+	if !cfg.CRDMode {
+		if err := clink.WaitForControlplaneAPI(); err != nil {
+			return nil, fmt.Errorf("error waiting for controlplane API server: %w", err)
+		}
 	}
 	return clink, nil
 }

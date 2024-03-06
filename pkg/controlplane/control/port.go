@@ -37,8 +37,9 @@ const (
 
 // portManager leases ports for use by imported services.
 type portManager struct {
-	lock        sync.Mutex
-	leasedPorts map[uint16]string
+	lock         sync.Mutex
+	leasesByPort map[uint16]string
+	leasesByName map[string]uint16
 
 	logger *logrus.Entry
 }
@@ -54,7 +55,7 @@ func (m *portManager) getRandomFreePort() uint16 {
 		//#nosec G404 -- port numbers do not need secure random
 		port := startPort + uint16(rand.Intn(int(endPort-startPort)))
 
-		if _, ok := m.leasedPorts[port]; !ok {
+		if _, ok := m.leasesByPort[port]; !ok {
 			return port
 		}
 	}
@@ -66,7 +67,7 @@ func (m *portManager) getRandomFreePort() uint16 {
 			port = startPort
 		}
 
-		if _, ok := m.leasedPorts[port]; !ok {
+		if _, ok := m.leasesByPort[port]; !ok {
 			break
 		}
 	}
@@ -82,31 +83,41 @@ func (m *portManager) Lease(name string, port uint16) (uint16, error) {
 	defer m.lock.Unlock()
 
 	if port == 0 {
-		if len(m.leasedPorts) == int(portCount) {
+		if len(m.leasesByPort) == int(portCount) {
 			return 0, fmt.Errorf("all ports are taken")
 		}
 
 		port = m.getRandomFreePort()
 		m.logger.Infof("Generated port: %d.", port)
 	} else {
-		if leaseName, ok := m.leasedPorts[port]; ok && leaseName != name {
+		if leaseName, ok := m.leasesByPort[port]; ok && leaseName != name {
 			return 0, fmt.Errorf("port %d is already leased to '%s'", port, leaseName)
 		}
 	}
 
+	// mark previous port (if exists) is free
+	if port, ok := m.leasesByName[name]; ok {
+		delete(m.leasesByPort, port)
+	}
+
 	// mark port is leased
-	m.leasedPorts[port] = name
+	m.leasesByPort[port] = name
+	m.leasesByName[name] = port
 
 	return port, nil
 }
 
 // Release returns a leased port to be re-used by others.
-func (m *portManager) Release(port uint16) {
-	m.logger.Infof("Returning: %d.", port)
+func (m *portManager) Release(name string) {
+	m.logger.Infof("Returning port for: '%s'.", name)
 
 	m.lock.Lock()
-	delete(m.leasedPorts, port)
-	m.lock.Unlock()
+	defer m.lock.Unlock()
+
+	if port, ok := m.leasesByName[name]; ok {
+		delete(m.leasesByName, name)
+		delete(m.leasesByPort, port)
+	}
 }
 
 // newPortManager returns a new empty portManager.
@@ -120,7 +131,8 @@ func newPortManager() *portManager {
 	).Info("Initialized.")
 
 	return &portManager{
-		leasedPorts: make(map[uint16]string),
-		logger:      logger,
+		leasesByPort: make(map[uint16]string),
+		leasesByName: make(map[string]uint16),
+		logger:       logger,
 	}
 }
