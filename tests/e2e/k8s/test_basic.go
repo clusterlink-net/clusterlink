@@ -27,6 +27,30 @@ import (
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/util"
 )
 
+func (s *TestSuite) TestConnectivityCRD() {
+	s.RunOnAllDataplaneTypes(func(cfg *util.PeerConfig) {
+		cfg.CRDMode = true
+		cl, err := s.fabric.DeployClusterlinks(2, cfg)
+		require.Nil(s.T(), err)
+
+		require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
+		require.Nil(s.T(), cl[0].CreateExport("dontcare", &httpEchoService))
+		require.Nil(s.T(), cl[0].CreateAccessPolicy(util.AccessPolicyAllowAll))
+		require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
+		require.Nil(s.T(), cl[1].CreateAccessPolicy(util.AccessPolicyAllowAll))
+
+		importedService := &util.Service{
+			Name: httpEchoService.Name,
+			Port: 80,
+		}
+		require.Nil(s.T(), cl[1].CreateImportCRD(importedService, cl[0], httpEchoService.Name))
+
+		data, err := cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
+		require.Nil(s.T(), err)
+		require.Equal(s.T(), cl[0].Name(), data)
+	})
+}
+
 func (s *TestSuite) TestConnectivity() {
 	s.RunOnAllDataplaneTypes(func(cfg *util.PeerConfig) {
 		cl, err := s.fabric.DeployClusterlinks(2, cfg)

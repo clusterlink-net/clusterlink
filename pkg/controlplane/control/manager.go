@@ -29,6 +29,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/util/net"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 // Manager is responsible for handling control operations,
@@ -36,6 +37,8 @@ import (
 // This includes target port generation for imported services, as well as
 // k8s service creation per imported service.
 type Manager struct {
+	peerManager
+
 	client  client.Client
 	crdMode bool
 	ports   *portManager
@@ -159,7 +162,7 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 
 		if m.crdMode {
 			if err := m.client.Update(ctx, imp); err != nil {
-				m.ports.Release(port)
+				m.ports.Release(fullName)
 				return err
 			}
 		}
@@ -172,22 +175,23 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 	}
 
 	if err != nil && newPort {
-		m.ports.Release(port)
+		m.ports.Release(fullName)
 	}
 
 	return err
 }
 
 // DeleteImport removes the listening socket of a previously imported service.
-func (m *Manager) DeleteImport(ctx context.Context, imp *v1alpha1.Import) error {
-	m.logger.Infof("Deleting import '%s/%s'.", imp.Namespace, imp.Name)
-	m.ports.Release(imp.Spec.TargetPort)
+func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) error {
+	m.logger.Infof("Deleting import '%s/%s'.", name.Namespace, name.Name)
+
+	m.ports.Release(name.Namespace + "/" + name.Name)
 	return m.client.Delete(
 		ctx,
 		&v1.Service{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      imp.Name,
-				Namespace: imp.Namespace,
+				Name:      name.Name,
+				Namespace: name.Namespace,
 			},
 		})
 }
@@ -219,13 +223,14 @@ func serviceChanged(svc1, svc2 *v1.Service) bool {
 }
 
 // NewManager returns a new control manager.
-func NewManager(cl client.Client, crdMode bool) *Manager {
+func NewManager(cl client.Client, peerTLS *tls.ParsedCertData, crdMode bool) *Manager {
 	logger := logrus.WithField("component", "controlplane.control.manager")
 
 	return &Manager{
-		client:  cl,
-		crdMode: crdMode,
-		ports:   newPortManager(),
-		logger:  logger,
+		peerManager: newPeerManager(cl, peerTLS),
+		client:      cl,
+		crdMode:     crdMode,
+		ports:       newPortManager(),
+		logger:      logger,
 	}
 }

@@ -1,0 +1,52 @@
+// Copyright 2023 The ClusterLink Authors.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package control
+
+import (
+	"context"
+
+	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+	ctrl "sigs.k8s.io/controller-runtime"
+)
+
+// CreateControllers creates the various k8s controllers used to update the control manager.
+func CreateControllers(mgr *Manager, controllerManager ctrl.Manager) error {
+	err := controller.AddToManager(controllerManager, &controller.Spec{
+		Name:   "control.peer",
+		Object: &v1alpha1.Peer{},
+		AddHandler: func(ctx context.Context, object any) error {
+			mgr.AddPeer(object.(*v1alpha1.Peer))
+			return nil
+		},
+		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+			mgr.DeletePeer(name.Name)
+			return nil
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	return controller.AddToManager(controllerManager, &controller.Spec{
+		Name:   "control.import",
+		Object: &v1alpha1.Import{},
+		AddHandler: func(ctx context.Context, object any) error {
+			return mgr.AddImport(ctx, object.(*v1alpha1.Import))
+		},
+		DeleteHandler: mgr.DeleteImport,
+	})
+}

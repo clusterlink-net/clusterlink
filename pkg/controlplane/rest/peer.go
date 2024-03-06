@@ -68,6 +68,7 @@ func (m *Manager) CreatePeer(peer *store.Peer) error {
 
 	k8sPeer := toK8SPeer(peer)
 	m.authzManager.AddPeer(k8sPeer)
+	m.controlManager.AddPeer(k8sPeer)
 	return m.xdsManager.AddPeer(k8sPeer)
 }
 
@@ -84,6 +85,7 @@ func (m *Manager) UpdatePeer(peer *store.Peer) error {
 
 	k8sPeer := toK8SPeer(peer)
 	m.authzManager.AddPeer(k8sPeer)
+	m.controlManager.AddPeer(k8sPeer)
 	return m.xdsManager.AddPeer(k8sPeer)
 }
 
@@ -106,6 +108,7 @@ func (m *Manager) DeletePeer(name string) (*store.Peer, error) {
 	}
 
 	m.authzManager.DeletePeer(name)
+	m.controlManager.DeletePeer(name)
 
 	err = m.xdsManager.DeletePeer(name)
 	if err != nil {

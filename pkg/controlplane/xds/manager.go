@@ -137,6 +137,12 @@ func (m *Manager) DeleteExport(name types.NamespacedName) error {
 func (m *Manager) AddImport(imp *v1alpha1.Import) error {
 	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
 
+	if imp.Spec.TargetPort == 0 {
+		// target port not yet allocated, skip
+		m.logger.Infof("Skipping import with no target port '%s/%s'.", imp.Namespace, imp.Name)
+		return nil
+	}
+
 	listenerName := cpapi.ImportListenerName(imp.Name, imp.Namespace)
 	egressRouterHostname := "egress-router:443"
 
