@@ -16,6 +16,7 @@ package authz
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -222,6 +223,40 @@ func (m *Manager) addPod(pod *v1.Pod) {
 			m.ipToPod[ip.IP] = podID
 		}
 	}
+}
+
+func (m *Manager) deleteAccessPolicy(_ types.NamespacedName) {
+	// TODO: call policy decider
+}
+
+func (m *Manager) addAccessPolicy(accessPolicy *v1alpha1.AccessPolicy) error {
+	convert := func(list v1alpha1.WorkloadSetOrSelectorList) policytypes.WorkloadSetOrSelectorList {
+		out := make(policytypes.WorkloadSetOrSelectorList, len(list))
+		for i, elem := range list {
+			out[i] = policytypes.WorkloadSetOrSelector{
+				WorkloadSets:     elem.WorkloadSets,
+				WorkloadSelector: elem.WorkloadSelector,
+			}
+		}
+
+		return out
+	}
+
+	policyData, err := json.Marshal(&policytypes.ConnectivityPolicy{
+		Name:       accessPolicy.Name,
+		Privileged: accessPolicy.Spec.Privileged,
+		Action:     policytypes.PolicyAction(accessPolicy.Spec.Action),
+		From:       convert(accessPolicy.Spec.From),
+		To:         convert(accessPolicy.Spec.To),
+	})
+	if err != nil {
+		return err
+	}
+
+	return m.policyDecider.AddAccessPolicy(&api.Policy{
+		Name: accessPolicy.Name,
+		Spec: api.PolicySpec{Blob: policyData},
+	})
 }
 
 // getLabelsFromIP returns the labels associated with Pod with the specified IP address.

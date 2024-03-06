@@ -60,9 +60,22 @@ rules:
 - apiGroups:
   - clusterlink.net
   resources:
+  - accesspolicies
+  - exports
+  - peers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - clusterlink.net
+  resources:
   - imports
   verbs:
+  - get
+  - list
   - update
+  - watch
 - apiGroups:
   - clusterlink.net
   resources:
