@@ -20,14 +20,7 @@ Once a `Site` has been added to a `Fabric`, it can communicate with any other `S
  represented by the `Peer` Custom Resource Definition (CRD). Each `Peer` CRD instance
  defines a remote cluster and the network endpoints of its ClusterLink gateways.
 
-## Initializing a new Site
-
-{{< notice warning >}}
-Creating a new Site is a **Fabric administrator** level operation and should be appropriately
- protected.
-{{< /notice >}}
-
-### Prerequisites
+## Prerequisites
 
 The following assume that you have access to the `clusterlink` CLI and one or more
  sites (i.e., clusters) where you'll deploy ClusterLink. The CLI can be downloaded
@@ -35,19 +28,26 @@ The following assume that you have access to the `clusterlink` CLI and one or mo
  It also assumes that you have access to the [previously created]({{< ref "fabric#create-a-new-fabric-ca" >}})
  Fabric CA files.
 
+## Initializing a new Site
+
+{{< notice warning >}}
+Creating a new Site is a **Fabric administrator** level operation and should be appropriately
+ protected.
+{{< /notice >}}
+
 ### Create a new Site certificate
 
 To create a new Site certificate belonging to a fabric, confirm that the Fabric CA files
  are available in the current working directory, and then execute the following CLI command:
 
+```sh
+clusterlink create site --name <site_name> --fabric <fabric_name>
+```
+
 {{< notice tip >}}
 The Fabric CA files (certificate and private key) are expected in the current
 working directory (i.e., `./<fabric_name>.crt` and `./<fabric_name>.key`).
 {{< /notice >}}
-
-```sh
-clusterlink create site --name <site_name> --fabric <fabric_name>
-```
 
 This will create the certificate and private key files (`<site_name>.cert` and
  `<site_name>.key`, respectively) for the new site. By default, the files are
@@ -63,8 +63,8 @@ You will need the CA certificate (but **not** the CA private key) and the site c
 ## Deploy ClusterLink to a new Site
 
 {{< notice info >}}
-This operation is typically done by a local *Site administrator*, usually different
- than the *Fabric administrator*.
+This operation is typically done by a local **Site administrator**, usually different
+ than the **Fabric administrator**.
 {{< /notice >}}
 
 Before proceeding, ensure that the CA certificate (the CA private key is not needed),
@@ -79,9 +79,9 @@ Install the ClusterLink operator by running the following command
 clusterlink site init
 ```
 
-The command assumes that kubectl is set to the correct context and credentials
+The command assumes that `kubectl` is set to the correct context and credentials
 and that the certificates were created in the local folder. If they were not,
-add `-f <path>` to set the correct path to the certificate files.
+add the `-f <path>` CLI option to set the correct path to the certificate files.
 
 This command will deploy the ClusterLink deployment CRDs using the current
 `kubectl` context. The operation requires cluster administrator privileges
@@ -91,56 +91,71 @@ and the CA and site certificate and key are set as Kubernetes secrets
 in the namespace. You can confirm the successful completion of the step using
 the following commands:
 
- {{% expand summary="kubectl get crds" open="true" %}}
+```sh
+kubectl get crds
+kubectl get secret --namespace clusterlink-operator
+```
 
- ```sh
- output of `kubectl get crds` command
- ```
+{{% expand summary="Example output" %}}
 
- {{% /expand %}}
+```sh
+output of `kubectl get crds` and `kubectl get secret --namespace clusterlink-operator` commands
+```
 
- {{% expand "_kubectl get secret --namespace clusterlink-operator_" %}}
+{{% /expand %}}
 
- ```sh
- output of kubectl get secret --namespace clusterlink-operator
- ```
-
- {{% /expand %}}
-
-#### Deploy ClusterLink CRD instance
+### Deploy ClusterLink via the Operator and ClusterLink CRD
 
 After the operator is installed, you can deploy ClusterLink by applying
-the ClusterLink instance CRD.
+ the ClusterLink instance CRD. This will cause the ClusterLink operator to
+ attempt reconciliation of the actual and intended ClusterLink deployment.
+ By default, the operator will install the ClusterLink control and data plane
+ components into a dedicated and privileged namespace (defaults to `clusterlink-system`).
+ Site wide configurations, such as the list of known `Peers`, are also maintained
+ in the same namespace.
+
 Refer to the [getting started guide]({{< ref "getting-started#setup" >}}) for a description
-of the CRD instance fields.
+ of the ClusterLink instance CRD's fields.
 
 <!-- TODO expand the sample CRD file? -->
 
 ## Add or remove Sites
 
 {{< notice info >}}
-This operation is typically done by a local *Site administrator*, usually different
- than the *Fabric administrator*.
+This operation is typically done by a local **Site administrator**, usually different
+ than the **Fabric administrator**.
 {{< /notice >}}
 
-Peers are added to the ClusterLink namespace by the site administrator. Information
- regarding peer gateways and attributes is communicated out of band and not in scope
- for this design. Not having any gateways is an error but other than that there is
- no actual state for a Peer and the object can be reconciled immediately. Besides the
- recommended reconciliation condition types, a Peer should also support a
- `Reachable` (or `Seen`) condition indicating whether the peer is currently reachable,
- and the last time it successfully responded to heartbeats.
+Adding and removing sites is done by creating and deleting `Peer` CRD instances
+ in the dedicated ClusterLink namespace (typically, `clusterlink-system`). Peers are
+ added to the ClusterLink namespace by the site administrator. Information
+ regarding peer gateways and attributes is communicated out of band (e.g., provided
+ by Site or Fabric administrators over email). In the future, these may be configured
+ via a management plane.
 
-Peer names are unique and must align with the Subject name present in their certificate
- during connection establishment. The name is used by importers in referencing an export.
+There are two fundamental attributes in the Peer CRD: the Peer's name and the list of
+ ClusterLink gateway endpoints through which the remote site's Services are available.
+ Peer names are unique and must align with the Subject name present in their certificate
+ during connection establishment. The name is used by importers in referencing an export
+ (see [here]({{< ref "services" >}}) for details).
 
-{{% expand summary="example CRD" %}}
-{{< readfile file="data/peer_crd.md" code="true" lang="go" >}}
+Gateway endpoint would typically be a implemented via a `NodePort` or `LoadBalancer`
+ Kubernetes Service. A `NodePort` Service would typically be used in local deployments
+ (e.g., when running in KIND clusters during development) and a `LoadBalancer` Service
+ would be used in Cloud based deployments. These can be automatically configured and
+ created via the [operator CRD]{{< ref "#deploy-clusterlink-via-the-operator-and-clusterlink-crd" >}}.
+ Not having any gateways is an error and will be reported in the `Peer`'s Status.
+ In addition, the Status could display additional Peer conditions, such a `Reachable`
+ (or `Seen`) indicating whether the peer is currently reachable, and the last time it
+ successfully responded to heartbeats.
+
+{{% expand summary="Example Peer CRD" %}}
+{{< readfile file="/static/files/peer_crd_sample.yaml" code="true" lang="yaml" >}}
 {{% /expand %}}
 
 ## Related tasks
 
 Once a `Site` has been created and initialized with the ClusterLink control and data
- planes, you can proceed with configuring [services]({{< ref "services" >}})
- and [policies]({{< ref "policies" >}}).
+ planes as well as one or more remote `Peer`s, you can proceed with configuring
+ [services]({{< ref "services" >}}) and [policies]({{< ref "policies" >}}).
  For a complete end to end use case, refer to [iperf toturial]({{< ref "iperf" >}}).
