@@ -80,7 +80,7 @@ function test_k8s {
   kubectl cp $SCRIPT_DIR/../pkg/policyengine/policytypes/examples/allowAll.json gwctl:/tmp/allowAll.json
   kubectl exec -i gwctl -- gwctl create policy --type access --policyFile /tmp/allowAll.json
 
-  # get imported service port 
+  # get imported service port
   PORT=$(kubectl exec -i gwctl -- /bin/bash -c "gwctl get import --name foo | jq '.Status.Listener.Port' | tr -d '\n'")
 
   # wait for imported service socket to come up

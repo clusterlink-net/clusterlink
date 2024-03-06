@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -37,11 +38,15 @@ type fetcher struct {
 	resourceType string
 	dataplane    *server.Dataplane
 	logger       *logrus.Entry
+	clusterLock  sync.Mutex
+	listenerLock sync.Mutex
 }
 
 func (f *fetcher) handleClusters(resources []*anypb.Any) error {
 	clusters := make(map[string]bool)
 
+	f.clusterLock.Lock()
+	defer f.clusterLock.Unlock()
 	for _, r := range resources {
 		c := &cluster.Cluster{}
 		err := anypb.UnmarshalTo(r, c, proto.UnmarshalOptions{})
@@ -68,6 +73,8 @@ func (f *fetcher) handleClusters(resources []*anypb.Any) error {
 func (f *fetcher) handleListeners(resources []*anypb.Any) error {
 	listeners := make(map[string]bool)
 
+	f.listenerLock.Lock()
+	defer f.listenerLock.Unlock()
 	// Add any new listeners created
 	for _, r := range resources {
 		l := &listener.Listener{}
