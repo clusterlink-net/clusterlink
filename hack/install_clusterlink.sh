@@ -4,7 +4,7 @@ set -e
 # Detrmine the OS.
 OS=$(uname)
 if [ "${OS}" = "Darwin" ] ; then
-  CL_OS="os"
+  CL_OS="darwin"
 else
   CL_OS="linux"
 fi

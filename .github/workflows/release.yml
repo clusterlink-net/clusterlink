@@ -27,18 +27,13 @@ jobs:
       run: make push-image
     - name: Tag and push ClusterLink images latest with tag ${{ github.ref_name }}
       run: make push-image IMAGE_VERSION=${{ github.ref_name }}
-    - name: Build and compress linux binaries
+    - name: Build and compress binaries
       run: |
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=0 make cli-build BIN_DIR=linux
-        tar -czvf clusterlink-linux-amd64.tar.gz --transform 's/linux/clusterlink/' ./linux
-    - name: Build and compress macOS binaries
-      run: |
-        GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 make cli-build BIN_DIR=os
-        tar -czvf clusterlink-darwin-amd64.tar.gz --transform 's/os/clusterlink/' ./os
-    - name: Build and compress Arm-based macOS binaries
-      run: |
-        GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 make cli-build BIN_DIR=osarm64
-        tar -czvf clusterlink-darwin-arm64.tar.gz --transform 's/osarm64/clusterlink/' ./osarm64
+        for pair in "linux:amd64" "darwin:amd64" "darwin:arm64"; do
+          IFS=':' read -r os arch <<< "$pair"
+          GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 make cli-build BIN_DIR="$os"
+          tar -czvf "clusterlink-$os-$arch.tar.gz" --transform "s/$os/clusterlink/" ./"$os"
+        done
     - name: Upload binaries to release
       uses: svenstaro/upload-release-action@v2
       with:
