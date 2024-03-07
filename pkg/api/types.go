@@ -73,11 +73,6 @@ type ExportSpec struct {
 	// have a different `Name`. The endpoint Host name could be different from Name,
 	// decoupling service names between Peers.
 	Service Endpoint
-	// ExternalService specifies a service located outside of the cluster.
-	// If ExternalService is defined, a new local ExternalName Service will be created,
-	// pointing to the ExternalService. Note: the external name is just a DNS name mapping
-	// to the Service field, and there is no associated port mapping.
-	ExternalService string
 }
 
 // Import defines a service that is being imported to the local Peer from a remote Peer.

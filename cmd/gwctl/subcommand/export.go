@@ -95,7 +95,6 @@ func (o *exportCreateOptions) run(isUpdate bool) error {
 				Host: o.host,
 				Port: o.port,
 			},
-			ExternalService: o.external,
 		},
 	})
 	if err != nil {
