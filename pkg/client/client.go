@@ -33,8 +33,6 @@ type Client struct {
 	Exports *rest.Client
 	// Imports client.
 	Imports *rest.Client
-	// Bindings client.
-	Bindings *rest.Client
 	// Access policies client.
 	AccessPolicies *rest.Client
 	// Load-balancing policies client.
@@ -63,12 +61,6 @@ func New(host string, port uint16, tlsConfig *tls.Config) *Client {
 			BasePath:     "/imports",
 			SampleObject: api.Import{},
 			SampleList:   []api.Import{},
-		}),
-		Bindings: rest.NewClient(&rest.Config{
-			Client:       client,
-			BasePath:     "/bindings",
-			SampleObject: []api.Binding{},
-			SampleList:   []api.Binding{},
 		}),
 		AccessPolicies: rest.NewClient(&rest.Config{
 			Client:       client,

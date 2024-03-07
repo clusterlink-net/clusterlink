@@ -87,6 +87,7 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 	// then use existing service target port instead of allocating a new port
 	if !create && len(oldService.Spec.Ports) == 1 && imp.Spec.TargetPort == 0 {
 		imp.Spec.TargetPort = uint16(oldService.Spec.Ports[0].TargetPort.IntVal)
+		newService.Spec.Ports[0].TargetPort = intstr.FromInt32(int32(imp.Spec.TargetPort))
 	}
 
 	newPort := imp.Spec.TargetPort == 0

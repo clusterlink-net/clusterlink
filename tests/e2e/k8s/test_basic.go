@@ -43,7 +43,7 @@ func (s *TestSuite) TestConnectivityCRD() {
 			Name: httpEchoService.Name,
 			Port: 80,
 		}
-		require.Nil(s.T(), cl[1].CreateImportCRD(importedService, cl[0], httpEchoService.Name))
+		require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
 
 		data, err := cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
 		require.Nil(s.T(), err)
@@ -64,9 +64,8 @@ func (s *TestSuite) TestConnectivity() {
 			Name: "echo",
 			Port: 80,
 		}
-		require.Nil(s.T(), cl[1].CreateImport("echo", importedService))
+		require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
 
-		require.Nil(s.T(), cl[1].CreateBinding("echo", cl[0]))
 		require.Nil(s.T(), cl[1].CreatePolicy(util.PolicyAllowAll))
 
 		data, err := cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
@@ -88,10 +87,8 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		imp := api.Import{
 			Name: "echo",
 			Spec: api.ImportSpec{
-				Service: api.Endpoint{
-					Host: "echo",
-					Port: 1234,
-				},
+				Port:  1234,
+				Peers: []string{cl[1].Name()},
 			},
 		}
 
@@ -114,8 +111,8 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.NotNil(s.T(), client0.Imports.Create(&imp))
 
 		importedService := &util.Service{
-			Name: imp.Spec.Service.Host,
-			Port: imp.Spec.Service.Port,
+			Name: imp.Name,
+			Port: imp.Spec.Port,
 		}
 
 		accessService := func(allowRetry bool, expectedError error) (string, error) {
@@ -132,66 +129,14 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Nil(s.T(), err)
 		importFromServer := *objects.(*api.Import)
 		require.Equal(s.T(), importFromServer.Name, imp.Name)
-		require.Equal(s.T(), importFromServer.Spec, imp.Spec)
-		require.Equal(s.T(), importFromServer.Status.Listener.Host, "")
-		require.NotZero(s.T(), importFromServer.Status.Listener.Port)
+		require.Equal(s.T(), importFromServer.Spec.Port, imp.Spec.Port)
+		require.Equal(s.T(), importFromServer.Spec.Peers, imp.Spec.Peers)
+		require.NotZero(s.T(), importFromServer.Spec.TargetPort)
 
 		// list imports
 		objects, err = client0.Imports.List()
 		require.Nil(s.T(), err)
 		require.ElementsMatch(s.T(), *objects.(*[]api.Import), []api.Import{importFromServer})
-
-		// test binding API
-		binding := api.Binding{
-			Spec: api.BindingSpec{
-				Import: imp.Name,
-				Peer:   cl[1].Name(),
-			},
-		}
-
-		// list bindings when empty
-		objects, err = client0.Bindings.List()
-		require.Nil(s.T(), err)
-		require.Empty(s.T(), objects.(*[]api.Binding))
-
-		// get non-existing binding
-		_, err = client0.Bindings.Get(binding.Spec.Import)
-		require.Nil(s.T(), err)
-		require.Empty(s.T(), objects.(*[]api.Binding))
-
-		// delete non-existing binding
-		require.NotNil(s.T(), client0.Bindings.Delete(&binding))
-		// update non-existing binding
-		require.NotNil(s.T(), client0.Bindings.Update(&binding))
-		// create binding
-		require.Nil(s.T(), client0.Bindings.Create(&binding))
-		// create binding which already exists
-		require.NotNil(s.T(), client0.Bindings.Create(&binding))
-		// update binding
-		require.Nil(s.T(), client0.Bindings.Update(&binding))
-
-		// verify no access
-		_, err = accessService(false, &services.ConnectionResetError{})
-		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
-
-		// add another binding (for testing binding get vs list)
-		binding2 := api.Binding{
-			Spec: api.BindingSpec{
-				Import: "dummy",
-				Peer:   "dummy",
-			},
-		}
-		require.Nil(s.T(), client0.Bindings.Create(&binding2))
-
-		// get bindings
-		objects, err = client0.Bindings.Get(binding.Spec.Import)
-		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Binding), []api.Binding{binding})
-
-		// list bindings
-		objects, err = client0.Bindings.List()
-		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Binding), []api.Binding{binding, binding2})
 
 		// test peer API
 		peer := api.Peer{
@@ -386,13 +331,8 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.NotNil(s.T(), client0.LBPolicies.Create(&lbPolicy))
 
 		// create false binding to verify LB policy
-		binding3 := api.Binding{
-			Spec: api.BindingSpec{
-				Import: imp.Name,
-				Peer:   cl[2].Name(),
-			},
-		}
-		require.Nil(s.T(), client0.Bindings.Create(&binding3))
+		imp.Spec.Peers = append(imp.Spec.Peers, cl[2].Name())
+		require.Nil(s.T(), client0.Imports.Update(&imp))
 
 		// verify access
 		str, err = accessService(false, nil)
@@ -409,34 +349,16 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Nil(s.T(), err)
 		require.ElementsMatch(s.T(), *objects.(*[]api.Policy), []api.Policy{lbPolicy})
 
-		// TODO: currently broken
-		// // update import port
-		// imp.Spec.Service.Port++
-		// require.Nil(s.T(), client0.Imports.Update(&imp))
-		// // verify no access to previous port
-		// _, err = accessService(true, &services.ConnectionRefusedError{})
-		// require.ErrorIs(s.T(), err, &services.ConnectionRefusedError{})
-		// // verify access to new port
-		// importedService.Port++
-		// _, err = accessService(true, nil)
-		// require.Nil(s.T(), err)
-		//
-		// // update import host
-		// imp.Spec.Service.Host += "2"
-		// require.Nil(s.T(), client0.Imports.Update(&imp))
-		// // verify no access to previous host
-		// _, err = accessService(true, &services.ServiceNotFoundError{})
-		// require.ErrorIs(s.T(), err, &services.ServiceNotFoundError{})
-		// // verify access to new host
-		// importedService.Name += "2"
-		// _, err = accessService(true, nil)
-		// require.Nil(s.T(), err)
-		// // get import after update
-		// objects, err = client0.Imports.Get(imp.Name)
-		// require.Nil(s.T(), err)
-		// require.Equal(s.T(), objects.(*api.Import).Spec, imp.Spec)
-		// require.Equal(s.T(), objects.(*api.Import).Status, importFromServer.Status)
-		// importFromServer = *objects.(*api.Import)
+		// update import port
+		imp.Spec.Port++
+		require.Nil(s.T(), client0.Imports.Update(&imp))
+		// verify no access to previous port
+		_, err = accessService(true, &services.ConnectionRefusedError{})
+		require.ErrorIs(s.T(), err, &services.ConnectionRefusedError{})
+		// verify access to new port
+		importedService.Port++
+		_, err = accessService(true, nil)
+		require.Nil(s.T(), err)
 
 		// update peer
 		peer.Spec.Gateways[0].Port++
@@ -538,23 +460,6 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Nil(s.T(), err)
 		require.Equal(s.T(), str, cl[1].Name())
 
-		// TODO: currently broken
-		// // delete binding
-		// require.Nil(s.T(), client0.Bindings.Delete(&binding))
-		// // get binding after delete
-		// objects, err = client0.Bindings.Get(imp.Name)
-		// require.Nil(s.T(), err)
-		// require.ElementsMatch(s.T(), *objects.(*[]api.Binding), []api.Binding{binding3})
-		// // verify no access after delete
-		// _, err = accessService(false, &services.ConnectionResetError{})
-		// require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
-		// // re-create binding
-		// require.Nil(s.T(), client0.Bindings.Create(&binding))
-		// // verify access after re-create
-		// str, err = accessService(false, nil)
-		// require.Nil(s.T(), err)
-		// require.Equal(s.T(), str, cl[1].Name())
-
 		// delete peer
 		require.Nil(s.T(), client0.Peers.Delete(peer.Name))
 		// get peer after delete
@@ -625,11 +530,6 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		objects, err = client0.Imports.List()
 		require.Nil(s.T(), err)
 		require.ElementsMatch(s.T(), *objects.(*[]api.Import), []api.Import{importFromServer})
-
-		// verify bindings after restart
-		objects, err = client0.Bindings.List()
-		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Binding), []api.Binding{binding, binding2, binding3})
 
 		// verify peers after restart
 		objects, err = client0.Peers.List()

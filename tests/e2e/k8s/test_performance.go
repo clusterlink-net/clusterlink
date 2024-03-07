@@ -46,9 +46,8 @@ func (s *TestSuite) TestPerformance() {
 			Namespace: cl[1].Namespace(),
 			Port:      80,
 		}
-		require.Nil(s.T(), cl[1].CreateImport("iperf3", importedService))
+		require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
 
-		require.Nil(s.T(), cl[1].CreateBinding("iperf3", cl[0]))
 		require.Nil(s.T(), cl[1].CreatePolicy(util.PolicyAllowAll))
 
 		bps, err := iperf3.RunClient(cl[1].Cluster(), importedService)

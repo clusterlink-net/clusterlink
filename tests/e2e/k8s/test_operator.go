@@ -67,8 +67,8 @@ func (s *TestSuite) TestOperator() {
 		Name: "echo",
 		Port: 80,
 	}
-	require.Nil(s.T(), cl[1].CreateImport("echo", importedService))
-	require.Nil(s.T(), cl[1].CreateBinding("echo", cl[0]))
+	require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
+
 	require.Nil(s.T(), cl[1].CreatePolicy(util.PolicyAllowAll))
 
 	data, err := cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)

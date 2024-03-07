@@ -31,14 +31,22 @@ type importHandler struct {
 }
 
 func toK8SImport(imp *store.Import, namespace string) *v1alpha1.Import {
+	sources := make([]v1alpha1.ImportSource, len(imp.Peers))
+	for i, pr := range imp.Peers {
+		sources[i].Peer = pr
+		sources[i].ExportName = imp.Name
+		sources[i].ExportNamespace = namespace
+	}
+
 	return &v1alpha1.Import{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imp.Name,
 			Namespace: namespace,
 		},
 		Spec: v1alpha1.ImportSpec{
-			Port:       imp.ImportSpec.Service.Port,
-			TargetPort: imp.Port,
+			Port:       imp.Port,
+			TargetPort: imp.TargetPort,
+			Sources:    sources,
 		},
 	}
 }
@@ -51,11 +59,6 @@ func importToAPI(imp *store.Import) *api.Import {
 	return &api.Import{
 		Name: imp.Name,
 		Spec: imp.ImportSpec,
-		Status: api.ImportStatus{
-			Listener: api.Endpoint{ // Endpoint.Host is not set
-				Port: imp.Port,
-			},
-		},
 	}
 }
 
@@ -75,7 +78,7 @@ func (m *Manager) CreateImport(imp *store.Import) error {
 			return err
 		}
 
-		imp.Port = k8sImp.Spec.TargetPort
+		imp.TargetPort = k8sImp.Spec.TargetPort
 
 		err = m.imports.Update(imp.Name, func(old *store.Import) *store.Import {
 			return imp
@@ -89,6 +92,8 @@ func (m *Manager) CreateImport(imp *store.Import) error {
 		// practically impossible
 		return err
 	}
+
+	m.authzManager.AddImport(k8sImp)
 
 	return nil
 }
@@ -110,7 +115,7 @@ func (m *Manager) UpdateImport(imp *store.Import) error {
 		return err
 	}
 
-	imp.Port = k8sImp.Spec.TargetPort
+	imp.TargetPort = k8sImp.Spec.TargetPort
 
 	err = m.imports.Update(imp.Name, func(old *store.Import) *store.Import {
 		return imp
@@ -123,6 +128,8 @@ func (m *Manager) UpdateImport(imp *store.Import) error {
 		// practically impossible
 		return err
 	}
+
+	m.authzManager.AddImport(k8sImp)
 
 	return nil
 }
@@ -159,6 +166,11 @@ func (m *Manager) DeleteImport(name string) (*store.Import, error) {
 		return nil, err
 	}
 
+	err = m.authzManager.DeleteImport(namespacedName)
+	if err != nil {
+		return nil, err
+	}
+
 	return imp, nil
 }
 
@@ -179,12 +191,12 @@ func (h *importHandler) Decode(data []byte) (any, error) {
 		return nil, fmt.Errorf("empty import name")
 	}
 
-	if imp.Spec.Service.Host == "" {
-		return nil, fmt.Errorf("missing service name")
+	if imp.Spec.Port == 0 {
+		return nil, fmt.Errorf("missing service port")
 	}
 
-	if imp.Spec.Service.Port == 0 {
-		return nil, fmt.Errorf("missing service port")
+	if len(imp.Spec.Peers) == 0 {
+		return nil, fmt.Errorf("missing peers")
 	}
 
 	return store.NewImport(&imp), nil

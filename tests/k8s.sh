@@ -75,8 +75,7 @@ function test_k8s {
 
   # import
   kubectl exec -i gwctl -- gwctl create peer --host cl-dataplane --port 443 --name peer1
-  kubectl exec -i gwctl -- gwctl create import --name foo --host bla --port 9999
-  kubectl exec -i gwctl -- gwctl create binding --import foo --peer peer1
+  kubectl exec -i gwctl -- gwctl create import --name bla --port 9999 --peer peer1
   kubectl cp $SCRIPT_DIR/../pkg/policyengine/policytypes/examples/allowAll.json gwctl:/tmp/allowAll.json
   kubectl exec -i gwctl -- gwctl create policy --type access --policyFile /tmp/allowAll.json
 

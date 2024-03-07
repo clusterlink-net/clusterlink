@@ -32,7 +32,6 @@ type Manager struct {
 	peers      *cpstore.Peers
 	exports    *cpstore.Exports
 	imports    *cpstore.Imports
-	bindings   *cpstore.Bindings
 	acPolicies *cpstore.AccessPolicies
 	lbPolicies *cpstore.LBPolicies
 
@@ -64,13 +63,6 @@ func (m *Manager) init() error {
 	// add exports
 	for _, imp := range m.GetAllImports() {
 		if err := m.CreateImport(imp); err != nil {
-			return err
-		}
-	}
-
-	// add bindings
-	for _, binding := range m.GetAllBindings() {
-		if err := m.CreateBinding(binding); err != nil {
 			return err
 		}
 	}
@@ -122,12 +114,6 @@ func NewManager(
 	}
 	logger.Infof("Loaded %d imports.", imports.Len())
 
-	bindings, err := cpstore.NewBindings(storeManager)
-	if err != nil {
-		return nil, fmt.Errorf("cannot load bindings from store: %w", err)
-	}
-	logger.Infof("Loaded %d bindings.", bindings.Len())
-
 	acPolicies, err := cpstore.NewAccessPolicies(storeManager)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load access policies from store: %w", err)
@@ -145,7 +131,6 @@ func NewManager(
 		peers:          peers,
 		exports:        exports,
 		imports:        imports,
-		bindings:       bindings,
 		acPolicies:     acPolicies,
 		lbPolicies:     lbPolicies,
 		xdsManager:     xdsManager,
