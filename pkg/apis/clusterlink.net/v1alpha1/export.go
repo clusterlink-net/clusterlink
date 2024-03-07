@@ -32,6 +32,10 @@ type Export struct {
 
 // ExportSpec contains all attributes of an exported service.
 type ExportSpec struct {
+	// Host of the exported service.
+	// If empty, export will point to a service with the same
+	// name and namespace as the export object.
+	Host string `json:"host,omitempty"`
 	// Port of the exported service.
 	Port uint16 `json:"port,omitempty"`
 }

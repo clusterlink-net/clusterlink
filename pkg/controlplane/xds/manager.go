@@ -100,24 +100,16 @@ func (m *Manager) DeletePeer(name string) error {
 func (m *Manager) AddExport(export *v1alpha1.Export) error {
 	m.logger.Infof("Adding export '%s/%s'.", export.Namespace, export.Name)
 
+	host := export.Spec.Host
+	if host == "" {
+		host = fmt.Sprintf("%s.%s.svc.cluster.local", export.Name, export.Namespace)
+	}
+
 	clusterName := cpapi.ExportClusterName(export.Name, export.Namespace)
 	cc, err := makeAddressCluster(
 		clusterName,
-		fmt.Sprintf("%s.%s.svc.cluster.local", export.Name, export.Namespace),
+		host,
 		export.Spec.Port, "")
-	if err != nil {
-		return err
-	}
-
-	return m.clusters.UpdateResource(clusterName, cc)
-}
-
-// AddLegacyExport defines a new route target for ingress dataplane connections.
-func (m *Manager) AddLegacyExport(name, namespace, host string, port uint16) error {
-	m.logger.Infof("Adding export '%s'.", name)
-
-	clusterName := cpapi.ExportClusterName(name, namespace)
-	cc, err := makeAddressCluster(clusterName, host, port, "")
 	if err != nil {
 		return err
 	}

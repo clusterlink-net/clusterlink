@@ -35,6 +35,10 @@ func toK8SExport(export *store.Export, namespace string) *v1alpha1.Export {
 			Name:      export.Name,
 			Namespace: namespace,
 		},
+		Spec: v1alpha1.ExportSpec{
+			Host: export.ExportSpec.Service.Host,
+			Port: export.ExportSpec.Service.Port,
+		},
 	}
 }
 
@@ -53,29 +57,20 @@ func exportToAPI(export *store.Export) *api.Export {
 func (m *Manager) CreateExport(export *store.Export) error {
 	m.logger.Infof("Creating export '%s'.", export.Name)
 
-	m.authzManager.AddExport(toK8SExport(export, m.namespace))
-
 	if m.initialized {
 		if err := m.exports.Create(export); err != nil {
 			return err
 		}
-
-		err := m.controlManager.AddLegacyExport(
-			export.Name, m.namespace, &export.ExportSpec)
-		if err != nil {
-			return err
-		}
 	}
 
-	return m.xdsManager.AddLegacyExport(
-		export.Name, m.namespace, export.Service.Host, export.Service.Port)
+	k8sExport := toK8SExport(export, m.namespace)
+	m.authzManager.AddExport(k8sExport)
+	return m.xdsManager.AddExport(k8sExport)
 }
 
 // UpdateExport updates a new route target for ingress dataplane connections.
 func (m *Manager) UpdateExport(export *store.Export) error {
 	m.logger.Infof("Updating export '%s'.", export.Name)
-
-	m.authzManager.AddExport(toK8SExport(export, m.namespace))
 
 	err := m.exports.Update(export.Name, func(old *store.Export) *store.Export {
 		return export
@@ -84,14 +79,9 @@ func (m *Manager) UpdateExport(export *store.Export) error {
 		return err
 	}
 
-	err = m.controlManager.AddLegacyExport(
-		export.Name, m.namespace, &export.ExportSpec)
-	if err != nil {
-		return err
-	}
-
-	return m.xdsManager.AddLegacyExport(
-		export.Name, m.namespace, export.Service.Host, export.Service.Port)
+	k8sExport := toK8SExport(export, m.namespace)
+	m.authzManager.AddExport(k8sExport)
+	return m.xdsManager.AddExport(k8sExport)
 }
 
 // GetExport returns an existing export.
@@ -110,11 +100,6 @@ func (m *Manager) DeleteExport(name string) (*store.Export, error) {
 	}
 	if export == nil {
 		return nil, nil
-	}
-
-	err = m.controlManager.DeleteLegacyExport(m.namespace, &export.ExportSpec)
-	if err != nil {
-		return nil, err
 	}
 
 	namespacedName := types.NamespacedName{
