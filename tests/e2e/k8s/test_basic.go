@@ -20,7 +20,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
-	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
@@ -520,29 +519,24 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Nil(s.T(), err)
 		require.Equal(s.T(), str, cl[1].Name())
 
-		if cfg.DataplaneType != platform.DataplaneTypeGo {
-			// TODO: remove the above if after resolving:
-			// https://github.com/clusterlink-net/clusterlink/issues/218
-
-			// delete import
-			require.Nil(s.T(), client0.Imports.Delete(imp.Name))
-			// get import after delete
-			_, err = client0.Imports.Get(imp.Name)
-			require.NotNil(s.T(), err)
-			// verify no access after delete
-			_, err = accessService(true, &services.ServiceNotFoundError{})
-			require.ErrorIs(s.T(), err, &services.ServiceNotFoundError{})
-			// re-create import
-			require.Nil(s.T(), client0.Imports.Create(&imp))
-			// re-get import from server
-			objects, err = client0.Imports.Get(imp.Name)
-			require.Nil(s.T(), err)
-			importFromServer = *objects.(*api.Import)
-			// verify access after re-create
-			str, err = accessService(true, nil)
-			require.Nil(s.T(), err)
-			require.Equal(s.T(), str, cl[1].Name())
-		}
+		// delete import
+		require.Nil(s.T(), client0.Imports.Delete(imp.Name))
+		// get import after delete
+		_, err = client0.Imports.Get(imp.Name)
+		require.NotNil(s.T(), err)
+		// verify no access after delete
+		_, err = accessService(true, &services.ServiceNotFoundError{})
+		require.ErrorIs(s.T(), err, &services.ServiceNotFoundError{})
+		// re-create import
+		require.Nil(s.T(), client0.Imports.Create(&imp))
+		// re-get import from server
+		objects, err = client0.Imports.Get(imp.Name)
+		require.Nil(s.T(), err)
+		importFromServer = *objects.(*api.Import)
+		// verify access after re-create
+		str, err = accessService(true, nil)
+		require.Nil(s.T(), err)
+		require.Equal(s.T(), str, cl[1].Name())
 
 		// TODO: currently broken
 		// // delete binding
@@ -597,12 +591,8 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		_, err = client1.Exports.Get(export.Name)
 		require.NotNil(s.T(), err)
 		// verify no access after delete
-		if cfg.DataplaneType != platform.DataplaneTypeGo {
-			// TODO: remove the above if after resolving:
-			// https://github.com/clusterlink-net/clusterlink/issues/218
-			_, err = accessService(true, &services.ConnectionResetError{})
-			require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
-		}
+		_, err = accessService(true, &services.ConnectionResetError{})
+		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 		// re-create export
 		require.Nil(s.T(), client1.Exports.Create(&export))
 		// verify access after re-create

@@ -16,6 +16,8 @@ package client
 import (
 	"context"
 	"fmt"
+	"strings"
+	"sync"
 
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -27,6 +29,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/server"
 )
 
@@ -35,9 +38,15 @@ type fetcher struct {
 	resourceType string
 	dataplane    *server.Dataplane
 	logger       *logrus.Entry
+	clusterLock  sync.Mutex
+	listenerLock sync.Mutex
 }
 
 func (f *fetcher) handleClusters(resources []*anypb.Any) error {
+	clusters := make(map[string]bool)
+
+	f.clusterLock.Lock()
+	defer f.clusterLock.Unlock()
 	for _, r := range resources {
 		c := &cluster.Cluster{}
 		err := anypb.UnmarshalTo(r, c, proto.UnmarshalOptions{})
@@ -47,11 +56,26 @@ func (f *fetcher) handleClusters(resources []*anypb.Any) error {
 
 		f.logger.Debugf("Cluster: %s.", c.Name)
 		f.dataplane.AddCluster(c)
+		clusters[c.Name] = true
+	}
+	// Delete existing clusters if its not present in the reources fetched
+	for cn := range f.dataplane.GetClusters() {
+		if _, ok := clusters[cn]; ok {
+			// Cluster exists in the resources fetched
+			continue
+		}
+		f.logger.Debugf("Remove Cluster: %s.", cn)
+		f.dataplane.RemoveCluster(cn)
 	}
 	return nil
 }
 
 func (f *fetcher) handleListeners(resources []*anypb.Any) error {
+	listeners := make(map[string]bool)
+
+	f.listenerLock.Lock()
+	defer f.listenerLock.Unlock()
+	// Add any new listeners created
 	for _, r := range resources {
 		l := &listener.Listener{}
 		err := anypb.UnmarshalTo(r, l, proto.UnmarshalOptions{})
@@ -60,6 +84,16 @@ func (f *fetcher) handleListeners(resources []*anypb.Any) error {
 		}
 		f.logger.Debugf("Listener: %s.", l.Name)
 		f.dataplane.AddListener(l)
+		listeners[strings.TrimPrefix(l.Name, api.ImportListenerPrefix)] = true
+	}
+	// Delete existing listeners if its not present in the reources fetched
+	for ln := range f.dataplane.GetListeners() {
+		if _, ok := listeners[ln]; ok {
+			// Listener exists in the resources fetched
+			continue
+		}
+		f.logger.Debugf("Remove Listener: %s.", ln)
+		f.dataplane.RemoveListener(ln)
 	}
 	return nil
 }
@@ -71,6 +105,8 @@ func (f *fetcher) Run() error {
 			f.logger.Errorf("Failed to fetch %s: %v.", f.resourceType, err)
 			return err
 		}
+		f.logger.Debugf("Fetched %s -> %+v", f.resourceType, resp.Resources)
+
 		switch f.resourceType {
 		case resource.ClusterType:
 			err := f.handleClusters(resp.Resources)

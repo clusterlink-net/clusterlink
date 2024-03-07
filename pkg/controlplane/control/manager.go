@@ -26,9 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
-	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
-	"github.com/clusterlink-net/clusterlink/pkg/util/net"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
@@ -44,63 +42,6 @@ type Manager struct {
 	ports   *portManager
 
 	logger *logrus.Entry
-}
-
-// AddLegacyExport defines a new route target for ingress dataplane connections.
-func (m *Manager) AddLegacyExport(name, namespace string, eSpec *api.ExportSpec) error {
-	m.logger.Infof("Adding export '%s'.", name)
-
-	if eSpec.ExternalService != "" && !net.IsIP(eSpec.ExternalService) && !net.IsDNS(eSpec.ExternalService) {
-		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
-	}
-
-	// create a k8s external service.
-	extName := eSpec.ExternalService
-	if extName != "" {
-		if net.IsIP(extName) {
-			extName += ".nip.io" // Convert IP to DNS address.
-		}
-
-		m.logger.Infof("Creating Kubernetes service %s of type ExternalName linked to %s.", eSpec.Service.Host, extName)
-
-		err := m.client.Create(
-			context.Background(),
-			&v1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      eSpec.Service.Host,
-					Namespace: namespace,
-				},
-				Spec: v1.ServiceSpec{
-					Type:         v1.ServiceTypeExternalName,
-					ExternalName: extName,
-				},
-			})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// DeleteLegacyExport removes the possibility for ingress dataplane connections to access a given service.
-func (m *Manager) DeleteLegacyExport(namespace string, exportSpec *api.ExportSpec) error {
-	// Deleting a k8s external service.
-	if exportSpec.ExternalService != "" {
-		err := m.client.Delete(
-			context.Background(),
-			&v1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      exportSpec.Service.Host,
-					Namespace: namespace,
-				},
-			})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // AddImport adds a listening socket for an imported remote service.
