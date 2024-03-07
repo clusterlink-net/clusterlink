@@ -13,11 +13,11 @@ A `Site` represents a location, such as a Kubernetes cluster, participating in a
  (often) coarse-grained access policies in accordance with high level corporate
  policies (e.g., "production sites should only communicate with other production sites").
 
-Once a `Site` has been added to a `Fabric`, it can communicate with any other `Site`
+Once a Site has been added to a Fabric, it can communicate with any other Site
  belonging to it. All configuration relating to service sharing (e.g., the exporting
  and importing of Services, and the setting of fine grained application policies) can be
  done with lowered privileges (e.g., by users, such as application owners). Remote sites are
- represented by the `Peer` Custom Resource Definition (CRD). Each `Peer` CRD instance
+ represented by the `Peer` Custom Resource Definition (CRD). Each Peer CRD instance
  defines a remote cluster and the network endpoints of its ClusterLink gateways.
 
 ## Prerequisites
@@ -79,12 +79,12 @@ Install the ClusterLink operator by running the following command
 clusterlink site init
 ```
 
-The command assumes that `kubectl` is set to the correct context and credentials
+The command assumes that kubectl is set to the correct context and credentials
 and that the certificates were created in the local folder. If they were not,
 add the `-f <path>` CLI option to set the correct path to the certificate files.
 
 This command will deploy the ClusterLink deployment CRDs using the current
-`kubectl` context. The operation requires cluster administrator privileges
+kubectl context. The operation requires cluster administrator privileges
 in order to install CRDs into the cluster.
 The ClusterLink operator is installed to the `clusterlink-operator` namespace
 and the CA and site certificate and key are set as Kubernetes secrets
@@ -99,7 +99,12 @@ kubectl get secret --namespace clusterlink-operator
 {{% expand summary="Example output" %}}
 
 ```sh
-output of `kubectl get crds` and `kubectl get secret --namespace clusterlink-operator` commands
+$ kubectl get crds
+output of `kubectl get crds`
+over multiple lines
+$ kubectl get secret --namespace clusterlink-operator
+multiline output of `kubectl get secret --namespace clusterlink-operator` command
+...
 ```
 
 {{% /expand %}}
@@ -111,7 +116,7 @@ After the operator is installed, you can deploy ClusterLink by applying
  attempt reconciliation of the actual and intended ClusterLink deployment.
  By default, the operator will install the ClusterLink control and data plane
  components into a dedicated and privileged namespace (defaults to `clusterlink-system`).
- Site wide configurations, such as the list of known `Peers`, are also maintained
+ Site wide configurations, such as the list of known Peers, are also maintained
  in the same namespace.
 
 Refer to the [getting started guide]({{< ref "getting-started#setup" >}}) for a description
@@ -126,12 +131,12 @@ This operation is typically done by a local **Site administrator**, usually diff
  than the **Fabric administrator**.
 {{< /notice >}}
 
-Adding and removing sites is done by creating and deleting `Peer` CRD instances
+Managing sites is done by creating, deleting and updating Peer CRD instances
  in the dedicated ClusterLink namespace (typically, `clusterlink-system`). Peers are
  added to the ClusterLink namespace by the site administrator. Information
  regarding peer gateways and attributes is communicated out of band (e.g., provided
- by Site or Fabric administrators over email). In the future, these may be configured
- via a management plane.
+ by the Fabric or remote Site administrator over email). In the future, these may
+ be configured via a management plane.
 
 There are two fundamental attributes in the Peer CRD: the Peer's name and the list of
  ClusterLink gateway endpoints through which the remote site's Services are available.
@@ -144,18 +149,18 @@ Gateway endpoint would typically be a implemented via a `NodePort` or `LoadBalan
  (e.g., when running in KIND clusters during development) and a `LoadBalancer` Service
  would be used in Cloud based deployments. These can be automatically configured and
  created via the [operator CRD]{{< ref "#deploy-clusterlink-via-the-operator-and-clusterlink-crd" >}}.
- Not having any gateways is an error and will be reported in the `Peer`'s Status.
- In addition, the Status could display additional Peer conditions, such a `Reachable`
- (or `Seen`) indicating whether the peer is currently reachable, and the last time it
- successfully responded to heartbeats.
+ Not having any gateways is an error and will be reported in the Peer's Status.
+ In addition, the Status section includes other useful attributes, such a `Reachable`
+ (or `Seen`) indicating whether the Peer is currently reachable, the last time it
+ successfully responded to heartbeats, etc.
 
-{{% expand summary="Example Peer CRD" %}}
+{{% expand summary="Example YAML for `kubectl apply -f <peer_file>`" %}}
 {{< readfile file="/static/files/peer_crd_sample.yaml" code="true" lang="yaml" >}}
 {{% /expand %}}
 
 ## Related tasks
 
-Once a `Site` has been created and initialized with the ClusterLink control and data
- planes as well as one or more remote `Peer`s, you can proceed with configuring
+Once a Site has been created and initialized with the ClusterLink control and data
+ planes as well as one or more remote Peers, you can proceed with configuring
  [services]({{< ref "services" >}}) and [policies]({{< ref "policies" >}}).
  For a complete end to end use case, refer to [iperf toturial]({{< ref "iperf" >}}).
