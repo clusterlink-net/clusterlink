@@ -58,20 +58,44 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
     clusterlink create site --name <site_name> --fabric <fabric_name>
     ```
 
-    This command will create the certificate files `<site_name>.cert` and `<site_name>.key` in a folder named <site_name>. The `--output <path>` flag can be used to change the folder location.
+    This command will create the certificate files `<site_name>.cert` and `<site_name>.key` in a folder named <site_name>. The `--path <path>` flag can be used to change the folder location.
 
-1. {{< anchor install-cl-operator >}}Install ClusterLink deployment operator.
+1. {{< anchor install-cl-operator >}}Install ClusterLink.
 
-    To install ClusterLink on the site, first, install the ClusterLink deployment operator.
+    To install ClusterLink on the site, first install the ClusterLink deployment operator.
 
     ```sh
-    clusterlink site init
+    clusterlink site deploy --start
     ```
 
-    This command will deploy the ClusterLink deployment operator on the `clusterlink-operator` namespace and convert the site certificates to secrets in the namespace.
-    The command assumes that kubectl is set to the correct site (Kubernetes cluster) and that the certificates were created in the local folder. If they were not, use the flag `-f <path>`.
+    This command will deploy the ClusterLink operator on the `clusterlink-operator` namespace and convert the site certificates to secrets in the namespace.
+    The command assumes that `kubectl` is set to the correct site (Kubernetes cluster) and that the certificates were created in the local folder. If they were not, use the flag `--path <path>`.
+    The `--start` option will deploy the ClusterLink components in the `clusterlink-system` namespace, and the ClusterLink project will start to run in the cluster.
 
-1. {{< anchor deploy-crd-instance >}}Deploy clusterlink CRD instance.
+To deploy ClusterLink on another cluster, please repeat steps 2-3 in the console with access to the cluster.
+### Additional configurations
+
+* Setting ClusterLink namespace:
+
+    ```sh
+    clusterlink site deploy --start --start-namespace <namespace>
+    ```
+
+    The `--start-namespace` determines the namespace where the ClusterLink components are deployed. Note that you must set `--start`, and the namespace should already exist.
+
+* Setting ClusterLink Ingress type:
+
+    ```sh
+    clusterlink site deploy --start --start-ingress <ingress_type>
+    ```
+
+    The `--start-ingress` controls the ClusterLink ingress type, with `LoadBalancer` being the default. If you're using a Kind cluster, replace `<ingress_type>` with `NodePort`. For a cluster running in a cloud environment, use `LoadBalancer`.Note that you must set `--start` when you use this flag.
+
+* {{< anchor deploy-crd-instance >}}Full configuration setting using ClusterLink CRD instance:
+
+    ```sh
+    clusterlink site deploy
+    ```
 
     After the operator is installed, you can deploy ClusterLink by applying the ClusterLink instance CRD:
 
@@ -89,12 +113,8 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
     EOF
     ```
 
-    If you're using a Kind cluster, replace <ingress_type> with `NodePort`. For a cluster running in a cloud environment, use `LoadBalancer` instead.
-
     The instance CRD will create the ClusterLink gateway components in the `clusterlink-system` namespace.
     For more details and information about the ClusterLink instance CRD, refer to the [operator documentation](https://github.com/clusterlink-net/clusterlink/blob/main/design-proposals/project-deploymnet.md#clusterlink-crd).
-
-To deploy ClusterLink on another cluster, please repeat steps 2-4 in the console with access to the cluster.
 
 ## Try it out
 

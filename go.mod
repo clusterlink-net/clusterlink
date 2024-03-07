@@ -3,6 +3,7 @@ module github.com/clusterlink-net/clusterlink
 go 1.20
 
 require (
+	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/envoyproxy/go-control-plane v0.12.0
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.6.0

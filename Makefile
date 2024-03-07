@@ -166,3 +166,32 @@ clean-kind:
 	kind delete cluster --name=peer1
 	kind delete cluster --name=peer2
 	kind delete cluster --name=peer3
+FOLDER_PATH := /home/kfirt/go/src/github.com/clusterlink-net/clusterlink/bin/tests/iperf3
+CL-ADM:=  /home/kfirt/go/src/github.com/clusterlink-net/clusterlink/bin/cl-adm
+operator-1-keys:
+	rm -rf $(FOLDER_PATH)
+	mkdir -p $(FOLDER_PATH)
+	cd $(FOLDER_PATH) && $(CL-ADM) create fabric
+	cd $(FOLDER_PATH) && $(CL-ADM) create peer --name="peer1" --container-registry="" --namespace=default
+	cd $(FOLDER_PATH) && $(CL-ADM) create peer --name="peer2" --container-registry="" --namespace=default
+
+kind-test1: codegen docker-build
+	kind delete cluster --name=peer1
+	kind create cluster --name=peer1
+	kind load docker-image cl-operator:latest --name=peer1
+	kind load docker-image cl-controlplane:latest --name=peer1
+	kind load docker-image cl-dataplane:latest --name=peer1
+	kubectl apply --recursive -f  config/       
+	kubectl apply -f /home/kfirt/go/src/github.com/clusterlink-net/clusterlink/bin/tests/iperf3/peer1/cl-secret.yaml
+	kubectl apply -f /home/kfirt/go/src/github.com/clusterlink-net/clusterlink/bin/tests/iperf3/peer1/cl-instance.yaml
+peer-init: build
+	kind delete cluster --name=peer1
+	kind create cluster --name=peer1
+	kind load docker-image cl-operator:latest --name=peer1
+	kind load docker-image cl-controlplane:latest --name=peer1
+	kind load docker-image cl-dataplane:latest --name=peer1
+	# rm -rf $(FOLDER_PATH)
+	# mkdir $(FOLDER_PATH)
+	# cd $(FOLDER_PATH) && $(CL-ADM) create fabric
+	# cd $(FOLDER_PATH) && $(CL-ADM) create peer --name="peer1" --container-registry=""
+	cd $(FOLDER_PATH) && $(CL-ADM) deploy peer --name="peer1" --start --start-ingress NodePort 
