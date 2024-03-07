@@ -18,11 +18,13 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/bombsimon/logrusr/v4"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -147,6 +149,9 @@ func (o *Options) Run() error {
 	if err := v1.AddToScheme(scheme); err != nil {
 		return fmt.Errorf("unable to add core v1 objects to scheme: %w", err)
 	}
+
+	// set logger for controller-runtime components
+	ctrl.SetLogger(logrusr.New(logrus.WithField("component", "k8s.controller-runtime")))
 
 	// limit watch for v1alpha1.Peer to the namespace given by 'namespace'
 	managerOptions := manager.Options{
