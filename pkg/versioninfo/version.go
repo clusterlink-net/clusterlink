@@ -40,9 +40,8 @@ func init() {
 // The format is <SemVer>-<GIT SHA>[-<dirty>].
 func Short() string {
 	parts := make([]string, 0, 4)
-
-	if SemVer != "" {
-		parts = append(parts, SemVer)
+	if GitTag != "" {
+		parts = append(parts, GitTag)
 	}
 	if Version != "unknown" && Version != "(devel)" {
 		parts = append(parts, Version)
