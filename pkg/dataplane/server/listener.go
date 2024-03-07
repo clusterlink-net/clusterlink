@@ -23,11 +23,6 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 )
 
-// DeleteListener deletes the listener to an imported service.
-func (d *Dataplane) DeleteListener(name string) {
-	d.listenerEnd[name] <- true
-}
-
 // CreateListener starts a listener to an imported service.
 func (d *Dataplane) CreateListener(name, ip string, port uint32) {
 	listenTarget := ip + ":" + strconv.Itoa(int(port))
@@ -44,6 +39,7 @@ func (d *Dataplane) CreateListener(name, ip string, port uint32) {
 		}
 	}()
 	<-d.listenerEnd[name]
+	d.logger.Infof("Ending the listener for imported service %s at %s.", name, listenTarget)
 	acceptor.Close()
 }
 
