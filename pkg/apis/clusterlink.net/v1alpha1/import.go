@@ -27,6 +27,8 @@ type Import struct {
 
 	// Spec represents the attributes of the imported service.
 	Spec ImportSpec `json:"spec"`
+	// Status represents the import status.
+	Status ImportStatus `json:"status,omitempty"`
 }
 
 // ImportSource represents an addressable exported service.
@@ -51,9 +53,17 @@ type ImportSpec struct {
 	// TODO: add LoadBalancingSpec.
 }
 
+const (
+	// ImportTargetPortValid is a condition type for indicating whether the import target port is valid.
+	ImportTargetPortValid string = "ImportTargetPortValid"
+	// ImportServiceCreated is a condition type for indicating whether the import service was successfully created.
+	ImportServiceCreated string = "ImportServiceCreated"
+)
+
 // ImportStatus represents the status of an imported service.
 type ImportStatus struct {
-	// TODO: add fields
+	// Conditions of the import.
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

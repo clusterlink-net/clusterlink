@@ -196,9 +196,9 @@ func (o *Options) Run() error {
 
 	authz.RegisterHandlers(authzManager, &httpServer.Server)
 
-	controlManager := control.NewManager(mgr.GetClient(), parsedCertData, o.CRDMode)
+	controlManager := control.NewManager(mgr.GetClient(), parsedCertData, namespace, o.CRDMode)
 
-	xdsManager := xds.NewManager()
+	xdsManager := xds.NewManager(o.CRDMode)
 	xds.RegisterService(
 		context.Background(), xdsManager, grpcServer.GetGRPCServer())
 
