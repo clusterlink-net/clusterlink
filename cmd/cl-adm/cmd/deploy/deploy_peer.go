@@ -46,6 +46,8 @@ type PeerOptions struct {
 	StartInstance bool
 	// Ingress, represents the type of service used to expose the ClusterLink deployment.
 	Ingress string
+	// ContainerRegistry is the container registry to pull the project images.
+	ContainerRegistry string
 }
 
 // NewCmdDeployPeer returns a cobra.Command to run the 'create peer' subcommand.
@@ -82,7 +84,9 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Namespace, "start-namespace", app.SystemNamespace,
 		"Namespace where the ClusterLink components are deployed if --start is set.")
 	fs.StringVar(&o.Ingress, "start-ingress", string(apis.IngressTypeLoadBalancer),
-		"Represents the type of service used to expose the ClusterLink deployment (LoadBalancer/NodePort/none) if --start is set.")
+		" By default, it is set to 443 for LoadBalancer and a random port (3000 to 32767) for NodePort, if --start is set.")
+	fs.StringVar(&o.ContainerRegistry, "container-registry", config.DefaultRegistry,
+		"The container registry to pull the project images.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -93,8 +97,8 @@ func (o *PeerOptions) RequiredFlags() []string {
 // Run the 'create peer' subcommand.
 func (o *PeerOptions) Run() error {
 	peerDir := path.Join(o.CertDir, o.Name)
-	if err := o.verifyExists(peerDir); err != nil {
-		return err
+	if _, err := os.Stat(peerDir); err != nil {
+		return fmt.Errorf("failed to open certificates folder: %w", err)
 	}
 
 	// Create k8s resources
@@ -109,7 +113,16 @@ func (o *PeerOptions) Run() error {
 	}
 
 	// Create operator
-	if err := o.deployDir("operator/manager/*", resource); err != nil {
+	ghImage := path.Join(config.DefaultRegistry, "cl-operator:latest")
+	newImage := path.Join(o.ContainerRegistry, "cl-operator:latest")
+	managerFile, err := configFiles.ConfigFiles.ReadFile("operator/manager/manager.yaml")
+	if err != nil {
+		return err
+	}
+
+	managerModified := strings.ReplaceAll(string(managerFile), ghImage, newImage)
+	err = decoder.DecodeEach(context.Background(), strings.NewReader(managerModified), decoder.CreateHandler(resource))
+	if err != nil {
 		return err
 	}
 
@@ -144,7 +157,7 @@ func (o *PeerOptions) Run() error {
 			Dataplanes:        1,
 			DataplaneType:     platform.DataplaneTypeEnvoy,
 			LogLevel:          "info",
-			ContainerRegistry: "ghcr.io/clusterlink-net", // Tell kind to use local image.
+			ContainerRegistry: o.ContainerRegistry,
 			Namespace:         o.Namespace,
 			IngressType:       o.Ingress,
 		}, "cl-instance")
@@ -159,12 +172,6 @@ func (o *PeerOptions) Run() error {
 	}
 
 	return nil
-}
-
-// verifyExists verifies a given path exist.
-func (o *PeerOptions) verifyExists(dir string) error {
-	_, err := os.Stat(dir)
-	return err
 }
 
 // deployDir deploys K8s yaml from a directory.

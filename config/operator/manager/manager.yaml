@@ -39,7 +39,7 @@ spec:
         - --leader-elect
         command:
         - /cl-operator
-        image: cl-operator:latest
+        image: ghcr.io/clusterlink-net/cl-operator:latest
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
