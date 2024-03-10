@@ -50,8 +50,8 @@ const (
 )
 
 const (
-	// ExternalPort represents the default value for the external ingress service of the LoadBalancer type.
-	ExternalPort = 443
+	// ExternalDefaultPort represents the default value for the external ingress service of the LoadBalancer type.
+	ExternalDefaultPort = 443
 )
 
 // ComponentStatus defines the status of component in ClusterLink.

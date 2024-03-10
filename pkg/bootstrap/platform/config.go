@@ -46,6 +46,8 @@ type Config struct {
 	ContainerRegistry string
 	// IngressType is the type of ingress to create.
 	IngressType string
+	// IngressPort is the ingress port number to create.
+	IngressPort uint16
 	// CRDMode indicates a CRD-based controlplane.
 	CRDMode bool
 }

@@ -22,6 +22,7 @@ import (
 
 	cpapp "github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
 	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
+	apis "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 )
@@ -316,6 +317,9 @@ spec:
     replicas: {{.dataplanes}}
   ingress:
     type: {{.ingressType}}
+{{- if .ingressPort }}
+    port: {{.ingressPort }}
+{{ end }}
   logLevel: {{.logLevel}}
   containerRegistry: {{.containerRegistry}}
   namespace: {{.namespace}}
@@ -413,6 +417,12 @@ func K8SClusterLinkInstanceConfig(config *Config, name string) ([]byte, error) {
 		"ingressType":       config.IngressType,
 	}
 
+	if config.IngressPort != 0 {
+		if config.IngressType == string(apis.IngressTypeNodePort) && (config.IngressPort < 30000) || (config.IngressPort > 32767) {
+			return nil, fmt.Errorf("nodeport number %v is not in the valid range (30000:32767)", config.IngressPort)
+		}
+		args["ingressPort"] = config.IngressPort
+	}
 	var clConfig bytes.Buffer
 	t := template.Must(template.New("").Parse(ClusterLinkInstanceTemplate))
 	if err := t.Execute(&clConfig, args); err != nil {
