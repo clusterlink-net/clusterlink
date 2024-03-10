@@ -128,7 +128,7 @@ func (o *PeerOptions) Run() error {
 	}
 
 	managerModified := strings.ReplaceAll(string(managerFile), ghImage, newImage)
-	err = decoder.DecodeEach(context.Background(), strings.NewReader(managerModified), decoder.CreateHandler(resource))
+	err = decoder.DecodeEach(context.Background(), strings.NewReader(managerModified), decoder.CreateIgnoreAlreadyExists(resource))
 	if err != nil {
 		return err
 	}
@@ -150,7 +150,7 @@ func (o *PeerOptions) Run() error {
 	err = decoder.DecodeEach(
 		context.Background(),
 		strings.NewReader(string(secretFile)),
-		decoder.CreateHandler(resource),
+		decoder.CreateIgnoreAlreadyExists(resource),
 		decoder.MutateNamespace(o.Namespace),
 	)
 	if err != nil {
@@ -177,7 +177,9 @@ func (o *PeerOptions) Run() error {
 		}
 
 		err = decoder.DecodeEach(context.Background(), strings.NewReader(string(instance)), decoder.CreateHandler(resource))
-		if err != nil {
+		if errors.IsAlreadyExists(err) {
+			fmt.Println("CRD instance for ClusterLink (\"cl-instance\") was already exist.")
+		} else if err != nil {
 			return err
 		}
 	} else {
