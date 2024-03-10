@@ -42,6 +42,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/util/runnable"
 	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
+	"github.com/clusterlink-net/clusterlink/pkg/versioninfo"
 )
 
 const (
@@ -105,6 +106,8 @@ func (o *Options) Run() error {
 			}
 		}()
 	}
+
+	logrus.Infof("Starting cl-controlplane (version: %s)", versioninfo.Short())
 
 	namespace := os.Getenv(NamespaceEnvVariable)
 	if namespace == "" {

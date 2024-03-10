@@ -28,5 +28,5 @@ var (
 	// LastCommit is taken from the vcs.time tag.
 	LastCommit time.Time
 	// DirtyBuild is taken from the vcs.modified tag.
-	DirtyBuild = true
+	DirtyBuild = false
 )

@@ -76,8 +76,9 @@ GO ?= CGO_ENABLED=0 go
 # Allow setting of go build flags from the command line.
 GOFLAGS := 
 BIN_DIR := ./bin
-TAG := $(shell git describe --tags --abbrev=0)
-LDFLAGS=-ldflags "-X github.com/clusterlink-net/clusterlink/pkg/versioninfo.GitTag=$(TAG)"
+LDFLAGS := -ldflags "-X github.com/clusterlink-net/clusterlink/pkg/versioninfo.GitTag=$(shell git describe --tags --abbrev=0)"
+LDFLAGS_OPERATOR:=$(LDFLAGS) \
+                -ldflags "-X github.com/clusterlink-net/clusterlink/pkg/versioninfo.Revision=$(shell git rev-parse --short HEAD)"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -105,15 +106,14 @@ codegen: controller-gen  ## Generate ClusterRole, CRDs and DeepCopyObject.
 
 cli-build:
 	@echo "Start go build phase"
-	$(GO) build $(LDFLAGS) -o $(BIN_DIR)/gwctl ./cmd/gwctl
-	$(GO) build $(LDFLAGS) -o $(BIN_DIR)/cl-adm ./cmd/cl-adm
+	$(GO) build -o $(BIN_DIR)/gwctl  $(LDFLAGS) ./cmd/gwctl
+	$(GO) build -o $(BIN_DIR)/cl-adm $(LDFLAGS) ./cmd/cl-adm
 
 build: cli-build
 	$(GO) build -o $(BIN_DIR)/cl-controlplane ./cmd/cl-controlplane
 	$(GO) build -o $(BIN_DIR)/cl-dataplane ./cmd/cl-dataplane
 	$(GO) build -o $(BIN_DIR)/cl-go-dataplane ./cmd/cl-go-dataplane
-	$(GO) build -o $(BIN_DIR)/cl-operator ./cmd/cl-operator/main.go
-
+	$(GO) build -o $(BIN_DIR)/cl-operator  $(LDFLAGS_OPERATOR) ./cmd/cl-operator/main.go
 
 docker-build: build
 	docker build --progress=plain --rm --tag cl-controlplane -f ./cmd/cl-controlplane/Dockerfile .
