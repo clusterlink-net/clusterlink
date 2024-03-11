@@ -15,8 +15,8 @@ require (
 	github.com/stretchr/testify v1.9.0
 	go.etcd.io/bbolt v1.3.9
 	golang.org/x/net v0.22.0
-	google.golang.org/grpc v1.62.0
-	google.golang.org/protobuf v1.32.0
+	google.golang.org/grpc v1.62.1
+	google.golang.org/protobuf v1.33.0
 	inet.af/tcpproxy v0.0.0-20221017015627-91f861402626
 	k8s.io/api v0.29.2
 	k8s.io/apimachinery v0.29.2
