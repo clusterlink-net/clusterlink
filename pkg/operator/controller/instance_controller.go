@@ -520,7 +520,7 @@ func (r *InstanceReconciler) createExternalService(ctx context.Context, instance
 			},
 			Ports: []corev1.ServicePort{
 				{
-					Port:       clusterlink.ExternalPort,
+					Port:       clusterlink.DefaultExternalPort,
 					TargetPort: intstr.FromInt(dpapi.ListenPort),
 					Name:       "https",
 				},

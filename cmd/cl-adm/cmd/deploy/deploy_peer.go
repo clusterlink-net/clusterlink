@@ -46,6 +46,8 @@ type PeerOptions struct {
 	StartInstance bool
 	// Ingress, represents the type of service used to expose the ClusterLink deployment.
 	Ingress string
+	// IngressPort, represents the port number of the service used to expose the ClusterLink deployment.
+	IngressPort uint16
 	// ContainerRegistry is the container registry to pull the project images.
 	ContainerRegistry string
 }
@@ -80,13 +82,18 @@ func NewCmdDeployPeer() *cobra.Command {
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
 	fs.StringVar(&o.CertDir, "cert-dir", ".", "The directory where the certificates for the fabric and peer are located.")
-	fs.BoolVar(&o.StartInstance, "start", false, "If true, deploy a ClusterLink instance that will create ClusterLink components")
-	fs.StringVar(&o.Namespace, "start-namespace", app.SystemNamespace,
-		"Namespace where the ClusterLink components are deployed if --start is set.")
-	fs.StringVar(&o.Ingress, "start-ingress", string(apis.IngressTypeLoadBalancer),
-		" By default, it is set to 443 for LoadBalancer and a random port (3000 to 32767) for NodePort, if --start is set.")
+	fs.StringVar(&o.Namespace, "namespace", app.SystemNamespace,
+		"Namespace where the ClusterLink components are deployed.")
 	fs.StringVar(&o.ContainerRegistry, "container-registry", config.DefaultRegistry,
 		"The container registry to pull the project images.")
+	fs.BoolVar(&o.StartInstance, "autostart", false,
+		"If false, it will deploy only the ClusteLink operator and ClusterLink K8s secrets."+
+			"If true, it will also deploy the ClusterLink instance CRD, which will create the ClusterLink components.")
+	fs.StringVar(&o.Ingress, "ingress", string(apis.IngressTypeLoadBalancer), "Represents the type of service used"+
+		"to expose the ClusterLink deployment (LoadBalancer/NodePort/none). This option is only valid if --autostart is set.")
+	fs.Uint16Var(&o.IngressPort, "ingress-port", apis.DefaultExternalPort,
+		"Represents the ingress port. By default it is set to 443 for LoadBalancer"+
+			" and a random port in range (30000 to 32767) for NodePort. This option is only valid if --autostart is set.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -121,7 +128,7 @@ func (o *PeerOptions) Run() error {
 	}
 
 	managerModified := strings.ReplaceAll(string(managerFile), ghImage, newImage)
-	err = decoder.DecodeEach(context.Background(), strings.NewReader(managerModified), decoder.CreateHandler(resource))
+	err = decoder.DecodeEach(context.Background(), strings.NewReader(managerModified), decoder.CreateIgnoreAlreadyExists(resource))
 	if err != nil {
 		return err
 	}
@@ -143,7 +150,7 @@ func (o *PeerOptions) Run() error {
 	err = decoder.DecodeEach(
 		context.Background(),
 		strings.NewReader(string(secretFile)),
-		decoder.CreateHandler(resource),
+		decoder.CreateIgnoreAlreadyExists(resource),
 		decoder.MutateNamespace(o.Namespace),
 	)
 	if err != nil {
@@ -152,7 +159,7 @@ func (o *PeerOptions) Run() error {
 
 	// Create ClusterLink instance
 	if o.StartInstance {
-		instance, err := platform.K8SClusterLinkInstanceConfig(&platform.Config{
+		cfg := &platform.Config{
 			Peer:              o.Name,
 			Dataplanes:        1,
 			DataplaneType:     platform.DataplaneTypeEnvoy,
@@ -160,14 +167,27 @@ func (o *PeerOptions) Run() error {
 			ContainerRegistry: o.ContainerRegistry,
 			Namespace:         o.Namespace,
 			IngressType:       o.Ingress,
-		}, "cl-instance")
+		}
+		if o.IngressPort != apis.DefaultExternalPort {
+			cfg.IngressPort = o.IngressPort
+		}
+		instance, err := platform.K8SClusterLinkInstanceConfig(cfg, "cl-instance")
 		if err != nil {
 			return err
 		}
 
 		err = decoder.DecodeEach(context.Background(), strings.NewReader(string(instance)), decoder.CreateHandler(resource))
-		if err != nil {
+		if errors.IsAlreadyExists(err) {
+			fmt.Println("CRD instance for ClusterLink (\"cl-instance\") was already exist.")
+		} else if err != nil {
 			return err
+		}
+	} else {
+		if o.Ingress != string(apis.IngressTypeLoadBalancer) {
+			fmt.Println("flag --autostart is not set, ignoring --ingres flag")
+		}
+		if o.IngressPort != apis.DefaultExternalPort {
+			fmt.Println("flag --autostart is not set, ignoring --ingres-port flag")
 		}
 	}
 
