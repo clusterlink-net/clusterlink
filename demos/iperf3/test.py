@@ -75,9 +75,7 @@ def iperf3Test(cl1:cluster, cl2:cluster, testOutputFolder,logLevel="info" ,datap
 
     #Import destination service
     printHeader(f"\n\nStart Importing {destSvc} service to {cl1.name}")
-    runcmd(f'gwctl --myid {cl1.name} create import --name {destSvc} --host {destSvc} --port {destPort}')
-    printHeader(f"\n\nStart binding {destSvc} service to {cl1.name}")
-    runcmd(f'gwctl --myid {cl1.name} create binding --import {destSvc} --peer {cl2.name}')
+    runcmd(f'gwctl --myid {cl1.name} create import --name {destSvc} --port {destPort} --peer {cl2.name}')
 
     #Add policy
     printHeader("Applying policies")

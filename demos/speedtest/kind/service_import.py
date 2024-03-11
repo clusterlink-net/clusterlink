@@ -47,15 +47,9 @@ if __name__ == "__main__":
     #Import service
     printHeader(f"\n\nStart import svc {destSvc}")
     cl1.useCluster()    
-    runcmd(f'gwctl create import --myid {cl1.name} --name {destSvc} --host {destSvc} --port 3000')
+    runcmd(f'gwctl create import --myid {cl1.name} --name {destSvc} --port 3000 --peer {cl2.name}')
     cl3.useCluster()     
-    runcmd(f'gwctl create import --myid {cl3.name} --name {destSvc} --host {destSvc} --port 3000')
-    #Set K8s network services
-    printHeader(f"\n\nStart binding service {destSvc}")
-    cl1.useCluster()  
-    runcmd(f'gwctl create binding --myid {cl1.name} --import {destSvc} --peer {cl2.name}')
-    cl3.useCluster()  
-    runcmd(f'gwctl create binding --myid {cl3.name} --import {destSvc} --peer {cl2.name}')
+    runcmd(f'gwctl create import --myid {cl3.name} --name {destSvc} --port 3000 --peer {cl2.name}')
     
     printHeader("\n\nStart get service cl1")
     runcmd(f'gwctl get import --myid {cl1.name} ')

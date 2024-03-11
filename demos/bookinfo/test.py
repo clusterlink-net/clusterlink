@@ -113,12 +113,7 @@ def bookInfoDemo(cl1:cluster, cl2:cluster, cl3:cluster, testOutputFolder,logLeve
     # Import service
     cl1.useCluster()
     printHeader(f"\n\nStart import svc {reviewSvc}")
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create import --name {reviewSvc}  --host {reviewSvc} --port {srcK8sSvcPort} ')
-    
-    # Binding
-    printHeader(f"\n\nStart binding svc {reviewSvc}")
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create binding --import {reviewSvc}  --peer {cl2.name}')
-    runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create binding --import {reviewSvc}  --peer {cl3.name}')
+    runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create import --name {reviewSvc} --port {srcK8sSvcPort} --peer {cl2.name} --peer {cl3.name}')
     
     # Get services
     cl1.useCluster()

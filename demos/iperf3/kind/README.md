@@ -150,7 +150,7 @@ First, we specify which service we want to import and specify the local k8s endp
 When running Kind cluster on macOS run instead the following:
 
     kubectl config use-context kind-peer1
-    kubectl exec -i $GWCTL1-- gwctl create import --myid peer1 --name iperf3-server --host iperf3-server --port 5000
+    kubectl exec -i $GWCTL1-- gwctl create import --myid peer1 --name iperf3-server --port 5000
 
 Second, we specify the peer we want to import the service:
 

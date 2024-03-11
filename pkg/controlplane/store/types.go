@@ -21,11 +21,9 @@ const (
 	peerStoreName         = "peer"
 	exportStoreName       = "export"
 	importStoreName       = "import"
-	bindingStoreName      = "binding"
 	accessPolicyStoreName = "accessPolicy"
 	lbPolicyStoreName     = "lbPolicy"
 
-	bindingStructVersion      = 1
 	exportStructVersion       = 1
 	importStructVersion       = 1
 	peerStructVersion         = 1
@@ -76,8 +74,6 @@ type Import struct {
 	Name string
 	// Version of the struct when object was created.
 	Version uint32
-	// Port is the port where the imported service should listen on.
-	Port uint16
 }
 
 // NewImport creates a new import.
@@ -86,21 +82,6 @@ func NewImport(imp *api.Import) *Import {
 		ImportSpec: imp.Spec,
 		Name:       imp.Name,
 		Version:    importStructVersion,
-	}
-}
-
-// Binding of an imported service to a remote exported service.
-type Binding struct {
-	api.BindingSpec
-	// Version of the struct when object was created.
-	Version uint32
-}
-
-// NewBinding creates a new binding.
-func NewBinding(binding *api.Binding) *Binding {
-	return &Binding{
-		BindingSpec: binding.Spec,
-		Version:     bindingStructVersion,
 	}
 }
 

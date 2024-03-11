@@ -163,10 +163,9 @@ func (o *allGetOptions) run() error {
 	}
 
 	objects := map[string]*rest.Client{
-		"Peers":    g.Peers,
-		"Exports":  g.Exports,
-		"Imports":  g.Imports,
-		"Bindings": g.Bindings,
+		"Peers":   g.Peers,
+		"Exports": g.Exports,
+		"Imports": g.Imports,
 	}
 
 	for name, o := range objects {
