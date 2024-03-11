@@ -91,9 +91,9 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 			"If true, it will also deploy the ClusterLink instance CRD, which will create the ClusterLink components.")
 	fs.StringVar(&o.Ingress, "ingress", string(apis.IngressTypeLoadBalancer), "Represents the type of service used"+
 		"to expose the ClusterLink deployment (LoadBalancer/NodePort/none). This option is only valid if --autostart is set.")
-	fs.Uint16Var(&o.IngressPort, "ingress-port", apis.ExternalDefaultPort,
+	fs.Uint16Var(&o.IngressPort, "ingress-port", apis.DefaultExternalPort,
 		"Represents the ingress port. By default it is set to 443 for LoadBalancer"+
-			" and a random port in range (3000 to 32767) for NodePort. This option is only valid if --autostart is set.")
+			" and a random port in range (30000 to 32767) for NodePort. This option is only valid if --autostart is set.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -168,7 +168,7 @@ func (o *PeerOptions) Run() error {
 			Namespace:         o.Namespace,
 			IngressType:       o.Ingress,
 		}
-		if o.IngressPort != apis.ExternalDefaultPort {
+		if o.IngressPort != apis.DefaultExternalPort {
 			cfg.IngressPort = o.IngressPort
 		}
 		instance, err := platform.K8SClusterLinkInstanceConfig(cfg, "cl-instance")
@@ -184,10 +184,10 @@ func (o *PeerOptions) Run() error {
 		}
 	} else {
 		if o.Ingress != string(apis.IngressTypeLoadBalancer) {
-			fmt.Println("flag --autostart is not set, ignore --ingres flag")
+			fmt.Println("flag --autostart is not set, ignoring --ingres flag")
 		}
-		if o.IngressPort != apis.ExternalDefaultPort {
-			fmt.Println("flag --autostart is not set, ignore --ingres-port flag")
+		if o.IngressPort != apis.DefaultExternalPort {
+			fmt.Println("flag --autostart is not set, ignoring --ingres-port flag")
 		}
 	}
 
