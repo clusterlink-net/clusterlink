@@ -269,12 +269,12 @@ func (f *Fabric) generateClusterlinkSecrets(p *peer) (string, error) {
 }
 
 // generateClusterlinkInstance generates ClusterLink instance yaml.
-func (f *Fabric) generateClusterlinkInstance(p *peer, cfg *PeerConfig) (string, error) {
+func (f *Fabric) generateClusterlinkInstance(name string, p *peer, cfg *PeerConfig) (string, error) {
 	logLevel := "info"
 	if os.Getenv("DEBUG") == "1" {
 		logLevel = "debug"
 	}
-	name := "cl-instance" + f.namespace
+
 	instance, err := platform.K8SClusterLinkInstanceConfig(&platform.Config{
 		Peer:              p.cluster.Name(),
 		Dataplanes:        cfg.Dataplanes,

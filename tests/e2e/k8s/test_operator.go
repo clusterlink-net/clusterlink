@@ -124,8 +124,12 @@ func (s *TestSuite) TestOperator() {
 	require.Equal(s.T(), v1.ConditionTrue, instance2.Status.Controlplane.Conditions[string(clusterlink.DeploymentReady)].Status)
 	require.Equal(s.T(), v1.ConditionTrue, instance2.Status.Dataplane.Conditions[string(clusterlink.DeploymentReady)].Status)
 	require.Equal(s.T(), v1.ConditionTrue, instance2.Status.Ingress.Conditions[string(clusterlink.ServiceReady)].Status)
-	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
+	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
 	require.Equal(s.T(), &services.ConnectionResetError{}, err)
+
+	if cfg.CRDMode {
+		require.Nil(s.T(), cl[0].WaitForControlplaneAPI())
+	}
 
 	require.Nil(s.T(), cl[0].CreateExport("echo", &httpEchoService))
 	require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
