@@ -73,7 +73,7 @@ type InstanceReconciler struct {
 // +kubebuilder:rbac:groups="",resources=pods,verbs=list;get;watch
 // +kubebuilder:rbac:groups=clusterlink.net,resources=exports;peers;accesspolicies,verbs=list;get;watch
 // +kubebuilder:rbac:groups=clusterlink.net,resources=imports,verbs=get;list;watch;update
-// +kubebuilder:rbac:groups=clusterlink.net,resources=peers/status,verbs=update
+// +kubebuilder:rbac:groups=clusterlink.net,resources=peers/status;exports/status,verbs=update
 // +kubebuilder:rbac:groups="apps",resources=deployments,verbs=list;get;watch;create;update;patch;delete
 //nolint:lll // Ignore long line warning for Kubebuilder command.
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles;clusterrolebindings,verbs=list;get;watch;create;update;patch;delete
@@ -471,7 +471,7 @@ func (r *InstanceReconciler) createAccessControl(ctx context.Context, name, name
 			},
 			{
 				APIGroups: []string{"clusterlink.net"},
-				Resources: []string{"peers/status"},
+				Resources: []string{"peers/status", "exports/status"},
 				Verbs:     []string{"update"},
 			},
 		},
