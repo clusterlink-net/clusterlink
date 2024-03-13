@@ -154,19 +154,21 @@ func (o *Options) Run() error {
 	ctrl.SetLogger(logrusr.New(logrus.WithField("component", "k8s.controller-runtime")))
 
 	// limit watch for v1alpha1.Peer to the namespace given by 'namespace'
-	managerOptions := manager.Options{
-		Cache: cache.Options{
-			ByObject: map[client.Object]cache.ByObject{
-				&v1alpha1.Peer{}: {
-					Namespaces: map[string]cache.Config{
-						namespace: {},
+	managerOptions := manager.Options{}
+	if o.CRDMode {
+		managerOptions = manager.Options{
+			Cache: cache.Options{
+				ByObject: map[client.Object]cache.ByObject{
+					&v1alpha1.Peer{}: {
+						Namespaces: map[string]cache.Config{
+							namespace: {},
+						},
 					},
 				},
 			},
-		},
-		Scheme: scheme,
+			Scheme: scheme,
+		}
 	}
-
 	mgr, err := manager.New(config, managerOptions)
 	if err != nil {
 		return fmt.Errorf(
