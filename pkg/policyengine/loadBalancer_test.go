@@ -37,7 +37,6 @@ const (
 
 var (
 	svc1NS1 = types.NamespacedName{Namespace: ns1, Name: svc1}
-	svc1NS2 = types.NamespacedName{Namespace: ns2, Name: svc1}
 	svc2NS1 = types.NamespacedName{Namespace: ns1, Name: svc2}
 	svc3NS2 = types.NamespacedName{Namespace: ns2, Name: svc3}
 )
