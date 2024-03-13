@@ -16,7 +16,6 @@ package policyengine
 import (
 	"fmt"
 	"math/rand"
-	"slices"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/types"
@@ -119,9 +118,14 @@ func (lb *LoadBalancer) RemoveDestService(serviceDst, peer string) {
 		return
 	}
 
-	state.impSources = slices.DeleteFunc(state.impSources, func(src crds.ImportSource) bool {
-		return src.Peer == peer
-	})
+	newSrcs := []crds.ImportSource{}
+	for _, src := range state.impSources {
+		if src.Peer != peer {
+			newSrcs = append(newSrcs, src)
+		}
+	}
+
+	state.impSources = newSrcs
 }
 
 func (lb *LoadBalancer) LookupRandom(svcFullName string, targets []crds.ImportSource) (*crds.ImportSource, error) {
