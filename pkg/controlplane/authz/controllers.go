@@ -16,52 +16,74 @@ package authz
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
 )
 
-type podReconciler struct {
-	client  client.Client
-	manager *Manager
-	logger  *logrus.Entry
-}
-
-// Reconcile Pod objects.
-func (r *podReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.logger.Debugf("Reconcile: %v", req.NamespacedName)
-
-	var pod v1.Pod
-	if err := r.client.Get(ctx, req.NamespacedName, &pod); err != nil {
-		if errors.IsNotFound(err) {
-			r.manager.deletePod(req.NamespacedName)
-			return ctrl.Result{}, nil
+// CreateControllers creates the various k8s controllers used to update the xDS manager.
+func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode bool) error {
+	if crdMode {
+		err := controller.AddToManager(controllerManager, &controller.Spec{
+			Name:   "authz.access-policy",
+			Object: &v1alpha1.AccessPolicy{},
+			AddHandler: func(ctx context.Context, object any) error {
+				return mgr.addAccessPolicy(object.(*v1alpha1.AccessPolicy))
+			},
+			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+				mgr.deleteAccessPolicy(name)
+				return nil
+			},
+		})
+		if err != nil {
+			return err
 		}
 
-		r.logger.Errorf("Unable to get pod: %v", err)
-		return ctrl.Result{}, err
+		err = controller.AddToManager(controllerManager, &controller.Spec{
+			Name:   "authz.peer",
+			Object: &v1alpha1.Peer{},
+			AddHandler: func(ctx context.Context, object any) error {
+				mgr.AddPeer(object.(*v1alpha1.Peer))
+				return nil
+			},
+			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+				mgr.DeletePeer(name.Name)
+				return nil
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		err = controller.AddToManager(controllerManager, &controller.Spec{
+			Name:   "authz.import",
+			Object: &v1alpha1.Import{},
+			AddHandler: func(ctx context.Context, object any) error {
+				mgr.AddImport(object.(*v1alpha1.Import))
+				return nil
+			},
+			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+				return mgr.DeleteImport(name)
+			},
+		})
+		if err != nil {
+			return err
+		}
 	}
 
-	r.manager.addPod(&pod)
-	return ctrl.Result{}, nil
-}
-
-func newPodReconciler(manager *Manager, clnt client.Client) *podReconciler {
-	return &podReconciler{
-		client:  clnt,
-		manager: manager,
-		logger: logrus.WithField(
-			"component", "controlplane.authz.pod-reconciler"),
-	}
-}
-
-// CreateControllers creates the various k8s controllers used to update the authz manager.
-func CreateControllers(mgr *Manager, controllerManager ctrl.Manager) error {
-	k8sClient := controllerManager.GetClient()
-
-	return ctrl.NewControllerManagedBy(controllerManager).
-		For(&v1.Pod{}).
-		Complete(newPodReconciler(mgr, k8sClient))
+	return controller.AddToManager(controllerManager, &controller.Spec{
+		Name:   "authz.pod",
+		Object: &v1.Pod{},
+		AddHandler: func(ctx context.Context, object any) error {
+			mgr.addPod(object.(*v1.Pod))
+			return nil
+		},
+		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+			mgr.deletePod(name)
+			return nil
+		},
+	})
 }

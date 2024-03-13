@@ -41,6 +41,11 @@ const (
 	DataplaneDirectoryName = "dataplane"
 	// GWCTLDirectoryName is the directory name containing gwctl certificates.
 	GWCTLDirectoryName = "gwctl"
+
+	// GHCR is the path to the GitHub container registry.
+	GHCR = "ghcr.io/clusterlink-net"
+	// DefaultRegistry is the default container registry used.
+	DefaultRegistry = GHCR
 )
 
 // FabricDirectory returns the base path of the fabric.

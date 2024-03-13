@@ -16,6 +16,7 @@ package authz
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -24,6 +25,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
@@ -113,24 +115,14 @@ func (m *Manager) AddPeer(pr *v1alpha1.Peer) {
 	client := peer.NewClient(pr, m.peerTLS.ClientConfig(pr.Name))
 
 	m.peerLock.Lock()
-	oldClient := m.peerClient[pr.Name]
 	m.peerClient[pr.Name] = client
 	m.peerLock.Unlock()
 
-	if oldClient != nil {
-		oldClient.StopMonitor()
-	}
-
-	m.policyDecider.AddPeer(pr.Name)
-
-	client.SetPeerStatusCallback(func(isActive bool) {
-		if isActive {
-			m.policyDecider.AddPeer(pr.Name)
-			return
-		}
-
+	if meta.IsStatusConditionTrue(pr.Status.Conditions, v1alpha1.PeerReachable) {
+		m.policyDecider.AddPeer(pr.Name)
+	} else {
 		m.policyDecider.DeletePeer(pr.Name)
-	})
+	}
 }
 
 // DeletePeer removes the possibility for egress dataplane connections to be routed to a given peer.
@@ -138,13 +130,8 @@ func (m *Manager) DeletePeer(name string) {
 	m.logger.Infof("Deleting peer '%s'.", name)
 
 	m.peerLock.Lock()
-	oldClient := m.peerClient[name]
 	delete(m.peerClient, name)
 	m.peerLock.Unlock()
-
-	if oldClient != nil {
-		oldClient.StopMonitor()
-	}
 
 	m.policyDecider.DeletePeer(name)
 }
@@ -153,21 +140,23 @@ func (m *Manager) DeletePeer(name string) {
 func (m *Manager) AddImport(imp *v1alpha1.Import) {
 	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
 
-	for _, source := range imp.Spec.Sources {
-		// TODO: switch policyDecider from api.Binding to v1alpha1.Import
-		_ = m.policyDecider.AddBinding(
-			&api.Binding{
-				Spec: api.BindingSpec{
-					Import: imp.Name,
-					Peer:   source.Peer,
-				},
-			})
+	// TODO: switch policyDecider from api.Import to v1alpha1.Import
+	peers := make([]string, len(imp.Spec.Sources))
+	for i, source := range imp.Spec.Sources {
+		peers[i] = source.Peer
 	}
+	_ = m.policyDecider.AddImport(&api.Import{
+		Name: imp.Name,
+		Spec: api.ImportSpec{
+			Peers: peers,
+		},
+	})
 }
 
 // DeleteImport removes the listening socket of a previously imported service.
 func (m *Manager) DeleteImport(name types.NamespacedName) error {
 	m.logger.Infof("Deleting import '%v'.", name)
+	// TODO: call policyDecider.DeleteImport
 	return nil
 }
 
@@ -236,6 +225,40 @@ func (m *Manager) addPod(pod *v1.Pod) {
 			m.ipToPod[ip.IP] = podID
 		}
 	}
+}
+
+func (m *Manager) deleteAccessPolicy(_ types.NamespacedName) {
+	// TODO: call policy decider
+}
+
+func (m *Manager) addAccessPolicy(accessPolicy *v1alpha1.AccessPolicy) error {
+	convert := func(list v1alpha1.WorkloadSetOrSelectorList) policytypes.WorkloadSetOrSelectorList {
+		out := make(policytypes.WorkloadSetOrSelectorList, len(list))
+		for i, elem := range list {
+			out[i] = policytypes.WorkloadSetOrSelector{
+				WorkloadSets:     elem.WorkloadSets,
+				WorkloadSelector: elem.WorkloadSelector,
+			}
+		}
+
+		return out
+	}
+
+	policyData, err := json.Marshal(&policytypes.ConnectivityPolicy{
+		Name:       accessPolicy.Name,
+		Privileged: accessPolicy.Spec.Privileged,
+		Action:     policytypes.PolicyAction(accessPolicy.Spec.Action),
+		From:       convert(accessPolicy.Spec.From),
+		To:         convert(accessPolicy.Spec.To),
+	})
+	if err != nil {
+		return err
+	}
+
+	return m.policyDecider.AddAccessPolicy(&api.Policy{
+		Name: accessPolicy.Name,
+		Spec: api.PolicySpec{Blob: policyData},
+	})
 }
 
 // getLabelsFromIP returns the labels associated with Pod with the specified IP address.

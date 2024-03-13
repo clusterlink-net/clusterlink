@@ -30,6 +30,7 @@ import (
 )
 
 // Dataplane implements the server and api client which sends authorization to the control plane.
+// Assumption: The caller implements lock mechanism which operating with clusters and listeners.
 type Dataplane struct {
 	ID                 string
 	peerName           string
@@ -61,16 +62,31 @@ func (d *Dataplane) GetClusterHost(name string) (string, error) {
 		d.clusters[name].LoadAssignment.GetEndpoints()[0].LbEndpoints[0].GetEndpoint().Hostname, ":")[0], nil
 }
 
-// AddCluster adds a cluster to the map.
+// AddCluster adds/updates a cluster to the map.
 func (d *Dataplane) AddCluster(c *cluster.Cluster) {
 	d.clusters[c.Name] = c
+}
+
+// RemoveCluster adds a cluster to the map.
+func (d *Dataplane) RemoveCluster(name string) {
+	delete(d.clusters, name)
+}
+
+// GetClusters returns the clusters map.
+func (d *Dataplane) GetClusters() map[string]*cluster.Cluster {
+	return d.clusters
 }
 
 // AddListener adds a listener to the map.
 func (d *Dataplane) AddListener(ln *listener.Listener) {
 	listenerName := strings.TrimPrefix(ln.Name, api.ImportListenerPrefix)
-	if _, ok := d.listeners[listenerName]; ok {
-		return
+	if le, ok := d.listeners[listenerName]; ok {
+		// Check if there is an update to the listener address/port
+		if ln.Address.GetSocketAddress().GetAddress() == le.Address.GetSocketAddress().GetAddress() &&
+			ln.Address.GetSocketAddress().GetPortValue() == le.Address.GetSocketAddress().GetPortValue() {
+			return
+		}
+		d.listenerEnd[listenerName] <- true
 	}
 	d.listeners[listenerName] = ln
 	go func() {
@@ -78,6 +94,17 @@ func (d *Dataplane) AddListener(ln *listener.Listener) {
 			ln.Address.GetSocketAddress().GetAddress(),
 			ln.Address.GetSocketAddress().GetPortValue())
 	}()
+}
+
+// RemoveListener removes a listener.
+func (d *Dataplane) RemoveListener(name string) {
+	delete(d.listeners, name)
+	d.listenerEnd[name] <- true
+}
+
+// GetListeners returns the listeners map.
+func (d *Dataplane) GetListeners() map[string]*listener.Listener {
+	return d.listeners
 }
 
 // NewDataplane returns a new dataplane HTTP server.

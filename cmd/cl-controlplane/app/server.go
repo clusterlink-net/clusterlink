@@ -18,11 +18,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/bombsimon/logrusr/v4"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
@@ -40,6 +44,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/util/runnable"
 	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
+	"github.com/clusterlink-net/clusterlink/pkg/versioninfo"
 )
 
 const (
@@ -104,6 +109,8 @@ func (o *Options) Run() error {
 		}()
 	}
 
+	logrus.Infof("Starting cl-controlplane (version: %s)", versioninfo.Short())
+
 	namespace := os.Getenv(NamespaceEnvVariable)
 	if namespace == "" {
 		namespace = SystemNamespace
@@ -143,7 +150,26 @@ func (o *Options) Run() error {
 		return fmt.Errorf("unable to add core v1 objects to scheme: %w", err)
 	}
 
-	mgr, err := manager.New(config, manager.Options{Scheme: scheme})
+	// set logger for controller-runtime components
+	ctrl.SetLogger(logrusr.New(logrus.WithField("component", "k8s.controller-runtime")))
+
+	// limit watch for v1alpha1.Peer to the namespace given by 'namespace'
+	managerOptions := manager.Options{}
+	if o.CRDMode {
+		managerOptions = manager.Options{
+			Cache: cache.Options{
+				ByObject: map[client.Object]cache.ByObject{
+					&v1alpha1.Peer{}: {
+						Namespaces: map[string]cache.Config{
+							namespace: {},
+						},
+					},
+				},
+			},
+			Scheme: scheme,
+		}
+	}
+	mgr, err := manager.New(config, managerOptions)
 	if err != nil {
 		return fmt.Errorf(
 			"unable to create k8s controller manager: %w", err)
@@ -158,29 +184,35 @@ func (o *Options) Run() error {
 	httpServer := utilrest.NewServer("controlplane-http", parsedCertData.ServerConfig())
 	grpcServer := grpc.NewServer("controlplane-grpc", parsedCertData.ServerConfig())
 
-	runnableManager := runnable.NewManager()
-	runnableManager.Add(controller.NewManager(mgr))
-	runnableManager.AddServer(httpServerAddress, httpServer)
-	runnableManager.AddServer(grpcServerAddress, grpcServer)
-	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
-
 	authzManager, err := authz.NewManager(parsedCertData)
 	if err != nil {
 		return fmt.Errorf("cannot create authorization manager: %w", err)
 	}
 
-	authz.RegisterHandlers(authzManager, &httpServer.Server)
-	if err := authz.CreateControllers(authzManager, mgr); err != nil {
+	err = authz.CreateControllers(authzManager, mgr, o.CRDMode)
+	if err != nil {
 		return fmt.Errorf("cannot create authz controllers: %w", err)
 	}
 
-	controlManager := control.NewManager(mgr.GetClient(), o.CRDMode)
+	authz.RegisterHandlers(authzManager, &httpServer.Server)
+
+	controlManager := control.NewManager(mgr.GetClient(), parsedCertData, o.CRDMode)
 
 	xdsManager := xds.NewManager()
 	xds.RegisterService(
 		context.Background(), xdsManager, grpcServer.GetGRPCServer())
 
-	if !o.CRDMode {
+	if o.CRDMode {
+		err := xds.CreateControllers(xdsManager, mgr)
+		if err != nil {
+			return fmt.Errorf("cannot create xDS controllers: %w", err)
+		}
+
+		err = control.CreateControllers(controlManager, mgr)
+		if err != nil {
+			return fmt.Errorf("cannot create control controllers: %w", err)
+		}
+	} else {
 		// open store
 		kvStore, err := bolt.Open(StoreFile)
 		if err != nil {
@@ -202,7 +234,18 @@ func (o *Options) Run() error {
 		}
 
 		cprest.RegisterHandlers(restManager, httpServer)
+
+		controlManager.SetStatusCallback(func(pr *v1alpha1.Peer) {
+			authzManager.AddPeer(pr)
+		})
 	}
+
+	runnableManager := runnable.NewManager()
+	runnableManager.Add(controller.NewManager(mgr))
+	runnableManager.Add(controlManager)
+	runnableManager.AddServer(httpServerAddress, httpServer)
+	runnableManager.AddServer(grpcServerAddress, grpcServer)
+	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
 
 	return runnableManager.Run()
 }

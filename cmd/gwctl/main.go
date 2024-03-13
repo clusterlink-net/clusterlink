@@ -60,7 +60,6 @@ func createCmd() *cobra.Command {
 	createCmd.AddCommand(subcommand.PeerCreateCmd())
 	createCmd.AddCommand(subcommand.ExportCreateCmd())
 	createCmd.AddCommand(subcommand.ImportCreateCmd())
-	createCmd.AddCommand(subcommand.BindingCreateCmd())
 	createCmd.AddCommand(subcommand.PolicyCreateCmd())
 	return createCmd
 }
@@ -76,7 +75,6 @@ func deleteCmd() *cobra.Command {
 	deleteCmd.AddCommand(subcommand.PeerDeleteCmd())
 	deleteCmd.AddCommand(subcommand.ExportDeleteCmd())
 	deleteCmd.AddCommand(subcommand.ImportDeleteCmd())
-	deleteCmd.AddCommand(subcommand.BindingDeleteCmd())
 	deleteCmd.AddCommand(subcommand.PolicyDeleteCmd())
 	return deleteCmd
 }
@@ -108,7 +106,6 @@ func getCmd() *cobra.Command {
 	getCmd.AddCommand(subcommand.PeerGetCmd())
 	getCmd.AddCommand(subcommand.ExportGetCmd())
 	getCmd.AddCommand(subcommand.ImportGetCmd())
-	getCmd.AddCommand(subcommand.BindingGetCmd())
 	getCmd.AddCommand(subcommand.PolicyGetCmd())
 	getCmd.AddCommand(subcommand.MetricsGetCmd())
 	getCmd.AddCommand(subcommand.AllGetCmd())

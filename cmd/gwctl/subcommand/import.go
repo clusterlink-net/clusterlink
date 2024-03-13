@@ -27,10 +27,10 @@ import (
 
 // importOptions is the command line options for 'create import' or 'update import'.
 type importOptions struct {
-	myID string
-	name string
-	host string
-	port uint16
+	myID  string
+	name  string
+	port  uint16
+	peers []string
 }
 
 // ImportCreateCmd - create an imported service.
@@ -73,8 +73,8 @@ func ImportUpdateCmd() *cobra.Command {
 func (o *importOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
 	fs.StringVar(&o.name, "name", "", "Imported service name")
-	fs.StringVar(&o.host, "host", "", "Imported service endpoint (IP/DNS), if unspecified, uses the service name")
 	fs.Uint16Var(&o.port, "port", 0, "Imported service port")
+	fs.StringSliceVar(&o.peers, "peer", []string{}, "Remote peer to import the service from")
 }
 
 // run performs the execution of the 'create import' or 'update import' subcommand.
@@ -92,10 +92,8 @@ func (o *importOptions) run(isUpdate bool) error {
 	err = importOperation(&api.Import{
 		Name: o.name,
 		Spec: api.ImportSpec{
-			Service: api.Endpoint{
-				Host: o.host,
-				Port: o.port,
-			},
+			Port:  o.port,
+			Peers: o.peers,
 		},
 	})
 	if err != nil {
@@ -192,7 +190,9 @@ func (o *importGetOptions) run() error {
 		}
 		fmt.Printf("Imported services:\n")
 		for i, s := range *sArr.(*[]api.Import) {
-			fmt.Printf("%d. Imported Name: %s. Endpoint %v\n", i+1, s.Name, s.Spec.Service)
+			fmt.Printf(
+				"%d. Imported Name: %s. Port %v. TargetPort %v. Peers %v.\n",
+				i+1, s.Name, s.Spec.Port, s.Spec.TargetPort, s.Spec.Peers)
 		}
 	} else {
 		imp, err := importClient.Imports.Get(o.name)

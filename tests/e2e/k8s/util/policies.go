@@ -16,6 +16,7 @@ package util
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
 
@@ -28,4 +29,19 @@ var PolicyAllowAll = &policytypes.ConnectivityPolicy{
 	To: policytypes.WorkloadSetOrSelectorList{{
 		WorkloadSelector: &metav1.LabelSelector{},
 	}},
+}
+
+var AccessPolicyAllowAll = &v1alpha1.AccessPolicy{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "allow-all",
+	},
+	Spec: v1alpha1.AccessPolicySpec{
+		Action: v1alpha1.AccessPolicyActionAllow,
+		From: v1alpha1.WorkloadSetOrSelectorList{{
+			WorkloadSelector: &metav1.LabelSelector{},
+		}},
+		To: v1alpha1.WorkloadSetOrSelectorList{{
+			WorkloadSelector: &metav1.LabelSelector{},
+		}},
+	},
 }

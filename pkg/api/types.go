@@ -73,11 +73,6 @@ type ExportSpec struct {
 	// have a different `Name`. The endpoint Host name could be different from Name,
 	// decoupling service names between Peers.
 	Service Endpoint
-	// ExternalService specifies a service located outside of the cluster.
-	// If ExternalService is defined, a new local ExternalName Service will be created,
-	// pointing to the ExternalService. Note: the external name is just a DNS name mapping
-	// to the Service field, and there is no associated port mapping.
-	ExternalService string
 }
 
 // Import defines a service that is being imported to the local Peer from a remote Peer.
@@ -87,34 +82,17 @@ type Import struct {
 	Name string
 	// Spec represents the attributes of the import service.
 	Spec ImportSpec
-	// Status field contains the import service status.
-	Status ImportStatus
 }
 
 // ImportSpec contains all the import service attributes.
 type ImportSpec struct {
-	// Service endpoint for the import, as seen by clients in that site.
-	Service Endpoint
-}
-
-// ImportStatus contains the import service status.
-type ImportStatus struct {
-	// Listener endpoint created for the imported service.
-	Listener Endpoint
-}
-
-// Binding of an imported service to a remotely exposed service from a specific Peer.
-type Binding struct {
-	// Spec represents the attributes of the binding.
-	Spec BindingSpec
-}
-
-// BindingSpec contains all the binding attributes.
-type BindingSpec struct {
-	// Import service name.
-	Import string
-	// Peer providing the imported service.
-	Peer string
+	// Port of the imported service.
+	Port uint16
+	// TargetPort of the imported service.
+	// This is the internal (non user-facing) listening port used by the dataplane pods.
+	TargetPort uint16
+	// Peers to import from.
+	Peers []string
 }
 
 // Policy is an opaque object, to be processed by the Policy Engine.

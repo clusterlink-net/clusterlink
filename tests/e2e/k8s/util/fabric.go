@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 	"github.com/clusterlink-net/clusterlink/pkg/client"
@@ -34,6 +35,8 @@ import (
 
 // PeerConfig is a peer configuration.
 type PeerConfig struct {
+	// CRDMode indicates a k8s CRD-based controlplane.
+	CRDMode bool
 	// DataplaneType is the dataplane type (envoy / go).
 	DataplaneType string
 	// Dataplanes is the number of dataplane instances.
@@ -157,8 +160,10 @@ var deployFunc func(target *peer, cfg *PeerConfig) error
 
 // deployUsingOperator deploys ClusterLink using operator.
 func (f *Fabric) deployUsingOperator(target *peer, cfg *PeerConfig) error {
+	instanceName := "cl-instance" + f.namespace
+
 	// Create ClusterLink instance
-	instance, err := f.generateClusterlinkInstance(target, cfg)
+	instance, err := f.generateClusterlinkInstance(instanceName, target, cfg)
 	if err != nil {
 		return fmt.Errorf("cannot generate ClusterLink instance: %w", err)
 	}
@@ -176,6 +181,41 @@ func (f *Fabric) deployUsingOperator(target *peer, cfg *PeerConfig) error {
 	if err := target.cluster.CreateFromYAML(secretsYAML, f.namespace); err != nil {
 		return fmt.Errorf("cannot create k8s objects: %w", err)
 	}
+
+	// wait for operator to be ready
+	dep := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cl-operator-controller-manager",
+			Namespace: controller.OperatorNamespace,
+		},
+	}
+	waitCon := conditions.New(target.cluster.resources).DeploymentConditionMatch(
+		&dep, appsv1.DeploymentAvailable, v1.ConditionTrue)
+	err = wait.For(waitCon, wait.WithTimeout(time.Second*60))
+	if err != nil {
+		return fmt.Errorf("failed waiting for operator to be ready: %w", err)
+	}
+
+	// wait for instance to be ready
+	err = wait.For(func(ctx context.Context) (bool, error) {
+		var inst v1alpha1.Instance
+		err := target.cluster.Resources().Get(ctx, instanceName, controller.OperatorNamespace, &inst)
+		if err != nil {
+			return false, err
+		}
+
+		if c, ok := inst.Status.Controlplane.Conditions[string(v1alpha1.DeploymentReady)]; ok {
+			if c.Status == metav1.ConditionTrue {
+				return true, nil
+			}
+		}
+
+		return false, nil
+	}, wait.WithTimeout(time.Second*60))
+	if err != nil {
+		return fmt.Errorf("failed waiting for instance to be ready: %w", err)
+	}
+
 	return nil
 }
 
@@ -251,6 +291,7 @@ func (f *Fabric) deployClusterLink(target *peer, cfg *PeerConfig) (*ClusterLink,
 		namespace: f.namespace,
 		client:    c,
 		port:      port,
+		crdMode:   cfg.CRDMode,
 	}
 
 	// wait for default service account to be created
@@ -264,8 +305,10 @@ func (f *Fabric) deployClusterLink(target *peer, cfg *PeerConfig) (*ClusterLink,
 		return nil, fmt.Errorf("error getting default service account: %w", err)
 	}
 
-	if err := clink.WaitForControlplaneAPI(); err != nil {
-		return nil, fmt.Errorf("error waiting for controlplane API server: %w", err)
+	if !cfg.CRDMode {
+		if err := clink.WaitForControlplaneAPI(); err != nil {
+			return nil, fmt.Errorf("error waiting for controlplane API server: %w", err)
+		}
 	}
 	return clink, nil
 }

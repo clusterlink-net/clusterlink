@@ -55,6 +55,7 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 	}
 
 	k8sYAMLBytes, err := platform.K8SConfig(&platform.Config{
+		CRDMode:                 cfg.CRDMode,
 		Peer:                    p.cluster.Name(),
 		FabricCertificate:       f.cert,
 		PeerCertificate:         p.peerCert,
@@ -88,25 +89,27 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 		return "", fmt.Errorf("cannot switch ClusterRoleBinding name: %w", err)
 	}
 
-	k8sYAML, err = removeGWCTLPod(k8sYAML)
-	if err != nil {
-		return "", fmt.Errorf("cannot remove gwctl pod: %w", err)
-	}
-
-	k8sYAML, err = removeGWCTLSecret(k8sYAML)
-	if err != nil {
-		return "", fmt.Errorf("cannot remove gwctl secret: %w", err)
-	}
-
-	k8sYAML, err = removePeerSecret(k8sYAML)
-	if err != nil {
-		return "", fmt.Errorf("cannot remove peer secret: %w", err)
-	}
-
-	if !cfg.ControlplanePersistency {
-		k8sYAML, err = removeControlplanePVC(k8sYAML, f.namespace)
+	if !cfg.CRDMode {
+		k8sYAML, err = removeGWCTLPod(k8sYAML)
 		if err != nil {
-			return "", fmt.Errorf("cannot remove controlplane PVC: %w", err)
+			return "", fmt.Errorf("cannot remove gwctl pod: %w", err)
+		}
+
+		k8sYAML, err = removeGWCTLSecret(k8sYAML)
+		if err != nil {
+			return "", fmt.Errorf("cannot remove gwctl secret: %w", err)
+		}
+
+		k8sYAML, err = removePeerSecret(k8sYAML)
+		if err != nil {
+			return "", fmt.Errorf("cannot remove peer secret: %w", err)
+		}
+
+		if !cfg.ControlplanePersistency {
+			k8sYAML, err = removeControlplanePVC(k8sYAML, f.namespace)
+			if err != nil {
+				return "", fmt.Errorf("cannot remove controlplane PVC: %w", err)
+			}
 		}
 	}
 
@@ -266,12 +269,12 @@ func (f *Fabric) generateClusterlinkSecrets(p *peer) (string, error) {
 }
 
 // generateClusterlinkInstance generates ClusterLink instance yaml.
-func (f *Fabric) generateClusterlinkInstance(p *peer, cfg *PeerConfig) (string, error) {
+func (f *Fabric) generateClusterlinkInstance(name string, p *peer, cfg *PeerConfig) (string, error) {
 	logLevel := "info"
 	if os.Getenv("DEBUG") == "1" {
 		logLevel = "debug"
 	}
-	name := "cl-instance" + f.namespace
+
 	instance, err := platform.K8SClusterLinkInstanceConfig(&platform.Config{
 		Peer:              p.cluster.Name(),
 		Dataplanes:        cfg.Dataplanes,

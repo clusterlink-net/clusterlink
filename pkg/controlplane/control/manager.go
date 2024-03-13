@@ -26,9 +26,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
-	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
-	"github.com/clusterlink-net/clusterlink/pkg/util/net"
+	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 // Manager is responsible for handling control operations,
@@ -36,68 +35,13 @@ import (
 // This includes target port generation for imported services, as well as
 // k8s service creation per imported service.
 type Manager struct {
+	peerManager
+
 	client  client.Client
 	crdMode bool
 	ports   *portManager
 
 	logger *logrus.Entry
-}
-
-// AddLegacyExport defines a new route target for ingress dataplane connections.
-func (m *Manager) AddLegacyExport(name, namespace string, eSpec *api.ExportSpec) error {
-	m.logger.Infof("Adding export '%s'.", name)
-
-	if eSpec.ExternalService != "" && !net.IsIP(eSpec.ExternalService) && !net.IsDNS(eSpec.ExternalService) {
-		return fmt.Errorf("the external service %s is not a hostname or an IP address", eSpec.ExternalService)
-	}
-
-	// create a k8s external service.
-	extName := eSpec.ExternalService
-	if extName != "" {
-		if net.IsIP(extName) {
-			extName += ".nip.io" // Convert IP to DNS address.
-		}
-
-		m.logger.Infof("Creating Kubernetes service %s of type ExternalName linked to %s.", eSpec.Service.Host, extName)
-
-		err := m.client.Create(
-			context.Background(),
-			&v1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      eSpec.Service.Host,
-					Namespace: namespace,
-				},
-				Spec: v1.ServiceSpec{
-					Type:         v1.ServiceTypeExternalName,
-					ExternalName: extName,
-				},
-			})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// DeleteLegacyExport removes the possibility for ingress dataplane connections to access a given service.
-func (m *Manager) DeleteLegacyExport(namespace string, exportSpec *api.ExportSpec) error {
-	// Deleting a k8s external service.
-	if exportSpec.ExternalService != "" {
-		err := m.client.Delete(
-			context.Background(),
-			&v1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      exportSpec.Service.Host,
-					Namespace: namespace,
-				},
-			})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // AddImport adds a listening socket for an imported remote service.
@@ -143,6 +87,7 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 	// then use existing service target port instead of allocating a new port
 	if !create && len(oldService.Spec.Ports) == 1 && imp.Spec.TargetPort == 0 {
 		imp.Spec.TargetPort = uint16(oldService.Spec.Ports[0].TargetPort.IntVal)
+		newService.Spec.Ports[0].TargetPort = intstr.FromInt32(int32(imp.Spec.TargetPort))
 	}
 
 	newPort := imp.Spec.TargetPort == 0
@@ -159,7 +104,7 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 
 		if m.crdMode {
 			if err := m.client.Update(ctx, imp); err != nil {
-				m.ports.Release(port)
+				m.ports.Release(fullName)
 				return err
 			}
 		}
@@ -172,22 +117,23 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 	}
 
 	if err != nil && newPort {
-		m.ports.Release(port)
+		m.ports.Release(fullName)
 	}
 
 	return err
 }
 
 // DeleteImport removes the listening socket of a previously imported service.
-func (m *Manager) DeleteImport(ctx context.Context, imp *v1alpha1.Import) error {
-	m.logger.Infof("Deleting import '%s/%s'.", imp.Namespace, imp.Name)
-	m.ports.Release(imp.Spec.TargetPort)
+func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) error {
+	m.logger.Infof("Deleting import '%s/%s'.", name.Namespace, name.Name)
+
+	m.ports.Release(name.Namespace + "/" + name.Name)
 	return m.client.Delete(
 		ctx,
 		&v1.Service{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      imp.Name,
-				Namespace: imp.Namespace,
+				Name:      name.Name,
+				Namespace: name.Namespace,
 			},
 		})
 }
@@ -219,13 +165,14 @@ func serviceChanged(svc1, svc2 *v1.Service) bool {
 }
 
 // NewManager returns a new control manager.
-func NewManager(cl client.Client, crdMode bool) *Manager {
+func NewManager(cl client.Client, peerTLS *tls.ParsedCertData, crdMode bool) *Manager {
 	logger := logrus.WithField("component", "controlplane.control.manager")
 
 	return &Manager{
-		client:  cl,
-		crdMode: crdMode,
-		ports:   newPortManager(),
-		logger:  logger,
+		peerManager: newPeerManager(cl, peerTLS),
+		client:      cl,
+		crdMode:     crdMode,
+		ports:       newPortManager(),
+		logger:      logger,
 	}
 }

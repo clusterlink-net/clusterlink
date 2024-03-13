@@ -56,7 +56,7 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 		"Type of dataplane, Supported values: \"envoy\" (default), \"go\"")
 	fs.StringVar(&o.LogLevel, "log-level", "info",
 		"The log level. One of fatal, error, warn, info, debug.")
-	fs.StringVar(&o.ContainerRegistry, "container-registry", "ghcr.io/clusterlink-net",
+	fs.StringVar(&o.ContainerRegistry, "container-registry", config.DefaultRegistry,
 		"The container registry to pull the project images. If empty will use local registry.")
 	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }

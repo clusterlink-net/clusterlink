@@ -60,9 +60,22 @@ rules:
 - apiGroups:
   - clusterlink.net
   resources:
+  - accesspolicies
+  - exports
+  - peers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - clusterlink.net
+  resources:
   - imports
   verbs:
+  - get
+  - list
   - update
+  - watch
 - apiGroups:
   - clusterlink.net
   resources:
@@ -86,6 +99,12 @@ rules:
   verbs:
   - get
   - patch
+  - update
+- apiGroups:
+  - clusterlink.net
+  resources:
+  - peers/status
+  verbs:
   - update
 - apiGroups:
   - rbac.authorization.k8s.io

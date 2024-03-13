@@ -11,22 +11,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package versioninfo uses Go's runtime/debug to set executable revision information.
-package versioninfo
+package config
 
-import (
-	"time"
-)
+import "embed"
 
-var (
-	// GitTag will hold the Git tag information.
-	GitTag string
-	// Version will be the version tag if the binary is built or "(devel)".
-	Version = "unknown"
-	// Revision is taken from the vcs.revision tag.
-	Revision = "unknown"
-	// LastCommit is taken from the vcs.time tag.
-	LastCommit time.Time
-	// DirtyBuild is taken from the vcs.modified tag.
-	DirtyBuild = false
-)
+//go:embed *
+var ConfigFiles embed.FS

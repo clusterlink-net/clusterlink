@@ -1,0 +1,55 @@
+name: Release Images and Binaries
+
+on:
+  push:
+    tags:
+      - 'v**'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ./go.mod
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build images
+      run: make docker-build
+    - name: Tag and push ClusterLink images with tag 'latest'
+      run: make push-image
+    - name: Tag and push ClusterLink images latest with tag ${{ github.ref_name }}
+      run: make push-image IMAGE_VERSION=${{ github.ref_name }}
+    - name: Build and compress binaries
+      run: |
+        for pair in "linux:amd64" "darwin:amd64" "darwin:arm64"; do
+          IFS=':' read -r os arch <<< "$pair"
+          GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 make cli-build BIN_DIR="$os"
+          tar -czvf "clusterlink-$os-$arch.tar.gz" --transform "s/$os/clusterlink/" ./"$os"
+        done
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ./clusterlink*
+        tag: ${{ github.ref }}
+        overwrite: true
+        file_glob: true
+    - name: Upload script
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ./hack/install_clusterlink.sh
+        asset_name: clusterlink.sh
+        tag: ${{ github.ref }}
+        overwrite: true

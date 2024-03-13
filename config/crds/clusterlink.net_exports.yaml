@@ -35,6 +35,10 @@ spec:
           spec:
             description: Spec represents the attributes of the exported service.
             properties:
+              host:
+                description: Host of the exported service. If empty, export will point
+                  to a service with the same name and namespace as the export object.
+                type: string
               port:
                 description: Port of the exported service.
                 type: integer
