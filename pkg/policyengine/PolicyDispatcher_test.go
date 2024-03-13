@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
+	crds "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
@@ -119,8 +120,7 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	policy2 := policy
 	policy2.To = []policytypes.WorkloadSetOrSelector{simpleWorkloadSet2}
 	addPolicy(t, &policy2, ph)
-	addRemoteSvc(t, svcName, peer1, ph)
-	addRemoteSvc(t, svcName, peer2, ph)
+	addRemoteSvc(t, svcName, []string{peer1, peer2}, ph)
 
 	// Should choose between peer1 and peer2, but only peer2 is allowed by the single access policy
 	srcAttrs := policytypes.WorkloadAttrs{policyengine.ServiceNameLabel: svcName}
@@ -145,7 +145,7 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 
 	// peer2 is removed as a remote for the requested service,
 	// so now the single allow policy does not allow the remaining peers
-	removeRemoteSvc(svcName, peer2, ph)
+	ph.DeletePeer(peer2)
 	requestAttr = policytypes.ConnectionRequest{SrcWorkloadAttrs: srcAttrs, DstSvcName: svcName, Direction: policytypes.Outgoing}
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Equal(t, policytypes.ActionDeny, connReqResp.Action)
@@ -154,13 +154,11 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 
 func TestLoadBalancer(t *testing.T) {
 	ph := policyengine.NewPolicyHandler()
-	addRemoteSvc(t, svcName, peer1, ph)
-	addRemoteSvc(t, svcName, peer2, ph)
+	addRemoteSvc(t, svcName, []string{peer1, peer2}, ph)
 	addPolicy(t, &policy, ph)
 
 	lbPolicy := policyengine.LBPolicy{
-		ServiceSrc:  svcName,
-		ServiceDst:  svcName,
+		ServiceDst:  "/" + svcName,
 		Scheme:      policyengine.Static,
 		DefaultPeer: peer1,
 	}
@@ -216,13 +214,11 @@ func TestBadLBPolicy(t *testing.T) {
 
 func TestDisableEnablePeers(t *testing.T) {
 	ph := policyengine.NewPolicyHandler()
-	addRemoteSvc(t, svcName, peer1, ph)
-	addRemoteSvc(t, svcName, peer2, ph)
+	addRemoteSvc(t, svcName, []string{peer1, peer2}, ph)
 	addPolicy(t, &policy, ph)
 
 	lbPolicy := policyengine.LBPolicy{
-		ServiceSrc:  svcName,
-		ServiceDst:  svcName,
+		ServiceDst:  "/" + svcName,
 		Scheme:      policyengine.Static,
 		DefaultPeer: peer1,
 	}
@@ -263,15 +259,20 @@ func TestDisableEnablePeers(t *testing.T) {
 }
 
 //nolint:unparam // `svc` always receives `svcName` (allow passing other names in future)
-func addRemoteSvc(t *testing.T, svc, peer string, ph policyengine.PolicyDecider) {
+func addRemoteSvc(t *testing.T, svc string, peers []string, ph policyengine.PolicyDecider) {
 	t.Helper()
-	ph.AddPeer(peer) // just in case it was not already added
-	action := ph.AddBinding(&api.Binding{Spec: api.BindingSpec{Import: svc, Peer: peer}})
-	require.Equal(t, policytypes.ActionAllow, action)
-}
 
-func removeRemoteSvc(svc, peer string, ph policyengine.PolicyDecider) {
-	ph.DeleteBinding(&api.Binding{Spec: api.BindingSpec{Import: svc, Peer: peer}})
+	srcs := []crds.ImportSource{}
+	for _, peer := range peers {
+		ph.AddPeer(peer)
+		srcs = append(srcs, crds.ImportSource{Peer: peer, ExportName: svc})
+	}
+
+	imp := crds.Import{
+		ObjectMeta: metav1.ObjectMeta{Name: svcName},
+		Spec:       crds.ImportSpec{Sources: srcs},
+	}
+	ph.AddImport(&imp)
 }
 
 func addPolicy(t *testing.T, policy *policytypes.ConnectivityPolicy, ph policyengine.PolicyDecider) {
