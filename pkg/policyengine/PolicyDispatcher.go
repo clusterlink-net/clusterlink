@@ -50,11 +50,8 @@ type PolicyDecider interface {
 	AddPeer(name string)
 	DeletePeer(name string)
 
-	AddImport(imp *api.Import) policytypes.PolicyAction
-	DeleteImport(imp *api.Import)
-
 	AddImport(imp *crds.Import)
-	DeleteImport(imp *crds.Import)
+	DeleteImport(name types.NamespacedName)
 
 	AddExport(exp *api.Export) ([]string, error) // Returns a list of peers to which export is allowed
 	DeleteExport(name string)
@@ -181,27 +178,12 @@ func (pH *PolicyHandler) DeletePeer(name string) {
 	plog.Infof("Removed Peer %s", name)
 }
 
-func (pH *PolicyHandler) AddImport(imp *api.Import) policytypes.PolicyAction {
-	for _, pr := range imp.Spec.Peers {
-		pH.loadBalancer.AddToServiceMap(imp.Name, pr)
-	}
-	return policytypes.ActionAllow
-}
-
-func (pH *PolicyHandler) DeleteImport(imp *api.Import) {
-	for _, pr := range imp.Spec.Peers {
-		pH.loadBalancer.RemoveDestService(imp.Name, pr)
-	}
-}
-
 func (pH *PolicyHandler) AddImport(imp *crds.Import) {
 	pH.loadBalancer.AddImport(imp)
 }
 
-func (pH *PolicyHandler) DeleteImport(imp *crds.Import) {
-	for _, src := range imp.Spec.Sources {
-		pH.loadBalancer.RemoveDestService(imp.Name, src.Peer)
-	}
+func (pH *PolicyHandler) DeleteImport(name types.NamespacedName) {
+	pH.loadBalancer.DeleteImport(name)
 }
 
 func (pH *PolicyHandler) AddExport(_ *api.Export) ([]string, error) {

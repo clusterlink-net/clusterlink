@@ -140,23 +140,13 @@ func (m *Manager) DeletePeer(name string) {
 func (m *Manager) AddImport(imp *v1alpha1.Import) {
 	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
 
-	// TODO: switch policyDecider from api.Import to v1alpha1.Import
-	peers := make([]string, len(imp.Spec.Sources))
-	for i, source := range imp.Spec.Sources {
-		peers[i] = source.Peer
-	}
-	_ = m.policyDecider.AddImport(&api.Import{
-		Name: imp.Name,
-		Spec: api.ImportSpec{
-			Peers: peers,
-		},
-	})
+	m.policyDecider.AddImport(imp)
 }
 
 // DeleteImport removes the listening socket of a previously imported service.
 func (m *Manager) DeleteImport(name types.NamespacedName) error {
 	m.logger.Infof("Deleting import '%v'.", name)
-	// TODO: call policyDecider.DeleteImport
+	m.policyDecider.DeleteImport(name)
 	return nil
 }
 
