@@ -86,7 +86,7 @@ func getServiceAttrs(serviceName, peer string) policytypes.WorkloadAttrs {
 func getServiceAttrsForMultiplePeers(serviceName string, dsts []crds.ImportSource) []policytypes.WorkloadAttrs {
 	res := []policytypes.WorkloadAttrs{}
 	for _, dst := range dsts {
-		res = append(res, getServiceAttrs(serviceName, dst.ExportName))
+		res = append(res, getServiceAttrs(serviceName, dst.Peer))
 	}
 	return res
 }
@@ -191,9 +191,7 @@ func (pH *PolicyHandler) DeleteBinding(binding *api.Binding) {
 }
 
 func (pH *PolicyHandler) AddImport(imp *crds.Import) {
-	for _, src := range imp.Spec.Sources {
-		pH.loadBalancer.AddToServiceMap(imp.Name, src.Peer)
-	}
+	pH.loadBalancer.AddImport(imp)
 }
 
 func (pH *PolicyHandler) DeleteImport(imp *crds.Import) {
