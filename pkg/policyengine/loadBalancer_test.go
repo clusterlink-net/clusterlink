@@ -17,7 +17,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
+	crds "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 )
 
@@ -28,267 +31,133 @@ const (
 	peer1 = "peer1"
 	peer2 = "peer2"
 	peer3 = "peer3"
+	ns1   = "ns1"
+	ns2   = "ns2"
 )
+
+var (
+	svc1NS1 = types.NamespacedName{Namespace: ns1, Name: svc1}
+	svc1NS2 = types.NamespacedName{Namespace: ns2, Name: svc1}
+	svc2NS1 = types.NamespacedName{Namespace: ns1, Name: svc2}
+	svc3NS2 = types.NamespacedName{Namespace: ns2, Name: svc3}
+)
+
+func makeSimpleImport(impName, impNs string, peers []string) *crds.Import {
+	srcs := []crds.ImportSource{}
+	for _, peer := range peers {
+		srcs = append(srcs, crds.ImportSource{Peer: peer, ExportName: impName, ExportNamespace: impNs})
+	}
+	return &crds.Import{
+		ObjectMeta: v1.ObjectMeta{Name: impName, Namespace: impNs},
+		Spec:       crds.ImportSpec{Sources: srcs},
+	}
+}
 
 func addImports(lb *policyengine.LoadBalancer) {
 	// svc1 is imported from peer1 and peer2
 	// svc2 is imported only from peer1
 	// svc3 is imported from peer1 and peer2
-	lb.AddToServiceMap(svc1, peer1)
-	lb.AddToServiceMap(svc1, peer2)
-	lb.AddToServiceMap(svc2, peer1)
-	lb.AddToServiceMap(svc3, peer1)
-	lb.AddToServiceMap(svc3, peer2)
+	lb.AddImport(makeSimpleImport(svc1, ns1, []string{peer1, peer2}))
+	lb.AddImport(makeSimpleImport(svc2, ns1, []string{peer1}))
+	lb.AddImport(makeSimpleImport(svc3, ns2, []string{peer1, peer2}))
 }
 
 // We repeat lookups enough times to make sure we get all the peers allowed by the relevant policy.
-func repeatLookups(t *testing.T, lb *policyengine.LoadBalancer, srcSvc, dstSvc string, peers []string) map[string]bool {
+func repeatLookups(t *testing.T, lb *policyengine.LoadBalancer,
+	svc types.NamespacedName, targets []crds.ImportSource, breakEarly bool,
+) map[string]int {
 	t.Helper()
-	res := map[string]bool{}
+	res := map[string]int{}
 	for i := 0; i < 100; i++ {
-		targetPeer, err := lb.LookupWith(srcSvc, dstSvc, peers)
+		target, err := lb.LookupWith(svc, targets)
 		require.Nil(t, err)
-		res[targetPeer] = true
-		if len(res) == len(peers) { // All legal peers appeared in lookup
+
+		entry := target.Peer + "/" + target.ExportNamespace + "/" + target.ExportName
+		res[entry]++
+		if breakEarly && len(res) == len(targets) { // All legal peers appeared in lookup
 			break
 		}
 	}
 	return res
 }
 
-func TestAddAndRemoveImportsAndPeers(t *testing.T) {
+func TestAddAndDeleteImports(t *testing.T) {
 	lb := policyengine.NewLoadBalancer()
 	addImports(lb)
 
-	svc1Peers, err := lb.GetTargetPeers(svc1)
+	svc1Tgts, err := lb.GetTargetPeers(svc1NS1)
 	require.Nil(t, err)
-	require.Equal(t, []string{peer1, peer2}, svc1Peers)
+	require.Len(t, svc1Tgts, 2)
 
-	svc2Peers, err := lb.GetTargetPeers(svc2)
+	svc2Tgts, err := lb.GetTargetPeers(svc2NS1)
 	require.Nil(t, err)
-	require.Equal(t, []string{peer1}, svc2Peers)
+	require.Len(t, svc2Tgts, 1)
 
-	svc3Peers, err := lb.GetTargetPeers(svc3)
+	svc3Tgts, err := lb.GetTargetPeers(svc3NS2)
 	require.Nil(t, err)
-	require.Equal(t, []string{peer1, peer2}, svc3Peers)
+	require.Len(t, svc3Tgts, 2)
 
-	// peer2 no longer exports svc1 - now only peer1 exports svc1
-	lb.RemoveDestService(svc1, peer2)
-
-	svc1Peers, err = lb.GetTargetPeers(svc1)
-	require.Nil(t, err)
-	require.Equal(t, []string{peer1}, svc1Peers)
-
-	// test deleting the same import twice
-	lb.RemoveDestService(svc1, peer2)
-
-	svc1Peers, err = lb.GetTargetPeers(svc1)
-	require.Nil(t, err)
-	require.Equal(t, []string{peer1}, svc1Peers)
-
-	// remove peer1 - no target peers for both svc1 and svc2
-	lb.RemovePeerFromServiceMap(peer1)
-
-	_, err = lb.GetTargetPeers(svc1)
+	lb.DeleteImport(svc2NS1)
+	_, err = lb.GetTargetPeers(svc2NS1)
 	require.NotNil(t, err)
-
-	_, err = lb.GetTargetPeers(svc2)
+	_, err = lb.LookupWith(svc2NS1, svc2Tgts)
 	require.NotNil(t, err)
-
-	svc3Peers, err = lb.GetTargetPeers(svc3)
-	require.Nil(t, err)
-	require.Equal(t, []string{peer2}, svc3Peers)
-
-	// remove all peers for svc3
-	lb.RemoveDestService(svc3, "")
-
-	_, err = lb.GetTargetPeers(svc3)
-	require.NotNil(t, err)
-}
-
-func TestAddAndRemovePolicy(t *testing.T) {
-	lb := policyengine.NewLoadBalancer()
-	addImports(lb)
-	svc1Peers, err := lb.GetTargetPeers(svc1)
-	require.Nil(t, err)
-	require.Equal(t, []string{peer1, peer2}, svc1Peers)
-
-	lbPolicy := policyengine.LBPolicy{ServiceSrc: svc2, ServiceDst: svc1, Scheme: policyengine.Static, DefaultPeer: peer1}
-	err = lb.SetPolicy(&lbPolicy) // static policy: svc2 asking to connect to svc1 should always choose peer1
-	require.Nil(t, err)
-
-	peers := repeatLookups(t, lb, svc2, svc1, svc1Peers)
-	require.Len(t, peers, 1)
-	require.Equal(t, true, peers[peer1])
-
-	peers = repeatLookups(t, lb, svc3, svc1, svc1Peers) // using a different source service - should default to random
-	require.Len(t, peers, 2)
-	require.Equal(t, true, peers[peer1])
-	require.Equal(t, true, peers[peer2])
-
-	peers = repeatLookups(t, lb, svc2, svc3, svc1Peers) // using a different target service - should default to random
-	require.Len(t, peers, 2)
-	require.Equal(t, true, peers[peer1])
-	require.Equal(t, true, peers[peer2])
-
-	peers = repeatLookups(t, lb, svc2, svc1, []string{peer2}) // default peer is not available - fall back to random
-	require.Len(t, peers, 1)
-	require.Equal(t, true, peers[peer2])
-
-	lbPolicy = policyengine.LBPolicy{ServiceSrc: svc2, ServiceDst: svc1, Scheme: policyengine.ECMP, DefaultPeer: peer1}
-	err = lb.SetPolicy(&lbPolicy) // override above policy with a round-robin policy
-	require.Nil(t, err)
-
-	peers = repeatLookups(t, lb, svc2, svc1, svc1Peers)
-	require.Len(t, peers, 2)
-	require.Equal(t, true, peers[peer1])
-	require.Equal(t, true, peers[peer2])
-
-	err = lb.DeletePolicy(&lbPolicy) // delete policy - fall back to random policy
-	require.Nil(t, err)
-
-	peers = repeatLookups(t, lb, svc2, svc1, svc1Peers)
-	require.Len(t, peers, 2)
-	require.Equal(t, true, peers[peer1])
-	require.Equal(t, true, peers[peer2])
 }
 
 func TestLookupWithNoPeers(t *testing.T) {
 	lb := policyengine.NewLoadBalancer()
 	addImports(lb)
 
-	_, err := lb.LookupWith(svc1, svc2, []string{})
+	_, err := lb.LookupWith(svc1NS1, nil)
 	require.NotNil(t, err)
 }
 
-func TestSetBadStaticPolicy(t *testing.T) {
+func TestRandomLookUp(t *testing.T) {
 	lb := policyengine.NewLoadBalancer()
 	addImports(lb)
 
-	badPolicy := policyengine.LBPolicy{ServiceSrc: svc2, ServiceDst: svc1, Scheme: policyengine.Static, DefaultPeer: peer3}
-	err := lb.SetPolicy(&badPolicy)
-	require.NotNil(t, err)
+	svc1Tgts, err := lb.GetTargetPeers(svc1NS1)
+	require.Nil(t, err)
+
+	tgt := repeatLookups(t, lb, svc1NS1, svc1Tgts, true)
+	require.Len(t, tgt, 2)
 }
 
-func TestDeletingNonExistingPolicy(t *testing.T) {
+func TestFixedPeer(t *testing.T) {
 	lb := policyengine.NewLoadBalancer()
 	addImports(lb)
 
-	noSuchPolicy := policyengine.LBPolicy{
-		ServiceSrc:  svc2,
-		ServiceDst:  svc1,
-		Scheme:      policyengine.Static,
-		DefaultPeer: peer3,
+	lbPolicy := policyengine.LBPolicy{
+		ServiceDst: svc1NS1.String(),
+		Scheme:     policyengine.Static,
 	}
-	err := lb.DeletePolicy(&noSuchPolicy)
-	require.NotNil(t, err)
+	err := lb.SetPolicy(&lbPolicy)
+	require.Nil(t, err)
+
+	svc1Tgts, err := lb.GetTargetPeers(svc1NS1)
+	require.Nil(t, err)
+
+	tgt := repeatLookups(t, lb, svc1NS1, svc1Tgts, true)
+	require.Len(t, tgt, 1)
 }
 
-func TestPoliciesWithWildcards(t *testing.T) {
+func TestRoundRobin(t *testing.T) {
 	lb := policyengine.NewLoadBalancer()
 	addImports(lb)
-	svc1Peers, err := lb.GetTargetPeers(svc1)
-	require.Nil(t, err)
-	svc2Peers, err := lb.GetTargetPeers(svc2)
-	require.Nil(t, err)
-	svc3Peers, err := lb.GetTargetPeers(svc3)
-	require.Nil(t, err)
 
-	policy := policyengine.LBPolicy{
-		ServiceSrc: policyengine.Wildcard,
-		ServiceDst: svc1, Scheme: policyengine.Static,
-		DefaultPeer: peer1,
+	lbPolicy := policyengine.LBPolicy{
+		ServiceDst: svc1NS1.String(),
+		Scheme:     policyengine.ECMP,
 	}
-	err = lb.SetPolicy(&policy)
+	err := lb.SetPolicy(&lbPolicy)
 	require.Nil(t, err)
 
-	peers := repeatLookups(t, lb, svc2, svc1, svc1Peers)
-	require.Len(t, peers, 1)
-	require.Equal(t, true, peers[peer1])
-
-	peers = repeatLookups(t, lb, svc3, svc1, svc1Peers)
-	require.Len(t, peers, 1)
-	require.Equal(t, true, peers[peer1])
-
-	peers = repeatLookups(t, lb, policyengine.Wildcard, svc1, svc1Peers)
-	require.Len(t, peers, 1)
-	require.Equal(t, true, peers[peer1])
-
-	peers = repeatLookups(t, lb, svc2, policyengine.Wildcard, svc1Peers)
-	require.Len(t, peers, 2)
-	require.Equal(t, true, peers[peer1])
-	require.Equal(t, true, peers[peer2])
-
-	err = lb.DeletePolicy(&policy)
+	svc1Tgts, err := lb.GetTargetPeers(svc1NS1)
 	require.Nil(t, err)
 
-	policy = policyengine.LBPolicy{
-		ServiceSrc:  svc1,
-		ServiceDst:  policyengine.Wildcard,
-		Scheme:      policyengine.ECMP,
-		DefaultPeer: peer1,
+	tgts := repeatLookups(t, lb, svc1NS1, svc1Tgts, false)
+	require.Len(t, tgts, 2)
+	for _, occurrences := range tgts {
+		require.Equal(t, 50, occurrences)
 	}
-	err = lb.SetPolicy(&policy)
-	require.Nil(t, err)
-
-	peers = repeatLookups(t, lb, svc1, svc2, svc2Peers)
-	require.Len(t, peers, 1)
-	require.Equal(t, true, peers[peer1])
-
-	peers = repeatLookups(t, lb, svc1, svc3, svc3Peers)
-	require.Len(t, peers, 2)
-	require.Equal(t, true, peers[peer1])
-	require.Equal(t, true, peers[peer2])
-
-	peers = repeatLookups(t, lb, svc1, policyengine.Wildcard, svc1Peers)
-	require.Len(t, peers, 2)
-	require.Equal(t, true, peers[peer1])
-	require.Equal(t, true, peers[peer2])
-
-	peers = repeatLookups(t, lb, policyengine.Wildcard, svc1, svc1Peers)
-	require.Len(t, peers, 2)
-	require.Equal(t, true, peers[peer1])
-	require.Equal(t, true, peers[peer2])
-}
-
-func TestLookupBeforeImport(t *testing.T) {
-	lb := policyengine.NewLoadBalancer()
-	targetPeer, err := lb.LookupWith(svc1, svc2, []string{peer1, peer2})
-	require.Nil(t, err)
-	require.NotEmpty(t, targetPeer)
-
-	targetPeer, err = lb.LookupWith(svc1, policyengine.Wildcard, []string{peer1, peer2})
-	require.Nil(t, err)
-	require.NotEmpty(t, targetPeer)
-
-	targetPeer, err = lb.LookupWith(policyengine.Wildcard, svc1, []string{peer1, peer2})
-	require.Nil(t, err)
-	require.NotEmpty(t, targetPeer)
-}
-
-func TestAddPolicyBeforeImport(t *testing.T) {
-	lb := policyengine.NewLoadBalancer()
-
-	policy := policyengine.LBPolicy{ServiceSrc: policyengine.Wildcard, ServiceDst: policyengine.Wildcard, Scheme: policyengine.ECMP}
-	err := lb.SetPolicy(&policy)
-	require.Nil(t, err)
-
-	policy = policyengine.LBPolicy{ServiceSrc: svc1, ServiceDst: policyengine.Wildcard, Scheme: policyengine.ECMP}
-	err = lb.SetPolicy(&policy)
-	require.Nil(t, err)
-
-	policy = policyengine.LBPolicy{ServiceSrc: policyengine.Wildcard, ServiceDst: svc2, Scheme: policyengine.ECMP}
-	err = lb.SetPolicy(&policy)
-	require.Nil(t, err)
-
-	policy = policyengine.LBPolicy{ServiceSrc: svc1, ServiceDst: svc2, Scheme: policyengine.ECMP}
-	err = lb.SetPolicy(&policy)
-	require.Nil(t, err)
-}
-
-func TestDeletingDefaultPolicy(t *testing.T) {
-	lb := policyengine.NewLoadBalancer()
-	policy := policyengine.LBPolicy{ServiceSrc: policyengine.Wildcard, ServiceDst: policyengine.Wildcard, Scheme: policyengine.ECMP}
-	err := lb.DeletePolicy(&policy)
-	require.NotNil(t, err)
 }

@@ -19,8 +19,10 @@ import (
 	"encoding/json"
 
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
+	crds "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
@@ -51,6 +53,9 @@ type PolicyDecider interface {
 	AddBinding(imp *api.Binding) policytypes.PolicyAction
 	DeleteBinding(imp *api.Binding)
 
+	AddImport(imp *crds.Import)
+	DeleteImport(imp *crds.Import)
+
 	AddExport(exp *api.Export) ([]string, error) // Returns a list of peers to which export is allowed
 	DeleteExport(name string)
 }
@@ -78,19 +83,19 @@ func getServiceAttrs(serviceName, peer string) policytypes.WorkloadAttrs {
 	return ret
 }
 
-func getServiceAttrsForMultiplePeers(serviceName string, peers []string) []policytypes.WorkloadAttrs {
+func getServiceAttrsForMultiplePeers(serviceName string, dsts []crds.ImportSource) []policytypes.WorkloadAttrs {
 	res := []policytypes.WorkloadAttrs{}
-	for _, peer := range peers {
-		res = append(res, getServiceAttrs(serviceName, peer))
+	for _, dst := range dsts {
+		res = append(res, getServiceAttrs(serviceName, dst.ExportName))
 	}
 	return res
 }
 
-func (pH *PolicyHandler) filterOutDisabledPeers(peers []string) []string {
-	res := []string{}
-	for _, peer := range peers {
-		if pH.enabledPeers[peer] {
-			res = append(res, peer)
+func (pH *PolicyHandler) filterOutDisabledPeers(dsts []crds.ImportSource) []crds.ImportSource {
+	res := []crds.ImportSource{}
+	for _, dst := range dsts {
+		if pH.enabledPeers[dst.Peer] {
+			res = append(res, dst)
 		}
 	}
 	return res
@@ -110,43 +115,42 @@ func (pH *PolicyHandler) decideIncomingConnection(req *policytypes.ConnectionReq
 }
 
 func (pH *PolicyHandler) decideOutgoingConnection(req *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error) {
-	// Get a list of peers for the service
-	peerList, err := pH.loadBalancer.GetTargetPeers(req.DstSvcName)
-	if err != nil || len(peerList) == 0 {
+	// Get a list of possible targets for the service
+	dstSvcNsName := types.NamespacedName{Namespace: req.DstSvcNamespace, Name: req.DstSvcName}
+	targetList, err := pH.loadBalancer.GetTargetPeers(dstSvcNsName)
+	if err != nil || len(targetList) == 0 {
 		plog.Errorf("error getting target peers for service %s: %v", req.DstSvcName, err)
 		// this can be caused by a user typo - so only log this error
 		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, nil
 	}
 
-	peerList = pH.filterOutDisabledPeers(peerList)
+	targetList = pH.filterOutDisabledPeers(targetList)
 
-	dsts := getServiceAttrsForMultiplePeers(req.DstSvcName, peerList)
+	dsts := getServiceAttrsForMultiplePeers(req.DstSvcName, targetList)
 	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, dsts)
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
 		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, err
 	}
 
-	allowedPeers := []string{}
-	for _, decision := range decisions {
-		dstPeer := decision.Destination[GatewayNameLabel]
+	allowedTargets := []crds.ImportSource{}
+	for idx, decision := range decisions {
 		if decision.Decision == policytypes.DecisionAllow {
-			allowedPeers = append(allowedPeers, dstPeer)
+			allowedTargets = append(allowedTargets, targetList[idx])
 		}
 	}
 
-	if len(allowedPeers) == 0 {
+	if len(allowedTargets) == 0 {
 		plog.Infof("access policies deny connections to service %s in all peers", req.DstSvcName)
 		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, nil
 	}
 
 	// Perform load-balancing using the filtered peer list
-	srcSvcName := req.SrcWorkloadAttrs[ServiceNameLabel]
-	targetPeer, err := pH.loadBalancer.LookupWith(srcSvcName, req.DstSvcName, allowedPeers)
+	tgt, err := pH.loadBalancer.LookupWith(dstSvcNsName, allowedTargets)
 	if err != nil {
 		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, err
 	}
-	return policytypes.ConnectionResponse{Action: policytypes.ActionAllow, DstPeer: targetPeer}, nil
+	return policytypes.ConnectionResponse{Action: policytypes.ActionAllow, DstPeer: tgt.Peer, DstNamespace: tgt.ExportNamespace}, nil
 }
 
 func (pH *PolicyHandler) AuthorizeAndRouteConnection(req *policytypes.ConnectionRequest) (
@@ -184,6 +188,18 @@ func (pH *PolicyHandler) AddBinding(binding *api.Binding) policytypes.PolicyActi
 
 func (pH *PolicyHandler) DeleteBinding(binding *api.Binding) {
 	pH.loadBalancer.RemoveDestService(binding.Spec.Import, binding.Spec.Peer)
+}
+
+func (pH *PolicyHandler) AddImport(imp *crds.Import) {
+	for _, src := range imp.Spec.Sources {
+		pH.loadBalancer.AddToServiceMap(imp.Name, src.Peer)
+	}
+}
+
+func (pH *PolicyHandler) DeleteImport(imp *crds.Import) {
+	for _, src := range imp.Spec.Sources {
+		pH.loadBalancer.RemoveDestService(imp.Name, src.Peer)
+	}
 }
 
 func (pH *PolicyHandler) AddExport(_ *api.Export) ([]string, error) {

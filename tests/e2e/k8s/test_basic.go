@@ -328,7 +328,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 
 		// test LB policy API
 		staticPolicy := &policyengine.LBPolicy{
-			ServiceSrc:  policyengine.Wildcard,
+			ServiceSrc:  "",
 			ServiceDst:  imp.Name,
 			Scheme:      policyengine.Static,
 			DefaultPeer: cl[1].Name(),
