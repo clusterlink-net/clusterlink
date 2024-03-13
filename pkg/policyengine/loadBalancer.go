@@ -59,7 +59,7 @@ func NewLoadBalancer() *LoadBalancer {
 func (lb *LoadBalancer) AddImport(imp *crds.Import) {
 	fullName := types.NamespacedName{Namespace: imp.Namespace, Name: imp.Name}.String()
 	lb.services[fullName] = &serviceState{
-		scheme:           Random,
+		scheme:           LBScheme(imp.Spec.LBScheme),
 		impSources:       imp.Spec.Sources,
 		totalConnections: 0,
 	}

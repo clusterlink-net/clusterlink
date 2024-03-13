@@ -48,7 +48,9 @@ type ImportSpec struct {
 	TargetPort uint16 `json:"targetPort,omitempty"`
 	// Sources to import from.
 	Sources []ImportSource `json:"sources"`
-	// TODO: add LoadBalancingSpec.
+	// LBScheme is the load-balancing scheme to use (e.g., Random, Static, ECMP)
+	LBScheme string
+	// TODO: Make LBScheme a proper type (when backwards compatibility is no longer needed)
 }
 
 // ImportStatus represents the status of an imported service.
