@@ -296,10 +296,8 @@ func (s *TestSuite) TestControlplaneCRUD() {
 
 		// test LB policy API
 		staticPolicy := &policyengine.LBPolicy{
-			ServiceSrc:  "",
-			ServiceDst:  imp.Name,
-			Scheme:      policyengine.Static,
-			DefaultPeer: cl[1].Name(),
+			ServiceDst: s.fabric.Namespace() + "/" + imp.Name,
+			Scheme:     policyengine.Static,
 		}
 
 		data, err = json.Marshal(staticPolicy)
@@ -419,23 +417,16 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Nil(s.T(), err)
 		require.Equal(s.T(), str, cl[1].Name())
 
-		// update LB policy
-		staticPolicy.DefaultPeer = cl[2].Name()
-		data, err = json.Marshal(staticPolicy)
-		require.Nil(s.T(), err)
-		oldPolicyBlob = lbPolicy.Spec.Blob
-		lbPolicy.Spec.Blob = data
-		require.Nil(s.T(), client0.LBPolicies.Update(&lbPolicy))
-		// get LB policy after update
-		objects, err = client0.LBPolicies.Get(lbPolicy.Name)
-		require.Nil(s.T(), err)
-		require.Equal(s.T(), objects.(*api.Policy).Spec, lbPolicy.Spec)
+		// make cl[2] the first peer, so static LB policy will choose it
+		imp.Spec.Peers = []string{cl[2].Name(), cl[1].Name()}
+		require.Nil(s.T(), client0.Imports.Update(&imp))
+
 		// verify no access after update
 		_, err = accessService(false, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 		// update LB policy back
-		lbPolicy.Spec.Blob = oldPolicyBlob
-		require.Nil(s.T(), client0.LBPolicies.Update(&lbPolicy))
+		imp.Spec.Peers = []string{cl[1].Name(), cl[2].Name()}
+		require.Nil(s.T(), client0.Imports.Update(&imp))
 		// verify access after update back
 		str, err = accessService(false, nil)
 		require.Nil(s.T(), err)
@@ -451,6 +442,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.ErrorIs(s.T(), err, &services.ServiceNotFoundError{})
 		// re-create import
 		require.Nil(s.T(), client0.Imports.Create(&imp))
+		// set LB policy again, as it is now attached to Import
+		require.Nil(s.T(), client0.LBPolicies.Delete(lbPolicy.Name))
+		require.Nil(s.T(), client0.LBPolicies.Create(&lbPolicy))
 		// re-get import from server
 		objects, err = client0.Imports.Get(imp.Name)
 		require.Nil(s.T(), err)
