@@ -118,8 +118,8 @@ type InstanceSpec struct {
 	// ContainerRegistry is the container registry to pull the ClusterLink project images.
 	ContainerRegistry string `json:"containerRegistry,omitempty"`
 	// +kubebuilder:default="latest"
-	// ImageTag represents the version of the ClusterLink project images.
-	ImageTag string `json:"imageTag,omitempty"`
+	// Tag represents the tag of the ClusterLink project images.
+	Tag string `json:"tag,omitempty"`
 	// +kubebuilder:default="clusterlink-system"
 	// Namespace represents the namespace where the ClusterLink project components are deployed.
 	Namespace string `json:"namespace,omitempty"`

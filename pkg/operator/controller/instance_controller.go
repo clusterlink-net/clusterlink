@@ -158,7 +158,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		", Namespace: ", instance.Spec.Namespace,
 		", LogLevel: ", instance.Spec.LogLevel,
 		", ContainerRegistry: ", instance.Spec.ContainerRegistry,
-		", ImageTag: ", instance.Spec.ImageTag,
+		", Tag: ", instance.Spec.Tag,
 	)
 
 	// Set Finalizer if needed
@@ -253,7 +253,7 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 		Containers: []corev1.Container{
 			{
 				Name:            ControlPlaneName,
-				Image:           instance.Spec.ContainerRegistry + ControlPlaneName + ":" + instance.Spec.ImageTag,
+				Image:           instance.Spec.ContainerRegistry + ControlPlaneName + ":" + instance.Spec.Tag,
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Args:            []string{"--log-level", instance.Spec.LogLevel},
 				Ports: []corev1.ContainerPort{
@@ -331,7 +331,7 @@ func (r *InstanceReconciler) applyDataplane(ctx context.Context, instance *clust
 		Containers: []corev1.Container{
 			{
 				Name:  "dataplane",
-				Image: instance.Spec.ContainerRegistry + DataplaneImage + ":" + instance.Spec.ImageTag,
+				Image: instance.Spec.ContainerRegistry + DataplaneImage + ":" + instance.Spec.Tag,
 				Args: []string{
 					"--log-level", instance.Spec.LogLevel,
 					"--controlplane-host", ControlPlaneName,
