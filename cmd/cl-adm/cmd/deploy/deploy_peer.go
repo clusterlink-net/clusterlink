@@ -50,6 +50,8 @@ type PeerOptions struct {
 	IngressPort uint16
 	// ContainerRegistry is the container registry to pull the project images.
 	ContainerRegistry string
+	// Tag represents the tag of the project images.
+	Tag string
 }
 
 // NewCmdDeployPeer returns a cobra.Command to run the 'create peer' subcommand.
@@ -86,14 +88,15 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 		"Namespace where the ClusterLink components are deployed.")
 	fs.StringVar(&o.ContainerRegistry, "container-registry", config.DefaultRegistry,
 		"The container registry to pull the project images.")
+	fs.StringVar(&o.Tag, "tag", "latest", "The tag of the project images.")
 	fs.BoolVar(&o.StartInstance, "autostart", false,
-		"If false, it will deploy only the ClusteLink operator and ClusterLink K8s secrets."+
+		"If false, it will deploy only the ClusteLink operator and ClusterLink K8s secrets.\n"+
 			"If true, it will also deploy the ClusterLink instance CRD, which will create the ClusterLink components.")
 	fs.StringVar(&o.Ingress, "ingress", string(apis.IngressTypeLoadBalancer), "Represents the type of service used"+
-		"to expose the ClusterLink deployment (LoadBalancer/NodePort/none). This option is only valid if --autostart is set.")
+		"to expose the ClusterLink deployment (LoadBalancer/NodePort/none).\nThis option is only valid if --autostart is set.")
 	fs.Uint16Var(&o.IngressPort, "ingress-port", apis.DefaultExternalPort,
 		"Represents the ingress port. By default it is set to 443 for LoadBalancer"+
-			" and a random port in range (30000 to 32767) for NodePort. This option is only valid if --autostart is set.")
+			" and a random port in range (30000 to 32767) for NodePort.\nThis option is only valid if --autostart is set.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -121,7 +124,7 @@ func (o *PeerOptions) Run() error {
 
 	// Create operator
 	ghImage := path.Join(config.DefaultRegistry, "cl-operator:latest")
-	newImage := path.Join(o.ContainerRegistry, "cl-operator:latest")
+	newImage := path.Join(o.ContainerRegistry, "cl-operator:"+o.Tag)
 	managerFile, err := configFiles.ConfigFiles.ReadFile("operator/manager/manager.yaml")
 	if err != nil {
 		return err
@@ -167,10 +170,12 @@ func (o *PeerOptions) Run() error {
 			ContainerRegistry: o.ContainerRegistry,
 			Namespace:         o.Namespace,
 			IngressType:       o.Ingress,
+			Tag:               o.Tag,
 		}
 		if o.IngressPort != apis.DefaultExternalPort {
 			cfg.IngressPort = o.IngressPort
 		}
+
 		instance, err := platform.K8SClusterLinkInstanceConfig(cfg, "cl-instance")
 		if err != nil {
 			return err

@@ -42,6 +42,8 @@ type PeerOptions struct {
 	LogLevel string
 	// ContainerRegistry is the container registry to pull the project images.
 	ContainerRegistry string
+	// Tag represents the tag of the project images.
+	Tag string
 	// CRDMode indicates whether to run a k8s CRD-based controlplane.
 	// This flag will be removed once the CRD-based controlplane feature is complete and stable.
 	CRDMode bool
@@ -58,6 +60,7 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 		"The log level. One of fatal, error, warn, info, debug.")
 	fs.StringVar(&o.ContainerRegistry, "container-registry", config.DefaultRegistry,
 		"The container registry to pull the project images. If empty will use local registry.")
+	fs.StringVar(&o.Tag, "tag", "latest", "The tag of the project images.")
 	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }
 
@@ -206,6 +209,7 @@ func (o *PeerOptions) Run() error {
 		ContainerRegistry:       o.ContainerRegistry,
 		CRDMode:                 o.CRDMode,
 		Namespace:               o.Namespace,
+		Tag:                     o.Tag,
 	}
 	k8sConfig, err := platform.K8SConfig(platformCfg)
 	if err != nil {

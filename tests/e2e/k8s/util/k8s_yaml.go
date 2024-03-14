@@ -67,6 +67,7 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 		LogLevel:                logLevel,
 		ContainerRegistry:       "",
 		Namespace:               f.namespace,
+		Tag:                     "latest",
 	})
 	if err != nil {
 		return "", err
@@ -281,6 +282,7 @@ func (f *Fabric) generateClusterlinkInstance(name string, p *peer, cfg *PeerConf
 		DataplaneType:     cfg.DataplaneType,
 		LogLevel:          logLevel,
 		ContainerRegistry: "docker.io/library", // Tell kind to use local image.
+		Tag:               "latest",
 		Namespace:         f.namespace,
 		IngressType:       "NodePort",
 	}, name)
