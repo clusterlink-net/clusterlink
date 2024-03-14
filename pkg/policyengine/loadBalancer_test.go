@@ -136,8 +136,32 @@ func TestFixedPeer(t *testing.T) {
 	svc1Tgts, err := lb.GetTargetPeers(svc1NS1)
 	require.Nil(t, err)
 
-	tgt := repeatLookups(t, lb, svc1NS1, svc1Tgts, true)
-	require.Len(t, tgt, 1)
+	tgts := repeatLookups(t, lb, svc1NS1, svc1Tgts, false)
+	require.Len(t, tgts, 1)
+	var tgt string
+	for tgt = range tgts {
+		break
+	}
+	require.Equal(t, "peer1/ns1/svc1", tgt) // should always select first src, which is currently peer1
+
+	lb.AddImport(makeSimpleImport(svc1, ns1, []string{peer2, peer1})) // now peer2 is the first peer
+	err = lb.SetPolicy(&lbPolicy)
+	require.Nil(t, err)
+
+	tgts = repeatLookups(t, lb, svc1NS1, svc1Tgts, false)
+	require.Len(t, tgts, 1)
+	for tgt = range tgts {
+		break
+	}
+	require.Equal(t, "peer2/ns1/svc1", tgt) // peer2 is now the first one
+
+	svc1Tgts = []crds.ImportSource{svc1Tgts[0]} // limit targets to just peer1
+	tgts = repeatLookups(t, lb, svc1NS1, svc1Tgts, false)
+	require.Len(t, tgts, 1)
+	for tgt = range tgts {
+		break
+	}
+	require.Equal(t, "peer1/ns1/svc1", tgt) // peer1 is the fallback
 }
 
 func TestRoundRobin(t *testing.T) {

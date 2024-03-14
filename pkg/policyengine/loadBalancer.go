@@ -57,10 +57,18 @@ func NewLoadBalancer() *LoadBalancer {
 
 func (lb *LoadBalancer) AddImport(imp *crds.Import) {
 	fullName := types.NamespacedName{Namespace: imp.Namespace, Name: imp.Name}.String()
-	lb.services[fullName] = &serviceState{
-		scheme:           LBScheme(imp.Spec.LBScheme),
-		impSources:       imp.Spec.Sources,
-		totalConnections: 0,
+	state, exists := lb.services[fullName]
+	if !exists {
+		lb.services[fullName] = &serviceState{
+			scheme:           LBScheme(imp.Spec.LBScheme),
+			impSources:       imp.Spec.Sources,
+			totalConnections: 0,
+		}
+	} else {
+		state.impSources = imp.Spec.Sources
+		if imp.Spec.LBScheme != "" {
+			state.scheme = LBScheme(imp.Spec.LBScheme)
+		}
 	}
 }
 
@@ -128,16 +136,37 @@ func (lb *LoadBalancer) RemoveDestService(serviceDst, peer string) {
 	state.impSources = newSrcs
 }
 
-func (lb *LoadBalancer) LookupRandom(svcFullName string, targets []crds.ImportSource) (*crds.ImportSource, error) {
+func (lb *LoadBalancer) LookupRandom(svcFullName string, targets []crds.ImportSource) *crds.ImportSource {
 	index := rand.Intn(len(targets)) //nolint:gosec // G404: use of weak random is fine for load balancing
 	plog.Infof("LoadBalancer selects index(%d) - target peer %v for service %s", index, targets[index], svcFullName)
-	return &targets[index], nil
+	return &targets[index]
 }
 
-func (lb *LoadBalancer) LookupECMP(svcFullName string, targets []crds.ImportSource) (*crds.ImportSource, error) {
+func (lb *LoadBalancer) LookupECMP(svcFullName string, targets []crds.ImportSource) *crds.ImportSource {
 	index := lb.services[svcFullName].totalConnections % len(targets)
 	plog.Infof("LoadBalancer selects index(%d) - target service %v", index, targets[index])
-	return &targets[index], nil
+	return &targets[index]
+}
+
+func (lb *LoadBalancer) LookupStatic(svcFullName string, targets []crds.ImportSource) *crds.ImportSource {
+	srcs := lb.services[svcFullName].impSources
+	if len(srcs) == 0 {
+		plog.Errorf("No sources for service %s. Falling back to other peers due to unavailability of default peer", svcFullName)
+		return lb.LookupRandom(svcFullName, targets)
+	}
+
+	defaultSrc := srcs[0]
+	for i := range targets {
+		tgt := &targets[i]
+		if tgt.ExportNamespace == defaultSrc.ExportNamespace && tgt.ExportName == defaultSrc.ExportName &&
+			tgt.Peer == defaultSrc.Peer {
+			return tgt
+		}
+	}
+
+	plog.Errorf("Default source for service %s does not exist. "+
+		"Falling back to other peers due to unavailability of default peer", svcFullName)
+	return lb.LookupRandom(svcFullName, targets)
 }
 
 func (lb *LoadBalancer) LookupWith(svc types.NamespacedName, targets []crds.ImportSource) (*crds.ImportSource, error) {
@@ -155,13 +184,13 @@ func (lb *LoadBalancer) LookupWith(svc types.NamespacedName, targets []crds.Impo
 
 	switch svcState.scheme {
 	case Random:
-		return lb.LookupRandom(svcFullName, targets)
+		return lb.LookupRandom(svcFullName, targets), nil
 	case ECMP:
-		return lb.LookupECMP(svcFullName, targets)
+		return lb.LookupECMP(svcFullName, targets), nil
 	case Static:
-		return &targets[0], nil
+		return lb.LookupStatic(svcFullName, targets), nil
 	default:
-		return lb.LookupRandom(svcFullName, targets)
+		return lb.LookupRandom(svcFullName, targets), nil
 	}
 }
 
