@@ -70,6 +70,13 @@ rules:
 - apiGroups:
   - clusterlink.net
   resources:
+  - exports/status
+  - peers/status
+  verbs:
+  - update
+- apiGroups:
+  - clusterlink.net
+  resources:
   - imports
   verbs:
   - get
@@ -99,12 +106,6 @@ rules:
   verbs:
   - get
   - patch
-  - update
-- apiGroups:
-  - clusterlink.net
-  resources:
-  - peers/status
-  verbs:
   - update
 - apiGroups:
   - rbac.authorization.k8s.io

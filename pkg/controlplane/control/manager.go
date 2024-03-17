@@ -15,20 +15,33 @@ package control
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
+
+type exportServiceNotExistError struct {
+	name types.NamespacedName
+}
+
+func (e exportServiceNotExistError) Error() string {
+	return fmt.Sprintf(
+		"service '%s/%s' does not exist",
+		e.name.Namespace, e.name.Name)
+}
 
 // Manager is responsible for handling control operations,
 // which needs to be coordinated across all dataplane/controlplane instances.
@@ -76,7 +89,7 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 		},
 		&oldService)
 	if err != nil {
-		if !errors.IsNotFound(err) {
+		if !k8serrors.IsNotFound(err) {
 			return err
 		}
 
@@ -138,6 +151,93 @@ func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) e
 		})
 }
 
+// addExport defines a new route target for ingress dataplane connections.
+func (m *Manager) addExport(ctx context.Context, export *v1alpha1.Export) (err error) {
+	m.logger.Infof("Adding export '%s/%s'.", export.Namespace, export.Name)
+
+	defer func() {
+		validCond := &metav1.Condition{
+			Type:   v1alpha1.ExportValid,
+			Status: metav1.ConditionTrue,
+			Reason: "Verified",
+		}
+
+		if err != nil {
+			validCond.Status = metav1.ConditionFalse
+			validCond.Reason = "Error"
+			validCond.Message = err.Error()
+		}
+
+		conditions := &export.Status.Conditions
+		if conditionChanged(conditions, validCond) {
+			meta.SetStatusCondition(conditions, *validCond)
+
+			m.logger.Infof(
+				"Updating export '%s/%s' status: %v.",
+				export.Namespace, export.Name, *conditions)
+			statusError := m.client.Status().Update(ctx, export)
+			if statusError != nil {
+				if err == nil {
+					err = statusError
+					return
+				}
+
+				m.logger.Warnf("Error updating export status: %v.", statusError)
+				return
+			}
+		}
+
+		if errors.Is(err, &exportServiceNotExistError{}) {
+			err = reconcile.TerminalError(err)
+		}
+	}()
+
+	if export.Spec.Host != "" {
+		return nil
+	}
+
+	name := types.NamespacedName{
+		Name:      export.Name,
+		Namespace: export.Namespace,
+	}
+
+	if err := m.client.Get(ctx, name, &v1.Service{}); err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return err
+		}
+
+		return exportServiceNotExistError{name}
+	}
+
+	return nil
+}
+
+// addService adds a new service.
+func (m *Manager) addService(ctx context.Context, service *v1.Service) error {
+	return m.checkExportService(ctx, types.NamespacedName{
+		Namespace: service.Namespace,
+		Name:      service.Name,
+	})
+}
+
+// deleteService deletes a service.
+func (m *Manager) deleteService(ctx context.Context, name types.NamespacedName) error {
+	return m.checkExportService(ctx, name)
+}
+
+func (m *Manager) checkExportService(ctx context.Context, name types.NamespacedName) error {
+	var export v1alpha1.Export
+	if err := m.client.Get(ctx, name, &export); err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return err
+		}
+
+		return nil
+	}
+
+	return m.addExport(ctx, &export)
+}
+
 func serviceChanged(svc1, svc2 *v1.Service) bool {
 	if svc1.Spec.Type != svc2.Spec.Type {
 		return true
@@ -162,6 +262,23 @@ func serviceChanged(svc1, svc2 *v1.Service) bool {
 	}
 
 	return false
+}
+
+func conditionChanged(conditions *[]metav1.Condition, cond *metav1.Condition) bool {
+	oldCond := meta.FindStatusCondition(*conditions, cond.Type)
+	if oldCond == nil {
+		return true
+	}
+
+	if oldCond.Status != cond.Status {
+		return true
+	}
+
+	if oldCond.Reason != cond.Reason {
+		return true
+	}
+
+	return oldCond.Message != cond.Message
 }
 
 // NewManager returns a new control manager.
