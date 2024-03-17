@@ -23,38 +23,13 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/httpecho"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/util"
 )
 
-func (s *TestSuite) TestConnectivityCRD() {
-	s.RunOnAllDataplaneTypes(func(cfg *util.PeerConfig) {
-		cl, err := s.fabric.DeployClusterlinks(2, cfg)
-		require.Nil(s.T(), err)
-
-		require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
-		require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
-		require.Nil(s.T(), cl[0].CreateAccessPolicy(util.AccessPolicyAllowAll))
-		require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
-		require.Nil(s.T(), cl[1].CreateAccessPolicy(util.AccessPolicyAllowAll))
-
-		importedService := &util.Service{
-			Name: httpEchoService.Name,
-			Port: 80,
-		}
-		require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
-
-		data, err := cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
-		require.Nil(s.T(), err)
-		require.Equal(s.T(), cl[0].Name(), data)
-	})
-}
-
 func (s *TestSuite) TestConnectivity() {
 	s.RunOnAllDataplaneTypes(func(cfg *util.PeerConfig) {
-		cfg.CRUDMode = true
 		cl, err := s.fabric.DeployClusterlinks(2, cfg)
 		require.Nil(s.T(), err)
 
@@ -385,7 +360,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 
 		//  update access policy
 		policy2 := *util.PolicyAllowAll
-		policy2.Action = policytypes.ActionDeny
+		policy2.Spec.Action = v1alpha1.AccessPolicyActionDeny
 		data, err = json.Marshal(&policy2)
 		require.Nil(s.T(), err)
 		oldPolicyBlob := policy.Spec.Blob

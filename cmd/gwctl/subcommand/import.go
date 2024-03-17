@@ -93,6 +93,7 @@ func (o *importOptions) run(isUpdate bool) error {
 	sources := make([]v1alpha1.ImportSource, len(o.peers))
 	for i, peer := range o.peers {
 		sources[i].Peer = peer
+		sources[i].ExportName = o.name
 	}
 
 	err = importOperation(&v1alpha1.Import{

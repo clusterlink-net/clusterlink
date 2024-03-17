@@ -29,7 +29,6 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/client"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 )
 
@@ -353,16 +352,17 @@ func (c *ClusterLink) DeleteImport(name string) error {
 	return c.client.Imports.Delete(name)
 }
 
-func (c *ClusterLink) CreateAccessPolicy(accessPolicy *v1alpha1.AccessPolicy) error {
-	if accessPolicy.Namespace == "" {
-		accessPolicyCopy := *accessPolicy
-		accessPolicyCopy.Namespace = c.namespace
-		accessPolicy = &accessPolicyCopy
-	}
-	return c.cluster.Resources().Create(context.Background(), accessPolicy)
-}
+func (c *ClusterLink) CreatePolicy(policy *v1alpha1.AccessPolicy) error {
+	if c.crdMode {
+		if policy.Namespace == "" {
+			accessPolicyCopy := *policy
+			accessPolicyCopy.Namespace = c.namespace
+			policy = &accessPolicyCopy
+		}
 
-func (c *ClusterLink) CreatePolicy(policy *policytypes.ConnectivityPolicy) error {
+		return c.cluster.Resources().Create(context.Background(), policy)
+	}
+
 	data, err := json.Marshal(policy)
 	if err != nil {
 		return err
@@ -374,7 +374,7 @@ func (c *ClusterLink) CreatePolicy(policy *policytypes.ConnectivityPolicy) error
 	})
 }
 
-func (c *ClusterLink) UpdatePolicy(policy *policytypes.ConnectivityPolicy) error {
+func (c *ClusterLink) UpdatePolicy(policy *v1alpha1.AccessPolicy) error {
 	data, err := json.Marshal(policy)
 	if err != nil {
 		return err
@@ -386,13 +386,13 @@ func (c *ClusterLink) UpdatePolicy(policy *policytypes.ConnectivityPolicy) error
 	})
 }
 
-func (c *ClusterLink) GetPolicy(name string) (*policytypes.ConnectivityPolicy, error) {
+func (c *ClusterLink) GetPolicy(name string) (*v1alpha1.AccessPolicy, error) {
 	res, err := c.client.AccessPolicies.Get(name)
 	if err != nil {
 		return nil, err
 	}
 
-	var policy policytypes.ConnectivityPolicy
+	var policy v1alpha1.AccessPolicy
 	if err := json.Unmarshal(res.(*api.Policy).Spec.Blob, &policy); err != nil {
 		return nil, err
 	}
@@ -400,13 +400,13 @@ func (c *ClusterLink) GetPolicy(name string) (*policytypes.ConnectivityPolicy, e
 	return &policy, nil
 }
 
-func (c *ClusterLink) GetAllPolicies() (*[]policytypes.ConnectivityPolicy, error) {
+func (c *ClusterLink) GetAllPolicies() (*[]v1alpha1.AccessPolicy, error) {
 	res, err := c.client.AccessPolicies.List()
 	if err != nil {
 		return nil, err
 	}
 
-	policies := make([]policytypes.ConnectivityPolicy, len(*res.(*[]api.Policy)))
+	policies := make([]v1alpha1.AccessPolicy, len(*res.(*[]api.Policy)))
 	for i, p := range *res.(*[]api.Policy) {
 		if err := json.Unmarshal(p.Spec.Blob, &policies[i]); err != nil {
 			return nil, err

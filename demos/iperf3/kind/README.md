@@ -164,16 +164,16 @@ When running Kind cluster on macOS run instead the following:
 ### Step 7: Create access policy
 In this step, we create a policy that allow to all traffic from peer1 and peer2:
 
-    gwctl --myid peer1 create policy --type access --policyFile $PROJECT_DIR/pkg/policyengine/policytypes/examples/allowAll.json 
-    gwctl --myid peer2 create policy --type access --policyFile $PROJECT_DIR/pkg/policyengine/policytypes/examples/allowAll.json 
+    gwctl --myid peer1 create policy --type access --policyFile $PROJECT_DIR/pkg/policyengine/examples/allowAll.json 
+    gwctl --myid peer2 create policy --type access --policyFile $PROJECT_DIR/pkg/policyengine/examples/allowAll.json 
 
 When running Kind cluster on macOS run instead the following:
 
     kubectl config use-context kind-peer1
-    kubectl cp $PROJECT_DIR/pkg/policyengine/policytypes/examples/allowAll.json gwctl:/tmp/allowAll.json 
+    kubectl cp $PROJECT_DIR/pkg/policyengine/examples/allowAll.json gwctl:/tmp/allowAll.json 
     kubectl exec -i $GWCTL1 -- gwctl create policy --type access --policyFile /tmp/allowAll.json 
     kubectl config use-context kind-peer2
-    kubectl cp $PROJECT_DIR/pkg/policyengine/policytypes/examples/allowAll.json gwctl:/tmp/allowAll.json 
+    kubectl cp $PROJECT_DIR/pkg/policyengine/examples/allowAll.json gwctl:/tmp/allowAll.json 
     kubectl exec -i $GWCTL2 -- gwctl create policy --type access --policyFile /tmp/allowAll.json 
 
 ### Final Step : Test Service connectivity

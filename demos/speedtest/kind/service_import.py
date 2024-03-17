@@ -29,7 +29,7 @@ if __name__ == "__main__":
     cl1            = cluster(name="peer1")
     cl2            = cluster(name="peer2")
     cl3            = cluster(name="peer3")
-    allowAllPolicy = f"{projDir}/pkg/policyengine/policytypes/examples/allowAll.json"
+    allowAllPolicy = f"{projDir}/pkg/policyengine/examples/allowAll.json"
     
     print(f'Working directory {projDir}')
     os.chdir(projDir)
