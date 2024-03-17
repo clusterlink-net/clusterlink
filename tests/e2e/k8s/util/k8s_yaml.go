@@ -245,10 +245,8 @@ spec:
 }
 
 func changeDataplaneDebugLevel(yaml, logLevel string) (string, error) {
-	search := `dataplane
-          args: ["--log-level", "debug"`
-	replace := `dataplane
-          args: ["--log-level", "` + logLevel + `"`
+	search := `args: ["--log-level", "debug", "--controlplane-host"`
+	replace := `args: ["--log-level", "` + logLevel + `", "--controlplane-host"`
 	return replaceOnce(yaml, search, replace)
 }
 
