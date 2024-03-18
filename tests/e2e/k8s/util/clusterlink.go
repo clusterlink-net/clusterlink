@@ -161,39 +161,34 @@ func (c *ClusterLink) AccessService(
 }
 
 func (c *ClusterLink) CreatePeer(peer *ClusterLink) error {
-	if c.crdMode {
-		return c.cluster.Resources().Create(
-			context.Background(),
-			&v1alpha1.Peer{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      peer.Name(),
-					Namespace: c.namespace,
-				},
-				Spec: v1alpha1.PeerSpec{
-					Gateways: []v1alpha1.Endpoint{{
-						Host: peer.IP(),
-						Port: peer.Port(),
-					}},
-				},
-			})
-	}
-
-	return c.client.Peers.Create(&api.Peer{
-		Name: peer.Name(),
-		Spec: api.PeerSpec{
-			Gateways: []api.Endpoint{{
+	pr := &v1alpha1.Peer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      peer.Name(),
+			Namespace: c.namespace,
+		},
+		Spec: v1alpha1.PeerSpec{
+			Gateways: []v1alpha1.Endpoint{{
 				Host: peer.IP(),
 				Port: peer.Port(),
 			}},
 		},
-	})
+	}
+
+	if c.crdMode {
+		return c.cluster.Resources().Create(context.Background(), pr)
+	}
+
+	return c.client.Peers.Create(pr)
 }
 
 func (c *ClusterLink) UpdatePeer(peer *ClusterLink) error {
-	return c.client.Peers.Update(&api.Peer{
-		Name: peer.Name(),
-		Spec: api.PeerSpec{
-			Gateways: []api.Endpoint{{
+	return c.client.Peers.Update(&v1alpha1.Peer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      peer.Name(),
+			Namespace: c.namespace,
+		},
+		Spec: v1alpha1.PeerSpec{
+			Gateways: []v1alpha1.Endpoint{{
 				Host: peer.IP(),
 				Port: peer.Port(),
 			}},
@@ -201,22 +196,22 @@ func (c *ClusterLink) UpdatePeer(peer *ClusterLink) error {
 	})
 }
 
-func (c *ClusterLink) GetPeer(peer *ClusterLink) (*api.Peer, error) {
+func (c *ClusterLink) GetPeer(peer *ClusterLink) (*v1alpha1.Peer, error) {
 	res, err := c.client.Peers.Get(peer.Name())
 	if err != nil {
 		return nil, err
 	}
 
-	return res.(*api.Peer), nil
+	return res.(*v1alpha1.Peer), nil
 }
 
-func (c *ClusterLink) GetAllPeers() (*[]api.Peer, error) {
+func (c *ClusterLink) GetAllPeers() (*[]v1alpha1.Peer, error) {
 	res, err := c.client.Peers.List()
 	if err != nil {
 		return nil, err
 	}
 
-	return res.(*[]api.Peer), nil
+	return res.(*[]v1alpha1.Peer), nil
 }
 
 func (c *ClusterLink) DeletePeer(peer *ClusterLink) error {

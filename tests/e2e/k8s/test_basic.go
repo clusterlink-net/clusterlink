@@ -142,10 +142,12 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.ElementsMatch(s.T(), *objects.(*[]api.Import), []api.Import{importFromServer})
 
 		// test peer API
-		peer := api.Peer{
-			Name: cl[1].Name(),
-			Spec: api.PeerSpec{
-				Gateways: []api.Endpoint{{
+		peer := v1alpha1.Peer{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: cl[1].Name(),
+			},
+			Spec: v1alpha1.PeerSpec{
+				Gateways: []v1alpha1.Endpoint{{
 					Host: cl[1].IP(),
 					Port: cl[1].Port(),
 				}},
@@ -155,7 +157,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// list peers when empty
 		objects, err = client0.Peers.List()
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), objects.(*[]api.Peer))
+		require.Empty(s.T(), objects.(*[]v1alpha1.Peer))
 
 		// get non-existing peer
 		_, err = client0.Peers.Get(peer.Name)
@@ -177,24 +179,23 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// get peer
 		objects, err = client0.Peers.Get(peer.Name)
 		require.Nil(s.T(), err)
-		peerFromServer := *objects.(*api.Peer)
+		peerFromServer := *objects.(*v1alpha1.Peer)
 		require.Equal(s.T(), peerFromServer.Name, peer.Name)
 		require.Equal(s.T(), peerFromServer.Spec, peer.Spec)
-		require.Equal(s.T(), peerFromServer.Status, api.PeerStatus{
-			State:    "",
-			LastSeen: "",
-		})
+		require.Equal(s.T(), peerFromServer.Status, v1alpha1.PeerStatus{})
 
 		// list peers
 		objects, err = client0.Peers.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Peer), []api.Peer{peerFromServer})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Peer), []v1alpha1.Peer{peerFromServer})
 
 		// add another peer (for upcoming load-balancing test)
-		peer2 := api.Peer{
-			Name: cl[2].Name(),
-			Spec: api.PeerSpec{
-				Gateways: []api.Endpoint{{
+		peer2 := v1alpha1.Peer{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: cl[2].Name(),
+			},
+			Spec: v1alpha1.PeerSpec{
+				Gateways: []v1alpha1.Endpoint{{
 					Host: cl[2].IP(),
 					Port: cl[2].Port(),
 				}},
@@ -369,7 +370,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// get peer after update
 		objects, err = client0.Peers.Get(peer.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), objects.(*api.Peer).Spec, peer.Spec)
+		require.Equal(s.T(), objects.(*v1alpha1.Peer).Spec, peer.Spec)
 		// verify no access after update
 		_, err = accessService(true, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
@@ -537,7 +538,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// verify peers after restart
 		objects, err = client0.Peers.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Peer), []api.Peer{peerFromServer, peer2})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Peer), []v1alpha1.Peer{peerFromServer, peer2})
 
 		// verify access policies after restart
 		objects, err = client0.AccessPolicies.List()

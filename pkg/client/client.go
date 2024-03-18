@@ -48,8 +48,8 @@ func New(host string, port uint16, tlsConfig *tls.Config) *Client {
 		Peers: rest.NewClient(&rest.Config{
 			Client:       client,
 			BasePath:     "/peers",
-			SampleObject: api.Peer{},
-			SampleList:   []api.Peer{},
+			SampleObject: v1alpha1.Peer{},
+			SampleList:   []v1alpha1.Peer{},
 		}),
 		Exports: rest.NewClient(&rest.Config{
 			Client:       client,

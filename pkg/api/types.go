@@ -23,39 +23,6 @@ package api
 // Communication between Peers is established via one or more gateways, serving
 // the Peers.
 
-// Endpoint represents a network endpoint (i.e., host or IP and a port).
-type Endpoint struct {
-	// Host or IP address of the endpoint.
-	Host string
-	// Port of the endpoint.
-	Port uint16
-}
-
-// Peer represents a location (or site) that can be used to import services from.
-type Peer struct {
-	// Name that will be used to identify the Peer in subsequent API calls.
-	Name string
-	// Spec represents the attributes of a peer.
-	Spec PeerSpec
-	// Status field contains the peer status observed by the gateway.
-	Status PeerStatus
-}
-
-// PeerSpec contains all the peer attributes.
-type PeerSpec struct {
-	// Gateways serving the Peer.
-	Gateways []Endpoint
-}
-
-// PeerStatus contains the peer status observed by the gateway.
-type PeerStatus struct {
-	// State contains the last peer state that observed by the gateway,
-	// indicating its reachability (Reachable/Unreachable).
-	State string
-	// LastSeen define the last time the state of the peer was updated.
-	LastSeen string
-}
-
 // Import defines a service that is being imported to the local Peer from a remote Peer.
 type Import struct {
 	// Name of service imported, matches exported name by remote peers providing
