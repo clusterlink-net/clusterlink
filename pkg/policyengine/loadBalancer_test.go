@@ -84,20 +84,20 @@ func TestAddAndDeleteImports(t *testing.T) {
 	lb := policyengine.NewLoadBalancer()
 	addImports(lb)
 
-	svc1Tgts, err := lb.GetTargetPeers(svc1NS1)
+	svc1Tgts, err := lb.GetSvcSources(svc1NS1)
 	require.Nil(t, err)
 	require.Len(t, svc1Tgts, 2)
 
-	svc2Tgts, err := lb.GetTargetPeers(svc2NS1)
+	svc2Tgts, err := lb.GetSvcSources(svc2NS1)
 	require.Nil(t, err)
 	require.Len(t, svc2Tgts, 1)
 
-	svc3Tgts, err := lb.GetTargetPeers(svc3NS2)
+	svc3Tgts, err := lb.GetSvcSources(svc3NS2)
 	require.Nil(t, err)
 	require.Len(t, svc3Tgts, 2)
 
 	lb.DeleteImport(svc2NS1)
-	_, err = lb.GetTargetPeers(svc2NS1)
+	_, err = lb.GetSvcSources(svc2NS1)
 	require.NotNil(t, err)
 	_, err = lb.LookupWith(svc2NS1, svc2Tgts)
 	require.NotNil(t, err)
@@ -115,7 +115,7 @@ func TestRandomLookUp(t *testing.T) {
 	lb := policyengine.NewLoadBalancer()
 	addImports(lb)
 
-	svc1Tgts, err := lb.GetTargetPeers(svc1NS1)
+	svc1Tgts, err := lb.GetSvcSources(svc1NS1)
 	require.Nil(t, err)
 
 	tgt := repeatLookups(t, lb, svc1NS1, svc1Tgts, true)
@@ -133,7 +133,7 @@ func TestFixedPeer(t *testing.T) {
 	err := lb.SetPolicy(&lbPolicy)
 	require.Nil(t, err)
 
-	svc1Tgts, err := lb.GetTargetPeers(svc1NS1)
+	svc1Tgts, err := lb.GetSvcSources(svc1NS1)
 	require.Nil(t, err)
 
 	tgts := repeatLookups(t, lb, svc1NS1, svc1Tgts, false)
@@ -175,7 +175,7 @@ func TestRoundRobin(t *testing.T) {
 	err := lb.SetPolicy(&lbPolicy)
 	require.Nil(t, err)
 
-	svc1Tgts, err := lb.GetTargetPeers(svc1NS1)
+	svc1Tgts, err := lb.GetSvcSources(svc1NS1)
 	require.Nil(t, err)
 
 	tgts := repeatLookups(t, lb, svc1NS1, svc1Tgts, false)

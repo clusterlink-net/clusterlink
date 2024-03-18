@@ -80,7 +80,7 @@ func getServiceAttrs(serviceName, peer string) policytypes.WorkloadAttrs {
 	return ret
 }
 
-func getServiceAttrsForMultiplePeers(serviceName string, dsts []crds.ImportSource) []policytypes.WorkloadAttrs {
+func getServiceAttrsForMultipleDsts(serviceName string, dsts []crds.ImportSource) []policytypes.WorkloadAttrs {
 	res := []policytypes.WorkloadAttrs{}
 	for _, dst := range dsts {
 		res = append(res, getServiceAttrs(serviceName, dst.Peer))
@@ -112,38 +112,38 @@ func (pH *PolicyHandler) decideIncomingConnection(req *policytypes.ConnectionReq
 }
 
 func (pH *PolicyHandler) decideOutgoingConnection(req *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error) {
-	// Get a list of possible targets for the service
+	// Get a list of possible destinations for the service (a.k.a. service sources)
 	dstSvcNsName := types.NamespacedName{Namespace: req.DstSvcNamespace, Name: req.DstSvcName}
-	targetList, err := pH.loadBalancer.GetTargetPeers(dstSvcNsName)
-	if err != nil || len(targetList) == 0 {
-		plog.Errorf("error getting target peers for service %s: %v", req.DstSvcName, err)
+	svcSourceList, err := pH.loadBalancer.GetSvcSources(dstSvcNsName)
+	if err != nil {
+		plog.Errorf("error getting sources for service %s: %v", req.DstSvcName, err)
 		// this can be caused by a user typo - so only log this error
 		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, nil
 	}
 
-	targetList = pH.filterOutDisabledPeers(targetList)
+	svcSourceList = pH.filterOutDisabledPeers(svcSourceList)
 
-	dsts := getServiceAttrsForMultiplePeers(req.DstSvcName, targetList)
+	dsts := getServiceAttrsForMultipleDsts(req.DstSvcName, svcSourceList)
 	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, dsts)
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
 		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, err
 	}
 
-	allowedTargets := []crds.ImportSource{}
+	allowedSvcSources := []crds.ImportSource{}
 	for idx, decision := range decisions {
 		if decision.Decision == policytypes.DecisionAllow {
-			allowedTargets = append(allowedTargets, targetList[idx])
+			allowedSvcSources = append(allowedSvcSources, svcSourceList[idx])
 		}
 	}
 
-	if len(allowedTargets) == 0 {
-		plog.Infof("access policies deny connections to service %s in all peers", req.DstSvcName)
+	if len(allowedSvcSources) == 0 {
+		plog.Infof("access policies deny connections to service %s for all its sources", req.DstSvcName)
 		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, nil
 	}
 
 	// Perform load-balancing using the filtered peer list
-	tgt, err := pH.loadBalancer.LookupWith(dstSvcNsName, allowedTargets)
+	tgt, err := pH.loadBalancer.LookupWith(dstSvcNsName, allowedSvcSources)
 	if err != nil {
 		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, err
 	}

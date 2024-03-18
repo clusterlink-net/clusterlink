@@ -33,7 +33,7 @@ const (
 	Static LBScheme = "static"
 )
 
-// deprecated.
+// LBPolicy is being used by the CRUD interface, and is now deprecated.
 type LBPolicy struct {
 	ServiceSrc  string
 	ServiceDst  string
@@ -48,13 +48,15 @@ type serviceState struct {
 }
 
 type LoadBalancer struct {
-	services map[string]*serviceState // State of policy Per destination and source
+	services map[string]*serviceState // Keeps a state for each imported service
 }
 
+// NewLoadBalancer returns a new instance of a LoadBalancer object.
 func NewLoadBalancer() *LoadBalancer {
 	return &LoadBalancer{services: map[string]*serviceState{}}
 }
 
+// AddImport adds a new remote service for the load balancer to take decisions on.
 func (lb *LoadBalancer) AddImport(imp *crds.Import) {
 	fullName := types.NamespacedName{Namespace: imp.Namespace, Name: imp.Name}.String()
 	state, exists := lb.services[fullName]
@@ -72,11 +74,12 @@ func (lb *LoadBalancer) AddImport(imp *crds.Import) {
 	}
 }
 
+// DeleteImport removes a remote service from the list of services the load balancer reasons about.
 func (lb *LoadBalancer) DeleteImport(impName types.NamespacedName) {
 	delete(lb.services, impName.String())
 }
 
-// Deprecated.
+// AddToServiceMap is being used by the CRUD interface and is now deprecated.
 func (lb *LoadBalancer) AddToServiceMap(serviceDst, peer string) {
 	importSrc := crds.ImportSource{Peer: peer, ExportName: serviceDst}
 	state, ok := lb.services[serviceDst]
@@ -93,7 +96,7 @@ func (lb *LoadBalancer) AddToServiceMap(serviceDst, peer string) {
 	llog.Infof("Remote serviceDst added %v->[%+v]", serviceDst, lb.services[serviceDst])
 }
 
-// deprecated.
+// SetPolicy is being used by the CRUD interface and is now deprecated.
 func (lb *LoadBalancer) SetPolicy(lbPolicy *LBPolicy) error {
 	plog.Infof("Set LB policy %+v", lbPolicy)
 
@@ -106,7 +109,7 @@ func (lb *LoadBalancer) SetPolicy(lbPolicy *LBPolicy) error {
 	return nil
 }
 
-// deprecated.
+// DeletePolicy is being used by the CRUD interface and is now deprecated.
 func (lb *LoadBalancer) DeletePolicy(lbPolicy *LBPolicy) error {
 	plog.Infof("Delete LB policy %+v", lbPolicy)
 
@@ -119,7 +122,7 @@ func (lb *LoadBalancer) DeletePolicy(lbPolicy *LBPolicy) error {
 	return nil
 }
 
-// deprecated.
+// RemoveDestService is being used by the CRUD interface and is now deprecated.
 func (lb *LoadBalancer) RemoveDestService(serviceDst, peer string) {
 	state, ok := lb.services[serviceDst]
 	if !ok {
@@ -136,42 +139,45 @@ func (lb *LoadBalancer) RemoveDestService(serviceDst, peer string) {
 	state.impSources = newSrcs
 }
 
-func (lb *LoadBalancer) LookupRandom(svcFullName string, targets []crds.ImportSource) *crds.ImportSource {
-	index := rand.Intn(len(targets)) //nolint:gosec // G404: use of weak random is fine for load balancing
-	plog.Infof("LoadBalancer selects index(%d) - target peer %v for service %s", index, targets[index], svcFullName)
-	return &targets[index]
+func (lb *LoadBalancer) lookupRandom(svcFullName string, svcSrcs []crds.ImportSource) *crds.ImportSource {
+	index := rand.Intn(len(svcSrcs)) //nolint:gosec // G404: use of weak random is fine for load balancing
+	plog.Infof("LoadBalancer selects index(%d) - source %v for service %s", index, svcSrcs[index], svcFullName)
+	return &svcSrcs[index]
 }
 
-func (lb *LoadBalancer) LookupECMP(svcFullName string, targets []crds.ImportSource) *crds.ImportSource {
-	index := lb.services[svcFullName].totalConnections % len(targets)
-	plog.Infof("LoadBalancer selects index(%d) - target service %v", index, targets[index])
-	return &targets[index]
+func (lb *LoadBalancer) lookupECMP(svcFullName string, svcSrcs []crds.ImportSource) *crds.ImportSource {
+	index := lb.services[svcFullName].totalConnections % len(svcSrcs)
+	plog.Infof("LoadBalancer selects index(%d) - service source %v", index, svcSrcs[index])
+	return &svcSrcs[index]
 }
 
-func (lb *LoadBalancer) LookupStatic(svcFullName string, targets []crds.ImportSource) *crds.ImportSource {
+func (lb *LoadBalancer) lookupStatic(svcFullName string, svcSrcs []crds.ImportSource) *crds.ImportSource {
 	srcs := lb.services[svcFullName].impSources
-	if len(srcs) == 0 {
-		plog.Errorf("No sources for service %s. Falling back to other peers due to unavailability of default peer", svcFullName)
-		return lb.LookupRandom(svcFullName, targets)
+	if len(srcs) == 0 { // shouldn't happen
+		plog.Errorf("No sources for service %s. Resorting to random.", svcFullName)
+		return lb.lookupRandom(svcFullName, svcSrcs)
 	}
 
 	defaultSrc := srcs[0]
-	for i := range targets {
-		tgt := &targets[i]
+	for i := range svcSrcs { // ensure default is in the list
+		tgt := &svcSrcs[i]
 		if tgt.ExportNamespace == defaultSrc.ExportNamespace && tgt.ExportName == defaultSrc.ExportName &&
 			tgt.Peer == defaultSrc.Peer {
+			plog.Infof("LoadBalancer selected default service source %v", defaultSrc)
 			return tgt
 		}
 	}
 
 	plog.Errorf("Default source for service %s does not exist. "+
-		"Falling back to other peers due to unavailability of default peer", svcFullName)
-	return lb.LookupRandom(svcFullName, targets)
+		"Falling back to other sources due to unavailability of default source", svcFullName)
+	return lb.lookupRandom(svcFullName, svcSrcs)
 }
 
-func (lb *LoadBalancer) LookupWith(svc types.NamespacedName, targets []crds.ImportSource) (*crds.ImportSource, error) {
-	if len(targets) == 0 {
-		return nil, fmt.Errorf("no available targets for service %s", svc.String())
+// LookupWith decides which service-source to use for a given outgoing-connection request.
+// The decision is based on the policy set for the service, and on its locally stored state.
+func (lb *LoadBalancer) LookupWith(svc types.NamespacedName, svcSrcs []crds.ImportSource) (*crds.ImportSource, error) {
+	if len(svcSrcs) == 0 {
+		return nil, fmt.Errorf("no available sources for service %s", svc.String())
 	}
 
 	svcFullName := svc.String()
@@ -184,21 +190,23 @@ func (lb *LoadBalancer) LookupWith(svc types.NamespacedName, targets []crds.Impo
 
 	switch svcState.scheme {
 	case Random:
-		return lb.LookupRandom(svcFullName, targets), nil
+		return lb.lookupRandom(svcFullName, svcSrcs), nil
 	case ECMP:
-		return lb.LookupECMP(svcFullName, targets), nil
+		return lb.lookupECMP(svcFullName, svcSrcs), nil
 	case Static:
-		return lb.LookupStatic(svcFullName, targets), nil
+		return lb.lookupStatic(svcFullName, svcSrcs), nil
 	default:
-		return lb.LookupRandom(svcFullName, targets), nil
+		return lb.lookupRandom(svcFullName, svcSrcs), nil
 	}
 }
 
-func (lb *LoadBalancer) GetTargetPeers(svc types.NamespacedName) ([]crds.ImportSource, error) {
+// GetSvcSources returns all known sources for a given service in a slice of ImportSource objects.
+func (lb *LoadBalancer) GetSvcSources(svc types.NamespacedName) ([]crds.ImportSource, error) {
 	svcState, ok := lb.services[svc.String()]
 	if !ok || len(svcState.impSources) == 0 {
-		plog.Errorf("Unable to find peer for %s", svc.String())
-		return nil, fmt.Errorf("no available target peers")
+		err := fmt.Errorf("no available sources for service %s", svc.String())
+		plog.Error(err.Error())
+		return nil, err
 	}
 	return svcState.impSources, nil
 }
