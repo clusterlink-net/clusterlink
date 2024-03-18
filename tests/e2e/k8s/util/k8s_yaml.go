@@ -67,6 +67,7 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 		LogLevel:                logLevel,
 		ContainerRegistry:       "",
 		Namespace:               f.namespace,
+		Tag:                     "latest",
 	})
 	if err != nil {
 		return "", err
@@ -244,10 +245,8 @@ spec:
 }
 
 func changeDataplaneDebugLevel(yaml, logLevel string) (string, error) {
-	search := `dataplane
-          args: ["--log-level", "debug"`
-	replace := `dataplane
-          args: ["--log-level", "` + logLevel + `"`
+	search := `args: ["--log-level", "debug", "--controlplane-host"`
+	replace := `args: ["--log-level", "` + logLevel + `", "--controlplane-host"`
 	return replaceOnce(yaml, search, replace)
 }
 
@@ -281,6 +280,7 @@ func (f *Fabric) generateClusterlinkInstance(name string, p *peer, cfg *PeerConf
 		DataplaneType:     cfg.DataplaneType,
 		LogLevel:          logLevel,
 		ContainerRegistry: "docker.io/library", // Tell kind to use local image.
+		Tag:               "latest",
 		Namespace:         f.namespace,
 		IngressType:       "NodePort",
 	}, name)

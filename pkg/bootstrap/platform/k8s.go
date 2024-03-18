@@ -120,7 +120,7 @@ spec:
 {{ end }}
       containers:
         - name: cl-controlplane
-          image: {{.containerRegistry}}cl-controlplane
+          image: {{.containerRegistry}}cl-controlplane:{{.tag}}
           args: ["--log-level", "{{.logLevel}}"{{if .crdMode }}, "--crd-mode"{{ end }}]
           imagePullPolicy: IfNotPresent
           ports:
@@ -176,7 +176,7 @@ spec:
         - name: dataplane
           image: {{.containerRegistry}}{{ 
           if (eq .dataplaneType .dataplaneTypeEnvoy) }}cl-dataplane{{ 
-          else }}cl-go-dataplane{{ end }}
+          else }}cl-go-dataplane{{ end }}:{{.tag}}
           args: ["--log-level", "{{.logLevel}}", "--controlplane-host", "cl-controlplane"]
           imagePullPolicy: IfNotPresent
           ports:
@@ -213,7 +213,7 @@ spec:
         secretName: gwctl
   containers:
     - name: gwctl
-      image: {{.containerRegistry}}gwctl
+      image: {{.containerRegistry}}gwctl:{{.tag}}
       imagePullPolicy: IfNotPresent
       command: ["/bin/sh"]
       args:
@@ -285,7 +285,7 @@ rules:
   resources: ["imports"]
   verbs: ["get", "list", "watch", "update"]
 - apiGroups: ["clusterlink.net"]
-  resources: ["peers/status"]
+  resources: ["imports/status", "exports/status", "peers/status"]
   verbs: ["update"]
 {{ end }}
 ---
@@ -323,6 +323,7 @@ spec:
   logLevel: {{.logLevel}}
   containerRegistry: {{.containerRegistry}}
   namespace: {{.namespace}}
+  tag: {{.tag}}
 `
 )
 
@@ -340,6 +341,7 @@ func K8SConfig(config *Config) ([]byte, error) {
 		"dataplaneType":     config.DataplaneType,
 		"logLevel":          config.LogLevel,
 		"containerRegistry": containerRegistry,
+		"tag":               config.Tag,
 
 		"dataplaneTypeEnvoy":   DataplaneTypeEnvoy,
 		"namespaceEnvVariable": cpapp.NamespaceEnvVariable,
@@ -415,6 +417,7 @@ func K8SClusterLinkInstanceConfig(config *Config, name string) ([]byte, error) {
 		"containerRegistry": containerRegistry,
 		"namespace":         config.Namespace,
 		"ingressType":       config.IngressType,
+		"tag":               config.Tag,
 	}
 
 	if config.IngressPort != 0 {

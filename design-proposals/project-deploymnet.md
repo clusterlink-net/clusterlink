@@ -121,7 +121,7 @@ The ClusterLink CRD includes the following fields:
     ||Port| Port represents the port number of the external service |443 for all types,except for NodePort, where the port number will be allocated by Kubernetes | 
     |logLevel| |Log level severity for all the components (controlplane and dataplane)| "info"|
     |containerRegistry| |The container registry to pull the project images when the images is not present locally | ghcr.io/clusterlink-net|
-    |imageTag| |The project images version | latest|
+    |tag| |The project images tag | latest|
     |Namespace| | The namespace where the components of the ClusterLink project are deployed | clusterlink-system|
 
 * **Status:**

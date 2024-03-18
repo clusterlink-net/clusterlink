@@ -59,11 +59,6 @@ spec:
                     - go
                     type: string
                 type: object
-              imageTag:
-                default: latest
-                description: ImageTag represents the version of the ClusterLink project
-                  images.
-                type: string
               ingress:
                 description: IngressSpec defines the type of the ingress component
                   in ClusterLink.
@@ -100,6 +95,10 @@ spec:
                 default: clusterlink-system
                 description: Namespace represents the namespace where the ClusterLink
                   project components are deployed.
+                type: string
+              tag:
+                default: latest
+                description: Tag represents the tag of the ClusterLink project images.
                 type: string
             type: object
           status:

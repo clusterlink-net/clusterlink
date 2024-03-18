@@ -53,7 +53,7 @@ type PolicyDecider interface {
 	AddImport(imp *crds.Import)
 	DeleteImport(name types.NamespacedName)
 
-	AddExport(exp *api.Export) ([]string, error) // Returns a list of peers to which export is allowed
+	AddExport(exp *v1alpha1.Export) ([]string, error) // Returns a list of peers to which export is allowed
 	DeleteExport(name string)
 }
 
@@ -186,7 +186,7 @@ func (pH *PolicyHandler) DeleteImport(name types.NamespacedName) {
 	pH.loadBalancer.DeleteImport(name)
 }
 
-func (pH *PolicyHandler) AddExport(_ *api.Export) ([]string, error) {
+func (pH *PolicyHandler) AddExport(_ *v1alpha1.Export) ([]string, error) {
 	retPeers := []string{}
 	for peer, enabled := range pH.enabledPeers {
 		if enabled {
