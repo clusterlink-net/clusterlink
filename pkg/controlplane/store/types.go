@@ -34,7 +34,7 @@ const (
 
 // Peer represents a remote peer.
 type Peer struct {
-	api.PeerSpec
+	v1alpha1.PeerSpec
 	// Name of the peer.
 	Name string
 	// Version of the struct when object was created.
@@ -42,7 +42,7 @@ type Peer struct {
 }
 
 // NewPeer creates a new peer.
-func NewPeer(peer *api.Peer) *Peer {
+func NewPeer(peer *v1alpha1.Peer) *Peer {
 	return &Peer{
 		PeerSpec: peer.Spec,
 		Name:     peer.Name,

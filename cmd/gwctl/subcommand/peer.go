@@ -18,10 +18,11 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/clusterlink-net/clusterlink/cmd/gwctl/config"
 	cmdutil "github.com/clusterlink-net/clusterlink/cmd/util"
-	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 )
 
 // peerCreateOptions is the command line options for 'create peer' or 'update peer'.
@@ -88,10 +89,12 @@ func (o *peerOptions) run(isUpdate bool) error {
 		peerOperation = g.Peers.Update
 	}
 
-	err = peerOperation(&api.Peer{
-		Name: o.name,
-		Spec: api.PeerSpec{
-			Gateways: []api.Endpoint{{
+	err = peerOperation(&v1alpha1.Peer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: o.name,
+		},
+		Spec: v1alpha1.PeerSpec{
+			Gateways: []v1alpha1.Endpoint{{
 				Host: o.host,
 				Port: o.port,
 			}},
@@ -189,16 +192,23 @@ func (o *peerGetOptions) run() error {
 		if err != nil {
 			return err
 		}
+
+		peers, ok := pArr.(*[]v1alpha1.Peer)
+		if !ok {
+			return fmt.Errorf("cannot decode exports list")
+		}
+
 		fmt.Printf("Peers:\n")
-		for i, p := range *pArr.(*[]api.Peer) {
-			fmt.Printf("%d. Peer: %v\n", i+1, p)
+		for i := range *peers {
+			peer := &(*peers)[i]
+			fmt.Printf("%d. Peer: %v\n", i+1, peer)
 		}
 	} else {
 		peer, err := peerClient.Peers.Get(o.name)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Peer: %+v\n", peer.(*api.Peer))
+		fmt.Printf("Peer: %+v\n", peer.(*v1alpha1.Peer))
 	}
 
 	return nil
