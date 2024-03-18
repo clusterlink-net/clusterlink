@@ -238,60 +238,52 @@ func (c *ClusterLink) CreateService(service *Service) error {
 		})
 }
 
-func (c *ClusterLink) CreateExport(name string, service *Service) error {
-	if c.crdMode {
-		return c.cluster.Resources().Create(
-			context.Background(),
-			&v1alpha1.Export{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      service.Name,
-					Namespace: c.namespace,
-				},
-				Spec: v1alpha1.ExportSpec{
-					Port: service.Port,
-				},
-			})
+func (c *ClusterLink) CreateExport(service *Service) error {
+	export := &v1alpha1.Export{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      service.Name,
+			Namespace: c.namespace,
+		},
+		Spec: v1alpha1.ExportSpec{
+			Port: service.Port,
+		},
 	}
 
-	return c.client.Exports.Create(&api.Export{
-		Name: name,
-		Spec: api.ExportSpec{
-			Service: api.Endpoint{
-				Host: fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace),
-				Port: service.Port,
-			},
-		},
-	})
+	if c.crdMode {
+		return c.cluster.Resources().Create(context.Background(), export)
+	}
+
+	return c.client.Exports.Create(export)
 }
 
 func (c *ClusterLink) UpdateExport(name string, service *Service) error {
-	return c.client.Exports.Update(&api.Export{
-		Name: name,
-		Spec: api.ExportSpec{
-			Service: api.Endpoint{
-				Host: fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace),
-				Port: service.Port,
-			},
+	return c.client.Exports.Update(&v1alpha1.Export{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: v1alpha1.ExportSpec{
+			Host: fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace),
+			Port: service.Port,
 		},
 	})
 }
 
-func (c *ClusterLink) GetExport(name string) (*api.Export, error) {
+func (c *ClusterLink) GetExport(name string) (*v1alpha1.Export, error) {
 	res, err := c.client.Exports.Get(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return res.(*api.Export), nil
+	return res.(*v1alpha1.Export), nil
 }
 
-func (c *ClusterLink) GetAllExports() (*[]api.Export, error) {
+func (c *ClusterLink) GetAllExports() (*[]v1alpha1.Export, error) {
 	res, err := c.client.Exports.List()
 	if err != nil {
 		return nil, err
 	}
 
-	return res.(*[]api.Export), nil
+	return res.(*[]v1alpha1.Export), nil
 }
 
 func (c *ClusterLink) DeleteExport(name string) error {

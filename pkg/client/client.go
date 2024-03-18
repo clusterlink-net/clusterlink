@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	"github.com/clusterlink-net/clusterlink/pkg/util/jsonapi"
 	"github.com/clusterlink-net/clusterlink/pkg/util/rest"
@@ -53,8 +54,8 @@ func New(host string, port uint16, tlsConfig *tls.Config) *Client {
 		Exports: rest.NewClient(&rest.Config{
 			Client:       client,
 			BasePath:     "/exports",
-			SampleObject: api.Export{},
-			SampleList:   []api.Export{},
+			SampleObject: v1alpha1.Export{},
+			SampleList:   []v1alpha1.Export{},
 		}),
 		Imports: rest.NewClient(&rest.Config{
 			Client:       client,

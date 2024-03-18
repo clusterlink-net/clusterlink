@@ -56,25 +56,6 @@ type PeerStatus struct {
 	LastSeen string
 }
 
-// Export defines a service being exported by the local Peer for use by others.
-// Only explicitly exported services can be accessed remotely.
-type Export struct {
-	// Name that will be used to identify the exported service in subsequent API calls.
-	// Furthermore, this name will be used by remote peers to identify it as an import source.
-	Name string
-	// Spec represents the attributes of the export service.
-	Spec ExportSpec
-}
-
-// ExportSpec contains all the export service attributes.
-type ExportSpec struct {
-	// Service endpoint being exported. The service is located inside the cluster.
-	// In case of multi-port service, each export should
-	// have a different `Name`. The endpoint Host name could be different from Name,
-	// decoupling service names between Peers.
-	Service Endpoint
-}
-
 // Import defines a service that is being imported to the local Peer from a remote Peer.
 type Import struct {
 	// Name of service imported, matches exported name by remote peers providing
