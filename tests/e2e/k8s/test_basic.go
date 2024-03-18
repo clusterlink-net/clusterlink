@@ -18,8 +18,10 @@ import (
 	"fmt"
 
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
@@ -34,7 +36,7 @@ func (s *TestSuite) TestConnectivityCRD() {
 		require.Nil(s.T(), err)
 
 		require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
-		require.Nil(s.T(), cl[0].CreateExport("dontcare", &httpEchoService))
+		require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
 		require.Nil(s.T(), cl[0].CreateAccessPolicy(util.AccessPolicyAllowAll))
 		require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
 		require.Nil(s.T(), cl[1].CreateAccessPolicy(util.AccessPolicyAllowAll))
@@ -56,12 +58,13 @@ func (s *TestSuite) TestConnectivity() {
 		cl, err := s.fabric.DeployClusterlinks(2, cfg)
 		require.Nil(s.T(), err)
 
-		require.Nil(s.T(), cl[0].CreateExport("echo", &httpEchoService))
+		require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
+		require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
 		require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
 		require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
 
 		importedService := &util.Service{
-			Name: "echo",
+			Name: httpEchoService.Name,
 			Port: 80,
 		}
 		require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
@@ -243,22 +246,22 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.ElementsMatch(s.T(), *objects.(*[]api.Policy), []api.Policy{policy})
 
 		// test export API
-		export := api.Export{
-			Name: imp.Name,
-			Spec: api.ExportSpec{
-				Service: api.Endpoint{
-					Host: fmt.Sprintf(
-						"%s.%s.svc.cluster.local",
-						httpEchoService.Name, httpEchoService.Namespace),
-					Port: httpEchoService.Port,
-				},
+		export := v1alpha1.Export{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: imp.Name,
+			},
+			Spec: v1alpha1.ExportSpec{
+				Host: fmt.Sprintf(
+					"%s.%s.svc.cluster.local",
+					httpEchoService.Name, httpEchoService.Namespace),
+				Port: httpEchoService.Port,
 			},
 		}
 
 		// list exports when empty
 		objects, err = client1.Exports.List()
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), objects.(*[]api.Export))
+		require.Empty(s.T(), objects.(*[]v1alpha1.Export))
 
 		// get non-existing export
 		_, err = client1.Exports.Get(export.Name)
@@ -280,12 +283,12 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// get export
 		objects, err = client1.Exports.Get(export.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), *objects.(*api.Export), export)
+		require.Equal(s.T(), *objects.(*v1alpha1.Export), export)
 
 		// list exports
 		objects, err = client1.Exports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Export), []api.Export{export})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Export), []v1alpha1.Export{export})
 
 		// allow export to be accessed
 		require.Nil(s.T(), client1.AccessPolicies.Create(&policy))
@@ -402,17 +405,17 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Equal(s.T(), str, cl[1].Name())
 
 		// update export
-		export.Spec.Service.Port++
+		export.Spec.Port++
 		require.Nil(s.T(), client1.Exports.Update(&export))
 		// get export after update
 		objects, err = client1.Exports.Get(export.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), objects.(*api.Export).Spec, export.Spec)
+		require.Equal(s.T(), objects.(*v1alpha1.Export).Spec, export.Spec)
 		// verify no access after update
 		_, err = accessService(true, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 		// update export back
-		export.Spec.Service.Port--
+		export.Spec.Port--
 		require.Nil(s.T(), client1.Exports.Update(&export))
 		// verify access after update back
 		str, err = accessService(true, nil)
@@ -544,7 +547,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// verify exports after restart
 		objects, err = client1.Exports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Export), []api.Export{export})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Export), []v1alpha1.Export{export})
 
 		// verify lb policies after restart
 		objects, err = client0.LBPolicies.List()

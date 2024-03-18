@@ -21,6 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
@@ -51,7 +52,7 @@ type PolicyDecider interface {
 	AddImport(imp *api.Import) policytypes.PolicyAction
 	DeleteImport(imp *api.Import)
 
-	AddExport(exp *api.Export) ([]string, error) // Returns a list of peers to which export is allowed
+	AddExport(exp *v1alpha1.Export) ([]string, error) // Returns a list of peers to which export is allowed
 	DeleteExport(name string)
 }
 
@@ -190,7 +191,7 @@ func (pH *PolicyHandler) DeleteImport(imp *api.Import) {
 	}
 }
 
-func (pH *PolicyHandler) AddExport(_ *api.Export) ([]string, error) {
+func (pH *PolicyHandler) AddExport(_ *v1alpha1.Export) ([]string, error) {
 	retPeers := []string{}
 	for peer, enabled := range pH.enabledPeers {
 		if enabled {

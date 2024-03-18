@@ -15,6 +15,7 @@ package store
 
 import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 )
 
 const (
@@ -51,7 +52,7 @@ func NewPeer(peer *api.Peer) *Peer {
 
 // Export represents a local service that may be exported.
 type Export struct {
-	api.ExportSpec
+	v1alpha1.ExportSpec
 	// Name of the export.
 	Name string
 	// Version of the struct when object was created.
@@ -59,7 +60,7 @@ type Export struct {
 }
 
 // NewExport creates a new export.
-func NewExport(export *api.Export) *Export {
+func NewExport(export *v1alpha1.Export) *Export {
 	return &Export{
 		ExportSpec: export.Spec,
 		Name:       export.Name,

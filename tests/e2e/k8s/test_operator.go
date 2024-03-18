@@ -59,12 +59,13 @@ func (s *TestSuite) TestOperator() {
 
 	// Check basic connectivity with instances deployed by operator
 	require.Nil(s.T(), err)
-	require.Nil(s.T(), cl[0].CreateExport("echo", &httpEchoService))
+	require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
+	require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
 	require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
 	require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
 
 	importedService := &util.Service{
-		Name: "echo",
+		Name: httpEchoService.Name,
 		Port: 80,
 	}
 	require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
@@ -131,7 +132,7 @@ func (s *TestSuite) TestOperator() {
 		require.Nil(s.T(), cl[0].WaitForControlplaneAPI())
 	}
 
-	require.Nil(s.T(), cl[0].CreateExport("echo", &httpEchoService))
+	require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
 	require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
 	data, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
 	require.Nil(s.T(), err)
