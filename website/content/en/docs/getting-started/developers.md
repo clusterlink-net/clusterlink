@@ -41,4 +41,6 @@ $ go test ./...
 
 ## Release Management
 
-TODO
+ClusterLink releases, including container images and binaries, are built based
+ on version tags in github. Applying a tag that's prefixed by `-v` will automatically
+ trigger a new release through the github [release](https://github.com/clusterlink-net/clusterlink/blob/main/.github/workflows/release.yml) action.
