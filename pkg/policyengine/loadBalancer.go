@@ -16,6 +16,7 @@ package policyengine
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/types"
@@ -48,20 +49,20 @@ type serviceState struct {
 }
 
 type LoadBalancer struct {
-	services map[string]*serviceState // Keeps a state for each imported service
+	services map[types.NamespacedName]*serviceState // Keeps a state for each imported service
 }
 
 // NewLoadBalancer returns a new instance of a LoadBalancer object.
 func NewLoadBalancer() *LoadBalancer {
-	return &LoadBalancer{services: map[string]*serviceState{}}
+	return &LoadBalancer{services: map[types.NamespacedName]*serviceState{}}
 }
 
 // AddImport adds a new remote service for the load balancer to take decisions on.
 func (lb *LoadBalancer) AddImport(imp *crds.Import) {
-	fullName := types.NamespacedName{Namespace: imp.Namespace, Name: imp.Name}.String()
-	state, exists := lb.services[fullName]
+	namespacedName := types.NamespacedName{Namespace: imp.Namespace, Name: imp.Name}
+	state, exists := lb.services[namespacedName]
 	if !exists {
-		lb.services[fullName] = &serviceState{
+		lb.services[namespacedName] = &serviceState{
 			scheme:           LBScheme(imp.Spec.LBScheme),
 			impSources:       imp.Spec.Sources,
 			totalConnections: 0,
@@ -76,14 +77,22 @@ func (lb *LoadBalancer) AddImport(imp *crds.Import) {
 
 // DeleteImport removes a remote service from the list of services the load balancer reasons about.
 func (lb *LoadBalancer) DeleteImport(impName types.NamespacedName) {
-	delete(lb.services, impName.String())
+	delete(lb.services, impName)
+}
+
+func nsNameFromFullName(fullName string) types.NamespacedName {
+	parts := strings.SplitN(fullName, string(types.Separator), 2)
+	if len(parts) == 2 {
+		return types.NamespacedName{Namespace: parts[0], Name: parts[1]}
+	}
+	return types.NamespacedName{Name: fullName}
 }
 
 // SetPolicy is being used by the CRUD interface and is now deprecated.
 func (lb *LoadBalancer) SetPolicy(lbPolicy *LBPolicy) error {
 	plog.Infof("Set LB policy %+v", lbPolicy)
 
-	state, ok := lb.services[lbPolicy.ServiceDst]
+	state, ok := lb.services[nsNameFromFullName(lbPolicy.ServiceDst)]
 	if !ok {
 		return fmt.Errorf("service %s was not imported yet", lbPolicy.ServiceDst)
 	}
@@ -96,7 +105,7 @@ func (lb *LoadBalancer) SetPolicy(lbPolicy *LBPolicy) error {
 func (lb *LoadBalancer) DeletePolicy(lbPolicy *LBPolicy) error {
 	plog.Infof("Delete LB policy %+v", lbPolicy)
 
-	state, ok := lb.services[lbPolicy.ServiceDst]
+	state, ok := lb.services[nsNameFromFullName(lbPolicy.ServiceDst)]
 	if !ok {
 		return fmt.Errorf("service %s was not imported yet", lbPolicy.ServiceDst)
 	}
@@ -105,23 +114,23 @@ func (lb *LoadBalancer) DeletePolicy(lbPolicy *LBPolicy) error {
 	return nil
 }
 
-func (lb *LoadBalancer) lookupRandom(svcFullName string, svcSrcs []crds.ImportSource) *crds.ImportSource {
+func (lb *LoadBalancer) lookupRandom(svc types.NamespacedName, svcSrcs []crds.ImportSource) *crds.ImportSource {
 	index := rand.Intn(len(svcSrcs)) //nolint:gosec // G404: use of weak random is fine for load balancing
-	plog.Infof("LoadBalancer selects index(%d) - source %v for service %s", index, svcSrcs[index], svcFullName)
+	plog.Infof("LoadBalancer selects index(%d) - source %v for service %s", index, svcSrcs[index], svc)
 	return &svcSrcs[index]
 }
 
-func (lb *LoadBalancer) lookupECMP(svcFullName string, svcSrcs []crds.ImportSource) *crds.ImportSource {
-	index := lb.services[svcFullName].totalConnections % len(svcSrcs)
+func (lb *LoadBalancer) lookupECMP(svc types.NamespacedName, svcSrcs []crds.ImportSource) *crds.ImportSource {
+	index := lb.services[svc].totalConnections % len(svcSrcs)
 	plog.Infof("LoadBalancer selects index(%d) - service source %v", index, svcSrcs[index])
 	return &svcSrcs[index]
 }
 
-func (lb *LoadBalancer) lookupStatic(svcFullName string, svcSrcs []crds.ImportSource) *crds.ImportSource {
-	srcs := lb.services[svcFullName].impSources
+func (lb *LoadBalancer) lookupStatic(svc types.NamespacedName, svcSrcs []crds.ImportSource) *crds.ImportSource {
+	srcs := lb.services[svc].impSources
 	if len(srcs) == 0 { // shouldn't happen
-		plog.Errorf("No sources for service %s. Resorting to random.", svcFullName)
-		return lb.lookupRandom(svcFullName, svcSrcs)
+		plog.Errorf("No sources for service %s. Resorting to random.", svc)
+		return lb.lookupRandom(svc, svcSrcs)
 	}
 
 	defaultSrc := srcs[0]
@@ -135,8 +144,8 @@ func (lb *LoadBalancer) lookupStatic(svcFullName string, svcSrcs []crds.ImportSo
 	}
 
 	plog.Errorf("Default source for service %s does not exist. "+
-		"Falling back to other sources due to unavailability of default source", svcFullName)
-	return lb.lookupRandom(svcFullName, svcSrcs)
+		"Falling back to other sources due to unavailability of default source", svc)
+	return lb.lookupRandom(svc, svcSrcs)
 }
 
 // LookupWith decides which service-source to use for a given outgoing-connection request.
@@ -146,8 +155,7 @@ func (lb *LoadBalancer) LookupWith(svc types.NamespacedName, svcSrcs []crds.Impo
 		return nil, fmt.Errorf("no available sources for service %s", svc.String())
 	}
 
-	svcFullName := svc.String()
-	svcState, ok := lb.services[svcFullName]
+	svcState, ok := lb.services[svc]
 	if !ok {
 		return nil, fmt.Errorf("unknown target service %s", svc.String())
 	}
@@ -156,19 +164,19 @@ func (lb *LoadBalancer) LookupWith(svc types.NamespacedName, svcSrcs []crds.Impo
 
 	switch svcState.scheme {
 	case Random:
-		return lb.lookupRandom(svcFullName, svcSrcs), nil
+		return lb.lookupRandom(svc, svcSrcs), nil
 	case ECMP:
-		return lb.lookupECMP(svcFullName, svcSrcs), nil
+		return lb.lookupECMP(svc, svcSrcs), nil
 	case Static:
-		return lb.lookupStatic(svcFullName, svcSrcs), nil
+		return lb.lookupStatic(svc, svcSrcs), nil
 	default:
-		return lb.lookupRandom(svcFullName, svcSrcs), nil
+		return lb.lookupRandom(svc, svcSrcs), nil
 	}
 }
 
 // GetSvcSources returns all known sources for a given service in a slice of ImportSource objects.
 func (lb *LoadBalancer) GetSvcSources(svc types.NamespacedName) ([]crds.ImportSource, error) {
-	svcState, ok := lb.services[svc.String()]
+	svcState, ok := lb.services[svc]
 	if !ok || len(svcState.impSources) == 0 {
 		err := fmt.Errorf("no available sources for service %s", svc.String())
 		plog.Error(err.Error())
