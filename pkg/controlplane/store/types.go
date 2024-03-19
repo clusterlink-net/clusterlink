@@ -70,7 +70,7 @@ func NewExport(export *v1alpha1.Export) *Export {
 
 // Import represents an external service that can be bound to (multiple) exported services of remote peers.
 type Import struct {
-	api.ImportSpec
+	v1alpha1.ImportSpec
 	// Name of import.
 	Name string
 	// Version of the struct when object was created.
@@ -78,7 +78,7 @@ type Import struct {
 }
 
 // NewImport creates a new import.
-func NewImport(imp *api.Import) *Import {
+func NewImport(imp *v1alpha1.Import) *Import {
 	return &Import{
 		ImportSpec: imp.Spec,
 		Name:       imp.Name,

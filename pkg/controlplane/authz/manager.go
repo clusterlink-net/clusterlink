@@ -139,7 +139,6 @@ func (m *Manager) DeletePeer(name string) {
 // AddImport adds a listening socket for an imported remote service.
 func (m *Manager) AddImport(imp *v1alpha1.Import) {
 	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
-
 	m.policyDecider.AddImport(imp)
 }
 

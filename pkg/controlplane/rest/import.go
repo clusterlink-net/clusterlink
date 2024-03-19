@@ -21,7 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 )
@@ -31,33 +30,24 @@ type importHandler struct {
 }
 
 func toK8SImport(imp *store.Import, namespace string) *v1alpha1.Import {
-	sources := make([]v1alpha1.ImportSource, len(imp.Peers))
-	for i, pr := range imp.Peers {
-		sources[i].Peer = pr
-		sources[i].ExportName = imp.Name
-		sources[i].ExportNamespace = namespace
-	}
-
 	return &v1alpha1.Import{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imp.Name,
 			Namespace: namespace,
 		},
-		Spec: v1alpha1.ImportSpec{
-			Port:       imp.Port,
-			TargetPort: imp.TargetPort,
-			Sources:    sources,
-		},
+		Spec: imp.ImportSpec,
 	}
 }
 
-func importToAPI(imp *store.Import) *api.Import {
+func importToAPI(imp *store.Import) *v1alpha1.Import {
 	if imp == nil {
 		return nil
 	}
 
-	return &api.Import{
-		Name: imp.Name,
+	return &v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: imp.Name,
+		},
 		Spec: imp.ImportSpec,
 	}
 }
@@ -182,7 +172,7 @@ func (m *Manager) GetAllImports() []*store.Import {
 
 // Decode an import.
 func (h *importHandler) Decode(data []byte) (any, error) {
-	var imp api.Import
+	var imp v1alpha1.Import
 	if err := json.Unmarshal(data, &imp); err != nil {
 		return nil, fmt.Errorf("cannot decode import: %w", err)
 	}
@@ -195,8 +185,8 @@ func (h *importHandler) Decode(data []byte) (any, error) {
 		return nil, fmt.Errorf("missing service port")
 	}
 
-	if len(imp.Spec.Peers) == 0 {
-		return nil, fmt.Errorf("missing peers")
+	if len(imp.Spec.Sources) == 0 {
+		return nil, fmt.Errorf("missing sources")
 	}
 
 	return store.NewImport(&imp), nil
@@ -229,7 +219,7 @@ func (h *importHandler) Delete(name any) (any, error) {
 // List all imports.
 func (h *importHandler) List() (any, error) {
 	imports := h.manager.GetAllImports()
-	apiImports := make([]*api.Import, len(imports))
+	apiImports := make([]*v1alpha1.Import, len(imports))
 	for i, imp := range imports {
 		apiImports[i] = importToAPI(imp)
 	}
