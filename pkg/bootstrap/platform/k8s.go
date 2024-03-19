@@ -285,7 +285,7 @@ rules:
   resources: ["imports"]
   verbs: ["get", "list", "watch", "update"]
 - apiGroups: ["clusterlink.net"]
-  resources: ["peers/status", "exports/status"]
+  resources: ["imports/status", "exports/status", "peers/status"]
   verbs: ["update"]
 {{ end }}
 ---

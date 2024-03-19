@@ -30,6 +30,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
@@ -44,6 +45,8 @@ import (
 // - Import -> Listener (whose name starts with a designated prefix)
 // Note that imported service bindings are handled by the egress authz server.
 type Manager struct {
+	crdMode bool
+
 	clusters  *cache.LinearCache
 	listeners *cache.LinearCache
 
@@ -129,9 +132,9 @@ func (m *Manager) DeleteExport(name types.NamespacedName) error {
 func (m *Manager) AddImport(imp *v1alpha1.Import) error {
 	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
 
-	if imp.Spec.TargetPort == 0 {
+	if m.crdMode && !meta.IsStatusConditionTrue(imp.Status.Conditions, v1alpha1.ImportTargetPortValid) {
 		// target port not yet allocated, skip
-		m.logger.Infof("Skipping import with no target port '%s/%s'.", imp.Namespace, imp.Name)
+		m.logger.Infof("Skipping import with no valid target port '%s/%s'.", imp.Namespace, imp.Name)
 		return nil
 	}
 
@@ -280,10 +283,11 @@ func makeTCPProxyFilter(clusterName, statPrefix string,
 }
 
 // NewManager creates an uninitialized, non-registered xDS manager.
-func NewManager() *Manager {
+func NewManager(crdMode bool) *Manager {
 	logger := logrus.WithField("component", "controlplane.xds.manager")
 
 	return &Manager{
+		crdMode:   crdMode,
 		clusters:  cache.NewLinearCache(resource.ClusterType, cache.WithLogger(logger)),
 		listeners: cache.NewLinearCache(resource.ListenerType, cache.WithLogger(logger)),
 		logger:    logger,

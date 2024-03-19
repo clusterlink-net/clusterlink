@@ -71,6 +71,7 @@ rules:
   - clusterlink.net
   resources:
   - exports/status
+  - imports/status
   - peers/status
   verbs:
   - update
