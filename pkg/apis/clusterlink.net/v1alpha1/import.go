@@ -36,9 +36,9 @@ type ImportSource struct {
 	// Peer name where the exported service is defined.
 	Peer string `json:"peer"`
 	// ExportName is the name of the exported service.
-	ExportName string `json:"name"`
+	ExportName string `json:"exportName"`
 	// ExportNamespace is the namespace of the exported service.
-	ExportNamespace string `json:"namespace"`
+	ExportNamespace string `json:"exportNamespace"`
 }
 
 // ImportSpec contains all attributes of an imported service.

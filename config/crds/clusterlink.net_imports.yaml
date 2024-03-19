@@ -47,10 +47,10 @@ spec:
                 items:
                   description: ImportSource represents an addressable exported service.
                   properties:
-                    name:
+                    exportName:
                       description: ExportName is the name of the exported service.
                       type: string
-                    namespace:
+                    exportNamespace:
                       description: ExportNamespace is the namespace of the exported
                         service.
                       type: string
@@ -58,8 +58,8 @@ spec:
                       description: Peer name where the exported service is defined.
                       type: string
                   required:
-                  - name
-                  - namespace
+                  - exportName
+                  - exportNamespace
                   - peer
                   type: object
                 type: array
