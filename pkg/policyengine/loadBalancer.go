@@ -79,23 +79,6 @@ func (lb *LoadBalancer) DeleteImport(impName types.NamespacedName) {
 	delete(lb.services, impName.String())
 }
 
-// AddToServiceMap is being used by the CRUD interface and is now deprecated.
-func (lb *LoadBalancer) AddToServiceMap(serviceDst, peer string) {
-	importSrc := crds.ImportSource{Peer: peer, ExportName: serviceDst}
-	state, ok := lb.services[serviceDst]
-	if ok {
-		state.impSources = append(state.impSources, importSrc)
-	} else {
-		lb.services[serviceDst] = &serviceState{
-			scheme:           Random,
-			impSources:       []crds.ImportSource{importSrc},
-			totalConnections: 0,
-		}
-	}
-
-	llog.Infof("Remote serviceDst added %v->[%+v]", serviceDst, lb.services[serviceDst])
-}
-
 // SetPolicy is being used by the CRUD interface and is now deprecated.
 func (lb *LoadBalancer) SetPolicy(lbPolicy *LBPolicy) error {
 	plog.Infof("Set LB policy %+v", lbPolicy)
@@ -120,23 +103,6 @@ func (lb *LoadBalancer) DeletePolicy(lbPolicy *LBPolicy) error {
 	state.scheme = Random // back to default
 
 	return nil
-}
-
-// RemoveDestService is being used by the CRUD interface and is now deprecated.
-func (lb *LoadBalancer) RemoveDestService(serviceDst, peer string) {
-	state, ok := lb.services[serviceDst]
-	if !ok {
-		return
-	}
-
-	newSrcs := []crds.ImportSource{}
-	for _, src := range state.impSources {
-		if src.Peer != peer {
-			newSrcs = append(newSrcs, src)
-		}
-	}
-
-	state.impSources = newSrcs
 }
 
 func (lb *LoadBalancer) lookupRandom(svcFullName string, svcSrcs []crds.ImportSource) *crds.ImportSource {
