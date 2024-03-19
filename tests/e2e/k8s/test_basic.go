@@ -424,14 +424,14 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Equal(s.T(), str, cl[1].Name())
 
 		// make cl[2] the first peer, so static LB policy will choose it
-		imp.Spec.Peers = []string{cl[2].Name(), cl[1].Name()}
+		imp.Spec.Sources = []v1alpha1.ImportSource{{Peer: cl[2].Name()}, {Peer: cl[1].Name()}}
 		require.Nil(s.T(), client0.Imports.Update(&imp))
 
 		// verify no access after update
 		_, err = accessService(false, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 		// update LB policy back
-		imp.Spec.Peers = []string{cl[1].Name(), cl[2].Name()}
+		imp.Spec.Sources = []v1alpha1.ImportSource{{Peer: cl[1].Name()}, {Peer: cl[2].Name()}}
 		require.Nil(s.T(), client0.Imports.Update(&imp))
 		// verify access after update back
 		str, err = accessService(false, nil)
