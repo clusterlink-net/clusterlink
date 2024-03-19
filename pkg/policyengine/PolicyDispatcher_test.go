@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
@@ -266,20 +267,24 @@ func TestDisableEnablePeers(t *testing.T) {
 func addRemoteSvc(t *testing.T, svc, peer string, ph policyengine.PolicyDecider) {
 	t.Helper()
 	ph.AddPeer(peer) // just in case it was not already added
-	action := ph.AddImport(&api.Import{
-		Name: svc,
-		Spec: api.ImportSpec{
-			Peers: []string{peer},
+	action := ph.AddImport(&v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: svc,
+		},
+		Spec: v1alpha1.ImportSpec{
+			Sources: []v1alpha1.ImportSource{{Peer: peer}},
 		},
 	})
 	require.Equal(t, policytypes.ActionAllow, action)
 }
 
 func removeRemoteSvc(svc, peer string, ph policyengine.PolicyDecider) {
-	ph.DeleteImport(&api.Import{
-		Name: svc,
-		Spec: api.ImportSpec{
-			Peers: []string{peer},
+	ph.DeleteImport(&v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: svc,
+		},
+		Spec: v1alpha1.ImportSpec{
+			Sources: []v1alpha1.ImportSource{{Peer: peer}},
 		},
 	})
 }

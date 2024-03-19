@@ -60,8 +60,8 @@ func New(host string, port uint16, tlsConfig *tls.Config) *Client {
 		Imports: rest.NewClient(&rest.Config{
 			Client:       client,
 			BasePath:     "/imports",
-			SampleObject: api.Import{},
-			SampleList:   []api.Import{},
+			SampleObject: v1alpha1.Import{},
+			SampleList:   []v1alpha1.Import{},
 		}),
 		AccessPolicies: rest.NewClient(&rest.Config{
 			Client:       client,
