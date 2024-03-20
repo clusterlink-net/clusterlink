@@ -286,79 +286,67 @@ func (c *ClusterLink) DeleteExport(name string) error {
 }
 
 func (c *ClusterLink) CreateImport(service *Service, peer *ClusterLink, exportName string) error {
-	if c.crdMode {
-		return c.cluster.Resources().Create(
-			context.Background(),
-			&v1alpha1.Import{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      service.Name,
-					Namespace: c.namespace,
-				},
-				Spec: v1alpha1.ImportSpec{
-					Port: service.Port,
-					Sources: []v1alpha1.ImportSource{{
-						Peer:            peer.Name(),
-						ExportName:      exportName,
-						ExportNamespace: peer.Namespace(),
-					}},
-				},
-			})
+	imp := &v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      service.Name,
+			Namespace: c.namespace,
+		},
+		Spec: v1alpha1.ImportSpec{
+			Port: service.Port,
+			Sources: []v1alpha1.ImportSource{{
+				Peer:            peer.Name(),
+				ExportName:      exportName,
+				ExportNamespace: peer.Namespace(),
+			}},
+		},
 	}
 
-	return c.client.Imports.Create(&api.Import{
-		Name: service.Name,
-		Spec: api.ImportSpec{
-			Port:  service.Port,
-			Peers: []string{peer.Name()},
-		},
-	})
+	if c.crdMode {
+		return c.cluster.Resources().Create(context.Background(), imp)
+	}
+
+	return c.client.Imports.Create(imp)
 }
 
 func (c *ClusterLink) UpdateImport(service *Service, peer *ClusterLink, exportName string) error {
-	if c.crdMode {
-		return c.cluster.Resources().Update(
-			context.Background(),
-			&v1alpha1.Import{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      service.Name,
-					Namespace: c.namespace,
-				},
-				Spec: v1alpha1.ImportSpec{
-					Port: service.Port,
-					Sources: []v1alpha1.ImportSource{{
-						Peer:            peer.Name(),
-						ExportName:      exportName,
-						ExportNamespace: peer.Namespace(),
-					}},
-				},
-			})
+	imp := &v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      service.Name,
+			Namespace: c.namespace,
+		},
+		Spec: v1alpha1.ImportSpec{
+			Port: service.Port,
+			Sources: []v1alpha1.ImportSource{{
+				Peer:            peer.Name(),
+				ExportName:      exportName,
+				ExportNamespace: peer.Namespace(),
+			}},
+		},
 	}
 
-	return c.client.Imports.Update(&api.Import{
-		Name: service.Name,
-		Spec: api.ImportSpec{
-			Port:  service.Port,
-			Peers: []string{peer.Name()},
-		},
-	})
+	if c.crdMode {
+		return c.cluster.Resources().Update(context.Background(), imp)
+	}
+
+	return c.client.Imports.Update(imp)
 }
 
-func (c *ClusterLink) GetImport(name string) (*api.Import, error) {
+func (c *ClusterLink) GetImport(name string) (*v1alpha1.Import, error) {
 	res, err := c.client.Imports.Get(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return res.(*api.Import), nil
+	return res.(*v1alpha1.Import), nil
 }
 
-func (c *ClusterLink) GetAllImports() (*[]api.Import, error) {
+func (c *ClusterLink) GetAllImports() (*[]v1alpha1.Import, error) {
 	res, err := c.client.Imports.List()
 	if err != nil {
 		return nil, err
 	}
 
-	return res.(*[]api.Import), nil
+	return res.(*[]v1alpha1.Import), nil
 }
 
 func (c *ClusterLink) DeleteImport(name string) error {

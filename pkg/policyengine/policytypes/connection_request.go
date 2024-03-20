@@ -32,6 +32,7 @@ type ConnectionRequest struct {
 
 // ConnectionResponse encapsulates the returned decision on a given incoming incoming/outgoing connection.
 type ConnectionResponse struct {
-	Action  PolicyAction
-	DstPeer string
+	Action       PolicyAction
+	DstPeer      string
+	DstNamespace string
 }

@@ -35,6 +35,10 @@ spec:
           spec:
             description: Spec represents the attributes of the imported service.
             properties:
+              lbScheme:
+                description: LBScheme is the load-balancing scheme to use (e.g., Random,
+                  Static, ECMP)
+                type: string
               port:
                 description: Port of the imported service.
                 type: integer
@@ -64,6 +68,7 @@ spec:
                   (non user-facing) listening port used by the dataplane pods.
                 type: integer
             required:
+            - lbScheme
             - port
             - sources
             type: object

@@ -87,18 +87,20 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		client1 := cl[1].Client()
 
 		// test import API
-		imp := api.Import{
-			Name: "echo",
-			Spec: api.ImportSpec{
-				Port:  1234,
-				Peers: []string{cl[1].Name()},
+		imp := v1alpha1.Import{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "echo",
+			},
+			Spec: v1alpha1.ImportSpec{
+				Port:    1234,
+				Sources: []v1alpha1.ImportSource{{Peer: cl[1].Name()}},
 			},
 		}
 
 		// list imports when empty
 		objects, err := client0.Imports.List()
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), objects.(*[]api.Import))
+		require.Empty(s.T(), objects.(*[]v1alpha1.Import))
 
 		// get non-existing import
 		_, err = client0.Imports.Get(imp.Name)
@@ -130,16 +132,16 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// get import
 		objects, err = client0.Imports.Get(imp.Name)
 		require.Nil(s.T(), err)
-		importFromServer := *objects.(*api.Import)
+		importFromServer := *objects.(*v1alpha1.Import)
 		require.Equal(s.T(), importFromServer.Name, imp.Name)
 		require.Equal(s.T(), importFromServer.Spec.Port, imp.Spec.Port)
-		require.Equal(s.T(), importFromServer.Spec.Peers, imp.Spec.Peers)
+		require.Equal(s.T(), importFromServer.Spec.Sources, imp.Spec.Sources)
 		require.NotZero(s.T(), importFromServer.Spec.TargetPort)
 
 		// list imports
 		objects, err = client0.Imports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Import), []api.Import{importFromServer})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Import), []v1alpha1.Import{importFromServer})
 
 		// test peer API
 		peer := v1alpha1.Peer{
@@ -300,10 +302,8 @@ func (s *TestSuite) TestControlplaneCRUD() {
 
 		// test LB policy API
 		staticPolicy := &policyengine.LBPolicy{
-			ServiceSrc:  policyengine.Wildcard,
-			ServiceDst:  imp.Name,
-			Scheme:      policyengine.Static,
-			DefaultPeer: cl[1].Name(),
+			ServiceDst: s.fabric.Namespace() + "/" + imp.Name,
+			Scheme:     policyengine.Static,
 		}
 
 		data, err = json.Marshal(staticPolicy)
@@ -335,7 +335,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.NotNil(s.T(), client0.LBPolicies.Create(&lbPolicy))
 
 		// create false binding to verify LB policy
-		imp.Spec.Peers = append(imp.Spec.Peers, cl[2].Name())
+		imp.Spec.Sources = append(imp.Spec.Sources, v1alpha1.ImportSource{Peer: cl[2].Name()})
 		require.Nil(s.T(), client0.Imports.Update(&imp))
 
 		// verify access
@@ -423,23 +423,16 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Nil(s.T(), err)
 		require.Equal(s.T(), str, cl[1].Name())
 
-		// update LB policy
-		staticPolicy.DefaultPeer = cl[2].Name()
-		data, err = json.Marshal(staticPolicy)
-		require.Nil(s.T(), err)
-		oldPolicyBlob = lbPolicy.Spec.Blob
-		lbPolicy.Spec.Blob = data
-		require.Nil(s.T(), client0.LBPolicies.Update(&lbPolicy))
-		// get LB policy after update
-		objects, err = client0.LBPolicies.Get(lbPolicy.Name)
-		require.Nil(s.T(), err)
-		require.Equal(s.T(), objects.(*api.Policy).Spec, lbPolicy.Spec)
+		// make cl[2] the first peer, so static LB policy will choose it
+		imp.Spec.Sources = []v1alpha1.ImportSource{{Peer: cl[2].Name()}, {Peer: cl[1].Name()}}
+		require.Nil(s.T(), client0.Imports.Update(&imp))
+
 		// verify no access after update
 		_, err = accessService(false, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 		// update LB policy back
-		lbPolicy.Spec.Blob = oldPolicyBlob
-		require.Nil(s.T(), client0.LBPolicies.Update(&lbPolicy))
+		imp.Spec.Sources = []v1alpha1.ImportSource{{Peer: cl[1].Name()}, {Peer: cl[2].Name()}}
+		require.Nil(s.T(), client0.Imports.Update(&imp))
 		// verify access after update back
 		str, err = accessService(false, nil)
 		require.Nil(s.T(), err)
@@ -455,10 +448,13 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.ErrorIs(s.T(), err, &services.ServiceNotFoundError{})
 		// re-create import
 		require.Nil(s.T(), client0.Imports.Create(&imp))
+		// set LB policy again, as it is now attached to Import
+		require.Nil(s.T(), client0.LBPolicies.Delete(lbPolicy.Name))
+		require.Nil(s.T(), client0.LBPolicies.Create(&lbPolicy))
 		// re-get import from server
 		objects, err = client0.Imports.Get(imp.Name)
 		require.Nil(s.T(), err)
-		importFromServer = *objects.(*api.Import)
+		importFromServer = *objects.(*v1alpha1.Import)
 		// verify access after re-create
 		str, err = accessService(true, nil)
 		require.Nil(s.T(), err)
@@ -533,7 +529,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// verify imports after restart
 		objects, err = client0.Imports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Import), []api.Import{importFromServer})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Import), []v1alpha1.Import{importFromServer})
 
 		// verify peers after restart
 		objects, err = client0.Peers.List()
