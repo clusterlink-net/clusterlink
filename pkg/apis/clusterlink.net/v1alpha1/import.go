@@ -50,7 +50,8 @@ type ImportSpec struct {
 	TargetPort uint16 `json:"targetPort,omitempty"`
 	// Sources to import from.
 	Sources []ImportSource `json:"sources"`
-	// LBScheme is the load-balancing scheme to use (e.g., Random, Static, ECMP)
+	// +kubebuilder:default="ecmp"
+	// LBScheme is the load-balancing scheme to use (e.g., random, static, ecmp)
 	LBScheme string `json:"lbScheme"`
 	// TODO: Make LBScheme a proper type (when backwards compatibility is no longer needed)
 }
