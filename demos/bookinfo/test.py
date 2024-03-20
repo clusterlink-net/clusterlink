@@ -14,7 +14,7 @@
 
 ##############################################################################################
 # Name: Bookinfo
-# Info: support bookinfo application with gwctl inside the clusters 
+# Info: support bookinfo application with gwctl inside the clusters
 #       In this we create three kind clusters
 #       1) cluster1- contain gw, gwctl,product and details microservices (bookinfo services)
 #       2) cluster2- contain gw, gwctl, review-v2 and rating microservices (bookinfo services)
@@ -30,7 +30,7 @@ from demos.utils.common import runcmd, createFabric, printHeader,applyPeer
 from demos.utils.kind import cluster
 from demos.utils.k8s import getPodName,getPodIp
 
-   
+
 folpdct   = f"{projDir}/demos/bookinfo/manifests/product/"
 folReview = f"{projDir}/demos/bookinfo/manifests/review"
 allowAllPolicy =f"{projDir}/pkg/policyengine/policytypes/examples/allowAll.json"
@@ -43,24 +43,24 @@ review2pod    = "reviews-v2"
 review3pod    = "reviews-v3"
 
 # bookInfoDemo runs the bookinfo demo.
-def bookInfoDemo(cl1:cluster, cl2:cluster, cl3:cluster, testOutputFolder,logLevel="info" ,dataplane="envoy"):    
+def bookInfoDemo(cl1:cluster, cl2:cluster, cl3:cluster, testOutputFolder,logLevel="info" ,dataplane="envoy"):
     print(f'Working directory {projDir}')
     os.chdir(projDir)
-    ### build docker environment 
+    ### build docker environment
     printHeader("Build docker image")
     runcmd("make docker-build")
-    
-    # Create Kind clusters environment 
-    cl1.createCluster(runBg=True)        
-    cl2.createCluster(runBg=True)
-    cl3.createCluster(runBg=False)  
 
-    # Start Kind clusters environment 
-    createFabric(testOutputFolder) 
-    cl1.startCluster(testOutputFolder, logLevel, dataplane)        
-    cl2.startCluster(testOutputFolder, logLevel, dataplane)        
-    cl3.startCluster(testOutputFolder, logLevel, dataplane)        
-        
+    # Create Kind clusters environment
+    cl1.createCluster(runBg=True)
+    cl2.createCluster(runBg=True)
+    cl3.createCluster(runBg=False)
+
+    # Start Kind clusters environment
+    createFabric(testOutputFolder)
+    cl1.startCluster(testOutputFolder, logLevel, dataplane)
+    cl2.startCluster(testOutputFolder, logLevel, dataplane)
+    cl3.startCluster(testOutputFolder, logLevel, dataplane)
+
     # Get cl parameters
     cl1.useCluster()
     gwctl1Pod = getPodName("gwctl")
@@ -80,7 +80,7 @@ def bookInfoDemo(cl1:cluster, cl2:cluster, cl3:cluster, testOutputFolder,logLeve
     cl3.useCluster()
     cl3.loadService(reviewSvc, "maistra/examples-bookinfo-reviews-v3",f"{folReview}/review-v3.yaml")
     cl3.loadService("ratings", "maistra/examples-bookinfo-ratings-v1:0.12.0",f"{folReview}/rating.yaml")
-    
+
     # Add GW Peers
     printHeader("Add cl2, cl3 peer to cl1")
     cl1.useCluster()
@@ -93,7 +93,7 @@ def bookInfoDemo(cl1:cluster, cl2:cluster, cl3:cluster, testOutputFolder,logLeve
     printHeader("Add cl3 peer to cl1")
     runcmd(f'kubectl exec -i {gwctl3Pod} -- gwctl create peer --name {cl1.name} --host {cl1.ip} --port {cl1.port}')
 
-    # Set exports  
+    # Set exports
     cl1.useCluster()
     printHeader(f"create exports {srcSvc1} {srcSvc2}")
     runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create export --name {srcSvc1} --host {srcSvc1} --port {srcK8sSvcPort}')
@@ -103,7 +103,7 @@ def bookInfoDemo(cl1:cluster, cl2:cluster, cl3:cluster, testOutputFolder,logLeve
     review2Ip = f"{getPodIp(reviewSvc)}"
     review2Port = f"{srcK8sSvcPort}"
     runcmd(f'kubectl exec -i {gwctl2Pod} -- gwctl create export --name {reviewSvc} --host {review2Ip} --port {review2Port}')
-    
+
 
     cl3.useCluster()
     review3Ip = f"{getPodIp(reviewSvc)}"
@@ -114,13 +114,13 @@ def bookInfoDemo(cl1:cluster, cl2:cluster, cl3:cluster, testOutputFolder,logLeve
     cl1.useCluster()
     printHeader(f"\n\nStart import svc {reviewSvc}")
     runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl create import --name {reviewSvc} --port {srcK8sSvcPort} --peer {cl2.name} --peer {cl3.name}')
-    
+
     # Get services
     cl1.useCluster()
     printHeader("\n\nStart get service")
     runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl get import')
     runcmd(f'kubectl exec -i {gwctl1Pod} -- gwctl get policy')
-    
+
     # Set policies
     printHeader(f"\n\nApplying policy file {allowAllPolicy}")
     policyFile ="/tmp/allowAll.json"
@@ -138,11 +138,11 @@ def bookInfoDemo(cl1:cluster, cl2:cluster, cl3:cluster, testOutputFolder,logLeve
 def applyPolicy(cl:cluster, type):
     cl.useCluster()
     gwctlPod=getPodName("gwctl")
-    if type == "ecmp":
-        printHeader("Set ECMP poilicy")
-        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl create policy --type lb --serviceDst {reviewSvc} --gwDest peer2 --policy ecmp')
+    if type == "round-robin":
+        printHeader("Set round-robin poilicy")
+        runcmd(f'kubectl exec -i {gwctlPod} -- gwctl create policy --type lb --serviceDst {reviewSvc} --gwDest peer2 --policy round-robin')
     elif type == "same":
-        printHeader("Set same policy to all services")          
+        printHeader("Set same policy to all services")
         runcmd(f'kubectl exec -i {gwctlPod} -- gwctl create policy  --type lb --serviceDst {reviewSvc} --gwDest peer2 --policy static')
     elif type == "diff":
         runcmd(f'kubectl exec -i {gwctlPod} -- gwctl create policy --type lb --serviceSrc {srcSvc1} --serviceDst {reviewSvc} --gwDest peer2 --policy static')

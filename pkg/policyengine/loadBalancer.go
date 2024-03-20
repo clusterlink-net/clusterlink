@@ -29,9 +29,9 @@ var llog = logrus.WithField("component", "LoadBalancer")
 type LBScheme string
 
 const (
-	Random LBScheme = "random"
-	ECMP   LBScheme = "ecmp"
-	Static LBScheme = "static"
+	Random     LBScheme = "random"
+	RoundRobin LBScheme = "round-robin"
+	Static     LBScheme = "static"
 )
 
 // LBPolicy is being used by the CRUD interface, and is now deprecated.
@@ -120,7 +120,7 @@ func (lb *LoadBalancer) lookupRandom(svc types.NamespacedName, svcSrcs []crds.Im
 	return &svcSrcs[index]
 }
 
-func (lb *LoadBalancer) lookupECMP(svc types.NamespacedName, svcSrcs []crds.ImportSource) *crds.ImportSource {
+func (lb *LoadBalancer) lookupRoundRobin(svc types.NamespacedName, svcSrcs []crds.ImportSource) *crds.ImportSource {
 	index := lb.services[svc].totalConnections % len(svcSrcs)
 	plog.Infof("LoadBalancer selects index(%d) - service source %v", index, svcSrcs[index])
 	return &svcSrcs[index]
@@ -165,8 +165,8 @@ func (lb *LoadBalancer) LookupWith(svc types.NamespacedName, svcSrcs []crds.Impo
 	switch svcState.scheme {
 	case Random:
 		return lb.lookupRandom(svc, svcSrcs), nil
-	case ECMP:
-		return lb.lookupECMP(svc, svcSrcs), nil
+	case RoundRobin:
+		return lb.lookupRoundRobin(svc, svcSrcs), nil
 	case Static:
 		return lb.lookupStatic(svc, svcSrcs), nil
 	default:

@@ -79,7 +79,7 @@ func (o *policyOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.serviceSrc, "serviceSrc", "*", "Name of Source Service (* for wildcard)")
 	fs.StringVar(&o.serviceDst, "serviceDst", "*", "Name of Dest Service (* for wildcard)")
 	fs.StringVar(&o.gwDest, "gwDest", "*", "Name of gateway the dest service belongs to (* for wildcard)")
-	fs.StringVar(&o.policy, "policy", "random", "lb policy: random, ecmp, static")
+	fs.StringVar(&o.policy, "policy", "random", "lb policy: random, round-robin, static")
 	fs.StringVar(&o.policyFile, "policyFile", "", "File to load access policy from")
 }
 
@@ -195,7 +195,7 @@ func (o *policyDeleteOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.serviceSrc, "serviceSrc", "*", "Name of Source Service (* for wildcard)")
 	fs.StringVar(&o.serviceDst, "serviceDst", "*", "Name of Dest Service (* for wildcard)")
 	fs.StringVar(&o.gwDest, "gwDest", "*", "Name of gateway the dest service belongs to (* for wildcard)")
-	fs.StringVar(&o.policy, "policy", "random", "lb policy: random, ecmp, static")
+	fs.StringVar(&o.policy, "policy", "random", "lb policy: random, round-robin, static")
 	fs.StringVar(&o.policyFile, "policyFile", "", "File to load access policy from")
 }
 
