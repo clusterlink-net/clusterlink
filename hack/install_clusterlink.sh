@@ -50,6 +50,11 @@ current_path=$(pwd)/clusterlink
 
 install_path=${HOME}/.local/bin
 
+# If the install script is running in superuser context, change the install path
+if [ "$(id -u)" -eq 0 ]; then
+install_path=/usr/local/bin
+fi
+
 # Check if the .local/bin exists, if not, create it.
 if [ ! -d "$install_path" ]; then
     mkdir -p "$install_path" || { echo "Error: Failed to create directory $install_path"; exit 1; }
