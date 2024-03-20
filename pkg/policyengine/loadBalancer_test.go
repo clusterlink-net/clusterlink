@@ -170,7 +170,7 @@ func TestRoundRobin(t *testing.T) {
 
 	lbPolicy := policyengine.LBPolicy{
 		ServiceDst: svc1NS1.String(),
-		Scheme:     policyengine.ECMP,
+		Scheme:     policyengine.RoundRobin,
 	}
 	err := lb.SetPolicy(&lbPolicy)
 	require.Nil(t, err)

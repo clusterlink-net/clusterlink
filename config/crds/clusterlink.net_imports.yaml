@@ -36,9 +36,9 @@ spec:
             description: Spec represents the attributes of the imported service.
             properties:
               lbScheme:
-                default: ecmp
+                default: round-robin
                 description: LBScheme is the load-balancing scheme to use (e.g., random,
-                  static, ecmp)
+                  static, round-robin)
                 type: string
               port:
                 description: Port of the imported service.
