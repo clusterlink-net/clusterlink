@@ -1,4 +1,4 @@
-baseURL = "/"
+baseURL = "https://clusterlink.net/"
 title = "ClusterLink"
 
 # Language settings
@@ -181,20 +181,12 @@ enable = false
   desc = "Discuss development issues around the project"
 
 #-- main menu
-[[menu.main]]
-name = "About"
-weight = 1
-url = "/about/"
-
-[[menu.main]]
-name = "Docs"
-weight = 10
-url = "/docs/"
-pre = "<i class='fa-solid fa-book'></i>"
+# most sections are populated from markdown files and their front matter.
+# below add menu items that do not have associated content on the website
 
 [[menu.main]]
 name = "GitHub"
-weight = 20
+weight = 50
 url = "https://github.com/clusterlink-net/clusterlink/"
 pre = "<i class='fa-brands fa-github'></i>"
 

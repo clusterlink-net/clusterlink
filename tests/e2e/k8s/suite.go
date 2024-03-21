@@ -16,13 +16,16 @@ package k8s
 import (
 	"fmt"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 
 	"github.com/stretchr/testify/suite"
 	v1 "k8s.io/api/core/v1"
 
+	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
+	"github.com/clusterlink-net/clusterlink/pkg/operator/controller"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/httpecho"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/iperf3"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/util"
@@ -100,7 +103,15 @@ func (s *TestSuite) SetupSuite() {
 		}
 
 		// create the project operator.
-		if err := s.clusters[i].CreateFromPath("./../../../config/operator/manager/"); err != nil {
+		managerFile, err := os.ReadFile("./../../../config/operator/manager/manager.yaml")
+		if err != nil {
+			s.T().Fatal(fmt.Errorf("cannot create operator manage: %w", err))
+		}
+		// use local image for operator
+		localImage := "cl-operator:latest"
+		remoteImage := path.Join(config.DefaultRegistry, "cl-operator:latest")
+		managerModified := strings.ReplaceAll(string(managerFile), remoteImage, localImage)
+		if err := s.clusters[i].CreateFromYAML(managerModified, controller.OperatorNamespace); err != nil {
 			s.T().Fatal(fmt.Errorf("cannot create k8s operator deployment files: %w", err))
 		}
 

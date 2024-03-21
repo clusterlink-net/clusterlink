@@ -44,6 +44,8 @@ type Config struct {
 	LogLevel string
 	// ContainerRegistry is the container registry to pull the project images.
 	ContainerRegistry string
+	// Tag represents the tag of the project images.
+	Tag string
 	// IngressType is the type of ingress to create.
 	IngressType string
 	// IngressPort is the ingress port number to create.

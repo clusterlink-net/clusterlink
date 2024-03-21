@@ -28,6 +28,8 @@ type Export struct {
 
 	// Spec represents the attributes of the exported service.
 	Spec ExportSpec `json:"spec,omitempty"`
+	// Status represents the export status.
+	Status ExportStatus `json:"status,omitempty"`
 }
 
 // ExportSpec contains all attributes of an exported service.
@@ -40,9 +42,15 @@ type ExportSpec struct {
 	Port uint16 `json:"port,omitempty"`
 }
 
+const (
+	// ExportValid is a condition type for indicating whether the export is valid.
+	ExportValid string = "ExportValid"
+)
+
 // ExportStatus represents the status of an exported service.
 type ExportStatus struct {
-	// TODO: add fields
+	// Conditions of the export.
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -17,6 +17,7 @@ import (
 	"context"
 
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
@@ -34,6 +35,34 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager) error {
 		},
 		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
 			mgr.DeletePeer(name.Name)
+			return nil
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = controller.AddToManager(controllerManager, &controller.Spec{
+		Name:   "control.service",
+		Object: &v1.Service{},
+		AddHandler: func(ctx context.Context, object any) error {
+			return mgr.addService(ctx, object.(*v1.Service))
+		},
+		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+			return mgr.deleteService(ctx, name)
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = controller.AddToManager(controllerManager, &controller.Spec{
+		Name:   "control.export",
+		Object: &v1alpha1.Export{},
+		AddHandler: func(ctx context.Context, object any) error {
+			return mgr.addExport(ctx, object.(*v1alpha1.Export))
+		},
+		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
 			return nil
 		},
 	})

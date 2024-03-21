@@ -37,18 +37,19 @@ func (s *TestSuite) TestPerformance() {
 		cl, err := s.fabric.DeployClusterlinks(2, cfg)
 		require.Nil(s.T(), err)
 
-		require.Nil(s.T(), cl[0].CreateExport("iperf3", &iperf3Service))
-		require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
+		require.Nil(s.T(), cl[0].CreateService(&iperf3Service))
+		require.Nil(s.T(), cl[0].CreateExport(&iperf3Service))
+		require.Nil(s.T(), cl[0].CreateAccessPolicy(util.AccessPolicyAllowAll))
 		require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
 
 		importedService := &util.Service{
-			Name:      "iperf3",
+			Name:      iperf3Service.Name,
 			Namespace: cl[1].Namespace(),
 			Port:      80,
 		}
-		require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
+		require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], iperf3Service.Name))
 
-		require.Nil(s.T(), cl[1].CreatePolicy(util.PolicyAllowAll))
+		require.Nil(s.T(), cl[1].CreateAccessPolicy(util.AccessPolicyAllowAll))
 
 		bps, err := iperf3.RunClient(cl[1].Cluster(), importedService)
 		require.Nil(s.T(), err)

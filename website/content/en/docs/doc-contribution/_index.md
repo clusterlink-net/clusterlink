@@ -4,8 +4,8 @@ weight: 60
 description: How to contribute to the website
 ---
 
-We use [Hugo](https://gohugo.io/) to format and generate our website, the
- [Docsy](https://github.com/google/docsy) theme for styling and site structure,
+We use [Hugo](https://gohugo.io/) to format and generate our [website](https://clusterlink.net),
+ the [Docsy](https://github.com/google/docsy) theme for styling and site structure,
  and [Netlify](https://www.netlify.com/) to manage the deployment of the site.
  Hugo is an open-source static site generator that provides us with templates,
  content organization in a standard directory structure, and a website generation
@@ -31,9 +31,9 @@ Here's a quick guide to updating the docs. It assumes you're familiar with the
   "draft = true" to the page front matter, because that prevents the
   auto-deployment of the content preview described in the next point).
 1. Wait for the automated PR workflow to do some checks. When it's ready,
-  you should see a comment like this: **deploy/netlify — Deploy preview ready!**
-1. Click **Details** to the right of "Deploy preview ready" to see a preview
-  of your updates.
+  you should see a check named like this: **Pages changed - clusterlink-net**
+1. Click **Details** to the right of "Pages changed" to see a preview
+  of your updates. Previews will be deployed to `https://deploy-preview-<PR#>--clusterlink-net.netlify.app/`
 1. Continue updating your doc and pushing your changes until you're happy with
   the content.
 1. When you are ready for a review, add a comment to the PR, and remove any
@@ -62,7 +62,7 @@ If you want to run your own local Hugo server to preview your changes as you wor
  and any other tools you need. You'll need at least **Hugo version 0.110** (we recommend
  using the most recent available version), and it must be the **extended** version,
  which supports SCSS.
-1. Run `hugo server` in the `website` directory. By default your site will be available
+1. Run `hugo server --gc` in the `website` directory. By default your site will be available
  at http://localhost:1313/. Now that you're serving your site locally, Hugo will watch
  for changes to the content and automatically refresh your site.
 1. Continue with the usual GitHub workflow to edit files, commit them, push the

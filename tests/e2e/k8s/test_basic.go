@@ -18,8 +18,10 @@ import (
 	"fmt"
 
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
@@ -29,12 +31,11 @@ import (
 
 func (s *TestSuite) TestConnectivityCRD() {
 	s.RunOnAllDataplaneTypes(func(cfg *util.PeerConfig) {
-		cfg.CRDMode = true
 		cl, err := s.fabric.DeployClusterlinks(2, cfg)
 		require.Nil(s.T(), err)
 
 		require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
-		require.Nil(s.T(), cl[0].CreateExport("dontcare", &httpEchoService))
+		require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
 		require.Nil(s.T(), cl[0].CreateAccessPolicy(util.AccessPolicyAllowAll))
 		require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
 		require.Nil(s.T(), cl[1].CreateAccessPolicy(util.AccessPolicyAllowAll))
@@ -53,15 +54,17 @@ func (s *TestSuite) TestConnectivityCRD() {
 
 func (s *TestSuite) TestConnectivity() {
 	s.RunOnAllDataplaneTypes(func(cfg *util.PeerConfig) {
+		cfg.CRUDMode = true
 		cl, err := s.fabric.DeployClusterlinks(2, cfg)
 		require.Nil(s.T(), err)
 
-		require.Nil(s.T(), cl[0].CreateExport("echo", &httpEchoService))
+		require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
+		require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
 		require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
 		require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
 
 		importedService := &util.Service{
-			Name: "echo",
+			Name: httpEchoService.Name,
 			Port: 80,
 		}
 		require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
@@ -77,6 +80,7 @@ func (s *TestSuite) TestConnectivity() {
 func (s *TestSuite) TestControlplaneCRUD() {
 	s.RunOnAllDataplaneTypes(func(cfg *util.PeerConfig) {
 		cfg.ControlplanePersistency = true
+		cfg.CRUDMode = true
 		cl, err := s.fabric.DeployClusterlinks(3, cfg)
 		require.Nil(s.T(), err)
 
@@ -84,18 +88,20 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		client1 := cl[1].Client()
 
 		// test import API
-		imp := api.Import{
-			Name: "echo",
-			Spec: api.ImportSpec{
-				Port:  1234,
-				Peers: []string{cl[1].Name()},
+		imp := v1alpha1.Import{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "echo",
+			},
+			Spec: v1alpha1.ImportSpec{
+				Port:    1234,
+				Sources: []v1alpha1.ImportSource{{Peer: cl[1].Name()}},
 			},
 		}
 
 		// list imports when empty
 		objects, err := client0.Imports.List()
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), objects.(*[]api.Import))
+		require.Empty(s.T(), objects.(*[]v1alpha1.Import))
 
 		// get non-existing import
 		_, err = client0.Imports.Get(imp.Name)
@@ -127,22 +133,24 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// get import
 		objects, err = client0.Imports.Get(imp.Name)
 		require.Nil(s.T(), err)
-		importFromServer := *objects.(*api.Import)
+		importFromServer := *objects.(*v1alpha1.Import)
 		require.Equal(s.T(), importFromServer.Name, imp.Name)
 		require.Equal(s.T(), importFromServer.Spec.Port, imp.Spec.Port)
-		require.Equal(s.T(), importFromServer.Spec.Peers, imp.Spec.Peers)
+		require.Equal(s.T(), importFromServer.Spec.Sources, imp.Spec.Sources)
 		require.NotZero(s.T(), importFromServer.Spec.TargetPort)
 
 		// list imports
 		objects, err = client0.Imports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Import), []api.Import{importFromServer})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Import), []v1alpha1.Import{importFromServer})
 
 		// test peer API
-		peer := api.Peer{
-			Name: cl[1].Name(),
-			Spec: api.PeerSpec{
-				Gateways: []api.Endpoint{{
+		peer := v1alpha1.Peer{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: cl[1].Name(),
+			},
+			Spec: v1alpha1.PeerSpec{
+				Gateways: []v1alpha1.Endpoint{{
 					Host: cl[1].IP(),
 					Port: cl[1].Port(),
 				}},
@@ -152,7 +160,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// list peers when empty
 		objects, err = client0.Peers.List()
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), objects.(*[]api.Peer))
+		require.Empty(s.T(), objects.(*[]v1alpha1.Peer))
 
 		// get non-existing peer
 		_, err = client0.Peers.Get(peer.Name)
@@ -174,24 +182,23 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// get peer
 		objects, err = client0.Peers.Get(peer.Name)
 		require.Nil(s.T(), err)
-		peerFromServer := *objects.(*api.Peer)
+		peerFromServer := *objects.(*v1alpha1.Peer)
 		require.Equal(s.T(), peerFromServer.Name, peer.Name)
 		require.Equal(s.T(), peerFromServer.Spec, peer.Spec)
-		require.Equal(s.T(), peerFromServer.Status, api.PeerStatus{
-			State:    "",
-			LastSeen: "",
-		})
+		require.Equal(s.T(), peerFromServer.Status, v1alpha1.PeerStatus{})
 
 		// list peers
 		objects, err = client0.Peers.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Peer), []api.Peer{peerFromServer})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Peer), []v1alpha1.Peer{peerFromServer})
 
 		// add another peer (for upcoming load-balancing test)
-		peer2 := api.Peer{
-			Name: cl[2].Name(),
-			Spec: api.PeerSpec{
-				Gateways: []api.Endpoint{{
+		peer2 := v1alpha1.Peer{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: cl[2].Name(),
+			},
+			Spec: v1alpha1.PeerSpec{
+				Gateways: []v1alpha1.Endpoint{{
 					Host: cl[2].IP(),
 					Port: cl[2].Port(),
 				}},
@@ -243,22 +250,22 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.ElementsMatch(s.T(), *objects.(*[]api.Policy), []api.Policy{policy})
 
 		// test export API
-		export := api.Export{
-			Name: imp.Name,
-			Spec: api.ExportSpec{
-				Service: api.Endpoint{
-					Host: fmt.Sprintf(
-						"%s.%s.svc.cluster.local",
-						httpEchoService.Name, httpEchoService.Namespace),
-					Port: httpEchoService.Port,
-				},
+		export := v1alpha1.Export{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: imp.Name,
+			},
+			Spec: v1alpha1.ExportSpec{
+				Host: fmt.Sprintf(
+					"%s.%s.svc.cluster.local",
+					httpEchoService.Name, httpEchoService.Namespace),
+				Port: httpEchoService.Port,
 			},
 		}
 
 		// list exports when empty
 		objects, err = client1.Exports.List()
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), objects.(*[]api.Export))
+		require.Empty(s.T(), objects.(*[]v1alpha1.Export))
 
 		// get non-existing export
 		_, err = client1.Exports.Get(export.Name)
@@ -280,12 +287,12 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// get export
 		objects, err = client1.Exports.Get(export.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), *objects.(*api.Export), export)
+		require.Equal(s.T(), *objects.(*v1alpha1.Export), export)
 
 		// list exports
 		objects, err = client1.Exports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Export), []api.Export{export})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Export), []v1alpha1.Export{export})
 
 		// allow export to be accessed
 		require.Nil(s.T(), client1.AccessPolicies.Create(&policy))
@@ -296,10 +303,8 @@ func (s *TestSuite) TestControlplaneCRUD() {
 
 		// test LB policy API
 		staticPolicy := &policyengine.LBPolicy{
-			ServiceSrc:  policyengine.Wildcard,
-			ServiceDst:  imp.Name,
-			Scheme:      policyengine.Static,
-			DefaultPeer: cl[1].Name(),
+			ServiceDst: s.fabric.Namespace() + "/" + imp.Name,
+			Scheme:     policyengine.Static,
 		}
 
 		data, err = json.Marshal(staticPolicy)
@@ -331,7 +336,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.NotNil(s.T(), client0.LBPolicies.Create(&lbPolicy))
 
 		// create false binding to verify LB policy
-		imp.Spec.Peers = append(imp.Spec.Peers, cl[2].Name())
+		imp.Spec.Sources = append(imp.Spec.Sources, v1alpha1.ImportSource{Peer: cl[2].Name()})
 		require.Nil(s.T(), client0.Imports.Update(&imp))
 
 		// verify access
@@ -366,7 +371,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// get peer after update
 		objects, err = client0.Peers.Get(peer.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), objects.(*api.Peer).Spec, peer.Spec)
+		require.Equal(s.T(), objects.(*v1alpha1.Peer).Spec, peer.Spec)
 		// verify no access after update
 		_, err = accessService(true, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
@@ -402,40 +407,33 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Equal(s.T(), str, cl[1].Name())
 
 		// update export
-		export.Spec.Service.Port++
+		export.Spec.Port++
 		require.Nil(s.T(), client1.Exports.Update(&export))
 		// get export after update
 		objects, err = client1.Exports.Get(export.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), objects.(*api.Export).Spec, export.Spec)
+		require.Equal(s.T(), objects.(*v1alpha1.Export).Spec, export.Spec)
 		// verify no access after update
 		_, err = accessService(true, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 		// update export back
-		export.Spec.Service.Port--
+		export.Spec.Port--
 		require.Nil(s.T(), client1.Exports.Update(&export))
 		// verify access after update back
 		str, err = accessService(true, nil)
 		require.Nil(s.T(), err)
 		require.Equal(s.T(), str, cl[1].Name())
 
-		// update LB policy
-		staticPolicy.DefaultPeer = cl[2].Name()
-		data, err = json.Marshal(staticPolicy)
-		require.Nil(s.T(), err)
-		oldPolicyBlob = lbPolicy.Spec.Blob
-		lbPolicy.Spec.Blob = data
-		require.Nil(s.T(), client0.LBPolicies.Update(&lbPolicy))
-		// get LB policy after update
-		objects, err = client0.LBPolicies.Get(lbPolicy.Name)
-		require.Nil(s.T(), err)
-		require.Equal(s.T(), objects.(*api.Policy).Spec, lbPolicy.Spec)
+		// make cl[2] the first peer, so static LB policy will choose it
+		imp.Spec.Sources = []v1alpha1.ImportSource{{Peer: cl[2].Name()}, {Peer: cl[1].Name()}}
+		require.Nil(s.T(), client0.Imports.Update(&imp))
+
 		// verify no access after update
 		_, err = accessService(false, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 		// update LB policy back
-		lbPolicy.Spec.Blob = oldPolicyBlob
-		require.Nil(s.T(), client0.LBPolicies.Update(&lbPolicy))
+		imp.Spec.Sources = []v1alpha1.ImportSource{{Peer: cl[1].Name()}, {Peer: cl[2].Name()}}
+		require.Nil(s.T(), client0.Imports.Update(&imp))
 		// verify access after update back
 		str, err = accessService(false, nil)
 		require.Nil(s.T(), err)
@@ -451,10 +449,13 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.ErrorIs(s.T(), err, &services.ServiceNotFoundError{})
 		// re-create import
 		require.Nil(s.T(), client0.Imports.Create(&imp))
+		// set LB policy again, as it is now attached to Import
+		require.Nil(s.T(), client0.LBPolicies.Delete(lbPolicy.Name))
+		require.Nil(s.T(), client0.LBPolicies.Create(&lbPolicy))
 		// re-get import from server
 		objects, err = client0.Imports.Get(imp.Name)
 		require.Nil(s.T(), err)
-		importFromServer = *objects.(*api.Import)
+		importFromServer = *objects.(*v1alpha1.Import)
 		// verify access after re-create
 		str, err = accessService(true, nil)
 		require.Nil(s.T(), err)
@@ -529,12 +530,12 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// verify imports after restart
 		objects, err = client0.Imports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Import), []api.Import{importFromServer})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Import), []v1alpha1.Import{importFromServer})
 
 		// verify peers after restart
 		objects, err = client0.Peers.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Peer), []api.Peer{peerFromServer, peer2})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Peer), []v1alpha1.Peer{peerFromServer, peer2})
 
 		// verify access policies after restart
 		objects, err = client0.AccessPolicies.List()
@@ -544,7 +545,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// verify exports after restart
 		objects, err = client1.Exports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Export), []api.Export{export})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Export), []v1alpha1.Export{export})
 
 		// verify lb policies after restart
 		objects, err = client0.LBPolicies.List()
