@@ -36,6 +36,7 @@ func (s *TestSuite) TestOperator() {
 	cfg := &util.PeerConfig{
 		DataplaneType:      platform.DataplaneTypeEnvoy,
 		Dataplanes:         1,
+		CRDMode:            true,
 		DeployWithOperator: true,
 	}
 	cl, err := s.fabric.DeployClusterlinks(2, cfg)
@@ -61,16 +62,16 @@ func (s *TestSuite) TestOperator() {
 	require.Nil(s.T(), err)
 	require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
 	require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
-	require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
+	require.Nil(s.T(), cl[0].CreateAccessPolicy(util.AccessPolicyAllowAll))
 	require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
 
 	importedService := &util.Service{
 		Name: httpEchoService.Name,
 		Port: 80,
 	}
-	require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
 
-	require.Nil(s.T(), cl[1].CreatePolicy(util.PolicyAllowAll))
+	require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
+	require.Nil(s.T(), cl[1].CreateAccessPolicy(util.AccessPolicyAllowAll))
 
 	data, err := cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
 	require.Nil(s.T(), err)
@@ -116,7 +117,9 @@ func (s *TestSuite) TestOperator() {
 	// Delete first instance.
 	err = peerResource.Delete(context.Background(), instance1)
 	require.Nil(s.T(), err)
-
+	// Check failure to access service after deletion
+	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
+	require.Equal(s.T(), &services.ConnectionResetError{}, err)
 	// Check that instance2 succeeded.
 	err = wait.For(instanceReadyCondition(instance2, v1.ConditionTrue), wait.WithTimeout(time.Second*60))
 	require.Nil(s.T(), err)
@@ -125,15 +128,8 @@ func (s *TestSuite) TestOperator() {
 	require.Equal(s.T(), v1.ConditionTrue, instance2.Status.Controlplane.Conditions[string(clusterlink.DeploymentReady)].Status)
 	require.Equal(s.T(), v1.ConditionTrue, instance2.Status.Dataplane.Conditions[string(clusterlink.DeploymentReady)].Status)
 	require.Equal(s.T(), v1.ConditionTrue, instance2.Status.Ingress.Conditions[string(clusterlink.ServiceReady)].Status)
-	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
-	require.Equal(s.T(), &services.ConnectionResetError{}, err)
 
-	if cfg.CRDMode {
-		require.Nil(s.T(), cl[0].WaitForControlplaneAPI())
-	}
-
-	require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
-	require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
+	// Check access service in the new instance
 	data, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), cl[0].Name(), data)
