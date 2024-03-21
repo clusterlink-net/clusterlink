@@ -153,6 +153,7 @@ func (pH *PolicyHandler) decideOutgoingConnection(
 	return connectivitypdp.ConnectionResponse{
 		Action:       crds.AccessPolicyActionAllow,
 		DstPeer:      tgt.Peer,
+		DstName:      tgt.ExportName,
 		DstNamespace: tgt.ExportNamespace,
 	}, nil
 }

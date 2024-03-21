@@ -65,11 +65,11 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// test import API
 		imp := v1alpha1.Import{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "echo",
+				Name: httpEchoService.Name,
 			},
 			Spec: v1alpha1.ImportSpec{
 				Port:    1234,
-				Sources: []v1alpha1.ImportSource{{Peer: cl[1].Name()}},
+				Sources: []v1alpha1.ImportSource{{Peer: cl[1].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[1].Namespace()}},
 			},
 		}
 
@@ -311,7 +311,8 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.NotNil(s.T(), client0.LBPolicies.Create(&lbPolicy))
 
 		// create false binding to verify LB policy
-		imp.Spec.Sources = append(imp.Spec.Sources, v1alpha1.ImportSource{Peer: cl[2].Name()})
+		imp.Spec.Sources = append(imp.Spec.Sources,
+			v1alpha1.ImportSource{Peer: cl[2].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[2].Namespace()})
 		require.Nil(s.T(), client0.Imports.Update(&imp))
 
 		// verify access
@@ -400,14 +401,20 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Equal(s.T(), str, cl[1].Name())
 
 		// make cl[2] the first peer, so static LB policy will choose it
-		imp.Spec.Sources = []v1alpha1.ImportSource{{Peer: cl[2].Name()}, {Peer: cl[1].Name()}}
+		imp.Spec.Sources = []v1alpha1.ImportSource{
+			{Peer: cl[2].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[2].Namespace()},
+			{Peer: cl[1].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[1].Namespace()},
+		}
 		require.Nil(s.T(), client0.Imports.Update(&imp))
 
 		// verify no access after update
 		_, err = accessService(false, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 		// update LB policy back
-		imp.Spec.Sources = []v1alpha1.ImportSource{{Peer: cl[1].Name()}, {Peer: cl[2].Name()}}
+		imp.Spec.Sources = []v1alpha1.ImportSource{
+			{Peer: cl[1].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[1].Namespace()},
+			{Peer: cl[2].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[2].Namespace()},
+		}
 		require.Nil(s.T(), client0.Imports.Update(&imp))
 		// verify access after update back
 		str, err = accessService(false, nil)
