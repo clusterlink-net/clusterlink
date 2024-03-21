@@ -25,7 +25,7 @@ from demos.utils.kind import cluster
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('-p','--peer', help='Either peer1/peer2/peer3', required=False, default="peer1")
-    parser.add_argument('-t','--type', help='Either ecmp/same/diff/clean/show', required=False, default="ecmp")
+    parser.add_argument('-t','--type', help='Either round-robin/same/diff/clean/show', required=False, default="round-robin")
 
     args = vars(parser.parse_args())
     print(f'Working directory {projDir}')
