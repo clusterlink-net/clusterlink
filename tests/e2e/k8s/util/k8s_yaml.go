@@ -55,7 +55,7 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 	}
 
 	k8sYAMLBytes, err := platform.K8SConfig(&platform.Config{
-		CRDMode:                 cfg.CRDMode,
+		CRDMode:                 !cfg.CRUDMode,
 		Peer:                    p.cluster.Name(),
 		FabricCertificate:       f.cert,
 		PeerCertificate:         p.peerCert,
@@ -90,7 +90,7 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 		return "", fmt.Errorf("cannot switch ClusterRoleBinding name: %w", err)
 	}
 
-	if !cfg.CRDMode {
+	if cfg.CRUDMode {
 		k8sYAML, err = removeGWCTLPod(k8sYAML)
 		if err != nil {
 			return "", fmt.Errorf("cannot remove gwctl pod: %w", err)

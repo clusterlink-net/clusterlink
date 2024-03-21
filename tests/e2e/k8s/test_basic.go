@@ -31,7 +31,6 @@ import (
 
 func (s *TestSuite) TestConnectivityCRD() {
 	s.RunOnAllDataplaneTypes(func(cfg *util.PeerConfig) {
-		cfg.CRDMode = true
 		cl, err := s.fabric.DeployClusterlinks(2, cfg)
 		require.Nil(s.T(), err)
 
@@ -55,6 +54,7 @@ func (s *TestSuite) TestConnectivityCRD() {
 
 func (s *TestSuite) TestConnectivity() {
 	s.RunOnAllDataplaneTypes(func(cfg *util.PeerConfig) {
+		cfg.CRUDMode = true
 		cl, err := s.fabric.DeployClusterlinks(2, cfg)
 		require.Nil(s.T(), err)
 
@@ -80,6 +80,7 @@ func (s *TestSuite) TestConnectivity() {
 func (s *TestSuite) TestControlplaneCRUD() {
 	s.RunOnAllDataplaneTypes(func(cfg *util.PeerConfig) {
 		cfg.ControlplanePersistency = true
+		cfg.CRUDMode = true
 		cl, err := s.fabric.DeployClusterlinks(3, cfg)
 		require.Nil(s.T(), err)
 
