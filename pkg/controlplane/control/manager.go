@@ -15,8 +15,9 @@ package control
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
+
+	//nolint:gosec // G505: use of weak cryptographic primitive is fine for service name
+	"crypto/md5"
 	"errors"
 	"fmt"
 	"sync"
@@ -28,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/strings"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -180,6 +182,7 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imp.Name,
 			Namespace: imp.Namespace,
+			Labels:    make(map[string]string),
 		},
 		Spec: v1.ServiceSpec{
 			ExternalName: fmt.Sprintf("%s.%s.svc.cluster.local", serviceName, m.namespace),
@@ -498,7 +501,14 @@ func checkServiceLabels(service *v1.Service, importName types.NamespacedName) er
 }
 
 func systemServiceName(name types.NamespacedName) string {
-	return "import-" + hex.EncodeToString(sha256.New().Sum([]byte(name.Namespace+"/"+name.Name)))
+	//nolint:gosec // G401: use of weak cryptographic primitive is fine for service name
+	hash := md5.New()
+	hash.Write([]byte(name.Namespace + "/" + name.Name))
+	return fmt.Sprintf(
+		"import-%s-%s-%x",
+		strings.ShortenString(name.Name, 10),
+		strings.ShortenString(name.Namespace, 10),
+		hash.Sum(nil))
 }
 
 func serviceChanged(svc1, svc2 *v1.Service) bool {
