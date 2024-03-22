@@ -22,7 +22,7 @@ dist: ; $(info creating dist directory...)
 #-- development tooling --
 .PHONY: prereqs prereqs-force
 
-prereqs: ; $(info installing dev tooling...) 
+prereqs: ; $(info installing dev tooling...)
 	@. ./hack/install-devtools.sh
 
 prereqs-force: ; $(info force installing dev tooling...)
@@ -74,7 +74,7 @@ copr-fix: ; $(info adding copyright header...)
 #------------------------------------------------------
 GO ?= CGO_ENABLED=0 go
 # Allow setting of go build flags from the command line.
-GOFLAGS := 
+GOFLAGS :=
 BIN_DIR := ./bin
 LDFLAGS := -ldflags "-X github.com/clusterlink-net/clusterlink/pkg/versioninfo.GitTag=$(shell git describe --tags --abbrev=0)"
 LDFLAGS_OPERATOR:=$(LDFLAGS) \
@@ -147,7 +147,7 @@ clean-tests:
 #------------------------------------------------------
 # Envtest use for checking the deployment operator
 ENVTEST ?= $(GOBIN)/setup-envtest
-ENVTEST_VERSION ?= latest
+ENVTEST_VERSION ?= 395cfc7
 ENVTEST_K8S_VERSION = 1.28.0
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
