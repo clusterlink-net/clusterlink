@@ -42,7 +42,7 @@ type PolicyDecider interface {
 	DeleteLBPolicy(policy *api.Policy) error
 
 	AddAccessPolicy(policy *api.Policy) error
-	DeleteAccessPolicy(policy *api.Policy) error
+	DeleteAccessPolicy(name string) error
 
 	AuthorizeAndRouteConnection(connReq *connectivitypdp.ConnectionRequest) (connectivitypdp.ConnectionResponse, error)
 
@@ -255,10 +255,7 @@ func (pH *PolicyHandler) AddAccessPolicy(policy *api.Policy) error {
 	return pH.connectivityPDP.AddOrUpdatePolicy(connPolicy)
 }
 
-func (pH *PolicyHandler) DeleteAccessPolicy(policy *api.Policy) error {
-	connPolicy, err := connPolicyFromBlob(policy.Spec.Blob)
-	if err != nil {
-		return err
-	}
-	return pH.connectivityPDP.DeletePolicy(connPolicy.Name, connPolicy.Spec.Privileged)
+func (pH *PolicyHandler) DeleteAccessPolicy(name string) error {
+	nonPrivileged := false
+	return pH.connectivityPDP.DeletePolicy(name, nonPrivileged)
 }
