@@ -4,8 +4,8 @@
 .PHONY: module_update build clean serve serve-dev
 
 module_update:
-	@hugo mod clean
-	@hugo mod get
+	@hugo mod get -u ./...
+	@hugo mod tidy
 
 build:
 	@hugo
