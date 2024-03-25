@@ -1,18 +1,14 @@
 name: Hugo Link Check
 
 on:
-  pull_request:    
+  pull_request:
+    branches: ["main"]   
   workflow_dispatch:
 
 jobs:
   linkcheck:
     runs-on: ubuntu-latest
     steps:
-      - name: Filter to PR Open/Synced
-        uses: actions/bin/filter@main
-        with:
-          args: action 'opened|synchronize'
-
       - name: Run Hugo Link Check
         uses: marccampbell/hugo-linkcheck-action@v0.1.3
         env:
