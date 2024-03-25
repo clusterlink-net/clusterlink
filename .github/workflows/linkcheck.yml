@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Filter to PR Open/Synced
-        uses: actions/bin/filter@master
+        uses: actions/bin/filter@main
         with:
           args: action 'opened|synchronize'
 
