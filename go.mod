@@ -1,6 +1,8 @@
 module github.com/clusterlink-net/clusterlink
 
-go 1.20
+go 1.21
+
+toolchain go1.22.1
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
@@ -8,6 +10,7 @@ require (
 	github.com/envoyproxy/go-control-plane v0.12.0
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.6.0
+	github.com/inetaf/tcpproxy v0.0.0-20240214030015-3ce58045626c
 	github.com/lestrrat-go/jwx v1.2.29
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
@@ -17,7 +20,6 @@ require (
 	golang.org/x/net v0.22.0
 	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.33.0
-	inet.af/tcpproxy v0.0.0-20221017015627-91f861402626
 	k8s.io/api v0.29.3
 	k8s.io/apimachinery v0.29.3
 	k8s.io/client-go v0.29.3

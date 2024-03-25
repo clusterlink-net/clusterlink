@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"inet.af/tcpproxy"
+	"github.com/inetaf/tcpproxy"
 
 	"github.com/clusterlink-net/clusterlink/pkg/util/tcp"
 )
