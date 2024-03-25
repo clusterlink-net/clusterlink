@@ -16,6 +16,6 @@ action "linkcheck" {
     HUGO_CONFIG = "./website/config.toml"
     HUGO_ROOT = "./website"
     HUGO_CONTENT_ROOT = "./website/content"
-    HUGO_FINAL_URL = "https://clusterlink.bet"
+    HUGO_FINAL_URL = "https://clusterlink.net"
   }
 }
