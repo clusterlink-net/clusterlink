@@ -1,6 +1,7 @@
 workflow "Hugo Link Check" {
   resolves = "linkcheck"
-  on = "pull_request"
+  on = ["pull_request", "workflow_dispatch"]
+
 }
 
 action "filter-to-pr-open-synced" {
