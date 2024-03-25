@@ -11,7 +11,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package policytypes
+package connectivitypdp
+
+import (
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+)
 
 // Direction indicates whether a given request is for an incoming or an outgoing connection.
 type Direction int
@@ -32,7 +36,7 @@ type ConnectionRequest struct {
 
 // ConnectionResponse encapsulates the returned decision on a given incoming incoming/outgoing connection.
 type ConnectionResponse struct {
-	Action       PolicyAction
+	Action       v1alpha1.AccessPolicyAction
 	DstPeer      string
 	DstNamespace string
 }

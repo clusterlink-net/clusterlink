@@ -39,7 +39,7 @@ func (s *TestSuite) TestPerformance() {
 
 		require.Nil(s.T(), cl[0].CreateService(&iperf3Service))
 		require.Nil(s.T(), cl[0].CreateExport(&iperf3Service))
-		require.Nil(s.T(), cl[0].CreateAccessPolicy(util.AccessPolicyAllowAll))
+		require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
 		require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
 
 		importedService := &util.Service{
@@ -49,7 +49,7 @@ func (s *TestSuite) TestPerformance() {
 		}
 		require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], iperf3Service.Name))
 
-		require.Nil(s.T(), cl[1].CreateAccessPolicy(util.AccessPolicyAllowAll))
+		require.Nil(s.T(), cl[1].CreatePolicy(util.PolicyAllowAll))
 
 		bps, err := iperf3.RunClient(cl[1].Cluster(), importedService)
 		require.Nil(s.T(), err)

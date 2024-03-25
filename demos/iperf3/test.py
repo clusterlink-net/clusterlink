@@ -31,7 +31,7 @@ from demos.utils.kind import *
 folCl=f"{projDir}/demos/iperf3/testdata/manifests/iperf3-client"
 folSv=f"{projDir}/demos/iperf3/testdata/manifests/iperf3-server"
 # Policy
-allowAllPolicy=f"{projDir}/pkg/policyengine/policytypes/examples/allowAll.json"
+allowAllPolicy=f"{projDir}/pkg/policyengine/examples/allowAll.json"
 #services
 srcSvc           = "iperf3-client"
 destSvc          = "iperf3-server"    

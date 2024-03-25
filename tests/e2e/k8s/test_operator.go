@@ -62,7 +62,7 @@ func (s *TestSuite) TestOperator() {
 	require.Nil(s.T(), err)
 	require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
 	require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
-	require.Nil(s.T(), cl[0].CreateAccessPolicy(util.AccessPolicyAllowAll))
+	require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
 	require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
 
 	importedService := &util.Service{
@@ -71,7 +71,7 @@ func (s *TestSuite) TestOperator() {
 	}
 
 	require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
-	require.Nil(s.T(), cl[1].CreateAccessPolicy(util.AccessPolicyAllowAll))
+	require.Nil(s.T(), cl[1].CreatePolicy(util.PolicyAllowAll))
 
 	data, err := cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
 	require.Nil(s.T(), err)
