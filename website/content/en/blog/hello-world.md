@@ -11,14 +11,15 @@ draft: true
 
 Ah, hello - anyone there?
 
-I'm new here and wanted to say hi and formally introduce myself. Hi - I'm ClusterLink, and
- I'm the new kid on the block - just starting out as open-source project trying to
- find my place in the big, wide world of multicluster Kubernetes connectivity. This is my
- first venture away from my [home on GitHub](https://github.com/clusterlink-net/clusterlink)
+I'm new here and wanted to say hi and formally introduce myself.
+
+Hi - I'm ClusterLink, and I'm the new kid on the block - just starting out as open-source
+ project trying to find my place in the big, wide world of multicluster Kubernetes connectivity.
+ This is my first venture away from my [home on GitHub](https://github.com/clusterlink-net/clusterlink)
 
 At my core, I offer a simple yet powerful philosophy which I like to think of the three S'es:
  **Seamless**, **Simple**, and **Secure** Service Interconnect. Maybe it should have been the
- four S'es? Those off by one errors were always pesky... Anyway, wWhere was I? Ah - yes:
+ four S'es? Those off by one errors were always pesky... Anyway, where was I? Ah - yes:
  the three S'es.
 
 ## Seamless
