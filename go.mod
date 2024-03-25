@@ -1,8 +1,6 @@
 module github.com/clusterlink-net/clusterlink
 
-go 1.21
-
-toolchain go1.22.1
+go 1.20
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
