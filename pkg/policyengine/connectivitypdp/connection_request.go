@@ -38,5 +38,6 @@ type ConnectionRequest struct {
 type ConnectionResponse struct {
 	Action       v1alpha1.AccessPolicyAction
 	DstPeer      string
+	DstName      string
 	DstNamespace string
 }

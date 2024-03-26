@@ -279,9 +279,19 @@ func (m *Manager) authorizeEgress(req *egressAuthorizationRequest) (*egressAutho
 		return nil, fmt.Errorf("missing client for peer: %s", target)
 	}
 
+	DstName := authResp.DstName
+	DstNamespace := authResp.DstNamespace
+	if DstName == "" { // TODO- remove when controlplane will support only CRD mode.
+		DstName = req.ImportName
+	}
+
+	if DstNamespace == "" { // TODO- remove when controlplane will support only CRD mode.
+		DstNamespace = req.ImportNamespace
+	}
+
 	serverResp, err := client.Authorize(&cpapi.AuthorizationRequest{
-		ServiceName:      req.ImportName,
-		ServiceNamespace: req.ImportNamespace,
+		ServiceName:      DstName,
+		ServiceNamespace: DstNamespace,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to get access token from peer: %w", err)
