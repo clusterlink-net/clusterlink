@@ -104,7 +104,7 @@ To deploy ClusterLink on another cluster, please repeat steps 2-3 in the console
     ```
 
     The instance CRD will create the ClusterLink gateway components in the `clusterlink-system` namespace.
-    For more details and information about the ClusterLink instance CRD, refer to the [operator documentation](https://github.com/clusterlink-net/clusterlink/blob/main/design-proposals/project-deploymnet.md#clusterlink-crd).
+    For more details and information about the ClusterLink instance CRD, refer to the [operator documentation](https://github.com/clusterlink-net/clusterlink/blob/main/design-proposals/project-deployment.md#clusterlink-crd).
 
 ## Try it out
 
