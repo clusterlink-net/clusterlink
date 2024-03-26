@@ -14,5 +14,4 @@ jobs:
       uses: ruzickap/action-my-broken-link-checker@v2
       with:
         url: https://clusterlink.net
-        pages_path: ./website/public
-        cmd_params: '--buffer-size=8192 --max-connections=10 --color=always --skip-tls-verification --header="User-Agent:curl/7.54.0" --timeout=20'  # muffet parameters
+        cmd_params: '--buffer-size=65536 --max-connections=16 --rate-limit=16 --timeout=20'  # muffet parameters
