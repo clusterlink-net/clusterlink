@@ -1,4 +1,4 @@
-USTERLINK#!/usr/bin/env bash
+#!/usr/bin/env bash
 # Copyright 2023 The ClusterLink Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ set -ex
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 TEST_DIR=$(mktemp -d)
-CLI=$SCRIPT_DIR/../bin/cl
+CLI=$SCRIPT_DIR/../bin/clusterlink
 DATAPLANE_TYPE="${1:-envoy}"
 
 function clean_up {

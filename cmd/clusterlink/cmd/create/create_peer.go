@@ -242,14 +242,14 @@ func (o *PeerOptions) Run() error {
 	return os.WriteFile(clOutPath, clConfig, 0o600)
 }
 
-// NewCmdCreatePeer returns a cobra.Command to run the 'create peer-cert' subcommand.
-func NewCmdCreatePeer() *cobra.Command {
+// NewCmdCreatePeerCert returns a cobra.Command to run the 'create peer-cert' subcommand.
+func NewCmdCreatePeerCert() *cobra.Command {
 	opts := &PeerOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "peer-cert",
-		Short: "Create peer certificates",
-		Long:  `Create peer certificates`,
+		Short: "Create peer certificate and private key",
+		Long:  `Create peer certificate and private key`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Run()

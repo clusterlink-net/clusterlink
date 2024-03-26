@@ -1,6 +1,6 @@
 # Scenario with iPerf3 Connectivity between 2 clusters
-In this test we check iPerf3 connectivity between different Kind cluster using ClusterLink.
-This setup use two Kind clusters-
+In this test we check iPerf3 connectivity between different Kind clusters using ClusterLink.
+This setup uses two Kind clusters-
 1) Cluster 1 - contains the gateway (Control-plane/Data-plane) and iPerf3 client.
 2) Cluster 2 - contains the gateway (Control-plane/Data-plane) and iPerf3 server.
 
