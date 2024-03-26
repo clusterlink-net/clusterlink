@@ -48,6 +48,9 @@ type ImportSpec struct {
 	TargetPort uint16 `json:"targetPort,omitempty"`
 	// Sources to import from.
 	Sources []ImportSource `json:"sources"`
+	// The existing service endpoint to merge the imported service with by
+	// creating an endpointslice with the service name pointed to.
+	Merge string
 	// TODO: add LoadBalancingSpec.
 }
 

@@ -16,15 +16,20 @@ package control
 import (
 	"context"
 	"fmt"
+	"strings"
+	"sync"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	discv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	cpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
@@ -41,12 +46,78 @@ type Manager struct {
 	crdMode bool
 	ports   *portManager
 
-	logger *logrus.Entry
+	podLock sync.RWMutex
+	// clDataplanePodInfo stores the IPv4/v6 address of cl-dataplane pod per namespace
+	clDataplanePodInfo map[string]string
+	logger             *logrus.Entry
 }
 
-// AddImport adds a listening socket for an imported remote service.
-func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
-	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
+func (m *Manager) addImportEndpointSlice(ctx context.Context, imp *v1alpha1.Import) error {
+	m.logger.Infof("Adding import endpointslice '%s/%s'.", imp.Namespace, imp.Name)
+
+	protocol := v1.ProtocolTCP
+	var port32 int32
+	newEndpointslice := discv1.EndpointSlice{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      imp.Name + "-" + uuid.NewString()[:5],
+			Namespace: imp.Namespace,
+			Labels: map[string]string{
+				"kubernetes.io/service-name":             imp.Spec.Merge,
+				"endpointslice.kubernetes.io/managed-by": cpapp.Name,
+			},
+		},
+		AddressType: discv1.AddressTypeIPv4,
+		Endpoints: []discv1.Endpoint{
+			{
+				Addresses: []string{m.clDataplanePodInfo[imp.Namespace]},
+			},
+		},
+	}
+	var oldEndpointslice discv1.EndpointSlice
+	var create bool
+	err := m.client.Get(
+		ctx,
+		types.NamespacedName{
+			Name:      imp.Name,
+			Namespace: imp.Namespace,
+		},
+		&oldEndpointslice)
+
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		create = true
+	}
+	fullName := imp.Namespace + "/" + imp.Name
+	port, err := m.ports.Lease(fullName, imp.Spec.TargetPort)
+	if err != nil {
+		return fmt.Errorf("cannot generate listening port: %w", err)
+	}
+	imp.Spec.TargetPort = port
+	port32 = int32(port)
+	endpointPort := discv1.EndpointPort{
+		Port:     &port32,
+		Protocol: &protocol,
+	}
+	if create {
+		newEndpointslice.Ports = make([]discv1.EndpointPort, 1)
+		newEndpointslice.Ports[0] = endpointPort
+		err = m.client.Create(ctx, &newEndpointslice)
+	} else {
+		oldEndpointslice.Ports = append(oldEndpointslice.Ports, endpointPort)
+		err = m.client.Update(ctx, &oldEndpointslice)
+	}
+
+	if err != nil && create {
+		m.ports.Release(fullName)
+	}
+
+	return err
+}
+
+func (m *Manager) addImportService(ctx context.Context, imp *v1alpha1.Import) error {
+	m.logger.Infof("Adding import service '%s/%s'.", imp.Namespace, imp.Name)
 
 	newService := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -79,7 +150,6 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 		if !errors.IsNotFound(err) {
 			return err
 		}
-
 		create = true
 	}
 
@@ -101,7 +171,6 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 	if newPort {
 		imp.Spec.TargetPort = port
 		newService.Spec.Ports[0].TargetPort = intstr.FromInt32(int32(port))
-
 		if m.crdMode {
 			if err := m.client.Update(ctx, imp); err != nil {
 				m.ports.Release(fullName)
@@ -121,6 +190,32 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
 	}
 
 	return err
+}
+
+// deleteClDataplane deletes pod to ipToPod list.
+func (m *Manager) deleteClDataplane(podID types.NamespacedName) {
+	if strings.Contains(podID.Name, dpapp.Name) {
+		m.logger.Infof("Detected cl-dataplane(%s) pod delete in namespace: %s", podID.Name, podID.Namespace)
+	}
+}
+
+// addPod adds or updates pod to ipToPod and podList.
+func (m *Manager) addClDataplane(pod *v1.Pod) {
+	m.podLock.Lock()
+	defer m.podLock.Unlock()
+
+	if pod.Labels["app"] == dpapp.Name {
+		m.logger.Infof("Detected cl-dataplane(%s) pod add/update in namespace: %s, with IP %s", pod.Name, pod.Namespace, pod.Status.PodIP)
+		m.clDataplanePodInfo[pod.Namespace] = pod.Status.PodIP
+	}
+}
+
+// AddImport adds a listening socket for an imported remote service.
+func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) error {
+	if imp.Spec.Merge != "" {
+		return m.addImportEndpointSlice(ctx, imp)
+	}
+	return m.addImportService(ctx, imp)
 }
 
 // DeleteImport removes the listening socket of a previously imported service.
@@ -169,10 +264,11 @@ func NewManager(cl client.Client, peerTLS *tls.ParsedCertData, crdMode bool) *Ma
 	logger := logrus.WithField("component", "controlplane.control.manager")
 
 	return &Manager{
-		peerManager: newPeerManager(cl, peerTLS),
-		client:      cl,
-		crdMode:     crdMode,
-		ports:       newPortManager(),
-		logger:      logger,
+		peerManager:        newPeerManager(cl, peerTLS),
+		client:             cl,
+		crdMode:            crdMode,
+		ports:              newPortManager(),
+		clDataplanePodInfo: make(map[string]string),
+		logger:             logger,
 	}
 }

@@ -47,6 +47,7 @@ func toK8SImport(imp *store.Import, namespace string) *v1alpha1.Import {
 			Port:       imp.Port,
 			TargetPort: imp.TargetPort,
 			Sources:    sources,
+			Merge:      imp.Merge,
 		},
 	}
 }

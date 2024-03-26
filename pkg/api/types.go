@@ -93,6 +93,9 @@ type ImportSpec struct {
 	TargetPort uint16
 	// Peers to import from.
 	Peers []string
+	// The existing service endpoint to merge the imported service with by
+	// creating an endpointslice with the service name pointed to.
+	Merge string
 }
 
 // Policy is an opaque object, to be processed by the Policy Engine.

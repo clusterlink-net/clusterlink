@@ -17,36 +17,54 @@ import (
 	"context"
 
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // CreateControllers creates the various k8s controllers used to update the control manager.
-func CreateControllers(mgr *Manager, controllerManager ctrl.Manager) error {
-	err := controller.AddToManager(controllerManager, &controller.Spec{
-		Name:   "control.peer",
-		Object: &v1alpha1.Peer{},
+func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode bool) error {
+	if crdMode {
+		err := controller.AddToManager(controllerManager, &controller.Spec{
+			Name:   "control.peer",
+			Object: &v1alpha1.Peer{},
+			AddHandler: func(ctx context.Context, object any) error {
+				mgr.AddPeer(object.(*v1alpha1.Peer))
+				return nil
+			},
+			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+				mgr.DeletePeer(name.Name)
+				return nil
+			},
+		})
+		if err != nil {
+			return err
+		}
+		err = controller.AddToManager(controllerManager, &controller.Spec{
+			Name:   "control.import",
+			Object: &v1alpha1.Import{},
+			AddHandler: func(ctx context.Context, object any) error {
+				return mgr.AddImport(ctx, object.(*v1alpha1.Import))
+			},
+			DeleteHandler: mgr.DeleteImport,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return controller.AddToManager(controllerManager, &controller.Spec{
+		Name:   "control.endpoint",
+		Object: &v1.Pod{},
 		AddHandler: func(ctx context.Context, object any) error {
-			mgr.AddPeer(object.(*v1alpha1.Peer))
+			mgr.addClDataplane(object.(*v1.Pod))
 			return nil
 		},
 		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-			mgr.DeletePeer(name.Name)
+			mgr.deleteClDataplane(name)
 			return nil
 		},
-	})
-	if err != nil {
-		return err
-	}
-
-	return controller.AddToManager(controllerManager, &controller.Spec{
-		Name:   "control.import",
-		Object: &v1alpha1.Import{},
-		AddHandler: func(ctx context.Context, object any) error {
-			return mgr.AddImport(ctx, object.(*v1alpha1.Import))
-		},
-		DeleteHandler: mgr.DeleteImport,
 	})
 }

@@ -198,6 +198,11 @@ func (o *Options) Run() error {
 
 	controlManager := control.NewManager(mgr.GetClient(), parsedCertData, o.CRDMode)
 
+	err = control.CreateControllers(controlManager, mgr, o.CRDMode)
+	if err != nil {
+		return fmt.Errorf("cannot create control controllers: %w", err)
+	}
+
 	xdsManager := xds.NewManager()
 	xds.RegisterService(
 		context.Background(), xdsManager, grpcServer.GetGRPCServer())
@@ -206,11 +211,6 @@ func (o *Options) Run() error {
 		err := xds.CreateControllers(xdsManager, mgr)
 		if err != nil {
 			return fmt.Errorf("cannot create xDS controllers: %w", err)
-		}
-
-		err = control.CreateControllers(controlManager, mgr)
-		if err != nil {
-			return fmt.Errorf("cannot create control controllers: %w", err)
 		}
 	} else {
 		// open store
