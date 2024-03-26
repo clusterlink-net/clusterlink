@@ -89,7 +89,14 @@ fi
 
 #--  setup-envtest
 VERSION=latest
-if [ -z "$(which  setup-envtest)" ] || [ "$1" = "--force" ]; then
-  echo installing  setup-envtest "($VERSION)"
+if [ -z "$(which setup-envtest)" ] || [ "$1" = "--force" ]; then
+  echo installing setup-envtest "($VERSION)"
   go install "sigs.k8s.io/controller-runtime/tools/setup-envtest@$VERSION"
+fi
+
+#-- muffet (link checker)
+VERSION=v2.9.3
+if [ -z "$(which nuffet)" ] || [ "$1" = "--force" ]; then
+  echo installing "muffet ($VERSION)"
+  go install "github.com/raviqqe/muffet/v2@$VERSION"
 fi

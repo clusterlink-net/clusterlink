@@ -9,7 +9,7 @@ A `Site` represents a location, such as a Kubernetes cluster, participating in a
  it wishes to share with other sites. A site is managed by a site administrator,
  which is responsible for running the ClusterLink control and data planes. The
  administrator will typically deploy the ClusterLink components by configuring
- the [deployment CRD]({{< ref "getting-started#deploy-crd-instance" >}}). They may also wish to provide
+ the [deployment CRD]({{< ref "users#deploy-crd-instance" >}}). They may also wish to provide
  (often) coarse-grained access policies in accordance with high level corporate
  policies (e.g., "production sites should only communicate with other production sites").
 
@@ -119,7 +119,7 @@ After the operator is installed, you can deploy ClusterLink by applying
  Site wide configurations, such as the list of known Peers, are also maintained
  in the same namespace.
 
-Refer to the [getting started guide]({{< ref "getting-started#setup" >}}) for a description
+Refer to the [getting started guide]({{< ref "users#setup" >}}) for a description
  of the ClusterLink instance CRD's fields.
 
 <!-- TODO expand the sample CRD file? -->
