@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+USTERLINK#!/usr/bin/env bash
 # Copyright 2023 The ClusterLink Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ set -ex
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 TEST_DIR=$(mktemp -d)
-CLADM=$SCRIPT_DIR/../bin/cl-adm
+CLI=$SCRIPT_DIR/../bin/cl
 DATAPLANE_TYPE="${1:-envoy}"
 
 function clean_up {
@@ -34,8 +34,8 @@ function clean_up_with_logs {
 
 function test_k8s {
   # create fabric with a single peer (peer1)
-  $CLADM create fabric
-  $CLADM create peer-cert --name peer1 --dataplane-type $DATAPLANE_TYPE
+  $CLI create fabric
+  $CLI create peer-cert --name peer1 --dataplane-type $DATAPLANE_TYPE
 
   # create kind cluster
   kind create cluster --name peer1

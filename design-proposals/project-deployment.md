@@ -18,7 +18,7 @@ This design proposal outlines the deployment process for the ClusterLink project
 
 This design proposal aims to simplify and enhance the deployment of the ClusterLink project.
 By leveraging K8s native mechanisms, such as operators and CRDs, the objective is to establish a user-friendly deployment process.
-Currently, ClusterLink deployment involves using the cl-adm CLI, which generates a large YAML file that contains the control plane and dataplane deployments, services, and RBAC configurations.
+Currently, ClusterLink deployment involves using the `clusterlink` CLI, which generates a large YAML file that contains the control plane and dataplane deployments, services, and RBAC configurations.
 In the new design, this process will be managed by the ClusterLink operator, which has the following advantages:
 
 * It consumes a simpler and more concise configuration in the form of a CRD.
@@ -181,7 +181,7 @@ There will be two types of tests:
 
 ### Implementation Phases/History
 
-The first phase focuses on building the k8s operator. In this step, we will create the ClusterLink operator and suitable tests. Additionally, during this step, we will continue to use the current cl-adm implementation to create peer and fabric certificates.
-The `cl-adm create peer-cert` command will generate two files: `k8s-secret.yaml` (containing all the certificates for the control-plane and data-plane) and `clusterlink-system.yaml` (the CRD instance for the ClusterLink operator). The ClusterLink operator will be deployed manually by the site administrator. The site administrator deploys the `clusterlink-system.yaml` file to the ClusterLink operator, than the operator creates the ClusterLink components.
+The first phase focuses on building the k8s operator. In this step, we will create the ClusterLink operator and suitable tests. Additionally, during this step, we will continue to use the current `clusterlink` CLI implementation to create peer and fabric certificates.
+The `clusterlink create peer-cert` command will generate two files: `k8s-secret.yaml` (containing all the certificates for the control-plane and data-plane) and `clusterlink-system.yaml` (the CRD instance for the ClusterLink operator). The ClusterLink operator will be deployed manually by the site administrator. The site administrator deploys the `clusterlink-system.yaml` file to the ClusterLink operator, than the operator creates the ClusterLink components.
 
-In the second step, the focus is on automating the deployment process. We will create a ClusterLink CLI. This CLI will automate certificate creation by the fabric administrator, replacing the current cl-adm CLI. Furthermore, the CLI will automate the deployment process for ClusterLink by the site manager (including secret creation, deploying the ClusterLink operator, and CRD creation).
+In the second step, the focus is on automating the deployment process. We will create a ClusterLink CLI. This CLI will automate certificate creation by the fabric administrator, replacing the current clusterlink CLI. Furthermore, the CLI will automate the deployment process for ClusterLink by the site manager (including secret creation, deploying the ClusterLink operator, and CRD creation).

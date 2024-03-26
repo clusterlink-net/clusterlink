@@ -11,22 +11,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package create
+package deploy
 
 import (
 	"github.com/spf13/cobra"
 )
 
-// NewCmdCreate returns a cobra.Command to run the create command.
-func NewCmdCreate() *cobra.Command {
+// NewCmdDeploy returns a cobra.Command to run the deploy command.
+func NewCmdDeploy() *cobra.Command {
 	cmds := &cobra.Command{
-		Use:   "create",
-		Short: "create ClusterLink resources",
-		Long:  "create ClusterLink resources",
+		Use:   "deploy",
+		Short: "Deploy ClusterLink resources",
+		Long:  "Deploy ClusterLink resources",
 	}
 
-	cmds.AddCommand(NewCmdCreateFabric())
-	cmds.AddCommand(NewCmdCreatePeer())
+	cmds.AddCommand(NewCmdDeployPeer())
 
 	return cmds
 }

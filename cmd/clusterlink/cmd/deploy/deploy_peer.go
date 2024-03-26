@@ -27,8 +27,8 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/decoder"
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
 	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
+	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	configFiles "github.com/clusterlink-net/clusterlink/config"
 	apis "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"

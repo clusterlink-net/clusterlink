@@ -22,8 +22,8 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/net/idna"
 
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
 	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
+	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 )
@@ -248,8 +248,8 @@ func NewCmdCreatePeer() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "peer-cert",
-		Short: "Create a peer certificates",
-		Long:  `Create a peer certificates`,
+		Short: "Create peer certificates",
+		Long:  `Create peer certificates`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Run()

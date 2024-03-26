@@ -19,14 +19,14 @@ from colorama import Style
 from demos.utils.k8s import waitPod
 
 ProjDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-clAdm    = ProjDir + "/bin/cl-adm "
+CL_CLI    = ProjDir + "/bin/clusterlink "
 folMfst=f"{ProjDir}/config/manifests"
 
 # Init Functions
-# createFabric creates fabric certificates using cl-adm
+# createFabric creates fabric certificates using clusterlink
 def createFabric(dir):
     createFolder(dir)
-    runcmdDir(f"{clAdm} create fabric",dir)
+    runcmdDir(f"{CL_CLI} create fabric",dir)
 
 # createGw creates peer certificates and yaml and deploys it to the cluster.
 def createGw(name, dir, logLevel="info",dataplane="envoy",localImage=False):
@@ -36,7 +36,7 @@ def createGw(name, dir, logLevel="info",dataplane="envoy",localImage=False):
 # createPeer creates peer certificates and yaml
 def createPeer(name, dir, logLevel="info", dataplane="envoy",localImage=False):
     flag = "--container-registry=""" if localImage else ""
-    runcmdDir(f"{clAdm} create peer-cert --name {name} --log-level {logLevel} --dataplane-type {dataplane} {flag} --namespace default",dir)
+    runcmdDir(f"{CL_CLI} create peer-cert --name {name} --log-level {logLevel} --dataplane-type {dataplane} {flag} --namespace default",dir)
 
 # applyPeer deploys the peer certificates and yaml to the cluster.
 def applyPeer(name,dir):

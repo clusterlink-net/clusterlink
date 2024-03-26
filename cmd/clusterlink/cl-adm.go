@@ -11,21 +11,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package deploy
+// The clusterlink binary is used for preparing a clusterlink deployment.
+// The deployment includes certificate files for establishing secure TLS connections
+// with other cluster components, and configuration for spawning up the various clusterlink
+// components in different environments.
+package main
 
 import (
-	"github.com/spf13/cobra"
+	"os"
+
+	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/cmd"
+	"github.com/clusterlink-net/clusterlink/pkg/versioninfo"
 )
 
-// NewCmdDeploy returns a cobra.Command to run the deploy command.
-func NewCmdDeploy() *cobra.Command {
-	cmds := &cobra.Command{
-		Use:   "deploy",
-		Short: "deploy ClusterLink resources",
-		Long:  "deploy ClusterLink resources",
+func main() {
+	command := cmd.NewCLADMCommand()
+	command.Version = versioninfo.Short()
+	if err := command.Execute(); err != nil {
+		os.Exit(1)
 	}
-
-	cmds.AddCommand(NewCmdDeployPeer())
-
-	return cmds
 }
