@@ -16,3 +16,5 @@
 # Initialize packages for website
 pushd website
 npm install
+
+go install "github.com/raviqqe/muffet/v2@v2.9.3"
