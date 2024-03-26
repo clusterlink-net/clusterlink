@@ -26,8 +26,8 @@ import (
 func NewCmdCreateFabric() *cobra.Command {
 	return &cobra.Command{
 		Use:   "fabric",
-		Short: "Create a fabric",
-		Long:  `Create a fabric`,
+		Short: "Create fabric certificates",
+		Long:  `Create fabric certificates`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fabricCert, err := bootstrap.CreateFabricCertificate()

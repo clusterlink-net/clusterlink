@@ -20,7 +20,9 @@ import (
 // NewCmdCreate returns a cobra.Command to run the create command.
 func NewCmdCreate() *cobra.Command {
 	cmds := &cobra.Command{
-		Use: "create",
+		Use:   "create",
+		Short: "create ClusterLink resources",
+		Long:  "create ClusterLink resources",
 	}
 
 	cmds.AddCommand(NewCmdCreateFabric())

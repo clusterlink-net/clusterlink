@@ -30,30 +30,30 @@ In this step, we generate the ClusterLink certificates and deployment files.
     Note: This step needs to be done only once per fabric.
 3) Create certificates and a deployment file for the cluster (e.g., peer1):
 
-        $PROJECT_DIR/bin/cl-adm create peer --name peer1 --namespace default
+        $PROJECT_DIR/bin/cl-adm create peer-cert --name peer1 --namespace default
 
-    Note: By default, the images are pulled from ghcr.io/clusterlink-net. To change the container registry, you can use the ```--container-registry``` flag.  
+    Note: By default, the images are pulled from ghcr.io/clusterlink-net. To change the container registry, you can use the ```--container-registry``` flag.
     This step needs to be performed for every K8s cluster.
 
 4) Apply ClusterLink deployment:
-   
+
         kubectl apply -f $DEPLOY_DIR/peer1/k8s.yaml
 
 5) Verify that all components (cl-controlplane, cl-dataplane, gwctl) are set up and ready.
-   
+
         kubectl rollout status deployment cl-controlplane
         kubectl rollout status deployment cl-dataplane
-        kubectl wait --for=condition=ready pod -l app=gwctl 
-        
+        kubectl wait --for=condition=ready pod -l app=gwctl
+
     Expected output:
-    
+
         deployment "cl-controlplane" successfully rolled out
         deployment "cl-dataplane" successfully rolled out
         pod/gwctl condition met
 
 ## 2. Expose the ClusterLink deployment to a public IP
 
-Create a public IP for accessing the ClusterLink gateway.  
+Create a public IP for accessing the ClusterLink gateway.
 * For a testing environment (e.g., KIND), create a K8s nodeport service:
 ```
 echo "
@@ -115,7 +115,7 @@ To create a single gwctl that controls one or more ClusterLink gateways, follow 
 
 To run ClusterLink components in debug mode, use ```--log-level``` flag when creating the ClusterLink deployment
 
-    $PROJECT_DIR/bin/cl-adm create peer --name peer1 --log-level debug
+    $PROJECT_DIR/bin/cl-adm create peer-cert --name peer1 --log-level debug
 
 ### Running self-built images
 
@@ -125,10 +125,10 @@ To create and run a local image, first build the project's local images:
 
 Change the container-registry in the peer deployment to use the local image:
 
-    $PROJECT_DIR/bin/cl-adm create peer --name peer1 --container-registry=""
+    $PROJECT_DIR/bin/cl-adm create peer-cert --name peer1 --container-registry=""
 
 ### Running on a different namespace
 
 To run ClusterLink components in a different namespace, use the `--namespace flag` when creating the ClusterLink deployment.
 
-    $PROJECT_DIR/bin/cl-adm create peer --name peer1 --namespace <namespace>
+    $PROJECT_DIR/bin/cl-adm create peer-cert --name peer1 --namespace <namespace>

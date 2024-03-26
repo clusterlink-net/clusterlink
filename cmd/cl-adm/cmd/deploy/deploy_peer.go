@@ -36,7 +36,7 @@ import (
 
 // PeerOptions contains everything necessary to create and run a 'deploy peer' subcommand.
 type PeerOptions struct {
-	// Name of the peer to create.
+	// Name of the peer to deploy.
 	Name string
 	// Namespace where the ClusterLink components are deployed.
 	Namespace string
@@ -54,14 +54,14 @@ type PeerOptions struct {
 	Tag string
 }
 
-// NewCmdDeployPeer returns a cobra.Command to run the 'create peer' subcommand.
+// NewCmdDeployPeer returns a cobra.Command to run the 'deploy peer' subcommand.
 func NewCmdDeployPeer() *cobra.Command {
 	opts := &PeerOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "peer",
-		Short: "Deploy a peer",
-		Long:  `Deploy a peer`,
+		Short: "Deploy ClusterLink components to a peer (K8s cluster).",
+		Long:  `Deploy ClusterLink components to a peer (K8s cluster).`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Run()
@@ -104,7 +104,7 @@ func (o *PeerOptions) RequiredFlags() []string {
 	return []string{"name"}
 }
 
-// Run the 'create peer' subcommand.
+// Run the 'deploy peer' subcommand.
 func (o *PeerOptions) Run() error {
 	peerDir := path.Join(o.CertDir, o.Name)
 	if _, err := os.Stat(peerDir); err != nil {

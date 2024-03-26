@@ -30,7 +30,7 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
 
 1. {{< anchor create-fabric-ca >}}Create the Fabric's CA certificate and private key.
 
-    The ClusterLink Fabric is defined as all Kubernetes clusters (sites) that install ClusterLink gateways and can share services between the clusters, enabling communication among those services.
+    The ClusterLink Fabric is defined as all Kubernetes clusters (peers) that install ClusterLink gateways and can share services between the clusters, enabling communication among those services.
     First, create the fabric Certificate Authority (CA):
 
     ```sh
@@ -39,26 +39,26 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
 
     This command will create the CA files `<fabric_name>.cert` and `<fabric_name>.key` in the current folder.
 
-1. {{< anchor create-site-certs >}}Create site certificates.
+1. {{< anchor create-peer-certs >}}Create peer certificates.
 
-    Create a site (cluster) certificate:
+    Create a peer (cluster) certificate:
 
     ```sh
-    clusterlink create site --name <site_name> --fabric <fabric_name>
+    clusterlink create peer-cert --name <peer_name> --fabric <fabric_name>
     ```
 
-    This command will create the certificate files `<site_name>.cert` and `<site_name>.key` in a folder named <site_name>. The `--path <path>` flag can be used to change the folder location.
+    This command will create the certificate files `<peer_name>.cert` and `<peer_name>.key` in a folder named <peer_name>. The `--path <path>` flag can be used to change the folder location.
 
 1. {{< anchor install-cl-operator >}}Install ClusterLink.
 
-    To install ClusterLink on the site, first install the ClusterLink deployment operator.
+    To install ClusterLink on the peer, first install the ClusterLink deployment operator.
 
     ```sh
-    clusterlink site deploy --start
+    clusterlink peer deploy --start
     ```
 
-    This command will deploy the ClusterLink operator on the `clusterlink-operator` namespace and convert the site certificates to secrets in the namespace.
-    The command assumes that `kubectl` is set to the correct site (Kubernetes cluster) and that the certificates were created in the local folder. If they were not, use the flag `--path <path>`.
+    This command will deploy the ClusterLink operator on the `clusterlink-operator` namespace and convert the peer certificates to secrets in the namespace.
+    The command assumes that `kubectl` is set to the correct peer (Kubernetes cluster) and that the certificates were created in the local folder. If they were not, use the flag `--path <path>`.
     The `--start` option will deploy the ClusterLink components in the `clusterlink-system` namespace, and the ClusterLink project will start to run in the cluster.
 
 To deploy ClusterLink on another cluster, please repeat steps 2-3 in the console with access to the cluster.
@@ -68,7 +68,7 @@ To deploy ClusterLink on another cluster, please repeat steps 2-3 in the console
 * Setting ClusterLink namespace:
 
     ```sh
-    clusterlink site deploy --start --start-namespace <namespace>
+    clusterlink peer deploy --start --start-namespace <namespace>
     ```
 
     The `--start-namespace` determines the namespace where the ClusterLink components are deployed. Note that you must set `--start`, and the namespace should already exist.
@@ -76,7 +76,7 @@ To deploy ClusterLink on another cluster, please repeat steps 2-3 in the console
 * Setting ClusterLink Ingress type:
 
     ```sh
-    clusterlink site deploy --start --start-ingress <ingress_type>
+    clusterlink peer deploy --start --start-ingress <ingress_type>
     ```
 
     The `--start-ingress` controls the ClusterLink ingress type, with `LoadBalancer` being the default. If you're using a Kind cluster, replace `<ingress_type>` with `NodePort`. For a cluster running in a cloud environment, use `LoadBalancer`.Note that you must set `--start` when you use this flag.
@@ -84,7 +84,7 @@ To deploy ClusterLink on another cluster, please repeat steps 2-3 in the console
 * {{< anchor deploy-crd-instance >}}Full configuration setting using ClusterLink CRD instance:
 
     ```sh
-    clusterlink site deploy
+    clusterlink peer deploy
     ```
 
     After the operator is installed, you can deploy ClusterLink by applying the ClusterLink instance CRD:
@@ -95,7 +95,7 @@ To deploy ClusterLink on another cluster, please repeat steps 2-3 in the console
     kind: ClusterLink
     metadata:
     namespace: clusterlink-operator
-    name: <site_name>
+    name: <peer_name>
     spec:
     ingress:
         type: <ingress_type>
