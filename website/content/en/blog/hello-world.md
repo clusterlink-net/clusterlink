@@ -1,5 +1,5 @@
 ---
-title: Hello World
+title: Hello, World!
 linkTitle: hello, world!
 date: 2024-03-24
 author: Etai Lev Ran
