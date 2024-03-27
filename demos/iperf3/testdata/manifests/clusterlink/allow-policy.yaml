@@ -5,7 +5,7 @@ metadata:
   namespace: clusterlink-system
 spec:
   action: allow
-  privileged: true
+  privileged: false
   from:
     - workloadSelector: {}
   to:

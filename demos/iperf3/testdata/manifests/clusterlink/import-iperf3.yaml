@@ -8,4 +8,4 @@ spec:
   sources:
     - exportName:       iperf3-server
       exportNamespace:  default
-      peer:              peer2
+      peer:             server

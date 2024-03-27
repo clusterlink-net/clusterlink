@@ -1,7 +1,6 @@
 ---
 title: iPerf3 Tutorial
 description: Running iperf across multiple sites with ClusterLink
-weight: 22
 ---
 
 In this tutorial we establish iPerf3 connectivity between two Kind cluster using ClusterLink.
@@ -30,48 +29,50 @@ Before you start, you must have access to two Kubernetes clusters.
 For example, In this tutorial we set up a local environment using the [Kind](https://kind.sigs.k8s.io/) project.
 To setup two kind clusters:
 
-1. Install Kind project using [Kind installtion guide](https://kind.sigs.k8s.io/docs/user/quick-start).
-1. Create a test folder for all the tutorial files:
+1. Install Kind using [Kind installation guide](https://kind.sigs.k8s.io/docs/user/quick-start).
+2. Create a folder for all the tutorial files:
 
     ```sh
     mkdir iperf3-tutorial
     ```
 
-1. Open two terminals in the tutorial folder and create a Kind cluster in each terminal:
+3. Open two terminals in the tutorial folder and create a Kind cluster in each terminal:
 
     Client cluster:
 
     ```sh
     cd iperf3-tutorial
-    kind create cluster --name=peer1
+    kind create cluster --name=client
     ```
 
     Server cluster:
 
     ```sh
     cd iperf3-tutorial
-    kind create cluster --name=peer2
+    kind create cluster --name=server
     ```
 
-1. Setup `KUBECONFIG` on each terminal to access the cluster:
+4. Setup `KUBECONFIG` on each terminal to access the cluster:
 
     Client cluster:
 
     ```sh
-    kubectl config use-context kind-peer1
-    cp ~/.kube/config $PWD/config-peer1
-    export KUBECONFIG=$PWD/config-peer1
+    kubectl config use-context kind-client
+    cp ~/.kube/config $PWD/config-client
+    export KUBECONFIG=$PWD/config-client
     ```
 
     Server cluster:
 
     ```sh
-    kubectl config use-context kind-peer2
-    cp ~/.kube/config $PWD/config-peer2
-    export KUBECONFIG=$PWD/config-peer2
+    kubectl config use-context kind-server
+    cp ~/.kube/config $PWD/config-server
+    export KUBECONFIG=$PWD/config-server
     ```
 
-Note: You can run the tutorial in a single terminal and switch access between the clusters using  `kubectl config use-context kind-peerX`.
+    {{< notice info >}}
+    You can run the tutorial in a single terminal and switch access between the clusters using  `kubectl config use-context kind-peerX`.
+    {{< /notice >}}
 
 ## Deploy iPerf3 Client and Server
 
@@ -99,32 +100,34 @@ Note: You can run the tutorial in a single terminal and switch access between th
 
     ```sh
     clusterlink create fabric
-    clusterlink create peer-cert --name peer1
+    clusterlink create peer-cert --name client
     ```
 
     Server cluster:
 
     ```sh
-    clusterlink create peer-cert --name peer2
+    clusterlink create peer-cert --name server
     ```
 
-    For more details about fabric and peer concepts see [ClusterLink Concepts](https://github.com/clusterlink-net/clusterlink/docs/concepts/)
+    For more details about fabric and peer concepts see [ClusterLink Core Concepts](https://clusterlink.net/docs/concepts/).
 
 1. Deploy ClusterLink on each cluster:
 
     Client cluster:
 
     ```sh
-    clusterlink deploy peer --name peer1 --autostart --ingress=NodePort --ingress-port=30443
+    clusterlink deploy peer --name client --autostart --ingress=NodePort --ingress-port=30443
     ```
 
     Server cluster:
 
     ```sh
-    clusterlink deploy peer --name peer2 --autostart --ingress=NodePort --ingress-port=30443
+    clusterlink deploy peer --name server --autostart --ingress=NodePort --ingress-port=30443
     ```
 
-    Note: In this example, we use NodePort to create an external access point for the Kind clusters. By default `deploy peer` creates an ingress of type LoadBalancer, which is more suitable for Kubernetes clusters running in the cloud.
+    {{< notice info >}}
+    In this example, we use NodePort to create an external access point for the Kind clusters. By default `deploy peer` creates an ingress of type LoadBalancer, which is more suitable for Kubernetes clusters running in the cloud.
+    {{< /notice >}}
 
 1. Check that ClusterLink controlplane and dataplane are Running.
     Client cluster:
@@ -150,18 +153,20 @@ In this step, we enable connectivity access between the iPerf3 client and server
     Client cluster:
 
     ```sh
-    export PEER2_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' peer2-control-plane`
-    envsubst < $IPERF3_FILES/clusterlink/peer2.yaml | kubectl apply -f -
+    export PEER_SERVER_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' server-control-plane`
+    envsubst < $IPERF3_FILES/clusterlink/peer_server.yaml | kubectl apply -f -
     ```
 
     Server cluster:
 
     ```sh
-    export PEER1_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' peer1-control-plane`
-    envsubst < $IPERF3_FILES/clusterlink/peer1.yaml | kubectl apply -f -
+    export PEER_CLIENT_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' client-control-plane`
+    envsubst < $IPERF3_FILES/clusterlink/peer_client.yaml | kubectl apply -f -
     ```
 
-    Note: The `PEER_IP` refers to the node IP of the peer Kind Cluster, which assigns the peer YAML file
+    {{< notice info >}}
+    The `PEER_X_IP` refers to the node IP of the peer Kind Cluster, which assigns the peer YAML file
+    {{< /notice >}}
 
 1. In the server cluster, we add the iperf3-server to clusterlink as an exported service that can be accessed from remote peers.
 
@@ -193,7 +198,7 @@ In this step, we enable connectivity access between the iPerf3 client and server
     kubectl apply -f $IPERF3_FILES/clusterlink/allow-policy.yaml
     ```
 
-    For more details about policy see [ClusterLink policies](https://github.com/clusterlink-net/clusterlink/docs/concepts/policies.md)
+    For more details about policy see [ClusterLink policies](https://clusterlink.net/docs/concepts/policies)
 
 ## Test Service connectivity
 
@@ -212,13 +217,13 @@ kubectl exec -i $IPERF3CLIENT -- iperf3 -c iperf3-server --port 5000
     Client cluster:
 
     ```sh
-    kind delete cluster --name=peer1
+    kind delete cluster --name=client
     ```
 
     Server cluster:
 
     ```sh
-    kind delete cluster --name=peer2
+    kind delete cluster --name=server
     ```
 
 1. Remove tutorial folder
