@@ -137,6 +137,7 @@ push-image: docker-build
 install:
 	mkdir -p ~/.local/bin
 	cp ./bin/gwctl ~/.local/bin/
+	cp ./bin/clusterlink ~/.local/bin/
 
 clean-tests:
 	kind delete cluster --name=peer1

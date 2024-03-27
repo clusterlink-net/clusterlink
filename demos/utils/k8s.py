@@ -19,12 +19,12 @@ import json
 # getPodNameIp gets the application pod's name and IP.
 def getPodNameIp(app):
     podName = getPodName(app)
-    podIp   =  getPodIp(podName)  
+    podIp   =  getPodIp(podName)
     return podName, podIp
 
 # getPodName gets the application pod's name.
-def getPodName(app):
-    cmd=f"kubectl get pods -l app={app} "+'-o jsonpath="{.items[0].metadata.name}"'
+def getPodName(app, namespace="default"):
+    cmd=f"kubectl get pods -l app={app} -n {namespace} "+'-o jsonpath="{.items[0].metadata.name}"'
     podName=sp.getoutput(cmd)
     return podName
 
@@ -59,9 +59,14 @@ def getNodeIP(num=0):
     ip = clJson["items"][0]["status"]["addresses"][num]["address"]
     return ip
 
-# cleanCluster removes all deployments and services 
+# cleanCluster removes all deployments and services
 def cleanCluster():
     sp.getoutput('kubectl delete --all deployments')
     sp.getoutput('kubectl delete --all svc')
     sp.getoutput('kubectl delete --all pods')
     sp.getoutput('kubectl delete --all pvc')
+    sp.getoutput('kubectl delete instances.clusterlink.net --all -A')
+    sp.getoutput('kubectl delete accesspolicies.clusterlink.net --all -A')
+    sp.getoutput('kubectl delete imports.clusterlink.net --all -A')
+    sp.getoutput('kubectl delete exports.clusterlink.net --all -A')
+    sp.getoutput('kubectl delete peers.clusterlink.net --all -A')
