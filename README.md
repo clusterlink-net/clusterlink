@@ -76,7 +76,7 @@ ClusterLink can run in any K8s environment, such as Kind.
 
 1. Performance example - Run iPerf3 test between iPerf3 client and server using ClusterLink
  components. This example is used for performance measuring. Instructions can be found
- [Here](demos/iperf3/kind/README.md).
+ [Here](./website/content/en/docs/tutorials/iperf.md).
 1. Application example - Run the BookInfo application in different clusters using ClusterLink
  components. This example demonstrates communication distributed applications (in different
  clusters) with different policies.Instructions can be found [Here](demos/bookinfo/kind/README.md).
@@ -121,7 +121,7 @@ Pod to Pod communications. ClusterLink works at the level of `Service`s , but ca
 <!-- Fill in the communications channels you actually use.  These should all be public
  channels anyone can join, and there should be several ways that users and contributors
  can reach project maintainers. If you have recurring/regular meetings, list those or a
- link to a publicly-readable calendar so that prospective contributors know when and 
+ link to a publicly-readable calendar so that prospective contributors know when and
  where to engage with you. -->
 
 - [User Mailing List](https://groups.google.com/g/clusterlink-users)
