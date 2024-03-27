@@ -39,8 +39,34 @@ $ make unit-tests tests-e2e-k8s
 $ go test ./...
 ```
 
+Output of the end-to-end tests is saved to `/tmp/clusterlink-k8s-tests`. In case
+ of failures, you can also (re-)run individual tests by name:
+
+```sh
+$ go test -v ./tests/e2e/k8s -testify.m TestConnectivity
+```
+
+### Tests in CICD
+
+All pull requests undergo automated testing before being merged. This includes, for example,
+ linting, end-to-end tests and DCO validation. Logs in CICD default to `info` lavel, and
+ can be increased to `debug` by setting environment variable `DEBUG=1`. You can also enable
+ debug logging from the UI when re-running a CICD job, by selecting "enable debug logging".
+
 ## Release Management
 
 ClusterLink releases, including container images and binaries, are built based
  on version tags in github. Applying a tag that's prefixed by `-v` will automatically
  trigger a new release through the github [release](https://github.com/clusterlink-net/clusterlink/blob/main/.github/workflows/release.yml) action.
+
+Please kindly mark all PR's to aid in auto-generation of changelog from commits, by
+ labeling pull requests with one or more of the following labels:
+
+- `ignore-for-release`: PR should not be included in the changelog report.
+ This label should not be used together with any other label in this list.
+- `documentation`: PR is a documentation update.
+- `bugfix`: PR is fixing a bug in existing code.
+- `enhancement`: PR provides new or extended functionality.
+- `breaking-change`: PR introduces a breaking change in user facing aspects
+ (e.g., API or CLI). This label may be used in addition to other labels (e.g.,
+ `bugfix` or `enhancement`).
