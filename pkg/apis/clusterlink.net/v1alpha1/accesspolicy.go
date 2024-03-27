@@ -70,7 +70,8 @@ type WorkloadSetOrSelector struct {
 	WorkloadSelector *metav1.LabelSelector `json:"workloadSelector,omitempty"`
 }
 
-// AccessPolicySpec contains all attributes of an access policy.
+// AccessPolicySpec specifies the connections AccessPolicy and PrivilegedAccessPolicy make decisions on
+// as well as the policy's decision on these connection
 type AccessPolicySpec struct {
 	// Action specifies whether the policy allows or denies connections matching its From and To fields.
 	Action AccessPolicyAction `json:"action"`
