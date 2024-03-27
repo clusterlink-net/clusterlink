@@ -14,7 +14,7 @@
 
 ##############################################################################################
 # Name: Bookinfo
-# Info: support bookinfo application with gwctl inside the clusters 
+# Info: support bookinfo application with gwctl inside the clusters
 #       In this we create three kind clusters
 #       1) cluster1- contain gw, gwctl,product and details microservices (bookinfo services)
 #       2) cluster2- contain gw, gwctl, review-v2 and rating microservices (bookinfo services)
@@ -28,10 +28,10 @@ projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.pa
 sys.path.insert(0,f'{projDir}')
 
 from demos.utils.common import printHeader
-from demos.utils.kind import cluster
+from demos.utils.kind import Cluster
 from demos.bookinfo.test import bookInfoDemo
 
-testOutputFolder = f"{projDir}/bin/tests/bookinfo" 
+testOutputFolder = f"{projDir}/bin/tests/bookinfo"
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -41,10 +41,10 @@ if __name__ == "__main__":
    args = vars(parser.parse_args())
 
    printHeader("\n\nStart Kind Test\n\n")
-   #GW parameters 
-   cl1           = cluster(name="peer1")
-   cl2           = cluster(name="peer2")
-   cl3           = cluster(name="peer3")
+   #GW parameters
+   cl1           = Cluster(name="peer1")
+   cl2           = Cluster(name="peer2")
+   cl3           = Cluster(name="peer3")
 
    bookInfoDemo(cl1, cl2, cl3, testOutputFolder, args["logLevel"], args["dataplane"])
    print(f"Productpage1 url: http://{cl1.ip}:30001/productpage")
