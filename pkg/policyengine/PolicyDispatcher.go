@@ -101,7 +101,8 @@ func (pH *PolicyHandler) decideIncomingConnection(
 	req *connectivitypdp.ConnectionRequest,
 ) (connectivitypdp.ConnectionResponse, error) {
 	dest := getServiceAttrs(req.DstSvcName, "")
-	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, []connectivitypdp.WorkloadAttrs{dest})
+	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, []connectivitypdp.WorkloadAttrs{dest},
+		req.DstSvcNamespace)
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
 		return connectivitypdp.ConnectionResponse{Action: crds.AccessPolicyActionDeny}, err
@@ -127,7 +128,7 @@ func (pH *PolicyHandler) decideOutgoingConnection(
 	svcSourceList = pH.filterOutDisabledPeers(svcSourceList)
 
 	dsts := getServiceAttrsForMultipleDsts(req.DstSvcName, svcSourceList)
-	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, dsts)
+	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, dsts, req.DstSvcNamespace)
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
 		return connectivitypdp.ConnectionResponse{Action: crds.AccessPolicyActionDeny}, err
@@ -260,5 +261,6 @@ func (pH *PolicyHandler) DeleteAccessPolicy(policy *api.Policy) error {
 	if err != nil {
 		return err
 	}
-	return pH.connectivityPDP.DeletePolicy(connPolicy.Name, connPolicy.Spec.Privileged)
+	policyName := types.NamespacedName{Namespace: connPolicy.Namespace, Name: connPolicy.Name}
+	return pH.connectivityPDP.DeletePolicy(policyName, false)
 }

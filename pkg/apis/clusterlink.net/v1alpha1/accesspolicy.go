@@ -20,6 +20,22 @@ import (
 )
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Cluster
+
+// PrivilegedAccessPolicy defines whether a group of potential connections should be allowed or denied.
+// If multiple AccessPolicy objects match a given connection, privileged policies
+// take precedence over non-privileged, and within each tier deny policies take
+// precedence over allow policies.
+type PrivilegedAccessPolicy struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Spec represents the attributes of the exported service.
+	Spec AccessPolicySpec `json:"spec,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Namespaced
 
 // AccessPolicy defines whether a group of potential connections should be allowed or denied.
 // If multiple AccessPolicy objects match a given connection, privileged policies
@@ -56,8 +72,6 @@ type WorkloadSetOrSelector struct {
 
 // AccessPolicySpec contains all attributes of an access policy.
 type AccessPolicySpec struct {
-	// Privileged is true if the policy has higher priority over non-privileged policies.
-	Privileged bool `json:"privileged"`
 	// Action specifies whether the policy allows or denies connections matching its From and To fields.
 	Action AccessPolicyAction `json:"action"`
 	// From specifies the set of source workload to which this policy refers.
@@ -78,20 +92,20 @@ type AccessPolicyList struct {
 }
 
 // Validate returns an error if the given AccessPolicy is invalid. Otherwise, returns nil.
-func (p *AccessPolicy) Validate() error {
-	if p.Spec.Action != AccessPolicyActionAllow && p.Spec.Action != AccessPolicyActionDeny {
-		return fmt.Errorf("unsupported policy actions %s", p.Spec.Action)
+func (p *AccessPolicySpec) Validate() error {
+	if p.Action != AccessPolicyActionAllow && p.Action != AccessPolicyActionDeny {
+		return fmt.Errorf("unsupported policy actions %s", p.Action)
 	}
-	if len(p.Spec.From) == 0 {
+	if len(p.From) == 0 {
 		return fmt.Errorf("empty From field is not allowed")
 	}
-	if err := p.Spec.From.validate(); err != nil {
+	if err := p.From.validate(); err != nil {
 		return err
 	}
-	if len(p.Spec.To) == 0 {
+	if len(p.To) == 0 {
 		return fmt.Errorf("empty To field is not allowed")
 	}
-	return p.Spec.To.validate()
+	return p.To.validate()
 }
 
 func (wsl WorkloadSetOrSelectorList) validate() error {

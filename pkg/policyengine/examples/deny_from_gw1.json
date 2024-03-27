@@ -1,7 +1,6 @@
 {
     "name": "deny-from-gw1",
     "spec": {
-        "privileged": false,
         "action": "deny",
         "from": [
             {
