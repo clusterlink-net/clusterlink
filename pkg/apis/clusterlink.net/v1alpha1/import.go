@@ -52,7 +52,7 @@ type ImportSpec struct {
 	Sources []ImportSource `json:"sources"`
 	// The existing service endpoint to merge the imported service with by
 	// creating an endpointslice with the service name pointed to.
-	Merge bool
+	Merge bool `json:"merge"`
 	// +kubebuilder:default="round-robin"
 	// LBScheme is the load-balancing scheme to use (e.g., random, static, round-robin)
 	LBScheme string `json:"lbScheme"`
