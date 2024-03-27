@@ -18,7 +18,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,7 +29,14 @@ import (
 )
 
 const (
-	heartbeatInterval = 10 * time.Second
+	// time interval between health check requests when peer has recently responded.
+	healthyInterval = 1 * time.Second
+	// time interval between health check requests when peer has not recently responded.
+	unhealthyInterval = 10 * time.Second
+	// number of consecutive successful healthchecks for a peer to be declared reachable.
+	healthyThreshold = 3
+	// number of consecutive unsuccessful healthchecks for a peer to be declared unreachable.
+	unhealthyThreshold = 5
 )
 
 // peerMonitor monitors a single peer.
@@ -81,12 +87,12 @@ func (m *peerMonitor) SetPeer(pr *v1alpha1.Peer) {
 func (m *peerMonitor) Start() {
 	defer m.wg.Done()
 
-	ticker := time.NewTicker(heartbeatInterval)
+	ticker := time.NewTicker(healthyInterval)
 	defer ticker.Stop()
 
-	backoffConfig := backoff.NewExponentialBackOff()
-
-	reachable := false
+	healthy := false
+	strikeCount := 0
+	threshold := 1 // require only a single heartbeat on startup
 	reachableCond := metav1.Condition{
 		Type:   v1alpha1.PeerReachable,
 		Status: metav1.ConditionFalse,
@@ -101,27 +107,41 @@ func (m *peerMonitor) Start() {
 			break
 		}
 
-		err := backoff.Retry(m.client.GetHeartbeat, backoffConfig)
-		if heartbeatOK := err == nil; heartbeatOK != reachable {
-			m.logger.Infof("Heartbeat result: %v", heartbeatOK)
-
+		heartbeatOK := m.client.GetHeartbeat() == nil
+		if healthy == heartbeatOK {
+			strikeCount = 0
+		} else {
 			if heartbeatOK {
-				reachableCond.Status = metav1.ConditionTrue
-				backoffConfig.MaxElapsedTime = heartbeatInterval
-			} else {
-				reachableCond.Status = metav1.ConditionFalse
-				backoffConfig.MaxElapsedTime = 0
+				// switch to healthy interval (even though not yet declared healthy)
+				ticker.Reset(healthyInterval)
 			}
-
-			reachable = heartbeatOK
-
-			m.lock.Lock()
-			meta.SetStatusCondition(&m.pr.Status.Conditions, reachableCond)
-			m.lock.Unlock()
-
-			// callback for non-CRD mode, which does not watch peers/status
-			m.statusCallback(m.pr)
+			strikeCount++
 		}
+
+		if strikeCount < threshold {
+			<-ticker.C
+			continue
+		}
+
+		m.logger.Infof("Peer reachable status changed to: %v", heartbeatOK)
+
+		if heartbeatOK {
+			reachableCond.Status = metav1.ConditionTrue
+			threshold = unhealthyThreshold
+		} else {
+			reachableCond.Status = metav1.ConditionFalse
+			threshold = healthyThreshold
+			ticker.Reset(unhealthyInterval)
+		}
+
+		strikeCount = 0
+		healthy = heartbeatOK
+
+		m.lock.Lock()
+		meta.SetStatusCondition(&m.pr.Status.Conditions, reachableCond)
+		m.lock.Unlock()
+
+		m.statusCallback(m.pr)
 
 		// wait till it's time for next heartbeat round
 		<-ticker.C
