@@ -71,6 +71,13 @@ func (m *peerMonitor) Peer() v1alpha1.Peer {
 	return *m.pr
 }
 
+func (m *peerMonitor) SetPeer(pr *v1alpha1.Peer) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	m.pr = pr
+}
+
 func (m *peerMonitor) Start() {
 	defer m.wg.Done()
 
@@ -139,6 +146,8 @@ func (m *peerManager) AddPeer(pr *v1alpha1.Peer) {
 	monitor, ok := m.monitors[pr.Name]
 	if !ok || peerChanged(monitor.pr, pr) {
 		m.monitors[pr.Name] = newPeerMonitor(pr, m)
+	} else {
+		monitor.SetPeer(pr)
 	}
 }
 
