@@ -34,16 +34,16 @@ Currently ClusterLink exposes a RESTful API for its users. A convenience CLI (`g
   no longer deemed required).
 - `Policy` objects governing aspects of the cross cluster communication.
 
-An additional CLI (`cl-adm`) is provided to ease the bootstrap and deployment of ClusterLink
- in a k8s cluster. The `cl-adm` utility creates a set of (mostly k8s configuration) files on
+An additional CLI (`clusterlink`) is provided to ease the bootstrap and deployment of ClusterLink
+ in a k8s cluster. The `clusterlink` utility creates a set of (mostly k8s configuration) files on
  the local file systems which can be used to bootstrap the ClusterLink installation. This
  mechanism is currently being replaced by an installation operator which is also based on
  CRDs.
 
 Current CLI options provide low level access to API operations (i.e., CRUD on object) and
- consequently relatively low value. In addition, the current API (both `gwctl` and `cl-adm`)
+ consequently relatively low value. In addition, the current API (both `gwctl` and `clusterlink`)
  do not address roles and permissions: `gwctl` users are either authenticated and authorized
- to the entire API or not at all; `cl-adm` files are created locally, relaying on file system
+ to the entire API or not at all; `clusterlink` files are created locally, relaying on file system
  attributes for protection. The two CLIs are also only partially consistent in UX. Transitioning
  to CRDs and `kubectl` should address both consistency and security using existing k8s support.
 
@@ -186,7 +186,7 @@ The `Peer` object defines a remote cluster and its ClusterLink gateways. The loc
 
 ```go
 type Peer struct {
-  metav1.TypeMeta  
+  metav1.TypeMeta
   metav1.ObjectMeta // Peer name must match the Subject name presented in its certificate
 
   Spec   PeerSpec
@@ -199,7 +199,7 @@ type PeerSpec struct {
   // TODO: should we have fixed/required set of attributes explicitly called out and
   // an optional attribute set encoded as a map?)
 }
- 
+
 type PeerStatus struct {
   ObservedGeneration int64
   Conditions[] metav1.Condition
@@ -228,7 +228,7 @@ The `Export` object makes a local k8s Service endpoint potentially accessible to
 
 ```go
 type Export struct {
-  metav1.TypeMeta  
+  metav1.TypeMeta
   metav1.ObjectMeta
 
   Spec   ExportSpec
@@ -239,7 +239,7 @@ type ExportSpec struct {
   Service string // name of exported service. If omitted, uses the Object name
                  // from the metadata. The exported Service must be defined and
                  // in the current namespace
-  Port int16 // exported service port 
+  Port int16 // exported service port
              // TODO: should we support named ports or only numbers?
              // TODO: Port can be omitted if the Service has a single port?
 }
@@ -273,7 +273,7 @@ A remote Service is added to a namespace by defining an `Import` object. Note th
 
 ```go
 type Import struct {
-  metav1.TypeMeta  
+  metav1.TypeMeta
   metav1.ObjectMeta
 
   Spec   ImportSpec
@@ -293,7 +293,7 @@ type ImportSpec struct {
      //       and this Spec moves to "Import" catalog objects.
   LoadBalancingPolicy struct{} // TODO: TBD (e.g., take example from Envoy's simpler policies).
 }
- 
+
 type ImportStatus struct {
   ObservedGeneration int64
   Conditions[] metav1.Condition
@@ -318,7 +318,7 @@ The status of the import can reflect the following errors:
  of the `Import` (i.e., no overwrites of user Services is allowed, only updates
  to `Import` objects).
 - The k8s service for the import cannot be created.
- 
+
 #### Policy
 
 TBD. The topic possibly requires its own design spec to address below questions.

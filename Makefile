@@ -107,7 +107,7 @@ codegen: controller-gen  ## Generate ClusterRole, CRDs and DeepCopyObject.
 cli-build:
 	@echo "Start go build phase"
 	$(GO) build -o $(BIN_DIR)/gwctl  $(LDFLAGS) ./cmd/gwctl
-	$(GO) build -o $(BIN_DIR)/cl-adm $(LDFLAGS) ./cmd/cl-adm
+	$(GO) build -o $(BIN_DIR)/clusterlink $(LDFLAGS) ./cmd/clusterlink
 
 build: cli-build
 	$(GO) build -o $(BIN_DIR)/cl-controlplane ./cmd/cl-controlplane

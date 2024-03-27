@@ -22,13 +22,13 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/net/idna"
 
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
 	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
+	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 )
 
-// PeerOptions contains everything necessary to create and run a 'create peer' subcommand.
+// PeerOptions contains everything necessary to create and run a 'create peer-cert' subcommand.
 type PeerOptions struct {
 	// Name of the peer to create.
 	Name string
@@ -134,7 +134,7 @@ func (o *PeerOptions) createGWCTL(peerCert *bootstrap.Certificate) (*bootstrap.C
 	return cert, nil
 }
 
-// Run the 'create peer' subcommand.
+// Run the 'create peer-cert' subcommand.
 func (o *PeerOptions) Run() error {
 	if _, err := idna.Lookup.ToASCII(o.Name); err != nil {
 		return fmt.Errorf("peer name is not a valid DNS name: %w", err)
@@ -242,14 +242,14 @@ func (o *PeerOptions) Run() error {
 	return os.WriteFile(clOutPath, clConfig, 0o600)
 }
 
-// NewCmdCreatePeer returns a cobra.Command to run the 'create peer' subcommand.
-func NewCmdCreatePeer() *cobra.Command {
+// NewCmdCreatePeerCert returns a cobra.Command to run the 'create peer-cert' subcommand.
+func NewCmdCreatePeerCert() *cobra.Command {
 	opts := &PeerOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "peer",
-		Short: "Create a peer",
-		Long:  `Create a peer`,
+		Use:   "peer-cert",
+		Short: "Create peer certificate and private key",
+		Long:  `Create peer certificate and private key`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Run()
