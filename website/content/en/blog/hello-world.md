@@ -63,11 +63,11 @@ I’m super excited to announce that I’m being released as version 0.2.0.
  requirements from all of you lovely folks out there. After all, I’m here
  to evolve and grow just like everyone else.
 
-First things first, though – I want to make it clear that I’m not quite
- ready for the big leagues yet. As an alpha project, I’m not suitable for
- production use. Basic functionality is working as far as I can tell, but
- I’m likely missing some features, and there might be a few bugs here and there.
- But hey, Rome wasn’t built in a day either, right?
+First things first, though – I want to make it clear that I’m "work in progress".
+ As an alpha stage project, I might not be suitable for production use yet. Basic
+ functionality is working as far as I can tell, but I’m likely missing some features,
+ and there might be a few bugs here and there. But hey, Rome wasn’t built in a day
+ either, right?
 
 So, what do you say? Want to give me a try? I promise I won’t disappoint.
  And if you find me useful (which I’m sure you will), there are plenty of
