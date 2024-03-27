@@ -30,13 +30,13 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	k8sstrings "k8s.io/utils/strings"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	cpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
@@ -47,6 +47,8 @@ const (
 	labelManagedBy       = "app.kubernetes.io/managed-by"
 	labelImportName      = "clusterlink.net/import-name"
 	labelImportNamespace = "clusterlink.net/import-namespace"
+	labelServiceName     = "kubernetes.io/service-name"
+	labelESManagedBy     = "endpointslice.kubernetes.io/managed-by"
 )
 
 type exportServiceNotExistError struct {
@@ -86,62 +88,36 @@ type Manager struct {
 	serviceToImport map[string]types.NamespacedName
 
 	podLock sync.RWMutex
-	// clDataplanePodInfo stores the IPv4/v6 address of cl-dataplane pod per namespace
-	clDataplanePodInfo map[string]string
-	logger             *logrus.Entry
+	// endpoints stores the IPv4/v6 address of cl-dataplane endpoints per namespace
+	endpoints map[string][]discv1.Endpoint
+	logger    *logrus.Entry
 }
 
 func (m *Manager) addImportEndpointSlice(ctx context.Context, imp *v1alpha1.Import) error {
 	m.logger.Infof("Adding import endpointslice '%s/%s'.", imp.Namespace, imp.Name)
 
 	protocol := v1.ProtocolTCP
-	newEndpointslice := discv1.EndpointSlice{
+	port32 := int32(imp.Spec.TargetPort)
+
+	es := discv1.EndpointSlice{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imp.Name + "-" + uuid.NewString()[:5],
 			Namespace: imp.Namespace,
 			Labels: map[string]string{
-				"kubernetes.io/service-name":             imp.Name,
-				"endpointslice.kubernetes.io/managed-by": cpapp.Name,
+				labelServiceName: imp.Name,
+				labelESManagedBy: appName,
 			},
 		},
 		AddressType: discv1.AddressTypeIPv4,
-		Endpoints: []discv1.Endpoint{
-			{
-				Addresses: []string{m.clDataplanePodInfo[imp.Namespace]},
-			},
-		},
+		Endpoints:   m.endpoints[imp.Namespace],
 	}
-	var oldEndpointslice discv1.EndpointSlice
-	var create bool
-	err := m.client.Get(
-		ctx,
-		types.NamespacedName{
-			Name:      imp.Name,
-			Namespace: imp.Namespace,
-		},
-		&oldEndpointslice)
-
-	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			return err
-		}
-		create = true
-	}
-	port32 := int32(imp.Spec.TargetPort)
 	endpointPort := discv1.EndpointPort{
 		Port:     &port32,
 		Protocol: &protocol,
 	}
-	if create {
-		newEndpointslice.Ports = make([]discv1.EndpointPort, 1)
-		newEndpointslice.Ports[0] = endpointPort
-		err = m.client.Create(ctx, &newEndpointslice)
-	} else {
-		oldEndpointslice.Ports = append(oldEndpointslice.Ports, endpointPort)
-		err = m.client.Update(ctx, &oldEndpointslice)
-	}
-
-	return err
+	es.Ports = make([]discv1.EndpointPort, 1)
+	es.Ports[0] = endpointPort
+	return m.client.Create(ctx, &es)
 }
 
 // AddImport adds a listening socket for an imported remote service.
@@ -258,26 +234,85 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 }
 
 // deleteClDataplane deletes pod to ipToPod list.
-func (m *Manager) deleteClDataplane(podID types.NamespacedName) {
+func (m *Manager) deleteEndpoint(podID types.NamespacedName) {
 	if strings.Contains(podID.Name, dpapp.Name) {
-		m.logger.Infof("Detected cl-dataplane(%s) pod delete in namespace: %s", podID.Name, podID.Namespace)
+		m.logger.Warnf("Detected cl-dataplane(%s) endpointslice delete in namespace: %s.", podID.Name, podID.Namespace)
 	}
 }
 
 // addPod adds or updates pod to ipToPod and podList.
-func (m *Manager) addClDataplane(pod *v1.Pod) {
+func (m *Manager) addEndpoint(ctx context.Context, eslice *discv1.EndpointSlice) {
 	m.podLock.Lock()
 	defer m.podLock.Unlock()
 
-	if pod.Labels["app"] == dpapp.Name {
-		m.logger.Infof("Detected cl-dataplane(%s) pod add/update in namespace: %s, with IP %s", pod.Name, pod.Namespace, pod.Status.PodIP)
-		m.clDataplanePodInfo[pod.Namespace] = pod.Status.PodIP
+	if eslice.Labels["app"] != dpapp.Name {
+		return
+	}
+	m.logger.Infof("Detected cl-dataplane(%s) endpointslice add/update in namespace: %s", eslice.Name, eslice.Namespace)
+	m.endpoints[eslice.Namespace] = eslice.Endpoints
+	// Retrieve endpointslices managed by clusterlink in the namespace and update them
+	labelSelector := labels.Set(map[string]string{
+		labelESManagedBy: appName,
+	})
+	listOpts := []client.ListOption{
+		client.InNamespace(eslice.Namespace),
+		client.MatchingLabels(labelSelector),
+	}
+
+	endpointSliceList := &discv1.EndpointSliceList{}
+	err := m.client.List(ctx, endpointSliceList, listOpts...)
+	if err != nil {
+		m.logger.Errorf("Failed to list endpointslices managed by %s", appName)
+		return
+	}
+
+	for i := range endpointSliceList.Items {
+		es := endpointSliceList.Items[i]
+		m.logger.Infof("Updating endpointslice %s", es.Name)
+		es.Endpoints = eslice.Endpoints
+		err := m.client.Update(ctx, &es)
+		if err != nil {
+			m.logger.Errorf("Failed to update endpointslice %s: %v.", appName, err)
+		}
 	}
 }
 
 // DeleteImport removes the listening socket of a previously imported service.
 func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) error {
 	m.logger.Infof("Deleting import '%s/%s'.", name.Namespace, name.Name)
+
+	defer m.ports.Release(name)
+
+	// retrieve endpointslices of the imported service to check if created using merge option
+	labelSelector := labels.Set(map[string]string{
+		labelServiceName: name.Name,
+		labelESManagedBy: appName,
+	})
+	listOpts := []client.ListOption{
+		client.InNamespace(name.Namespace),
+		client.MatchingLabels(labelSelector),
+	}
+
+	endpointSliceList := &discv1.EndpointSliceList{}
+	err := m.client.List(ctx, endpointSliceList, listOpts...)
+	if err != nil {
+		m.logger.Errorf("Failed to list endpointslices managed by %s", appName)
+		return err
+	}
+
+	for i := range endpointSliceList.Items {
+		m.logger.Infof("Deleting endpointslice %s", endpointSliceList.Items[i].Name)
+		err := m.client.Delete(ctx, &endpointSliceList.Items[i])
+		if err != nil {
+			m.logger.Errorf("Failed to delete endpointslice: %v.", err)
+		}
+	}
+
+	if len(endpointSliceList.Items) > 0 {
+		// service was imported using merge option, hence return after
+		// deleting the corresponding endpointslices
+		return nil
+	}
 
 	// delete user service
 	errs := make([]error, 2)
@@ -292,9 +327,7 @@ func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) e
 		errs[1] = m.deleteImportService(ctx, systemService, name)
 	}
 
-	m.ports.Release(name)
-
-	err := errors.Join(errs...)
+	err = errors.Join(errs...)
 	if err != nil && m.crdMode {
 		// if all errors are conflictingServiceError, mark as TerminalError
 		// so that reconciler will not retry
@@ -656,13 +689,13 @@ func NewManager(cl client.Client, peerTLS *tls.ParsedCertData, namespace string,
 	logger := logrus.WithField("component", "controlplane.control.manager")
 
 	return &Manager{
-		peerManager:        newPeerManager(cl, peerTLS),
-		client:             cl,
-		namespace:          namespace,
-		crdMode:            crdMode,
-		ports:              newPortManager(),
-		serviceToImport:    make(map[string]types.NamespacedName),
-		clDataplanePodInfo: make(map[string]string),
-		logger:             logger,
+		peerManager:     newPeerManager(cl, peerTLS),
+		client:          cl,
+		namespace:       namespace,
+		crdMode:         crdMode,
+		ports:           newPortManager(),
+		serviceToImport: make(map[string]types.NamespacedName),
+		endpoints:       make(map[string][]discv1.Endpoint),
+		logger:          logger,
 	}
 }

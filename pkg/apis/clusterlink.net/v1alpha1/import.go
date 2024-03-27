@@ -50,8 +50,8 @@ type ImportSpec struct {
 	TargetPort uint16 `json:"targetPort,omitempty"`
 	// Sources to import from.
 	Sources []ImportSource `json:"sources"`
-	// The existing service endpoint to merge the imported service with by
-	// creating an endpointslice with the service name pointed to.
+	// Merge indicates if the imported service needs to be merged with an existing
+	// service endpoint by just creating an endpointslice pointing to the dataplane listener.
 	Merge bool `json:"merge"`
 	// +kubebuilder:default="round-robin"
 	// LBScheme is the load-balancing scheme to use (e.g., random, static, round-robin)

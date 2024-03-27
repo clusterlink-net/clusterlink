@@ -18,6 +18,8 @@ import (
 
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
 	v1 "k8s.io/api/core/v1"
+	discv1 "k8s.io/api/discovery/v1"
+
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
@@ -68,13 +70,13 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode boo
 	}
 	return controller.AddToManager(controllerManager, &controller.Spec{
 		Name:   "control.endpoint",
-		Object: &v1.Pod{},
+		Object: &discv1.EndpointSlice{},
 		AddHandler: func(ctx context.Context, object any) error {
-			mgr.addClDataplane(object.(*v1.Pod))
+			mgr.addEndpoint(ctx, object.(*discv1.EndpointSlice))
 			return nil
 		},
 		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-			mgr.deleteClDataplane(name)
+			mgr.deleteEndpoint(name)
 			return nil
 		},
 	})
