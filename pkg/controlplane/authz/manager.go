@@ -173,7 +173,7 @@ func (m *Manager) AddAccessPolicy(policy *api.Policy) error {
 // DeleteAccessPolicy removes an access policy to allow/deny specific connections.
 // TODO: switch from api.Policy to v1alpha1.Policy.
 func (m *Manager) DeleteAccessPolicy(policy *api.Policy) error {
-	return m.policyDecider.DeleteAccessPolicy(policy)
+	return m.policyDecider.DeleteAccessPolicy(policy.Name)
 }
 
 // AddLBPolicy adds a load-balancing policy to set a load-balancing scheme for specific connections.
@@ -216,8 +216,8 @@ func (m *Manager) addPod(pod *v1.Pod) {
 	}
 }
 
-func (m *Manager) deleteAccessPolicy(_ types.NamespacedName) {
-	// TODO: call policy decider
+func (m *Manager) deleteAccessPolicy(policy types.NamespacedName) error {
+	return m.policyDecider.DeleteAccessPolicy(policy.Name)
 }
 
 func (m *Manager) addAccessPolicy(accessPolicy *v1alpha1.AccessPolicy) error {

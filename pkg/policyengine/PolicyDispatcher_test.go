@@ -56,16 +56,16 @@ func TestAddAndDeleteConnectivityPolicy(t *testing.T) {
 	ph := policyengine.NewPolicyHandler()
 	policyBuf, err := json.Marshal(policy)
 	require.Nil(t, err)
-	apiPolicy := api.Policy{Name: "test", Spec: api.PolicySpec{Blob: policyBuf}}
+	apiPolicy := api.Policy{Name: "test-policy", Spec: api.PolicySpec{Blob: policyBuf}}
 
 	err = ph.AddAccessPolicy(&apiPolicy)
 	require.Nil(t, err)
 
-	err = ph.DeleteAccessPolicy(&apiPolicy)
+	err = ph.DeleteAccessPolicy(apiPolicy.Name)
 	require.Nil(t, err)
 
 	// deleting the same policy again should result in a not-found error
-	err = ph.DeleteAccessPolicy(&apiPolicy)
+	err = ph.DeleteAccessPolicy(apiPolicy.Name)
 	require.NotNil(t, err)
 }
 
@@ -95,7 +95,7 @@ func TestDeleteMalformedPolicy(t *testing.T) {
 	notEvenAPolicy := []byte{'{'}
 	apiPolicy := api.Policy{Name: "bad-json", Spec: api.PolicySpec{Blob: notEvenAPolicy}}
 
-	err := ph.DeleteAccessPolicy(&apiPolicy)
+	err := ph.DeleteAccessPolicy(apiPolicy.Name)
 	require.NotNil(t, err)
 }
 

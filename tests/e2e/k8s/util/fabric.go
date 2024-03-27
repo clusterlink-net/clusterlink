@@ -136,19 +136,19 @@ func (f *Fabric) SwitchToNewNamespace(name string, appendName bool) error {
 		f.baseNamespace = name
 	}
 
-	// create new namespace
-	for _, p := range f.peers {
-		if err := p.cluster.CreateNamespace(name); err != nil {
-			return fmt.Errorf("cannot create namespace %s: %w", name, err)
-		}
-	}
-
 	if f.namespace != "" {
 		// delete old namespace
 		for _, p := range f.peers {
 			if err := p.cluster.DeleteNamespace(f.namespace); err != nil {
 				return fmt.Errorf("cannot delete namespace %s: %w", f.namespace, err)
 			}
+		}
+	}
+
+	// create new namespace
+	for _, p := range f.peers {
+		if err := p.cluster.CreateNamespace(name); err != nil {
+			return fmt.Errorf("cannot create namespace %s: %w", name, err)
 		}
 	}
 
