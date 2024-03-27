@@ -23,17 +23,17 @@ import argparse
 
 projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{projDir}')
-from demos.utils.cloud import cluster
+from demos.utils.cloud import Cluster
 from demos.bookinfo.test import bookInfoDemo
 
 
-cl1gcp = cluster(name="peer1", zone = "us-west1-b"   , platform = "gcp") # Oregon
-cl1ibm = cluster(name="peer1", zone = "sjc04"        , platform = "ibm") # San jose
-cl2gcp = cluster(name="peer2", zone = "us-central1-b", platform = "gcp") # Iowa
-cl2ibm = cluster(name="peer2", zone = "dal10"        , platform = "ibm") # Dallas
-cl3gcp = cluster(name="peer3", zone = "us-east4-b"   , platform = "gcp") # Virginia
-cl3ibm = cluster(name="peer3", zone = "wdc04"        , platform = "ibm") # Washington DC
-testOutputFolder = f"{projDir}/bin/tests/bookinfo" 
+cl1gcp = Cluster(name="peer1", zone = "us-west1-b"   , platform = "gcp") # Oregon
+cl1ibm = Cluster(name="peer1", zone = "sjc04"        , platform = "ibm") # San jose
+cl2gcp = Cluster(name="peer2", zone = "us-central1-b", platform = "gcp") # Iowa
+cl2ibm = Cluster(name="peer2", zone = "dal10"        , platform = "ibm") # Dallas
+cl3gcp = Cluster(name="peer3", zone = "us-east4-b"   , platform = "gcp") # Virginia
+cl3ibm = Cluster(name="peer3", zone = "wdc04"        , platform = "ibm") # Washington DC
+testOutputFolder = f"{projDir}/bin/tests/bookinfo"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     cl3 = cl3gcp if cloud in ["gcp"]        else cl3ibm
     print(f'Working directory {projDir}')
     os.chdir(projDir)
-    
+
     if command =="delete":
         cl1.deleteCluster(runBg=True)
         cl2.deleteCluster(runBg=True)
@@ -67,10 +67,10 @@ if __name__ == "__main__":
         cl3.cleanCluster()
         exit()
 
-    ### build docker environment 
+    ### build docker environment
     os.system("make build")
     os.system("sudo make install")
-    
+
     cl1.machineType = machineType
     cl2.machineType = machineType
     cl3.machineType = machineType
