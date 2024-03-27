@@ -19,3 +19,4 @@ go install golang.org/x/tools/cmd/goimports@latest
 go install github.com/mfridman/tparse@latest
 go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.13.0
 go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+go install mvdan.cc/gofumpt@v0.6.0

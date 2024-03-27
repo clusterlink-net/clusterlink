@@ -74,7 +74,7 @@ if [ -z "$(which tparse)" ] || [ "$1" = "--force" ]; then
 fi
 
 #-- gofumpt
-VERSION=latest
+VERSION="0.6.0"
 if [ -z "$(which gofumpt)" ] || [ "$1" = "--force" ]; then
   echo installing gofumpt "($VERSION)"
   go install "mvdan.cc/gofumpt@$VERSION"
