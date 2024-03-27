@@ -54,7 +54,7 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
     To install ClusterLink on the site, first install the ClusterLink deployment operator.
 
     ```sh
-    clusterlink site deploy --start
+    clusterlink peer deploy --name <peer_name> --autostart
     ```
 
     This command will deploy the ClusterLink operator on the `clusterlink-operator` namespace and convert the site certificates to secrets in the namespace.
