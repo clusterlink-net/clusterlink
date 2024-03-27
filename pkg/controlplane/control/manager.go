@@ -199,14 +199,15 @@ func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) e
 
 	// delete user service
 	errs := make([]error, 2)
-	errs[0] = m.deleteImportService(ctx, name)
+	errs[0] = m.deleteImportService(ctx, name, name)
 
 	if name.Namespace != m.namespace {
 		// delete system service
-		errs[1] = m.deleteImportService(ctx, types.NamespacedName{
+		systemService := types.NamespacedName{
 			Namespace: m.namespace,
 			Name:      systemServiceName(name),
-		})
+		}
+		errs[1] = m.deleteImportService(ctx, systemService, name)
 	}
 
 	m.ports.Release(name)
@@ -433,9 +434,9 @@ func (m *Manager) addImportService(ctx context.Context, imp *v1alpha1.Import, se
 	return m.client.Update(ctx, service)
 }
 
-func (m *Manager) deleteImportService(ctx context.Context, name types.NamespacedName) error {
+func (m *Manager) deleteImportService(ctx context.Context, service, imp types.NamespacedName) error {
 	var oldService v1.Service
-	err := m.client.Get(ctx, name, &oldService)
+	err := m.client.Get(ctx, service, &oldService)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			return err
@@ -444,24 +445,24 @@ func (m *Manager) deleteImportService(ctx context.Context, name types.Namespaced
 		return nil
 	}
 
-	if err := checkServiceLabels(&oldService, name); err != nil {
+	if err := checkServiceLabels(&oldService, imp); err != nil {
 		return err
 	}
 
-	m.logger.Infof("Deleting service: %v.", name)
+	m.logger.Infof("Deleting service: %v.", service)
 	err = m.client.Delete(ctx, &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name.Name,
-			Namespace: name.Namespace,
+			Name:      service.Name,
+			Namespace: service.Namespace,
 		},
 	})
 	if err != nil {
 		return err
 	}
 
-	if oldService.Labels[labelImportNamespace] != name.Namespace {
+	if oldService.Labels[labelImportNamespace] != imp.Namespace {
 		m.lock.Lock()
-		delete(m.serviceToImport, name.Name)
+		delete(m.serviceToImport, service.Name)
 		m.lock.Unlock()
 	}
 
@@ -518,6 +519,16 @@ func serviceChanged(svc1, svc2 *v1.Service) bool {
 
 	if svc1.Spec.ExternalName != svc2.Spec.ExternalName {
 		return true
+	}
+
+	if len(svc1.Spec.Selector) != len(svc2.Spec.Selector) {
+		return true
+	}
+
+	for key, value1 := range svc1.Spec.Selector {
+		if value2, ok := svc2.Spec.Selector[key]; !ok || value2 != value1 {
+			return true
+		}
 	}
 
 	if len(svc1.Spec.Ports) != len(svc2.Spec.Ports) {
