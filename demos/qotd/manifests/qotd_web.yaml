@@ -44,15 +44,15 @@ spec:
             - name: ANOMALY_GENERATOR_URL
               value: "qotd-usecase.qotd-load.svc.cluster.local:3012"
             - name: QUOTE_SVC
-              value: "qotd-quote.default.svc.cluster.local:3001"
+              value: "qotd-quote:3001"
             - name: AUTHOR_SVC
-              value: "qotd-author.default.svc.cluster.local:3002"
+              value: "qotd-author:3002"
             - name: IMAGE_SVC
-              value: "qotd-image.default.svc.cluster.local:3003"
+              value: "qotd-image:3003"
             - name: RATING_SVC
-              value: "qotd-rating.default.svc.cluster.local:3004"
+              value: "qotd-rating:3004"
             - name: PDF_SVC
-              value: "qotd-pdf.default.svc.cluster.local:3005"
+              value: "qotd-pdf:3005"
             - name: ENGRAVING_SVC
               value: "qotd-engraving:3006"
           livenessProbe:
