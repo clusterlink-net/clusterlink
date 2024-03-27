@@ -13,18 +13,19 @@
 
 import os
 from demos.utils.manifests.kind.flannel.create_cni_bridge import createCniBridge,createKindCfgForflunnel
-from demos.utils.common import runcmd, createGw, printHeader, ProjDir
+from demos.utils.common import runcmd, printHeader, ProjDir
 from demos.utils.k8s import waitPod, getNodeIP
-
-# cluster class represents a kind cluster for deploying the ClusterLink gateway. 
-class cluster:
-    def __init__(self, name, cni="default", cfgFile=""):
+from demos.utils.clusterlink import ClusterLink, CLUSTELINK_NS
+# cluster class represents a kind cluster for deploying the ClusterLink gateway.
+class Cluster(ClusterLink):
+    def __init__(self, name, cni="default", cfgFile="", namespace=CLUSTELINK_NS):
+        super().__init__(namespace)
         self.name    = name
         self.cni     = cni
         self.port    = 30443
         self.ip      = ""
         self.cfgFile = cfgFile
-    
+
     # createCluster creates a kind cluster.
     def createCluster(self, runBg=False):
         os.system(f"kind delete cluster --name={self.name}")
@@ -44,6 +45,7 @@ class cluster:
         if  self.cni == "calico":
             runcmd("kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.4/manifests/tigera-operator.yaml")
             runcmd("kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.4/manifests/custom-resources.yaml")
+        super().set_kube_config()
 
     # startCluster deploy a Clusterlink gateway.
     def startCluster(self, testOutputFolder, logLevel="info", dataplane="envoy"):
@@ -51,11 +53,10 @@ class cluster:
         runcmd(f"kind load docker-image cl-controlplane --name={self.name}")
         runcmd(f"kind load docker-image cl-dataplane    --name={self.name}")
         runcmd(f"kind load docker-image cl-go-dataplane --name={self.name}")
-        runcmd(f"kind load docker-image gwctl --name={self.name}")
-        createGw(self.name, testOutputFolder, logLevel, dataplane, localImage=True)
+        runcmd(f"kind load docker-image cl-operator --name={self.name}")
+        self.create_peer_cert(self.name, testOutputFolder, logLevel, dataplane, container_reg="docker.io/library")
+        self.deploy_peer(self.name, testOutputFolder, container_reg="docker.io/library", ingress_type="NodePort", ingress_port=30443)
         self.setKindIp()
-        runcmd("kubectl delete service cl-dataplane")
-        runcmd("kubectl create service nodeport cl-dataplane --tcp=443:443 --node-port=30443")
 
     # useCluster sets the context for the input kind cluster.
     def useCluster(self):
@@ -72,7 +73,7 @@ class cluster:
         runcmd(f"kind load docker-image {image} --name={self.name}")
         runcmd(f"kubectl create -f {yaml}")
         waitPod(name,namespace)
-    
+
     # deleteCluster deletes the K8s cluster.
     def deleteCluster(self, runBg=False):
         bgFlag= "&" if runBg else ""

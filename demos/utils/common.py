@@ -16,39 +16,7 @@ import shutil
 import subprocess as sp
 from colorama import Fore
 from colorama import Style
-from demos.utils.k8s import waitPod
-
 ProjDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CL_CLI    = ProjDir + "/bin/clusterlink "
-folMfst=f"{ProjDir}/config/manifests"
-
-# Init Functions
-# createFabric creates fabric certificates using clusterlink
-def createFabric(dir):
-    createFolder(dir)
-    runcmdDir(f"{CL_CLI} create fabric",dir)
-
-# createGw creates peer certificates and yaml and deploys it to the cluster.
-def createGw(name, dir, logLevel="info",dataplane="envoy",localImage=False):
-    createPeer(name, dir, logLevel, dataplane,localImage)
-    applyPeer(name, dir)
-
-# createPeer creates peer certificates and yaml
-def createPeer(name, dir, logLevel="info", dataplane="envoy",localImage=False):
-    flag = "--container-registry=""" if localImage else ""
-    runcmdDir(f"{CL_CLI} create peer-cert --name {name} --log-level {logLevel} --dataplane-type {dataplane} {flag} --namespace default",dir)
-
-# applyPeer deploys the peer certificates and yaml to the cluster.
-def applyPeer(name,dir):
-    runcmd(f"kubectl apply -f {dir}/default_fabric/{name}/k8s.yaml")
-    waitPod("cl-controlplane")
-    waitPod("cl-dataplane")
-    waitPod("gwctl")
-
-# startGwctl sets gwctl configuration
-def startGwctl(name,geIP, gwPort, testOutputFolder):
-    runcmd(f'gwctl init --id {name} --gwIP {geIP} --gwPort {gwPort}  --dataplane mtls \
-    --certca {testOutputFolder}/default_fabric/cert.pem --cert {testOutputFolder}/default_fabric/{name}/gwctl/cert.pem --key {testOutputFolder}/default_fabric/{name}/gwctl/key.pem')
 
 # Log Functions
 # runcmd runs os system command.
