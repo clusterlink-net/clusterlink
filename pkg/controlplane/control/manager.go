@@ -520,6 +520,16 @@ func serviceChanged(svc1, svc2 *v1.Service) bool {
 		return true
 	}
 
+	if len(svc1.Spec.Selector) != len(svc2.Spec.Selector) {
+		return true
+	}
+
+	for key, value1 := range svc1.Spec.Selector {
+		if value2, ok := svc2.Spec.Selector[key]; !ok || value2 != value1 {
+			return true
+		}
+	}
+
 	if len(svc1.Spec.Ports) != len(svc2.Spec.Ports) {
 		return true
 	}
