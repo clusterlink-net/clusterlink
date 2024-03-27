@@ -1,0 +1,11 @@
+apiVersion: clusterlink.net/v1alpha1
+kind: Import
+metadata:
+  name: iperf3-server
+  namespace: default
+spec:
+  port:       5000
+  sources:
+    - exportName:       iperf3-server
+      exportNamespace:  default
+      peer:             server
