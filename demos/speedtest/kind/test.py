@@ -18,9 +18,8 @@ import argparse
 projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{projDir}')
 
-from demos.utils.common import runcmd, createFabric, printHeader, startGwctl
-from demos.utils.kind import cluster
-from demos.utils.k8s import getPodNameIp
+from demos.utils.common import runcmd, printHeader
+from demos.utils.kind import Cluster
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -31,51 +30,47 @@ if __name__ == "__main__":
 
     printHeader("\n\nStart Kind Test\n\n")
     printHeader("Start pre-setting")
-    
+
     folman   = f"{projDir}/demos/speedtest/testdata/manifests/"
     crtFol   = f"{projDir}/demos/utils/mtls"
-    testOutputFolder = f"{projDir}/bin/tests/speedtest" 
+    testOutputFolder = f"{projDir}/bin/tests/speedtest"
     cni       = args["cni"]
 
-    #GW parameters 
-    cl1         = cluster(name="peer1")
-    cl2         = cluster(name="peer2")
-    cl3         = cluster(name="peer3")
+    #GW parameters
+    cl1         = Cluster(name="peer1")
+    cl2         = Cluster(name="peer2")
+    cl3         = Cluster(name="peer3")
     srcSvc1     = "firefox"
     srcSvc2     = "firefox2"
     srcSvcPort  = 5800
     destSvc     = "openspeedtest"
     destSvcPort = 3000
-    
+    namespace = "default"
+
     print(f'Working directory {projDir}')
     os.chdir(projDir)
-    
-    ### build environment 
+
+    ### build environment
     printHeader("Build docker image")
     os.system("make docker-build")
-    os.system("sudo make install")
+    os.system("make install")
     if cni == "diff":
         printHeader("Cluster 1: Flannel, Cluster 2: KindNet, Cluster 3: Calico")
         cl1.cni="flannel"
         cl3.cni="calico"
-    
-    # Create Kind clusters environment 
-    cl1.createCluster(runBg=True)        
+
+    # Create Kind clusters environment
+    cl1.createCluster(runBg=True)
     cl2.createCluster(runBg=True)
-    cl3.createCluster(runBg=False)  
+    cl3.createCluster(runBg=False)
 
-    # Start Kind clusters environment 
-    createFabric(testOutputFolder) 
-    cl1.startCluster(testOutputFolder)        
-    cl2.startCluster(testOutputFolder)        
-    cl3.startCluster(testOutputFolder)        
-     
-    # Start gwctl
-    startGwctl(cl1.name, cl1.ip, cl1.port, testOutputFolder)
-    startGwctl(cl2.name, cl2.ip, cl2.port, testOutputFolder)
-    startGwctl(cl3.name, cl3.ip, cl3.port, testOutputFolder)
+    # Start Kind clusters environment
+    cl1.create_fabric(testOutputFolder)
+    cl1.startCluster(testOutputFolder)
+    cl2.startCluster(testOutputFolder)
+    cl3.startCluster(testOutputFolder)
 
-    # Load services 
+    # Load services
     cl1.useCluster()
     cl1.loadService(srcSvc1, "jlesage/firefox",f"{folman}/firefox.yaml" )
     runcmd(f"kubectl create service nodeport {srcSvc1} --tcp={srcSvcPort}:{srcSvcPort} --node-port=30000")
@@ -86,19 +81,19 @@ if __name__ == "__main__":
     cl3.loadService(srcSvc2, "jlesage/firefox",f"{folman}/firefox2.yaml" )
     runcmd(f"kubectl create service nodeport {srcSvc1} --tcp={srcSvcPort}:{srcSvcPort} --node-port=30000")
     runcmd(f"kubectl create service nodeport {srcSvc2} --tcp={srcSvcPort}:{srcSvcPort} --node-port=30001")
-    
+
     # Add gw Peer
     printHeader("Add cl2 peer to cl1")
-    runcmd(f'gwctl create peer --myid {cl1.name} --name {cl2.name} --host {cl2.ip} --port {cl2.port}')
+    cl1.peers.create(cl2.name, cl2.ip, cl2.port)
     printHeader("Add cl1, cl3 peer to cl2")
-    runcmd(f'gwctl create peer --myid {cl2.name} --name {cl1.name} --host {cl1.ip} --port {cl1.port}')
-    runcmd(f'gwctl create peer --myid {cl2.name} --name {cl3.name} --host {cl3.ip} --port {cl3.port}')
+    cl2.peers.create(cl1.name, cl1.ip, cl1.port)
+    cl2.peers.create(cl3.name, cl3.ip, cl3.port)
     printHeader("Add cl2 peer to cl3")
-    runcmd(f'gwctl create peer --myid {cl3.name} --name {cl2.name} --host {cl2.ip} --port {cl2.port}')
-    
+    cl3.peers.create(cl2.name, cl2.ip, cl2.port)
+
     # Set exports
-    runcmd(f'gwctl create export --myid {cl1.name} --name {srcSvc1} --host {srcSvc1} --port {srcSvcPort}')    
-    runcmd(f'gwctl create export --myid {cl2.name} --name {destSvc} --host {destSvc} --port {destSvcPort}')    
-    runcmd(f'gwctl create export --myid {cl3.name} --name {srcSvc1}  --host {srcSvc1} --port {srcSvcPort}')
-    runcmd(f'gwctl create export --myid {cl3.name} --name {srcSvc2}  --host {srcSvc2} --port {srcSvcPort}')
+    cl1.exports.create(srcSvc1,  namespace, srcSvcPort)
+    cl2.exports.create(destSvc,  namespace, destSvcPort)
+    cl3.exports.create(srcSvc1,  namespace, srcSvcPort)
+    cl3.exports.create(srcSvc2,  namespace, srcSvcPort)
     print("Services created. Run service_import.py")
