@@ -1,6 +1,6 @@
 ---
 title: Policies
-description: Controlling Service access across sites
+description: Controlling Service access across peers
 weight: 38
 ---
 

@@ -19,16 +19,16 @@ from colorama import Style
 from demos.utils.k8s import waitPod
 
 ProjDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-clAdm    = ProjDir + "/bin/cl-adm "
+CL_CLI    = ProjDir + "/bin/clusterlink "
 folMfst=f"{ProjDir}/config/manifests"
 
 # Init Functions
-# createFabric creates fabric certificates using cl-adm
+# createFabric creates fabric certificates using clusterlink
 def createFabric(dir):
     createFolder(dir)
-    runcmdDir(f"{clAdm} create fabric",dir)
+    runcmdDir(f"{CL_CLI} create fabric",dir)
 
-# createGw creates peer certificates and yaml and deploys it to the cluster. 
+# createGw creates peer certificates and yaml and deploys it to the cluster.
 def createGw(name, dir, logLevel="info",dataplane="envoy",localImage=False):
     createPeer(name, dir, logLevel, dataplane,localImage)
     applyPeer(name, dir)
@@ -36,49 +36,49 @@ def createGw(name, dir, logLevel="info",dataplane="envoy",localImage=False):
 # createPeer creates peer certificates and yaml
 def createPeer(name, dir, logLevel="info", dataplane="envoy",localImage=False):
     flag = "--container-registry=""" if localImage else ""
-    runcmdDir(f"{clAdm} create peer --name {name} --log-level {logLevel} --dataplane-type {dataplane} {flag} --namespace default",dir)
-    
-# applyPeer deploys the peer certificates and yaml to the cluster. 
+    runcmdDir(f"{CL_CLI} create peer-cert --name {name} --log-level {logLevel} --dataplane-type {dataplane} {flag} --namespace default",dir)
+
+# applyPeer deploys the peer certificates and yaml to the cluster.
 def applyPeer(name,dir):
     runcmd(f"kubectl apply -f {dir}/{name}/k8s.yaml")
     waitPod("cl-controlplane")
     waitPod("cl-dataplane")
     waitPod("gwctl")
-    
+
 # startGwctl sets gwctl configuration
 def startGwctl(name,geIP, gwPort, testOutputFolder):
     runcmd(f'gwctl init --id {name} --gwIP {geIP} --gwPort {gwPort}  --dataplane mtls \
-    --certca {testOutputFolder}/cert.pem --cert {testOutputFolder}/{name}/gwctl/cert.pem --key {testOutputFolder}/{name}/gwctl/key.pem') 
+    --certca {testOutputFolder}/cert.pem --cert {testOutputFolder}/{name}/gwctl/cert.pem --key {testOutputFolder}/{name}/gwctl/key.pem')
 
 # Log Functions
 # runcmd runs os system command.
 def runcmd(cmd):
     print(f'{Fore.YELLOW}{cmd} {Style.RESET_ALL}')
     os.system(cmd)
-    
+
 # runcmdDir runs os system command in specific directory.
 def runcmdDir(cmd,dir):
     print(f'{Fore.YELLOW}{cmd} {Style.RESET_ALL}')
     sp.run(cmd, shell=True, cwd=dir, check=True)
 
-# runcmdb runs os system command in the background.        
+# runcmdb runs os system command in the background.
 def runcmdb(cmd):
     print(f'{Fore.YELLOW}{cmd} {Style.RESET_ALL}')
     os.system(cmd + ' &')
 
-# printHeader runs os system command in the background.        
+# printHeader runs os system command in the background.
 def printHeader(msg):
     print(f'{Fore.GREEN}{msg} {Style.RESET_ALL}')
 
-# createFolder creates folder.        
+# createFolder creates folder.
 def createFolder(name):
     if os.path.exists(name):
-        shutil.rmtree(name)    
-    os.makedirs(name) 
+        shutil.rmtree(name)
+    os.makedirs(name)
 
 # app cluster contains the application service information.
 class app:
-    def __init__(self, name, namespace, host, port):  
+    def __init__(self, name, namespace, host, port):
         self.name      = name
         self.namespace = namespace
         self.host      = host

@@ -27,8 +27,8 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/decoder"
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
 	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
+	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	configFiles "github.com/clusterlink-net/clusterlink/config"
 	apis "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
@@ -36,7 +36,7 @@ import (
 
 // PeerOptions contains everything necessary to create and run a 'deploy peer' subcommand.
 type PeerOptions struct {
-	// Name of the peer to create.
+	// Name of the peer to deploy.
 	Name string
 	// Namespace where the ClusterLink components are deployed.
 	Namespace string
@@ -50,16 +50,18 @@ type PeerOptions struct {
 	IngressPort uint16
 	// ContainerRegistry is the container registry to pull the project images.
 	ContainerRegistry string
+	// Tag represents the tag of the project images.
+	Tag string
 }
 
-// NewCmdDeployPeer returns a cobra.Command to run the 'create peer' subcommand.
+// NewCmdDeployPeer returns a cobra.Command to run the 'deploy peer' subcommand.
 func NewCmdDeployPeer() *cobra.Command {
 	opts := &PeerOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "peer",
-		Short: "Deploy a peer",
-		Long:  `Deploy a peer`,
+		Short: "Deploy ClusterLink components to a peer (K8s cluster).",
+		Long:  `Deploy ClusterLink components to a peer (K8s cluster).`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Run()
@@ -86,14 +88,15 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 		"Namespace where the ClusterLink components are deployed.")
 	fs.StringVar(&o.ContainerRegistry, "container-registry", config.DefaultRegistry,
 		"The container registry to pull the project images.")
+	fs.StringVar(&o.Tag, "tag", "latest", "The tag of the project images.")
 	fs.BoolVar(&o.StartInstance, "autostart", false,
-		"If false, it will deploy only the ClusteLink operator and ClusterLink K8s secrets."+
+		"If false, it will deploy only the ClusteLink operator and ClusterLink K8s secrets.\n"+
 			"If true, it will also deploy the ClusterLink instance CRD, which will create the ClusterLink components.")
 	fs.StringVar(&o.Ingress, "ingress", string(apis.IngressTypeLoadBalancer), "Represents the type of service used"+
-		"to expose the ClusterLink deployment (LoadBalancer/NodePort/none). This option is only valid if --autostart is set.")
+		"to expose the ClusterLink deployment (LoadBalancer/NodePort/none).\nThis option is only valid if --autostart is set.")
 	fs.Uint16Var(&o.IngressPort, "ingress-port", apis.DefaultExternalPort,
 		"Represents the ingress port. By default it is set to 443 for LoadBalancer"+
-			" and a random port in range (30000 to 32767) for NodePort. This option is only valid if --autostart is set.")
+			" and a random port in range (30000 to 32767) for NodePort.\nThis option is only valid if --autostart is set.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -101,7 +104,7 @@ func (o *PeerOptions) RequiredFlags() []string {
 	return []string{"name"}
 }
 
-// Run the 'create peer' subcommand.
+// Run the 'deploy peer' subcommand.
 func (o *PeerOptions) Run() error {
 	peerDir := path.Join(o.CertDir, o.Name)
 	if _, err := os.Stat(peerDir); err != nil {
@@ -121,7 +124,7 @@ func (o *PeerOptions) Run() error {
 
 	// Create operator
 	ghImage := path.Join(config.DefaultRegistry, "cl-operator:latest")
-	newImage := path.Join(o.ContainerRegistry, "cl-operator:latest")
+	newImage := path.Join(o.ContainerRegistry, "cl-operator:"+o.Tag)
 	managerFile, err := configFiles.ConfigFiles.ReadFile("operator/manager/manager.yaml")
 	if err != nil {
 		return err
@@ -167,10 +170,12 @@ func (o *PeerOptions) Run() error {
 			ContainerRegistry: o.ContainerRegistry,
 			Namespace:         o.Namespace,
 			IngressType:       o.Ingress,
+			Tag:               o.Tag,
 		}
 		if o.IngressPort != apis.DefaultExternalPort {
 			cfg.IngressPort = o.IngressPort
 		}
+
 		instance, err := platform.K8SClusterLinkInstanceConfig(cfg, "cl-instance")
 		if err != nil {
 			return err

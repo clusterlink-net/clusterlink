@@ -39,7 +39,7 @@ folSv=f"{projDir}/demos/iperf3/testdata/manifests/iperf3-server"
 testOutputFolder = f"{projDir}/bin/tests/iperf3"
 
 # Policy
-allowAllPolicy=f"{projDir}/pkg/policyengine/policytypes/examples/allowAll.json"
+allowAllPolicy=f"{projDir}/pkg/policyengine/examples/allowAll.json"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')

@@ -22,13 +22,13 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/net/idna"
 
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
 	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
+	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 )
 
-// PeerOptions contains everything necessary to create and run a 'create peer' subcommand.
+// PeerOptions contains everything necessary to create and run a 'create peer-cert' subcommand.
 type PeerOptions struct {
 	// Name of the peer to create.
 	Name string
@@ -42,6 +42,8 @@ type PeerOptions struct {
 	LogLevel string
 	// ContainerRegistry is the container registry to pull the project images.
 	ContainerRegistry string
+	// Tag represents the tag of the project images.
+	Tag string
 	// CRDMode indicates whether to run a k8s CRD-based controlplane.
 	// This flag will be removed once the CRD-based controlplane feature is complete and stable.
 	CRDMode bool
@@ -58,6 +60,7 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 		"The log level. One of fatal, error, warn, info, debug.")
 	fs.StringVar(&o.ContainerRegistry, "container-registry", config.DefaultRegistry,
 		"The container registry to pull the project images. If empty will use local registry.")
+	fs.StringVar(&o.Tag, "tag", "latest", "The tag of the project images.")
 	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }
 
@@ -131,7 +134,7 @@ func (o *PeerOptions) createGWCTL(peerCert *bootstrap.Certificate) (*bootstrap.C
 	return cert, nil
 }
 
-// Run the 'create peer' subcommand.
+// Run the 'create peer-cert' subcommand.
 func (o *PeerOptions) Run() error {
 	if _, err := idna.Lookup.ToASCII(o.Name); err != nil {
 		return fmt.Errorf("peer name is not a valid DNS name: %w", err)
@@ -206,6 +209,7 @@ func (o *PeerOptions) Run() error {
 		ContainerRegistry:       o.ContainerRegistry,
 		CRDMode:                 o.CRDMode,
 		Namespace:               o.Namespace,
+		Tag:                     o.Tag,
 	}
 	k8sConfig, err := platform.K8SConfig(platformCfg)
 	if err != nil {
@@ -238,14 +242,14 @@ func (o *PeerOptions) Run() error {
 	return os.WriteFile(clOutPath, clConfig, 0o600)
 }
 
-// NewCmdCreatePeer returns a cobra.Command to run the 'create peer' subcommand.
-func NewCmdCreatePeer() *cobra.Command {
+// NewCmdCreatePeerCert returns a cobra.Command to run the 'create peer-cert' subcommand.
+func NewCmdCreatePeerCert() *cobra.Command {
 	opts := &PeerOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "peer",
-		Short: "Create a peer",
-		Long:  `Create a peer`,
+		Use:   "peer-cert",
+		Short: "Create peer certificate and private key",
+		Long:  `Create peer certificate and private key`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Run()

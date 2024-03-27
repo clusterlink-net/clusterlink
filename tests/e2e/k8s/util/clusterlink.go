@@ -29,7 +29,6 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/client"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 )
 
@@ -161,39 +160,34 @@ func (c *ClusterLink) AccessService(
 }
 
 func (c *ClusterLink) CreatePeer(peer *ClusterLink) error {
-	if c.crdMode {
-		return c.cluster.Resources().Create(
-			context.Background(),
-			&v1alpha1.Peer{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      peer.Name(),
-					Namespace: c.namespace,
-				},
-				Spec: v1alpha1.PeerSpec{
-					Gateways: []v1alpha1.Endpoint{{
-						Host: peer.IP(),
-						Port: peer.Port(),
-					}},
-				},
-			})
-	}
-
-	return c.client.Peers.Create(&api.Peer{
-		Name: peer.Name(),
-		Spec: api.PeerSpec{
-			Gateways: []api.Endpoint{{
+	pr := &v1alpha1.Peer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      peer.Name(),
+			Namespace: c.namespace,
+		},
+		Spec: v1alpha1.PeerSpec{
+			Gateways: []v1alpha1.Endpoint{{
 				Host: peer.IP(),
 				Port: peer.Port(),
 			}},
 		},
-	})
+	}
+
+	if c.crdMode {
+		return c.cluster.Resources().Create(context.Background(), pr)
+	}
+
+	return c.client.Peers.Create(pr)
 }
 
 func (c *ClusterLink) UpdatePeer(peer *ClusterLink) error {
-	return c.client.Peers.Update(&api.Peer{
-		Name: peer.Name(),
-		Spec: api.PeerSpec{
-			Gateways: []api.Endpoint{{
+	return c.client.Peers.Update(&v1alpha1.Peer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      peer.Name(),
+			Namespace: c.namespace,
+		},
+		Spec: v1alpha1.PeerSpec{
+			Gateways: []v1alpha1.Endpoint{{
 				Host: peer.IP(),
 				Port: peer.Port(),
 			}},
@@ -201,22 +195,22 @@ func (c *ClusterLink) UpdatePeer(peer *ClusterLink) error {
 	})
 }
 
-func (c *ClusterLink) GetPeer(peer *ClusterLink) (*api.Peer, error) {
+func (c *ClusterLink) GetPeer(peer *ClusterLink) (*v1alpha1.Peer, error) {
 	res, err := c.client.Peers.Get(peer.Name())
 	if err != nil {
 		return nil, err
 	}
 
-	return res.(*api.Peer), nil
+	return res.(*v1alpha1.Peer), nil
 }
 
-func (c *ClusterLink) GetAllPeers() (*[]api.Peer, error) {
+func (c *ClusterLink) GetAllPeers() (*[]v1alpha1.Peer, error) {
 	res, err := c.client.Peers.List()
 	if err != nil {
 		return nil, err
 	}
 
-	return res.(*[]api.Peer), nil
+	return res.(*[]v1alpha1.Peer), nil
 }
 
 func (c *ClusterLink) DeletePeer(peer *ClusterLink) error {
@@ -238,60 +232,52 @@ func (c *ClusterLink) CreateService(service *Service) error {
 		})
 }
 
-func (c *ClusterLink) CreateExport(name string, service *Service) error {
-	if c.crdMode {
-		return c.cluster.Resources().Create(
-			context.Background(),
-			&v1alpha1.Export{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      service.Name,
-					Namespace: c.namespace,
-				},
-				Spec: v1alpha1.ExportSpec{
-					Port: service.Port,
-				},
-			})
+func (c *ClusterLink) CreateExport(service *Service) error {
+	export := &v1alpha1.Export{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      service.Name,
+			Namespace: c.namespace,
+		},
+		Spec: v1alpha1.ExportSpec{
+			Port: service.Port,
+		},
 	}
 
-	return c.client.Exports.Create(&api.Export{
-		Name: name,
-		Spec: api.ExportSpec{
-			Service: api.Endpoint{
-				Host: fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace),
-				Port: service.Port,
-			},
-		},
-	})
+	if c.crdMode {
+		return c.cluster.Resources().Create(context.Background(), export)
+	}
+
+	return c.client.Exports.Create(export)
 }
 
 func (c *ClusterLink) UpdateExport(name string, service *Service) error {
-	return c.client.Exports.Update(&api.Export{
-		Name: name,
-		Spec: api.ExportSpec{
-			Service: api.Endpoint{
-				Host: fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace),
-				Port: service.Port,
-			},
+	return c.client.Exports.Update(&v1alpha1.Export{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: v1alpha1.ExportSpec{
+			Host: fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace),
+			Port: service.Port,
 		},
 	})
 }
 
-func (c *ClusterLink) GetExport(name string) (*api.Export, error) {
+func (c *ClusterLink) GetExport(name string) (*v1alpha1.Export, error) {
 	res, err := c.client.Exports.Get(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return res.(*api.Export), nil
+	return res.(*v1alpha1.Export), nil
 }
 
-func (c *ClusterLink) GetAllExports() (*[]api.Export, error) {
+func (c *ClusterLink) GetAllExports() (*[]v1alpha1.Export, error) {
 	res, err := c.client.Exports.List()
 	if err != nil {
 		return nil, err
 	}
 
-	return res.(*[]api.Export), nil
+	return res.(*[]v1alpha1.Export), nil
 }
 
 func (c *ClusterLink) DeleteExport(name string) error {
@@ -299,95 +285,84 @@ func (c *ClusterLink) DeleteExport(name string) error {
 }
 
 func (c *ClusterLink) CreateImport(service *Service, peer *ClusterLink, exportName string) error {
-	if c.crdMode {
-		return c.cluster.Resources().Create(
-			context.Background(),
-			&v1alpha1.Import{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      service.Name,
-					Namespace: c.namespace,
-				},
-				Spec: v1alpha1.ImportSpec{
-					Port: service.Port,
-					Sources: []v1alpha1.ImportSource{{
-						Peer:            peer.Name(),
-						ExportName:      exportName,
-						ExportNamespace: peer.Namespace(),
-					}},
-				},
-			})
+	imp := &v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      service.Name,
+			Namespace: c.namespace,
+		},
+		Spec: v1alpha1.ImportSpec{
+			Port: service.Port,
+			Sources: []v1alpha1.ImportSource{{
+				Peer:            peer.Name(),
+				ExportName:      exportName,
+				ExportNamespace: peer.Namespace(),
+			}},
+		},
 	}
 
-	return c.client.Imports.Create(&api.Import{
-		Name: service.Name,
-		Spec: api.ImportSpec{
-			Port:  service.Port,
-			Peers: []string{peer.Name()},
-		},
-	})
+	if c.crdMode {
+		return c.cluster.Resources().Create(context.Background(), imp)
+	}
+
+	return c.client.Imports.Create(imp)
 }
 
 func (c *ClusterLink) UpdateImport(service *Service, peer *ClusterLink, exportName string) error {
-	if c.crdMode {
-		return c.cluster.Resources().Update(
-			context.Background(),
-			&v1alpha1.Import{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      service.Name,
-					Namespace: c.namespace,
-				},
-				Spec: v1alpha1.ImportSpec{
-					Port: service.Port,
-					Sources: []v1alpha1.ImportSource{{
-						Peer:            peer.Name(),
-						ExportName:      exportName,
-						ExportNamespace: peer.Namespace(),
-					}},
-				},
-			})
+	imp := &v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      service.Name,
+			Namespace: c.namespace,
+		},
+		Spec: v1alpha1.ImportSpec{
+			Port: service.Port,
+			Sources: []v1alpha1.ImportSource{{
+				Peer:            peer.Name(),
+				ExportName:      exportName,
+				ExportNamespace: peer.Namespace(),
+			}},
+		},
 	}
 
-	return c.client.Imports.Update(&api.Import{
-		Name: service.Name,
-		Spec: api.ImportSpec{
-			Port:  service.Port,
-			Peers: []string{peer.Name()},
-		},
-	})
+	if c.crdMode {
+		return c.cluster.Resources().Update(context.Background(), imp)
+	}
+
+	return c.client.Imports.Update(imp)
 }
 
-func (c *ClusterLink) GetImport(name string) (*api.Import, error) {
+func (c *ClusterLink) GetImport(name string) (*v1alpha1.Import, error) {
 	res, err := c.client.Imports.Get(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return res.(*api.Import), nil
+	return res.(*v1alpha1.Import), nil
 }
 
-func (c *ClusterLink) GetAllImports() (*[]api.Import, error) {
+func (c *ClusterLink) GetAllImports() (*[]v1alpha1.Import, error) {
 	res, err := c.client.Imports.List()
 	if err != nil {
 		return nil, err
 	}
 
-	return res.(*[]api.Import), nil
+	return res.(*[]v1alpha1.Import), nil
 }
 
 func (c *ClusterLink) DeleteImport(name string) error {
 	return c.client.Imports.Delete(name)
 }
 
-func (c *ClusterLink) CreateAccessPolicy(accessPolicy *v1alpha1.AccessPolicy) error {
-	if accessPolicy.Namespace == "" {
-		accessPolicyCopy := *accessPolicy
-		accessPolicyCopy.Namespace = c.namespace
-		accessPolicy = &accessPolicyCopy
-	}
-	return c.cluster.Resources().Create(context.Background(), accessPolicy)
-}
+func (c *ClusterLink) CreatePolicy(policy *v1alpha1.AccessPolicy) error {
+	if c.crdMode {
+		if policy.Namespace == "" {
+			accessPolicyCopy := *policy
+			accessPolicyCopy.Namespace = c.namespace
+			policy = &accessPolicyCopy
+		}
 
-func (c *ClusterLink) CreatePolicy(policy *policytypes.ConnectivityPolicy) error {
+		return c.cluster.Resources().Create(context.Background(), policy)
+	}
+
 	data, err := json.Marshal(policy)
 	if err != nil {
 		return err
@@ -399,7 +374,7 @@ func (c *ClusterLink) CreatePolicy(policy *policytypes.ConnectivityPolicy) error
 	})
 }
 
-func (c *ClusterLink) UpdatePolicy(policy *policytypes.ConnectivityPolicy) error {
+func (c *ClusterLink) UpdatePolicy(policy *v1alpha1.AccessPolicy) error {
 	data, err := json.Marshal(policy)
 	if err != nil {
 		return err
@@ -411,13 +386,13 @@ func (c *ClusterLink) UpdatePolicy(policy *policytypes.ConnectivityPolicy) error
 	})
 }
 
-func (c *ClusterLink) GetPolicy(name string) (*policytypes.ConnectivityPolicy, error) {
+func (c *ClusterLink) GetPolicy(name string) (*v1alpha1.AccessPolicy, error) {
 	res, err := c.client.AccessPolicies.Get(name)
 	if err != nil {
 		return nil, err
 	}
 
-	var policy policytypes.ConnectivityPolicy
+	var policy v1alpha1.AccessPolicy
 	if err := json.Unmarshal(res.(*api.Policy).Spec.Blob, &policy); err != nil {
 		return nil, err
 	}
@@ -425,13 +400,13 @@ func (c *ClusterLink) GetPolicy(name string) (*policytypes.ConnectivityPolicy, e
 	return &policy, nil
 }
 
-func (c *ClusterLink) GetAllPolicies() (*[]policytypes.ConnectivityPolicy, error) {
+func (c *ClusterLink) GetAllPolicies() (*[]v1alpha1.AccessPolicy, error) {
 	res, err := c.client.AccessPolicies.List()
 	if err != nil {
 		return nil, err
 	}
 
-	policies := make([]policytypes.ConnectivityPolicy, len(*res.(*[]api.Policy)))
+	policies := make([]v1alpha1.AccessPolicy, len(*res.(*[]api.Policy)))
 	for i, p := range *res.(*[]api.Policy) {
 		if err := json.Unmarshal(p.Spec.Blob, &policies[i]); err != nil {
 			return nil, err

@@ -235,7 +235,7 @@ func TestClusterLinkController(t *testing.T) {
 		goReplicas := 2
 		loglevel := "debug"
 		containerRegistry := "quay.com"
-		imageTag := "v1.0.1"
+		tag := "v0.0.1"
 		cp := &appsv1.Deployment{}
 		dp := &appsv1.Deployment{}
 
@@ -247,20 +247,20 @@ func TestClusterLinkController(t *testing.T) {
 		cl.Spec.DataPlane.Type = clusterlink.DataplaneTypeGo
 		cl.Spec.DataPlane.Replicas = goReplicas
 		cl.Spec.LogLevel = loglevel
-		cl.Spec.ImageTag = imageTag
+		cl.Spec.Tag = tag
 		cl.Spec.ContainerRegistry = containerRegistry
 		err = k8sClient.Update(ctx, &cl)
 		require.Nil(t, err)
 
 		/// Check controlplane
 		checkResourceCreated(t, cpID, cp)
-		cpImage := containerRegistry + "/" + controller.ControlPlaneName + ":" + imageTag
+		cpImage := containerRegistry + "/" + controller.ControlPlaneName + ":" + tag
 		require.Equal(t, cpImage, cp.Spec.Template.Spec.Containers[0].Image)
 		require.Equal(t, loglevel, cp.Spec.Template.Spec.Containers[0].Args[1])
 
 		/// Check dataplane
 		checkResourceCreated(t, dpID, dp)
-		goImage := containerRegistry + "/" + controller.GoDataPlaneName + ":" + imageTag
+		goImage := containerRegistry + "/" + controller.GoDataPlaneName + ":" + tag
 		require.Equal(t, goImage, dp.Spec.Template.Spec.Containers[0].Image)
 		require.Equal(t, int32(goReplicas), *dp.Spec.Replicas)
 		require.Equal(t, loglevel, dp.Spec.Template.Spec.Containers[0].Args[1])

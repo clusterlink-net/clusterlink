@@ -11,23 +11,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The cl-adm binary is used for preparing a clusterlink deployment.
-// The deployment includes certificate files for establishing secure TLS connections
-// with other cluster components, and configuration for spawning up the various clusterlink
-// components in different environments.
-package main
+package cmd
 
 import (
-	"os"
+	"github.com/spf13/cobra"
 
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/cmd"
-	"github.com/clusterlink-net/clusterlink/pkg/versioninfo"
+	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/cmd/create"
+	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/cmd/deploy"
 )
 
-func main() {
-	command := cmd.NewCLADMCommand()
-	command.Version = versioninfo.Short()
-	if err := command.Execute(); err != nil {
-		os.Exit(1)
+// NewCLADMCommand returns a cobra.Command to run the clusterlink command.
+func NewCLADMCommand() *cobra.Command {
+	cmds := &cobra.Command{
+		Use:          "clusterlink",
+		Short:        "clusterlink: bootstrap a clink fabric",
+		Long:         `clusterlink: bootstrap a clink fabric`,
+		SilenceUsage: true,
 	}
+
+	cmds.AddCommand(create.NewCmdCreate())
+	cmds.AddCommand(deploy.NewCmdDeploy())
+
+	return cmds
 }

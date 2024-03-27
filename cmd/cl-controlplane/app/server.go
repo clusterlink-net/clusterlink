@@ -196,14 +196,14 @@ func (o *Options) Run() error {
 
 	authz.RegisterHandlers(authzManager, &httpServer.Server)
 
-	controlManager := control.NewManager(mgr.GetClient(), parsedCertData, o.CRDMode)
+	controlManager := control.NewManager(mgr.GetClient(), parsedCertData, namespace, o.CRDMode)
 
 	err = control.CreateControllers(controlManager, mgr, o.CRDMode)
 	if err != nil {
 		return fmt.Errorf("cannot create control controllers: %w", err)
 	}
 
-	xdsManager := xds.NewManager()
+	xdsManager := xds.NewManager(o.CRDMode)
 	xds.RegisterService(
 		context.Background(), xdsManager, grpcServer.GetGRPCServer())
 

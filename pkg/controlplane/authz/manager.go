@@ -33,7 +33,7 @@ import (
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/peer"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
@@ -139,24 +139,13 @@ func (m *Manager) DeletePeer(name string) {
 // AddImport adds a listening socket for an imported remote service.
 func (m *Manager) AddImport(imp *v1alpha1.Import) {
 	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
-
-	// TODO: switch policyDecider from api.Import to v1alpha1.Import
-	peers := make([]string, len(imp.Spec.Sources))
-	for i, source := range imp.Spec.Sources {
-		peers[i] = source.Peer
-	}
-	_ = m.policyDecider.AddImport(&api.Import{
-		Name: imp.Name,
-		Spec: api.ImportSpec{
-			Peers: peers,
-		},
-	})
+	m.policyDecider.AddImport(imp)
 }
 
 // DeleteImport removes the listening socket of a previously imported service.
 func (m *Manager) DeleteImport(name types.NamespacedName) error {
 	m.logger.Infof("Deleting import '%v'.", name)
-	// TODO: call policyDecider.DeleteImport
+	m.policyDecider.DeleteImport(name)
 	return nil
 }
 
@@ -232,25 +221,7 @@ func (m *Manager) deleteAccessPolicy(_ types.NamespacedName) {
 }
 
 func (m *Manager) addAccessPolicy(accessPolicy *v1alpha1.AccessPolicy) error {
-	convert := func(list v1alpha1.WorkloadSetOrSelectorList) policytypes.WorkloadSetOrSelectorList {
-		out := make(policytypes.WorkloadSetOrSelectorList, len(list))
-		for i, elem := range list {
-			out[i] = policytypes.WorkloadSetOrSelector{
-				WorkloadSets:     elem.WorkloadSets,
-				WorkloadSelector: elem.WorkloadSelector,
-			}
-		}
-
-		return out
-	}
-
-	policyData, err := json.Marshal(&policytypes.ConnectivityPolicy{
-		Name:       accessPolicy.Name,
-		Privileged: accessPolicy.Spec.Privileged,
-		Action:     policytypes.PolicyAction(accessPolicy.Spec.Action),
-		From:       convert(accessPolicy.Spec.From),
-		To:         convert(accessPolicy.Spec.To),
-	})
+	policyData, err := json.Marshal(accessPolicy)
 	if err != nil {
 		return err
 	}
@@ -278,15 +249,15 @@ func (m *Manager) getLabelsFromIP(ip string) map[string]string {
 func (m *Manager) authorizeEgress(req *egressAuthorizationRequest) (*egressAuthorizationResponse, error) {
 	m.logger.Infof("Received egress authorization request: %v.", req)
 
-	connReq := policytypes.ConnectionRequest{
+	connReq := connectivitypdp.ConnectionRequest{
 		DstSvcName:      req.ImportName,
 		DstSvcNamespace: req.ImportNamespace,
-		Direction:       policytypes.Outgoing,
+		Direction:       connectivitypdp.Outgoing,
 	}
 	srcLabels := m.getLabelsFromIP(req.IP)
 	if src, ok := srcLabels["app"]; ok { // TODO: Add support for labels other than just the "app" key.
 		m.logger.Infof("Received egress authorization srcLabels[app]: %v.", srcLabels["app"])
-		connReq.SrcWorkloadAttrs = policytypes.WorkloadAttrs{policyengine.ServiceNameLabel: src}
+		connReq.SrcWorkloadAttrs = connectivitypdp.WorkloadAttrs{policyengine.ServiceNameLabel: src}
 	}
 
 	authResp, err := m.policyDecider.AuthorizeAndRouteConnection(&connReq)
@@ -294,7 +265,7 @@ func (m *Manager) authorizeEgress(req *egressAuthorizationRequest) (*egressAutho
 		return nil, err
 	}
 
-	if authResp.Action != policytypes.ActionAllow {
+	if authResp.Action != v1alpha1.AccessPolicyActionAllow {
 		return &egressAuthorizationResponse{Allowed: false}, nil
 	}
 
@@ -308,9 +279,19 @@ func (m *Manager) authorizeEgress(req *egressAuthorizationRequest) (*egressAutho
 		return nil, fmt.Errorf("missing client for peer: %s", target)
 	}
 
+	DstName := authResp.DstName
+	DstNamespace := authResp.DstNamespace
+	if DstName == "" { // TODO- remove when controlplane will support only CRD mode.
+		DstName = req.ImportName
+	}
+
+	if DstNamespace == "" { // TODO- remove when controlplane will support only CRD mode.
+		DstNamespace = req.ImportNamespace
+	}
+
 	serverResp, err := client.Authorize(&cpapi.AuthorizationRequest{
-		ServiceName:      req.ImportName,
-		ServiceNamespace: req.ImportNamespace,
+		ServiceName:      DstName,
+		ServiceNamespace: DstNamespace,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to get access token from peer: %w", err)
@@ -364,17 +345,17 @@ func (m *Manager) authorizeIngress(req *ingressAuthorizationRequest, pr string) 
 	// TODO: set this from autoResp below
 	resp.ServiceExists = true
 
-	connReq := policytypes.ConnectionRequest{
+	connReq := connectivitypdp.ConnectionRequest{
 		DstSvcName:       req.ServiceName,
 		DstSvcNamespace:  req.ServiceNamespace,
-		Direction:        policytypes.Incoming,
-		SrcWorkloadAttrs: policytypes.WorkloadAttrs{policyengine.GatewayNameLabel: pr},
+		Direction:        connectivitypdp.Incoming,
+		SrcWorkloadAttrs: connectivitypdp.WorkloadAttrs{policyengine.GatewayNameLabel: pr},
 	}
 	authResp, err := m.policyDecider.AuthorizeAndRouteConnection(&connReq)
 	if err != nil {
 		return nil, err
 	}
-	if authResp.Action != policytypes.ActionAllow {
+	if authResp.Action != v1alpha1.AccessPolicyActionAllow {
 		resp.Allowed = false
 		return resp, nil
 	}

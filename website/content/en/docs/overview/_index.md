@@ -1,5 +1,6 @@
 ---
 title: Overview
+description: A high level overview of ClusterLink
 weight: 10
 ---
 

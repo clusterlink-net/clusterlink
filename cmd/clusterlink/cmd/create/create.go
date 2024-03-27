@@ -11,26 +11,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package create
 
 import (
 	"github.com/spf13/cobra"
-
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/cmd/create"
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/cmd/deploy"
 )
 
-// NewCLADMCommand returns a cobra.Command to run the cl-adm command.
-func NewCLADMCommand() *cobra.Command {
+// NewCmdCreate returns a cobra.Command to run the create command.
+func NewCmdCreate() *cobra.Command {
 	cmds := &cobra.Command{
-		Use:          "cl-adm",
-		Short:        "cl-adm: bootstrap a clink fabric",
-		Long:         `cl-adm: bootstrap a clink fabric`,
-		SilenceUsage: true,
+		Use:   "create",
+		Short: "Create ClusterLink resources",
+		Long:  "Create ClusterLink resources",
 	}
 
-	cmds.AddCommand(create.NewCmdCreate())
-	cmds.AddCommand(deploy.NewCmdDeploy())
+	cmds.AddCommand(NewCmdCreateFabric())
+	cmds.AddCommand(NewCmdCreatePeerCert())
 
 	return cmds
 }

@@ -1,4 +1,4 @@
-baseURL = "/"
+baseURL = "https://clusterlink.net/"
 title = "ClusterLink"
 
 # Language settings
@@ -134,8 +134,8 @@ prism_syntax_highlighting = false
 [params.ui]
 #  Set to true to disable breadcrumb navigation.
 breadcrumb_disable = false
-# Set to true to disable the About link in the site footer
-footer_about_disable = true
+# Set to true to enable the About link in the site footer
+footer_about_enable = false
 # Set to false if you don't want to display a logo (/assets/icons/logo.svg) in the top navbar
 navbar_logo = true
 # Set to true if you don't want the top navbar to be translucent when over a `block/cover`, like on the homepage.
@@ -181,20 +181,12 @@ enable = false
   desc = "Discuss development issues around the project"
 
 #-- main menu
-[[menu.main]]
-name = "About"
-weight = 1
-url = "/about/"
-
-[[menu.main]]
-name = "Docs"
-weight = 10
-url = "/docs/"
-pre = "<i class='fa-solid fa-book'></i>"
+# most sections are populated from markdown files and their front matter.
+# below add menu items that do not have associated content on the website
 
 [[menu.main]]
 name = "GitHub"
-weight = 20
+weight = 50
 url = "https://github.com/clusterlink-net/clusterlink/"
 pre = "<i class='fa-brands fa-github'></i>"
 

@@ -11,20 +11,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package create
+// The clusterlink binary is used for preparing a clusterlink deployment.
+// The deployment includes certificate files for establishing secure TLS connections
+// with other cluster components, and configuration for spawning up the various clusterlink
+// components in different environments.
+package main
 
 import (
-	"github.com/spf13/cobra"
+	"os"
+
+	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/cmd"
+	"github.com/clusterlink-net/clusterlink/pkg/versioninfo"
 )
 
-// NewCmdCreate returns a cobra.Command to run the create command.
-func NewCmdCreate() *cobra.Command {
-	cmds := &cobra.Command{
-		Use: "create",
+func main() {
+	command := cmd.NewCLADMCommand()
+	command.Version = versioninfo.Short()
+	if err := command.Execute(); err != nil {
+		os.Exit(1)
 	}
-
-	cmds.AddCommand(NewCmdCreateFabric())
-	cmds.AddCommand(NewCmdCreatePeer())
-
-	return cmds
 }

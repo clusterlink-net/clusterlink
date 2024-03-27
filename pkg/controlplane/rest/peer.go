@@ -19,7 +19,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 )
@@ -44,15 +43,17 @@ func toK8SPeer(peer *store.Peer) *v1alpha1.Peer {
 	return k8sPeer
 }
 
-func peerToAPI(peer *store.Peer) *api.Peer {
+func peerToAPI(peer *store.Peer) *v1alpha1.Peer {
 	if peer == nil {
 		return nil
 	}
 
-	return &api.Peer{
-		Name:   peer.Name,
+	return &v1alpha1.Peer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: peer.Name,
+		},
 		Spec:   peer.PeerSpec,
-		Status: api.PeerStatus{},
+		Status: v1alpha1.PeerStatus{},
 	}
 }
 
@@ -127,7 +128,7 @@ func (m *Manager) GetAllPeers() []*store.Peer {
 
 // Decode a peer.
 func (h *peerHandler) Decode(data []byte) (any, error) {
-	var peer api.Peer
+	var peer v1alpha1.Peer
 	if err := json.Unmarshal(data, &peer); err != nil {
 		return nil, fmt.Errorf("cannot decode peer: %w", err)
 	}
@@ -175,7 +176,7 @@ func (h *peerHandler) Delete(name any) (any, error) {
 // List all peers.
 func (h *peerHandler) List() (any, error) {
 	peers := h.manager.GetAllPeers()
-	apiPeers := make([]*api.Peer, len(peers))
+	apiPeers := make([]*v1alpha1.Peer, len(peers))
 	for i, peer := range peers {
 		apiPeers[i] = peerToAPI(peer)
 	}

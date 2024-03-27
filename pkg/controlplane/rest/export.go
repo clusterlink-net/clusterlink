@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 )
@@ -36,19 +35,21 @@ func toK8SExport(export *store.Export, namespace string) *v1alpha1.Export {
 			Namespace: namespace,
 		},
 		Spec: v1alpha1.ExportSpec{
-			Host: export.ExportSpec.Service.Host,
-			Port: export.ExportSpec.Service.Port,
+			Host: export.ExportSpec.Host,
+			Port: export.ExportSpec.Port,
 		},
 	}
 }
 
-func exportToAPI(export *store.Export) *api.Export {
+func exportToAPI(export *store.Export) *v1alpha1.Export {
 	if export == nil {
 		return nil
 	}
 
-	return &api.Export{
-		Name: export.Name,
+	return &v1alpha1.Export{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: export.Name,
+		},
 		Spec: export.ExportSpec,
 	}
 }
@@ -125,7 +126,7 @@ func (m *Manager) GetAllExports() []*store.Export {
 
 // Decode an export.
 func (h *exportHandler) Decode(data []byte) (any, error) {
-	var export api.Export
+	var export v1alpha1.Export
 	if err := json.Unmarshal(data, &export); err != nil {
 		return nil, fmt.Errorf("cannot decode export: %w", err)
 	}
@@ -134,11 +135,7 @@ func (h *exportHandler) Decode(data []byte) (any, error) {
 		return nil, fmt.Errorf("empty export name")
 	}
 
-	if export.Spec.Service.Host == "" {
-		return nil, fmt.Errorf("missing service name")
-	}
-
-	if export.Spec.Service.Port == 0 {
+	if export.Spec.Port == 0 {
 		return nil, fmt.Errorf("missing service port")
 	}
 
@@ -172,7 +169,7 @@ func (h *exportHandler) Delete(name any) (any, error) {
 // List all exports.
 func (h *exportHandler) List() (any, error) {
 	exports := h.manager.GetAllExports()
-	apiExports := make([]*api.Export, len(exports))
+	apiExports := make([]*v1alpha1.Export, len(exports))
 	for i, export := range exports {
 		apiExports[i] = exportToAPI(export)
 	}

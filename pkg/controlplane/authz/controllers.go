@@ -72,6 +72,22 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode boo
 		if err != nil {
 			return err
 		}
+
+		err = controller.AddToManager(controllerManager, &controller.Spec{
+			Name:   "authz.export",
+			Object: &v1alpha1.Export{},
+			AddHandler: func(ctx context.Context, object any) error {
+				mgr.AddExport(object.(*v1alpha1.Export))
+				return nil
+			},
+			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+				mgr.DeleteExport(name)
+				return nil
+			},
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return controller.AddToManager(controllerManager, &controller.Spec{

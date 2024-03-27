@@ -2,11 +2,12 @@
 title: About ClusterLink
 linkTitle: About
 description: Why and where should you use ClusterLink
+menu: {main: {weight: 10, pre: "<i class='fa-solid fa-info-circle'></i>" }}
 ---
 
 {{% blocks/section color="secondary" %}}
 
-# About ClusterLink
+## About ClusterLink
 
 {{% pageinfo %}}
 ClusterLink is in **alpha** status and not ready for production use.

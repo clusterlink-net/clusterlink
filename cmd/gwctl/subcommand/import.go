@@ -19,10 +19,11 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/clusterlink-net/clusterlink/cmd/gwctl/config"
 	cmdutil "github.com/clusterlink-net/clusterlink/cmd/util"
-	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 )
 
 // importOptions is the command line options for 'create import' or 'update import'.
@@ -31,7 +32,7 @@ type importOptions struct {
 	name  string
 	port  uint16
 	peers []string
-	merge string
+	merge bool
 }
 
 // ImportCreateCmd - create an imported service.
@@ -76,7 +77,7 @@ func (o *importOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "Imported service name")
 	fs.Uint16Var(&o.port, "port", 0, "Imported service port")
 	fs.StringSliceVar(&o.peers, "peer", []string{}, "Remote peer to import the service from")
-	fs.StringVar(&o.merge, "merge", "", "Merge with an existing service endpoint")
+	fs.BoolVar(&o.merge, "merge", false, "Merge with an existing service endpoint")
 }
 
 // run performs the execution of the 'create import' or 'update import' subcommand.
@@ -91,12 +92,20 @@ func (o *importOptions) run(isUpdate bool) error {
 		importOperation = g.Imports.Update
 	}
 
-	err = importOperation(&api.Import{
-		Name: o.name,
-		Spec: api.ImportSpec{
-			Port:  o.port,
-			Peers: o.peers,
-			Merge: o.merge,
+	sources := make([]v1alpha1.ImportSource, len(o.peers))
+	for i, peer := range o.peers {
+		sources[i].Peer = peer
+		sources[i].ExportName = o.name
+	}
+
+	err = importOperation(&v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: o.name,
+		},
+		Spec: v1alpha1.ImportSpec{
+			Port:    o.port,
+			Sources: sources,
+			Merge:   o.merge,
 		},
 	})
 	if err != nil {
@@ -191,11 +200,18 @@ func (o *importGetOptions) run() error {
 		if err != nil {
 			return err
 		}
+
+		imports, ok := sArr.(*[]v1alpha1.Import)
+		if !ok {
+			return fmt.Errorf("cannot decode imports list")
+		}
+
 		fmt.Printf("Imported services:\n")
-		for i, s := range *sArr.(*[]api.Import) {
+		for i := range *imports {
+			imp := &(*imports)[i]
 			fmt.Printf(
-				"%d. Imported Name: %s. Port %v. TargetPort %v. Peers %v.\n",
-				i+1, s.Name, s.Spec.Port, s.Spec.TargetPort, s.Spec.Peers)
+				"%d. Imported Name: %s. Port %v. TargetPort %v. Sources %v.\n",
+				i+1, imp.Name, imp.Spec.Port, imp.Spec.TargetPort, imp.Spec.Sources)
 		}
 	} else {
 		imp, err := importClient.Imports.Get(o.name)

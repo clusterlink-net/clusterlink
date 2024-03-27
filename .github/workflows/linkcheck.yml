@@ -1,0 +1,17 @@
+name: Periodic Website Link Check
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 6" # weekly on Sat midnight
+
+jobs:
+  broken-link-checker:
+    name: Check broken links
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check
+      uses: ruzickap/action-my-broken-link-checker@v2
+      with:
+        url: https://clusterlink.net
+        cmd_params: '--buffer-size=65536 --max-connections=16 --rate-limit=16 --timeout=20'  # muffet parameters

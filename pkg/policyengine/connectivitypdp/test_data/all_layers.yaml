@@ -1,8 +1,9 @@
-apiVersion: clusterlink/v1alpha1
-kind: PrivilegedConnectivityPolicy
+apiVersion: clusterlink.net/v1alpha1
+kind: AccessPolicy
 metadata:
   name: deny-private-workloads-connecting-to-metering-service-on-port-5051-on-prod
 spec:
+  privileged: true
   action: deny
   from:
   - workloadSelector:
@@ -14,15 +15,13 @@ spec:
       matchLabels:
         workloadName: global-metering-service
         environment: prod
-  connectionAttrs:
-  - protocol: TCP
-    port: 5051
 ---
-apiVersion: clusterlink/v1alpha1
-kind: PrivilegedConnectivityPolicy
+apiVersion: clusterlink.net/v1alpha1
+kind: AccessPolicy
 metadata:
   name: allow-connecting-to-metering-service-on-port-5051
 spec:
+  privileged: true
   action: allow
   from:
   - workloadSelector: {}
@@ -31,12 +30,9 @@ spec:
       matchLabels:
         workloadName: global-metering-service
         environment: prod
-  connectionAttrs:
-  - protocol: TCP
-    port: 5051
 ---
-apiVersion: clusterlink/v1alpha1
-kind: ConnectivityPolicy
+apiVersion: clusterlink.net/v1alpha1
+kind: AccessPolicy
 metadata:
   name: deny-connecting-to-metering-service-on-some-ports
 spec:
@@ -47,14 +43,9 @@ spec:
   - workloadSelector:
       matchLabels:
         workloadName: global-metering-service
-  connectionAttrs:
-  - protocol: TCP
-    port: 5051
-  - protocol: TCP
-    port: 5052
 ---
-apiVersion: clusterlink/v1alpha1
-kind: ConnectivityPolicy
+apiVersion: clusterlink.net/v1alpha1
+kind: AccessPolicy
 metadata:
   name: allow-connecting-to-named_workloads
 spec:

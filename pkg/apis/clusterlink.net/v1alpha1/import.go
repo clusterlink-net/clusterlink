@@ -27,6 +27,8 @@ type Import struct {
 
 	// Spec represents the attributes of the imported service.
 	Spec ImportSpec `json:"spec"`
+	// Status represents the import status.
+	Status ImportStatus `json:"status,omitempty"`
 }
 
 // ImportSource represents an addressable exported service.
@@ -34,9 +36,9 @@ type ImportSource struct {
 	// Peer name where the exported service is defined.
 	Peer string `json:"peer"`
 	// ExportName is the name of the exported service.
-	ExportName string `json:"name"`
+	ExportName string `json:"exportName"`
 	// ExportNamespace is the namespace of the exported service.
-	ExportNamespace string `json:"namespace"`
+	ExportNamespace string `json:"exportNamespace"`
 }
 
 // ImportSpec contains all attributes of an imported service.
@@ -50,13 +52,24 @@ type ImportSpec struct {
 	Sources []ImportSource `json:"sources"`
 	// The existing service endpoint to merge the imported service with by
 	// creating an endpointslice with the service name pointed to.
-	Merge string
-	// TODO: add LoadBalancingSpec.
+	Merge bool
+	// +kubebuilder:default="round-robin"
+	// LBScheme is the load-balancing scheme to use (e.g., random, static, round-robin)
+	LBScheme string `json:"lbScheme"`
+	// TODO: Make LBScheme a proper type (when backwards compatibility is no longer needed)
 }
+
+const (
+	// ImportTargetPortValid is a condition type for indicating whether the import target port is valid.
+	ImportTargetPortValid string = "ImportTargetPortValid"
+	// ImportServiceCreated is a condition type for indicating whether the import service was successfully created.
+	ImportServiceCreated string = "ImportServiceCreated"
+)
 
 // ImportStatus represents the status of an imported service.
 type ImportStatus struct {
-	// TODO: add fields
+	// Conditions of the import.
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

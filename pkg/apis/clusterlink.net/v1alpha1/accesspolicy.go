@@ -14,6 +14,8 @@
 package v1alpha1
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -73,6 +75,45 @@ type AccessPolicyList struct {
 
 	// Items is the list of access policy objects.
 	Items []AccessPolicy `json:"items"`
+}
+
+// Validate returns an error if the given AccessPolicy is invalid. Otherwise, returns nil.
+func (p *AccessPolicy) Validate() error {
+	if p.Spec.Action != AccessPolicyActionAllow && p.Spec.Action != AccessPolicyActionDeny {
+		return fmt.Errorf("unsupported policy actions %s", p.Spec.Action)
+	}
+	if len(p.Spec.From) == 0 {
+		return fmt.Errorf("empty From field is not allowed")
+	}
+	if err := p.Spec.From.validate(); err != nil {
+		return err
+	}
+	if len(p.Spec.To) == 0 {
+		return fmt.Errorf("empty To field is not allowed")
+	}
+	return p.Spec.To.validate()
+}
+
+func (wsl WorkloadSetOrSelectorList) validate() error {
+	for i := range wsl {
+		if err := wsl[i].validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (wss *WorkloadSetOrSelector) validate() error {
+	if len(wss.WorkloadSets) > 0 && wss.WorkloadSelector != nil ||
+		len(wss.WorkloadSets) == 0 && wss.WorkloadSelector == nil {
+		return fmt.Errorf("exactly one of WorkloadSets or WorkloadSelector must be set")
+	}
+	if len(wss.WorkloadSets) > 0 {
+		return fmt.Errorf("workload sets are not yet supported")
+	}
+	_, err := metav1.LabelSelectorAsSelector(wss.WorkloadSelector)
+	return err
 }
 
 func init() {

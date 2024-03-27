@@ -17,8 +17,23 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 )
+
+// Decision represents an AccessPolicy decision on a given connection.
+type Decision int
+
+const (
+	DecisionUndecided Decision = iota
+	DecisionAllow
+	DecisionDeny
+)
+
+// WorkloadAttrs are the actual key-value attributes attached to any given workload.
+type WorkloadAttrs map[string]string
 
 // PDP is the main object to maintain a set of connectivity policies and decide
 // whether a given connection is allowed or denied by these policies.
@@ -35,15 +50,15 @@ type policyTier struct {
 	lock          sync.RWMutex
 }
 
-type connPolicyMap map[string]*policytypes.ConnectivityPolicy // map from policy name to the policy
+type connPolicyMap map[string]*v1alpha1.AccessPolicy // map from policy name to the policy
 
 // DestinationDecision describes the PDP decision on a given destination (w.r.t, to a given source),
 // including the deciding policy, if any.
 // Calling PDP.Decide() with a source workload and a slice of destinations workloads,
 // returns a slice of corresponding DestinationDecisions.
 type DestinationDecision struct {
-	Destination     policytypes.WorkloadAttrs
-	Decision        policytypes.PolicyDecision
+	Destination     WorkloadAttrs
+	Decision        Decision
 	MatchedBy       string // The name of the policy that matched the connection and took the decision
 	PrivilegedMatch bool   // Whether the policy that took the decision was privileged
 }
@@ -59,7 +74,7 @@ func NewPDP() *PDP {
 }
 
 // Returns a slice of copies of the policies stored in the PDP.
-func (pdp *PDP) GetPolicies() []policytypes.ConnectivityPolicy {
+func (pdp *PDP) GetPolicies() []v1alpha1.AccessPolicy {
 	return append(pdp.privilegedPolicies.getPolicies(), pdp.regularPolicies.getPolicies()...)
 }
 
@@ -67,12 +82,12 @@ func (pdp *PDP) GetPolicies() []policytypes.ConnectivityPolicy {
 // If a policy with the same name and the same privilege already exists in the PDP,
 // it is updated (including updating the Action field).
 // Invalid policies return an error.
-func (pdp *PDP) AddOrUpdatePolicy(policy *policytypes.ConnectivityPolicy) error {
+func (pdp *PDP) AddOrUpdatePolicy(policy *v1alpha1.AccessPolicy) error {
 	if err := policy.Validate(); err != nil {
 		return err
 	}
 
-	if policy.Privileged {
+	if policy.Spec.Privileged {
 		pdp.privilegedPolicies.addPolicy(policy)
 	} else {
 		pdp.regularPolicies.addPolicy(policy)
@@ -92,7 +107,7 @@ func (pdp *PDP) DeletePolicy(policyName string, privileged bool) error {
 // Decide makes allow/deny decisions for the queried connections between src and each of destinations in dests.
 // The decision, as well as the deciding policy, are recorded in the returned slice of DestinationDecision structs.
 // The order of destinations in dests is preserved in the returned slice.
-func (pdp *PDP) Decide(src policytypes.WorkloadAttrs, dests []policytypes.WorkloadAttrs) ([]DestinationDecision, error) {
+func (pdp *PDP) Decide(src WorkloadAttrs, dests []WorkloadAttrs) ([]DestinationDecision, error) {
 	decisions := make([]DestinationDecision, len(dests))
 	for i, dest := range dests {
 		decisions[i] = DestinationDecision{Destination: dest}
@@ -122,8 +137,8 @@ func (pdp *PDP) Decide(src policytypes.WorkloadAttrs, dests []policytypes.Worklo
 func denyUndecidedDestinations(dest []DestinationDecision) {
 	for i := range dest {
 		dd := &dest[i]
-		if dd.Decision == policytypes.DecisionUndecided {
-			dd.Decision = policytypes.DecisionDeny
+		if dd.Decision == DecisionUndecided {
+			dd.Decision = DecisionDeny
 			dd.MatchedBy = DefaultDenyPolicyName
 			dd.PrivilegedMatch = false
 		}
@@ -137,18 +152,18 @@ func newPolicyTier() policyTier {
 	}
 }
 
-func (pt *policyTier) getPolicies() []policytypes.ConnectivityPolicy {
+func (pt *policyTier) getPolicies() []v1alpha1.AccessPolicy {
 	return append(pt.denyPolicies.getPolicies(), pt.allowPolicies.getPolicies()...)
 }
 
 // addPolicy adds a ConnectivityPolicy to the given tier, based on its action.
 // Note that within a tier, no two policies can have the same name, even if one is deny and the other is allow.
-func (pt *policyTier) addPolicy(policy *policytypes.ConnectivityPolicy) {
+func (pt *policyTier) addPolicy(policy *v1alpha1.AccessPolicy) {
 	pt.lock.Lock()
 	defer pt.lock.Unlock()
 	//nolint:errcheck // ignore return value as we just want to make sure non exists
 	_ = pt.unsafeDeletePolicy(policy.Name) // delete an existing policy with the same name, if it exists
-	if policy.Action == policytypes.ActionDeny {
+	if policy.Spec.Action == v1alpha1.AccessPolicyActionDeny {
 		pt.denyPolicies[policy.Name] = policy
 	} else {
 		pt.allowPolicies[policy.Name] = policy
@@ -185,7 +200,7 @@ func (pt *policyTier) unsafeDeletePolicy(policyName string) error {
 // The function then checks whether any of the tier's allow policies matches any of the remaining undecided connections,
 // and will similarly update the relevant DestinationDecision of any matching connection.
 // returns whether all destinations were decided and an error (if occurred).
-func (pt *policyTier) decide(src policytypes.WorkloadAttrs, dests []DestinationDecision) (bool, error) {
+func (pt *policyTier) decide(src WorkloadAttrs, dests []DestinationDecision) (bool, error) {
 	pt.lock.RLock() // allowing multiple simultaneous calls to decide() to be served
 	defer pt.lock.RUnlock()
 	allDecided, err := pt.denyPolicies.decide(src, dests)
@@ -203,8 +218,8 @@ func (pt *policyTier) decide(src policytypes.WorkloadAttrs, dests []DestinationD
 	return allDecided, nil
 }
 
-func (cpm connPolicyMap) getPolicies() []policytypes.ConnectivityPolicy {
-	res := []policytypes.ConnectivityPolicy{}
+func (cpm connPolicyMap) getPolicies() []v1alpha1.AccessPolicy {
+	res := []v1alpha1.AccessPolicy{}
 	for _, p := range cpm {
 		res = append(res, *p)
 	}
@@ -214,24 +229,24 @@ func (cpm connPolicyMap) getPolicies() []policytypes.ConnectivityPolicy {
 // decide iterates over all policies in a connPolicyMap and checks if they make a connectivity decision (allow/deny)
 // on the not-yet-decided connections between src and each of the destinations in dests.
 // returns whether all destinations were decided and an error (if occurred).
-func (cpm connPolicyMap) decide(src policytypes.WorkloadAttrs, dests []DestinationDecision) (bool, error) {
+func (cpm connPolicyMap) decide(src WorkloadAttrs, dests []DestinationDecision) (bool, error) {
 	// for when there are no policies in cpm (some destinations are undecided, otherwise we shouldn't be here)
 	allDecided := false
 	for _, policy := range cpm {
 		allDecided = true // assume all destinations were decided, unless we find a destination which is not
 		for i := range dests {
 			dest := &dests[i]
-			if dest.Decision == policytypes.DecisionUndecided {
-				decision, err := policy.Decide(src, dest.Destination)
+			if dest.Decision == DecisionUndecided {
+				decision, err := accessPolicyDecide(policy, src, dest.Destination)
 				if err != nil {
 					return false, err
 				}
-				if decision == policytypes.DecisionUndecided {
+				if decision == DecisionUndecided {
 					allDecided = false // policy didn't match dest - not all dests are decided
 				} else { // policy matched - we now have a decision for dest
 					dest.Decision = decision
 					dest.MatchedBy = policy.Name
-					dest.PrivilegedMatch = policy.Privileged
+					dest.PrivilegedMatch = policy.Spec.Privileged
 				}
 			}
 		}
@@ -240,4 +255,66 @@ func (cpm connPolicyMap) decide(src policytypes.WorkloadAttrs, dests []Destinati
 		}
 	}
 	return allDecided, nil
+}
+
+// accessPolicyDecide returns a policy's decision on a given connection.
+// If the policy matches the connection, a decision based on its Action is returned.
+// Otherwise, it returns an "undecided" value.
+func accessPolicyDecide(policy *v1alpha1.AccessPolicy, src, dest WorkloadAttrs) (Decision, error) {
+	matches, err := accessPolicyMatches(policy, src, dest)
+	if err != nil {
+		return DecisionDeny, err
+	}
+	if matches {
+		if policy.Spec.Action == v1alpha1.AccessPolicyActionAllow {
+			return DecisionAllow, nil
+		}
+		return DecisionDeny, nil
+	}
+	return DecisionUndecided, nil
+}
+
+// accessPolicyMatches checks if a connection from a source with given labels
+// to a destination with given labels, matches an AccessPolicy.
+func accessPolicyMatches(policy *v1alpha1.AccessPolicy, src, dest WorkloadAttrs) (bool, error) {
+	// Check if source matches any element of the policy's "From" field
+	matched, err := WorkloadSetOrSelectorListMatches(&policy.Spec.From, src)
+	if err != nil {
+		return false, err
+	}
+	if !matched {
+		return false, nil
+	}
+
+	// Check if destination matches any element of the policy's "To" field
+	matched, err = WorkloadSetOrSelectorListMatches(&policy.Spec.To, dest)
+	if err != nil {
+		return false, err
+	}
+	return matched, nil
+}
+
+// checks whether a workload with the given labels matches any item in a slice of WorkloadSetOrSelectors.
+func WorkloadSetOrSelectorListMatches(wsl *v1alpha1.WorkloadSetOrSelectorList, workloadAttrs WorkloadAttrs) (bool, error) {
+	for i := range *wsl {
+		matched, err := workloadSetOrSelectorMatches(&(*wsl)[i], workloadAttrs)
+		if err != nil {
+			return false, err
+		}
+		if matched {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// checks whether a workload with the given labels matches a WorkloadSetOrSelectors.
+func workloadSetOrSelectorMatches(wss *v1alpha1.WorkloadSetOrSelector, workloadAttrs WorkloadAttrs) (bool, error) {
+	// TODO: implement logic for WorkloadSet matching
+	selector, err := metav1.LabelSelectorAsSelector(wss.WorkloadSelector)
+	if err != nil {
+		return false, err
+	}
+
+	return selector.Matches(labels.Set(workloadAttrs)), nil
 }

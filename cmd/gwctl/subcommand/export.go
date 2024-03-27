@@ -18,10 +18,11 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/clusterlink-net/clusterlink/cmd/gwctl/config"
 	cmdutil "github.com/clusterlink-net/clusterlink/cmd/util"
-	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 )
 
 // exportCreateOptions is the command line options for 'create export' or 'update export'.
@@ -88,13 +89,13 @@ func (o *exportCreateOptions) run(isUpdate bool) error {
 		exportOperation = g.Exports.Update
 	}
 
-	err = exportOperation(&api.Export{
-		Name: o.name,
-		Spec: api.ExportSpec{
-			Service: api.Endpoint{
-				Host: o.host,
-				Port: o.port,
-			},
+	err = exportOperation(&v1alpha1.Export{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: o.name,
+		},
+		Spec: v1alpha1.ExportSpec{
+			Host: o.host,
+			Port: o.port,
 		},
 	})
 	if err != nil {
@@ -190,16 +191,25 @@ func (o *exportGetOptions) run() error {
 		if err != nil {
 			return err
 		}
+
+		exports, ok := sArr.(*[]v1alpha1.Export)
+		if !ok {
+			return fmt.Errorf("cannot decode exports list")
+		}
+
 		fmt.Printf("Exported services:\n")
-		for i, s := range *sArr.(*[]api.Export) {
-			fmt.Printf("%d. Service Name: %s. Endpoint: %v\n", i+1, s.Name, s.Spec.Service)
+		for i := range *exports {
+			export := &(*exports)[i]
+			fmt.Printf(
+				"%d. Service Name: %s. Host: %s. Port: %d\n",
+				i+1, export.Name, export.Spec.Host, export.Spec.Port)
 		}
 	} else {
 		s, err := exportClient.Exports.Get(o.name)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Exported service :%+v\n", s.(*api.Export))
+		fmt.Printf("Exported service :%+v\n", s.(*v1alpha1.Export))
 	}
 
 	return nil

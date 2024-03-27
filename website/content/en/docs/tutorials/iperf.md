@@ -1,6 +1,6 @@
 ---
 title: iperf
-description: Running iperf across multiple sites with ClusterLink
+description: Running iperf across multiple clusters with ClusterLink
 ---
 
 ## Initialize Clusters

@@ -1,5 +1,6 @@
 ---
 title: Getting Started
+description: Getting started guides for users and developers
 weight: 20
 ---
 

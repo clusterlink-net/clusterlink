@@ -74,7 +74,7 @@ if [ -z "$(which tparse)" ] || [ "$1" = "--force" ]; then
 fi
 
 #-- gofumpt
-VERSION=latest
+VERSION="0.6.0"
 if [ -z "$(which gofumpt)" ] || [ "$1" = "--force" ]; then
   echo installing gofumpt "($VERSION)"
   go install "mvdan.cc/gofumpt@$VERSION"
@@ -89,7 +89,14 @@ fi
 
 #--  setup-envtest
 VERSION=latest
-if [ -z "$(which  setup-envtest)" ] || [ "$1" = "--force" ]; then
-  echo installing  setup-envtest "($VERSION)"
+if [ -z "$(which setup-envtest)" ] || [ "$1" = "--force" ]; then
+  echo installing setup-envtest "($VERSION)"
   go install "sigs.k8s.io/controller-runtime/tools/setup-envtest@$VERSION"
+fi
+
+#-- muffet (link checker)
+VERSION=v2.9.3
+if [ -z "$(which nuffet)" ] || [ "$1" = "--force" ]; then
+  echo installing "muffet ($VERSION)"
+  go install "github.com/raviqqe/muffet/v2@$VERSION"
 fi

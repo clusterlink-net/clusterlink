@@ -19,6 +19,7 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -35,11 +36,20 @@ const (
 	maxRandomTries = 40
 )
 
+type conflictingTargetPortError struct {
+	port      uint16
+	leaseName types.NamespacedName
+}
+
+func (e conflictingTargetPortError) Error() string {
+	return fmt.Sprintf("port %d is already in use by service %v", e.port, e.leaseName)
+}
+
 // portManager leases ports for use by imported services.
 type portManager struct {
 	lock         sync.Mutex
-	leasesByPort map[uint16]string
-	leasesByName map[string]uint16
+	leasesByPort map[uint16]types.NamespacedName
+	leasesByName map[types.NamespacedName]uint16
 
 	logger *logrus.Entry
 }
@@ -76,8 +86,8 @@ func (m *portManager) getRandomFreePort() uint16 {
 }
 
 // Lease marks a port as taken by the given name. If port is 0, some random free port is returned.
-func (m *portManager) Lease(name string, port uint16) (uint16, error) {
-	m.logger.Infof("Leasing: %d.", port)
+func (m *portManager) Lease(name types.NamespacedName, port uint16) (uint16, error) {
+	m.logger.Infof("Leasing %d for %v.", port, name)
 
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -87,11 +97,18 @@ func (m *portManager) Lease(name string, port uint16) (uint16, error) {
 			return 0, fmt.Errorf("all ports are taken")
 		}
 
-		port = m.getRandomFreePort()
-		m.logger.Infof("Generated port: %d.", port)
+		if port = m.leasesByName[name]; port != 0 {
+			m.logger.Infof("Leased existing: %d.", port)
+		} else {
+			port = m.getRandomFreePort()
+			m.logger.Infof("Generated port: %d.", port)
+		}
 	} else {
 		if leaseName, ok := m.leasesByPort[port]; ok && leaseName != name {
-			return 0, fmt.Errorf("port %d is already leased to '%s'", port, leaseName)
+			return 0, conflictingTargetPortError{
+				port:      port,
+				leaseName: leaseName,
+			}
 		}
 	}
 
@@ -108,8 +125,8 @@ func (m *portManager) Lease(name string, port uint16) (uint16, error) {
 }
 
 // Release returns a leased port to be re-used by others.
-func (m *portManager) Release(name string) {
-	m.logger.Infof("Returning port for: '%s'.", name)
+func (m *portManager) Release(name types.NamespacedName) {
+	m.logger.Infof("Returning port for: '%v'.", name)
 
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -131,8 +148,8 @@ func newPortManager() *portManager {
 	).Info("Initialized.")
 
 	return &portManager{
-		leasesByPort: make(map[uint16]string),
-		leasesByName: make(map[string]uint16),
+		leasesByPort: make(map[uint16]types.NamespacedName),
+		leasesByName: make(map[types.NamespacedName]uint16),
 		logger:       logger,
 	}
 }
