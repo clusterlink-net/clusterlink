@@ -9,6 +9,8 @@ type: blog
 draft: true
 ---
 
+{{% imgproc "sunflower" Fill "800x250 center" /%}}
+
 Hi everyone! I’m ClusterLink, and as the new kid on the block, I’d like to
  say hello and introduce myself. I’m just starting out as an open-source
  project trying to find my place in the big, wide world of multicluster
