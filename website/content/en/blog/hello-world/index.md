@@ -3,15 +3,15 @@ title: Hello, World!
 linkTitle: hello, world!
 date: 2024-03-24
 author: Etai Lev Ran
-description: >-
-     Welcome to ClusterLink!
 type: blog
 draft: true
 ---
 
-{{% imgproc "sunflower" Fill "800x250 center" /%}}
+{{% imgproc "sunflower" Fill "800x250" /%}}
 
-Hi everyone! I’m ClusterLink, and as the new kid on the block, I’d like to
+Hi everyone!
+
+I’m ClusterLink, and as the new kid on the block, I’d like to
  say hello and introduce myself. I’m just starting out as an open-source
  project trying to find my place in the big, wide world of multicluster
  Kubernetes connectivity. This is my first venture away from
