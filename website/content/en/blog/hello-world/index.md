@@ -7,7 +7,7 @@ type: blog
 draft: true
 ---
 
-{{% imgproc "sunflower" Fill "800x250 center" /%}}
+{{% imgproc "sunflower" Fill "800x250" /%}}
 
 Hi everyone!
 
