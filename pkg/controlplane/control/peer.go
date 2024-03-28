@@ -109,6 +109,9 @@ func (m *peerMonitor) Start() {
 
 		heartbeatOK := m.client.GetHeartbeat() == nil
 		if healthy == heartbeatOK {
+			if !healthy {
+				ticker.Reset(unhealthyInterval)
+			}
 			strikeCount = 0
 		} else {
 			if heartbeatOK {
