@@ -16,7 +16,7 @@ set -ex
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 TEST_DIR=$(mktemp -d)
-CLADM=$SCRIPT_DIR/../bin/cl-adm
+CLI=$SCRIPT_DIR/../bin/clusterlink
 DATAPLANE_TYPE="${1:-envoy}"
 
 function clean_up {
@@ -34,8 +34,8 @@ function clean_up_with_logs {
 
 function test_k8s {
   # create fabric with a single peer (peer1)
-  $CLADM create fabric
-  $CLADM create peer --name peer1 --dataplane-type $DATAPLANE_TYPE
+  $CLI create fabric
+  $CLI create peer-cert --name peer1 --dataplane-type $DATAPLANE_TYPE
 
   # create kind cluster
   kind create cluster --name peer1
@@ -76,7 +76,7 @@ function test_k8s {
   # import
   kubectl exec -i gwctl -- gwctl create peer --host cl-dataplane --port 443 --name peer1
   kubectl exec -i gwctl -- gwctl create import --name bla --port 9999 --peer peer1
-  kubectl cp $SCRIPT_DIR/../pkg/policyengine/policytypes/examples/allowAll.json gwctl:/tmp/allowAll.json
+  kubectl cp $SCRIPT_DIR/../pkg/policyengine/examples/allowAll.json gwctl:/tmp/allowAll.json
   kubectl exec -i gwctl -- gwctl create policy --type access --policyFile /tmp/allowAll.json
 
   # get imported service port

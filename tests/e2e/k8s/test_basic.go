@@ -23,38 +23,13 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/httpecho"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/util"
 )
 
-func (s *TestSuite) TestConnectivityCRD() {
-	s.RunOnAllDataplaneTypes(func(cfg *util.PeerConfig) {
-		cl, err := s.fabric.DeployClusterlinks(2, cfg)
-		require.Nil(s.T(), err)
-
-		require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
-		require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
-		require.Nil(s.T(), cl[0].CreateAccessPolicy(util.AccessPolicyAllowAll))
-		require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
-		require.Nil(s.T(), cl[1].CreateAccessPolicy(util.AccessPolicyAllowAll))
-
-		importedService := &util.Service{
-			Name: httpEchoService.Name,
-			Port: 80,
-		}
-		require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
-
-		data, err := cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
-		require.Nil(s.T(), err)
-		require.Equal(s.T(), cl[0].Name(), data)
-	})
-}
-
 func (s *TestSuite) TestConnectivity() {
 	s.RunOnAllDataplaneTypes(func(cfg *util.PeerConfig) {
-		cfg.CRUDMode = true
 		cl, err := s.fabric.DeployClusterlinks(2, cfg)
 		require.Nil(s.T(), err)
 
@@ -90,11 +65,11 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// test import API
 		imp := v1alpha1.Import{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "echo",
+				Name: httpEchoService.Name,
 			},
 			Spec: v1alpha1.ImportSpec{
 				Port:    1234,
-				Sources: []v1alpha1.ImportSource{{Peer: cl[1].Name()}},
+				Sources: []v1alpha1.ImportSource{{Peer: cl[1].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[1].Namespace()}},
 			},
 		}
 
@@ -336,7 +311,8 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.NotNil(s.T(), client0.LBPolicies.Create(&lbPolicy))
 
 		// create false binding to verify LB policy
-		imp.Spec.Sources = append(imp.Spec.Sources, v1alpha1.ImportSource{Peer: cl[2].Name()})
+		imp.Spec.Sources = append(imp.Spec.Sources,
+			v1alpha1.ImportSource{Peer: cl[2].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[2].Namespace()})
 		require.Nil(s.T(), client0.Imports.Update(&imp))
 
 		// verify access
@@ -385,7 +361,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 
 		//  update access policy
 		policy2 := *util.PolicyAllowAll
-		policy2.Action = policytypes.ActionDeny
+		policy2.Spec.Action = v1alpha1.AccessPolicyActionDeny
 		data, err = json.Marshal(&policy2)
 		require.Nil(s.T(), err)
 		oldPolicyBlob := policy.Spec.Blob
@@ -425,14 +401,20 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Equal(s.T(), str, cl[1].Name())
 
 		// make cl[2] the first peer, so static LB policy will choose it
-		imp.Spec.Sources = []v1alpha1.ImportSource{{Peer: cl[2].Name()}, {Peer: cl[1].Name()}}
+		imp.Spec.Sources = []v1alpha1.ImportSource{
+			{Peer: cl[2].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[2].Namespace()},
+			{Peer: cl[1].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[1].Namespace()},
+		}
 		require.Nil(s.T(), client0.Imports.Update(&imp))
 
 		// verify no access after update
 		_, err = accessService(false, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 		// update LB policy back
-		imp.Spec.Sources = []v1alpha1.ImportSource{{Peer: cl[1].Name()}, {Peer: cl[2].Name()}}
+		imp.Spec.Sources = []v1alpha1.ImportSource{
+			{Peer: cl[1].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[1].Namespace()},
+			{Peer: cl[2].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[2].Namespace()},
+		}
 		require.Nil(s.T(), client0.Imports.Update(&imp))
 		// verify access after update back
 		str, err = accessService(false, nil)

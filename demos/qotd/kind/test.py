@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     # Folders
     qotdFol    = f"{ProjDir}/demos/qotd/manifests/"
-    allowAllPolicy =f"{ProjDir}/pkg/policyengine/policytypes/examples/allowAll.json"
+    allowAllPolicy =f"{ProjDir}/pkg/policyengine/examples/allowAll.json"
     testOutputFolder = f"{ProjDir}/bin/tests/qotd"    
 
     print(f'Working directory {ProjDir}')

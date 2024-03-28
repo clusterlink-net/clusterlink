@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/clusterlink-net/clusterlink/cmd/cl-adm/config"
+	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 	"github.com/clusterlink-net/clusterlink/pkg/operator/controller"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/httpecho"

@@ -20,7 +20,9 @@ import (
 // NewCmdDeploy returns a cobra.Command to run the deploy command.
 func NewCmdDeploy() *cobra.Command {
 	cmds := &cobra.Command{
-		Use: "deploy",
+		Use:   "deploy",
+		Short: "Deploy ClusterLink resources",
+		Long:  "Deploy ClusterLink resources",
 	}
 
 	cmds.AddCommand(NewCmdDeployPeer())

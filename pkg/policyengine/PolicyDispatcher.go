@@ -24,7 +24,6 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	crds "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/policytypes"
 )
 
 const (
@@ -45,7 +44,7 @@ type PolicyDecider interface {
 	AddAccessPolicy(policy *api.Policy) error
 	DeleteAccessPolicy(policy *api.Policy) error
 
-	AuthorizeAndRouteConnection(connReq *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error)
+	AuthorizeAndRouteConnection(connReq *connectivitypdp.ConnectionRequest) (connectivitypdp.ConnectionResponse, error)
 
 	AddPeer(name string)
 	DeletePeer(name string)
@@ -72,16 +71,16 @@ func NewPolicyHandler() PolicyDecider {
 	}
 }
 
-func getServiceAttrs(serviceName, peer string) policytypes.WorkloadAttrs {
-	ret := policytypes.WorkloadAttrs{ServiceNameLabel: serviceName}
+func getServiceAttrs(serviceName, peer string) connectivitypdp.WorkloadAttrs {
+	ret := connectivitypdp.WorkloadAttrs{ServiceNameLabel: serviceName}
 	if len(peer) > 0 {
 		ret[GatewayNameLabel] = peer
 	}
 	return ret
 }
 
-func getServiceAttrsForMultipleDsts(serviceName string, dsts []crds.ImportSource) []policytypes.WorkloadAttrs {
-	res := []policytypes.WorkloadAttrs{}
+func getServiceAttrsForMultipleDsts(serviceName string, dsts []crds.ImportSource) []connectivitypdp.WorkloadAttrs {
+	res := []connectivitypdp.WorkloadAttrs{}
 	for _, dst := range dsts {
 		res = append(res, getServiceAttrs(serviceName, dst.Peer))
 	}
@@ -98,27 +97,31 @@ func (pH *PolicyHandler) filterOutDisabledPeers(dsts []crds.ImportSource) []crds
 	return res
 }
 
-func (pH *PolicyHandler) decideIncomingConnection(req *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error) {
+func (pH *PolicyHandler) decideIncomingConnection(
+	req *connectivitypdp.ConnectionRequest,
+) (connectivitypdp.ConnectionResponse, error) {
 	dest := getServiceAttrs(req.DstSvcName, "")
-	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, []policytypes.WorkloadAttrs{dest})
+	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, []connectivitypdp.WorkloadAttrs{dest})
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
-		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, err
+		return connectivitypdp.ConnectionResponse{Action: crds.AccessPolicyActionDeny}, err
 	}
-	if decisions[0].Decision == policytypes.DecisionAllow {
-		return policytypes.ConnectionResponse{Action: policytypes.ActionAllow}, nil
+	if decisions[0].Decision == connectivitypdp.DecisionAllow {
+		return connectivitypdp.ConnectionResponse{Action: crds.AccessPolicyActionAllow}, nil
 	}
-	return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, nil
+	return connectivitypdp.ConnectionResponse{Action: crds.AccessPolicyActionDeny}, nil
 }
 
-func (pH *PolicyHandler) decideOutgoingConnection(req *policytypes.ConnectionRequest) (policytypes.ConnectionResponse, error) {
+func (pH *PolicyHandler) decideOutgoingConnection(
+	req *connectivitypdp.ConnectionRequest,
+) (connectivitypdp.ConnectionResponse, error) {
 	// Get a list of possible destinations for the service (a.k.a. service sources)
 	dstSvcNsName := types.NamespacedName{Namespace: req.DstSvcNamespace, Name: req.DstSvcName}
 	svcSourceList, err := pH.loadBalancer.GetSvcSources(dstSvcNsName)
 	if err != nil {
 		plog.Errorf("error getting sources for service %s: %v", req.DstSvcName, err)
 		// this can be caused by a user typo - so only log this error
-		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, nil
+		return connectivitypdp.ConnectionResponse{Action: crds.AccessPolicyActionDeny}, nil
 	}
 
 	svcSourceList = pH.filterOutDisabledPeers(svcSourceList)
@@ -127,40 +130,45 @@ func (pH *PolicyHandler) decideOutgoingConnection(req *policytypes.ConnectionReq
 	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, dsts)
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
-		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, err
+		return connectivitypdp.ConnectionResponse{Action: crds.AccessPolicyActionDeny}, err
 	}
 
 	allowedSvcSources := []crds.ImportSource{}
 	for idx, decision := range decisions {
-		if decision.Decision == policytypes.DecisionAllow {
+		if decision.Decision == connectivitypdp.DecisionAllow {
 			allowedSvcSources = append(allowedSvcSources, svcSourceList[idx])
 		}
 	}
 
 	if len(allowedSvcSources) == 0 {
 		plog.Infof("access policies deny connections to service %s for all its sources", req.DstSvcName)
-		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, nil
+		return connectivitypdp.ConnectionResponse{Action: crds.AccessPolicyActionDeny}, nil
 	}
 
 	// Perform load-balancing using the filtered peer list
 	tgt, err := pH.loadBalancer.LookupWith(dstSvcNsName, allowedSvcSources)
 	if err != nil {
-		return policytypes.ConnectionResponse{Action: policytypes.ActionDeny}, err
+		return connectivitypdp.ConnectionResponse{Action: crds.AccessPolicyActionDeny}, err
 	}
-	return policytypes.ConnectionResponse{Action: policytypes.ActionAllow, DstPeer: tgt.Peer, DstNamespace: tgt.ExportNamespace}, nil
+	return connectivitypdp.ConnectionResponse{
+		Action:       crds.AccessPolicyActionAllow,
+		DstPeer:      tgt.Peer,
+		DstName:      tgt.ExportName,
+		DstNamespace: tgt.ExportNamespace,
+	}, nil
 }
 
-func (pH *PolicyHandler) AuthorizeAndRouteConnection(req *policytypes.ConnectionRequest) (
-	policytypes.ConnectionResponse,
+func (pH *PolicyHandler) AuthorizeAndRouteConnection(req *connectivitypdp.ConnectionRequest) (
+	connectivitypdp.ConnectionResponse,
 	error,
 ) {
 	plog.Infof("New connection request : %+v", req)
 
-	var resp policytypes.ConnectionResponse
+	var resp connectivitypdp.ConnectionResponse
 	var err error
-	if req.Direction == policytypes.Incoming {
+	if req.Direction == connectivitypdp.Incoming {
 		resp, err = pH.decideIncomingConnection(req)
-	} else if req.Direction == policytypes.Outgoing {
+	} else if req.Direction == connectivitypdp.Outgoing {
 		resp, err = pH.decideOutgoingConnection(req)
 	}
 
@@ -200,9 +208,9 @@ func (pH *PolicyHandler) DeleteExport(_ string) {
 }
 
 // connPolicyFromBlob unmarshals a ConnectivityPolicy object encoded as json in a byte array.
-func connPolicyFromBlob(blob []byte) (*policytypes.ConnectivityPolicy, error) {
+func connPolicyFromBlob(blob []byte) (*crds.AccessPolicy, error) {
 	bReader := bytes.NewReader(blob)
-	connPolicy := &policytypes.ConnectivityPolicy{}
+	connPolicy := &crds.AccessPolicy{}
 	err := json.NewDecoder(bReader).Decode(connPolicy)
 	if err != nil {
 		plog.Errorf("failed decoding connectivity policy: %v", err)
@@ -252,5 +260,5 @@ func (pH *PolicyHandler) DeleteAccessPolicy(policy *api.Policy) error {
 	if err != nil {
 		return err
 	}
-	return pH.connectivityPDP.DeletePolicy(connPolicy.Name, connPolicy.Privileged)
+	return pH.connectivityPDP.DeletePolicy(connPolicy.Name, connPolicy.Spec.Privileged)
 }

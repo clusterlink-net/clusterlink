@@ -33,7 +33,7 @@ from demos.utils.k8s import getPodName,getPodIp
 
 folpdct   = f"{projDir}/demos/bookinfo/manifests/product/"
 folReview = f"{projDir}/demos/bookinfo/manifests/review"
-allowAllPolicy =f"{projDir}/pkg/policyengine/policytypes/examples/allowAll.json"
+allowAllPolicy =f"{projDir}/pkg/policyengine/examples/allowAll.json"
 
 reviewSvc     = "reviews"
 srcSvc1       = "productpage"
