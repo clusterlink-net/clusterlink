@@ -53,7 +53,7 @@ Let me tell you, I take security very seriously:
 And here’s the icing on the cake: I believe in clear separation of concerns. That means
  network administrators and application owners each have their own piece of the pie
  when it comes to controlling ClusterLink configurations. Network administrator policies
- and configurations take precedence, so application owners stay “within bounds”.
+ and configurations take precedence, so application owners stay “within bounds”.[^1]
  No confusion, no fuss.
 
 ## So, what's next?
@@ -80,3 +80,6 @@ So, what do you say? Want to give me a try? I promise I won’t disappoint.
 I can't wait to start on this journey with all of you. Together, we'll make
  the world of Kubernetes a better, safer, and more connected place.
  Happy cluster linking! 🚀
+
+[^1]: The design and implementation of privileged and normal access policies is
+ ongoing and will be enabled shortly after the 0.2.0 release.
