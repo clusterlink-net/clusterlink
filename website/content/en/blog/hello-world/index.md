@@ -15,32 +15,31 @@ Hi everyone! I’m ClusterLink, and as the new kid on the block, I’d like to
  Kubernetes connectivity. This is my first venture away from
  my [home on GitHub](https://github.com/clusterlink-net/clusterlink).
 
-At my core, I offer a simple yet powerful philosophy which I like to think of as the three S’es:
- **Seamless**, **Simple**, and **Secure** service access. Maybe it should have been the
- four S’es? Those off-by-one errors are always so annoying… Anyway, where was I?
- Ah - yes: the three S’es!
+My core is centered around three key principles: **Seamlessness**, **Simplicity**,
+ and **Security**. I focus on applying these principles to service access across
+ multiple clusters.
 
-## Seamless
+## Seamlessness
 
-One of the things I’m most proud of is my versatility. I work seamlessly with any Kubernetes
-distribution, whether it’s managed or self-hosted, free or paid, on-cloud or on-premise,
-and any Container Network Interface (CNI). Services exported from one cluster can be
-imported into any other cluster in the interconnect fabric and appear to clients
-as a local Kubernetes Service. No need to worry about names and IP address overlaps, these are
-all private to each cluster.
+One of the things I’m most proud of is my versatility. I work seamlessly with any
+ Kubernetes distribution, whether it’s managed or self-hosted, free or paid, on-cloud
+ or on-premise, and any Container Network Interface (CNI). Services exported from one
+ cluster can be imported into any other cluster in the ClusterLink fabric and appear
+ to clients as a local Kubernetes Service. No need to worry about names and IP address
+ overlaps, these are all private to each cluster.
 
-## Simple
+## Simplicity
 
-Exposing a service from one cluster to another is as simple as marking it as exported
- in the source cluster and defining an endpoint for it in the other. Each cluster
- retains control over its local load balancing decisions, and each cluster can use
- independent names and local administrative control. No assumptions here, no automatically
- merging independent locations and services by name, and no exchanging private Pod
- information all over the place – I like to keep things neat and tidy.
+I like to keep things neat and tidy. Exposing a service from one cluster to another
+ is as simple as marking it as exported in the source cluster and defining an imported
+ endpoint for it in the other. Each cluster retains control over its local load balancing
+ decisions, and each cluster can use independent names and local administrative control.
+ No assumptions here, no automatically merging independent locations and services by name,
+ and no exchanging private Pod information all over the place.
 
-## Secure
+## Security
 
-Let me tell you, I take security very seriously:
+I take security very seriously:
 
 - All cross-cluster communications are authenticated using certificates and mutual TLS.
 - Services need to be explicitly exported and imported to be accessible across
@@ -81,5 +80,5 @@ I can't wait to start on this journey with all of you. Together, we'll make
  the world of Kubernetes a better, safer, and more connected place.
  Happy cluster linking! 🚀
 
-[^1]: The design and implementation of privileged and normal access policies is
- ongoing and will be enabled shortly after the 0.2.0 release.
+[^1]: While normal access control policies work, the implementation of privileged policy tier
+ is ongoing and will be enabled shortly after the 0.2.0 release.
