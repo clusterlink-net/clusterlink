@@ -4,20 +4,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.13.0
-  name: accesspolicies.clusterlink.net
+  name: privilegedaccesspolicies.clusterlink.net
 spec:
   group: clusterlink.net
   names:
-    kind: AccessPolicy
-    listKind: AccessPolicyList
-    plural: accesspolicies
-    singular: accesspolicy
-  scope: Namespaced
+    kind: PrivilegedAccessPolicy
+    listKind: PrivilegedAccessPolicyList
+    plural: privilegedaccesspolicies
+    singular: privilegedaccesspolicy
+  scope: Cluster
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: AccessPolicy defines whether a group of potential connections
+        description: PrivilegedAccessPolicy defines whether a group of potential connections
           should be allowed or denied. If multiple AccessPolicy objects match a given
           connection, privileged policies take precedence over non-privileged, and
           within each tier deny policies take precedence over allow policies.

@@ -181,7 +181,9 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		}
 		require.Nil(s.T(), client0.Peers.Create(&peer2))
 
-		data, err := json.Marshal(util.PolicyAllowAll)
+		allowAllPolicy := *util.PolicyAllowAll
+		allowAllPolicy.Namespace = s.fabric.Namespace()
+		data, err := json.Marshal(allowAllPolicy)
 		require.Nil(s.T(), err)
 
 		// test access policy API
@@ -361,6 +363,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 
 		//  update access policy
 		policy2 := *util.PolicyAllowAll
+		policy2.Namespace = s.fabric.Namespace()
 		policy2.Spec.Action = v1alpha1.AccessPolicyActionDeny
 		data, err = json.Marshal(&policy2)
 		require.Nil(s.T(), err)

@@ -44,10 +44,9 @@ var (
 			Name: "test-policy",
 		},
 		Spec: crds.AccessPolicySpec{
-			Privileged: false,
-			Action:     crds.AccessPolicyActionAllow,
-			From:       []crds.WorkloadSetOrSelector{simpleWorkloadSet},
-			To:         []crds.WorkloadSetOrSelector{simpleWorkloadSet},
+			Action: crds.AccessPolicyActionAllow,
+			From:   []crds.WorkloadSetOrSelector{simpleWorkloadSet},
+			To:     []crds.WorkloadSetOrSelector{simpleWorkloadSet},
 		},
 	}
 )
