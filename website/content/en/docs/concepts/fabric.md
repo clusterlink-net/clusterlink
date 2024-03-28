@@ -1,7 +1,7 @@
 ---
 title: Fabric
 description: Defining a ClusterLink fabric
-weight: 32
+weight: 10
 ---
 
 The concept of a `Fabric` encapsulates a set of cooperating [peers]({{< ref "peers" >}}/).
@@ -42,4 +42,4 @@ This command will create the CA files `cert.pem` and `key.pem` in a folder named
 
 Once a `Fabric` has been created and initialized, you can proceed with configuring
  [peers]({{< ref "peers" >}}). For a complete, end to end, use case please refer to the
- [iperf toturial]({{< ref "iperf" >}}).
+ [iperf tutorial]({{< ref iperf >}}).
