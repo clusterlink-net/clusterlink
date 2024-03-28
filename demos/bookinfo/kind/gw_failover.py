@@ -18,9 +18,9 @@ import argparse
 
 projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{projDir}')
-from demos.utils.kind import cluster
-from demos.bookinfo.test import applyFailover
-testOutputFolder = f"{projDir}/bin/tests/bookinfo" 
+from demos.utils.kind import Cluster
+from demos.bookinfo.test import apply_failover
+testOutputFolder = f"{projDir}/bin/tests/bookinfo"
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -29,5 +29,5 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     print(f'Working directory {projDir}')
     os.chdir(projDir)
-    cl3 = cluster(name="peer3")
-    applyFailover(cl3, args["type"],testOutputFolder)
+    cl3 = Cluster(name="peer3")
+    apply_failover(cl3, args["type"], testOutputFolder, container_reg="docker.io/library", ingress_type="NodePort", ingress_port=30443)

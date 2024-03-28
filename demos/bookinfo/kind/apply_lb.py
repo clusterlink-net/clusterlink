@@ -19,7 +19,7 @@ import argparse
 projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{projDir}')
 from demos.bookinfo.test import applyPolicy
-from demos.utils.kind import cluster
+from demos.utils.kind import Cluster
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -30,5 +30,6 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     print(f'Working directory {projDir}')
     os.chdir(projDir)
-    cl = cluster(name=args["peer"])
+    cl = Cluster(name=args["peer"])
+    cl.set_kube_config()
     applyPolicy(cl, args["type"])

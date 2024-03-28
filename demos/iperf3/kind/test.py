@@ -16,7 +16,7 @@
 # Name: Simple iperf3  test
 # Desc: create 2 kind clusters :
 # 1) GW and iperf3 client
-# 2) GW and iperf3 server    
+# 2) GW and iperf3 server
 ###############################################################
 import os
 import sys
@@ -25,7 +25,7 @@ projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.pa
 sys.path.insert(0,f'{projDir}')
 
 from demos.utils.common import printHeader
-from demos.utils.kind import cluster
+from demos.utils.kind import Cluster
 from demos.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
 from demos.iperf3.test import iperf3Test
 
@@ -41,14 +41,14 @@ if __name__ == "__main__":
     printHeader("\n\nStart Kind Test\n\n")
     printHeader("Start pre-setting")
 
-    # cl parameters 
-    cl1= cluster("peer1")
-    cl2= cluster("peer2")
+    # cl parameters
+    cl1= Cluster("peer1")
+    cl2= Cluster("peer2")
     srcSvc           = "iperf3-client"
     destSvc          = "iperf3-server"
     destPort         = 5000
     iperf3DirectPort = "30001"
-    
+
     # Setup
     iperf3Test(cl1, cl2, testOutputFolder, args["logLevel"], args["dataplane"])
     #Testing
