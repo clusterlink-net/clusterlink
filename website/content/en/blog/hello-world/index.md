@@ -61,7 +61,7 @@ And here’s the icing on the cake: I believe in clear separation of concerns. T
 
 I’m super excited to announce that I’m being released as version 0.2.0.
  It’s a big milestone for me, and I’m hoping to get some feedback and
- requirements from all of you lovely folks out there. After all, I’m here
+ requirements from all of you folks out there. After all, I’m here
  to evolve and grow just like everyone else.
 
 First things first, though – I want to make it clear that I’m "work in progress".
