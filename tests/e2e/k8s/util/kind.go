@@ -24,12 +24,16 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/e2e-framework/klient"
 	"sigs.k8s.io/e2e-framework/klient/decoder"
+	"sigs.k8s.io/e2e-framework/klient/k8s"
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
+	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/support/kind"
 
 	clusterlink "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
@@ -388,6 +392,20 @@ func (c *KindCluster) ExposeNodeport(service *Service) (uint16, error) {
 		return 0, fmt.Errorf("error getting service: %w", err)
 	}
 
+	if k8sService.Spec.Type == v1.ServiceTypeExternalName {
+		splitted := strings.SplitN(k8sService.Spec.ExternalName, ".", 3)
+		if len(splitted) != 3 || splitted[2] != "svc.cluster.local" {
+			return 0, fmt.Errorf(
+				"error parsing external name service name '%s'",
+				k8sService.Spec.ExternalName)
+		}
+
+		err = c.resources.Get(context.Background(), splitted[0], splitted[1], &k8sService)
+		if err != nil {
+			return 0, fmt.Errorf("error getting backing service: %w", err)
+		}
+	}
+
 	if int32(service.Port) != k8sService.Spec.Ports[0].Port {
 		return 0, &services.ConnectionRefusedError{}
 	}
@@ -405,7 +423,7 @@ func (c *KindCluster) ExposeNodeport(service *Service) (uint16, error) {
 	nodeportService := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "nodeport-" + service.Name,
-			Namespace: service.Namespace,
+			Namespace: k8sService.Namespace,
 		},
 		Spec: v1.ServiceSpec{
 			Ports: []v1.ServicePort{{
@@ -486,6 +504,61 @@ func (c *KindCluster) ScaleDeployment(name, namespace string, replicas int32) er
 	}
 
 	return fmt.Errorf("timeout while waiting for deployment scale to update")
+}
+
+// StatusObject represents a k8s object with status conditions.
+type StatusObject interface {
+	k8s.Object
+	GetStatusConditions() []metav1.Condition
+}
+
+// WaitFor waits for a condition to be set on an object.
+func (c *KindCluster) WaitFor(
+	obj k8s.Object,
+	statusConditions *[]metav1.Condition,
+	conditionType string,
+	expectedConditionStatus bool,
+) error {
+	return wait.For(func(ctx context.Context) (bool, error) {
+		err := c.resources.Get(ctx, obj.GetName(), obj.GetNamespace(), obj)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+
+			return false, err
+		}
+
+		cond := meta.FindStatusCondition(*statusConditions, conditionType)
+		if cond == nil {
+			return false, nil
+		}
+
+		switch cond.Status {
+		case metav1.ConditionFalse:
+			return !expectedConditionStatus, nil
+		case metav1.ConditionTrue:
+			return expectedConditionStatus, nil
+		default:
+			return false, fmt.Errorf("unexpected condition status: %v", cond.Status)
+		}
+	}, wait.WithTimeout(time.Second*60))
+}
+
+// WaitFor waits for a condition to be set on an object.
+func (c *KindCluster) WaitForDeletion(obj k8s.Object) error {
+	return wait.For(func(ctx context.Context) (bool, error) {
+		err := c.resources.Get(ctx, obj.GetName(), obj.GetNamespace(), obj)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return true, nil
+			}
+
+			return false, err
+		}
+
+		return false, nil
+	})
 }
 
 // NewKindCluster returns a new yet to be running kind cluster.
