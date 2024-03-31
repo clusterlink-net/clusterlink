@@ -90,12 +90,11 @@ func (m *peerMonitor) Start() {
 	ticker := time.NewTicker(healthyInterval)
 	defer ticker.Stop()
 
-	healthy := false
+	healthy := meta.IsStatusConditionTrue(m.pr.Status.Conditions, v1alpha1.PeerReachable)
 	strikeCount := 0
-	threshold := 1 // require only a single heartbeat on startup
+	threshold := 1 // require a single request on startup
 	reachableCond := metav1.Condition{
 		Type:   v1alpha1.PeerReachable,
-		Status: metav1.ConditionFalse,
 		Reason: "Heartbeat",
 	}
 
@@ -168,6 +167,9 @@ func (m *peerManager) AddPeer(pr *v1alpha1.Peer) {
 
 	monitor, ok := m.monitors[pr.Name]
 	if !ok || peerChanged(monitor.pr, pr) {
+		if monitor != nil {
+			monitor.Stop()
+		}
 		m.monitors[pr.Name] = newPeerMonitor(pr, m)
 	} else {
 		monitor.SetPeer(pr)
@@ -267,6 +269,16 @@ func peerChanged(pr1, pr2 *v1alpha1.Peer) bool {
 			return true
 		}
 		if pr1.Spec.Gateways[i].Port != pr2.Spec.Gateways[i].Port {
+			return true
+		}
+	}
+
+	if len(pr1.Status.Conditions) != len(pr2.Status.Conditions) {
+		return true
+	}
+
+	for i := 0; i < len(pr1.Status.Conditions); i++ {
+		if pr1.Status.Conditions[i] != pr2.Status.Conditions[i] {
 			return true
 		}
 	}
