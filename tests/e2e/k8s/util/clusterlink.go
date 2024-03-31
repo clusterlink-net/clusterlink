@@ -232,6 +232,17 @@ func (c *ClusterLink) CreateService(service *Service) error {
 		})
 }
 
+func (c *ClusterLink) DeleteService(name string) error {
+	return c.cluster.Resources().Delete(
+		context.Background(),
+		&v1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: c.namespace,
+			},
+		})
+}
+
 func (c *ClusterLink) CreateExport(service *Service) error {
 	export := &v1alpha1.Export{
 		ObjectMeta: metav1.ObjectMeta{
@@ -418,4 +429,28 @@ func (c *ClusterLink) GetAllPolicies() (*[]v1alpha1.AccessPolicy, error) {
 
 func (c *ClusterLink) DeletePolicy(name string) error {
 	return c.client.AccessPolicies.Delete(name)
+}
+
+func (c *ClusterLink) WaitForImportCondition(
+	imp *v1alpha1.Import,
+	conditionType string,
+	expectedConditionStatus bool,
+) error {
+	return c.cluster.WaitFor(imp, &imp.Status.Conditions, conditionType, expectedConditionStatus)
+}
+
+func (c *ClusterLink) WaitForExportCondition(
+	export *v1alpha1.Export,
+	conditionType string,
+	expectedConditionStatus bool,
+) error {
+	return c.cluster.WaitFor(export, &export.Status.Conditions, conditionType, expectedConditionStatus)
+}
+
+func (c *ClusterLink) WaitForPeerCondition(
+	peer *v1alpha1.Peer,
+	conditionType string,
+	expectedConditionStatus bool,
+) error {
+	return c.cluster.WaitFor(peer, &peer.Status.Conditions, conditionType, expectedConditionStatus)
 }
