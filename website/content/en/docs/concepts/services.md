@@ -45,7 +45,7 @@ Orchestration of service sharing is the responsibility of users wishing to
 
 ## Prerequisites
 
-The following assume that you have `kubectl` access to two or more where ClusterLink
+The following assume that you have `kubectl` access to two or more clusters where ClusterLink
  has already been [deployed and configured]({{% ref "users#setup" %}}).
 
 ### Exporting a service
@@ -172,7 +172,7 @@ The ImportSpec defines the following fields:
  perhaps, but might requires explicit service name so can merge correctly
  or use port set instead of individual port per export/import -->
 
-As with exports, importing a Service does not automatically make is accessible by
+As with exports, importing a Service does not automatically make it accessible by
  workloads, but only enables *potential* access. To complete service sharing,
  you must define at least one [access control policy]({{% ref "policies" %}}) that
  allows access in the importing cluster. To grant access, a connection must be
