@@ -26,6 +26,7 @@ import (
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
@@ -216,8 +217,23 @@ func (m *Manager) addPod(pod *v1.Pod) {
 	}
 }
 
-func (m *Manager) deleteAccessPolicy(_ types.NamespacedName) {
-	// TODO: call policy decider
+func (m *Manager) deleteAccessPolicy(name types.NamespacedName) error {
+	accessPolicy := v1alpha1.AccessPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name.Name,
+			Namespace: name.Namespace,
+		},
+	}
+
+	policyData, err := json.Marshal(accessPolicy)
+	if err != nil {
+		return err
+	}
+
+	return m.policyDecider.DeleteAccessPolicy(&api.Policy{
+		Name: accessPolicy.Name,
+		Spec: api.PolicySpec{Blob: policyData},
+	})
 }
 
 func (m *Manager) addAccessPolicy(accessPolicy *v1alpha1.AccessPolicy) error {
