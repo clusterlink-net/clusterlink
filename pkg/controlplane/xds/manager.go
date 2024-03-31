@@ -241,7 +241,7 @@ func makeEndpointsCluster(name string, endpoints []v1alpha1.Endpoint, hostname s
 		ConnectTimeout: durationpb.New(time.Second),
 		DnsRefreshRate: durationpb.New(time.Second),
 		ClusterDiscoveryType: &cluster.Cluster_Type{
-			Type: cluster.Cluster_LOGICAL_DNS,
+			Type: cluster.Cluster_STRICT_DNS,
 		},
 		TypedDnsResolverConfig: &core.TypedExtensionConfig{
 			Name:        "envoy.network.dns_resolver.getaddrinfo",

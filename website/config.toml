@@ -73,6 +73,8 @@ description = "ClsuetrLink documentation"
       block = true
     [markup.goldmark.renderer]
       unsafe = true
+    [markup.goldmark.extensions]
+      footnote = true
   [markup.highlight]
     # See a complete list of available styles at https://xyproto.github.io/splash/docs/all.html
     style = "tango"
