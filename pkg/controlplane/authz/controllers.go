@@ -34,8 +34,7 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode boo
 				return mgr.addAccessPolicy(object.(*v1alpha1.AccessPolicy))
 			},
 			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-				mgr.deleteAccessPolicy(name)
-				return nil
+				return mgr.deleteAccessPolicy(name)
 			},
 		})
 		if err != nil {
