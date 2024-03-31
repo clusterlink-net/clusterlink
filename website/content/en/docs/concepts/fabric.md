@@ -36,9 +36,7 @@ To create a new Fabric certificate authority (CA), execute the following CLI com
 clusterlink create fabric --name <fabric_name>
 ```
 
-This command will create the CA files `<fabric_name>.cert` and `<fabric_name>.key` in the
- current directory. While you will need access to these files to create the peers` gateway
- certificates later, the private key file should be protected and not shared with others.
+This command will create the CA files `cert.pem` and `key.pem` in a folder named <fabric_name>. The `--name` option is optional, and by default, "default_fabric" will be used. While you will need access to these files to create the peers` gateway certificates later, the private key file should be protected and not shared with others.
 
 ## Related tasks
 

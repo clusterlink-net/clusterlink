@@ -38,6 +38,8 @@ import (
 type PeerOptions struct {
 	// Name of the peer to deploy.
 	Name string
+	// Name of the fabric that the peer belongs to.
+	Fabric string
 	// Namespace where the ClusterLink components are deployed.
 	Namespace string
 	// CertDir is the directory where the certificates for the fabric and peer are located.
@@ -83,6 +85,7 @@ func NewCmdDeployPeer() *cobra.Command {
 // AddFlags adds flags to fs and binds them to options.
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
+	fs.StringVar(&o.Fabric, "fabric", config.DefaultFabric, "Fabric name.")
 	fs.StringVar(&o.CertDir, "cert-dir", ".", "The directory where the certificates for the fabric and peer are located.")
 	fs.StringVar(&o.Namespace, "namespace", app.SystemNamespace,
 		"Namespace where the ClusterLink components are deployed.")
@@ -106,7 +109,7 @@ func (o *PeerOptions) RequiredFlags() []string {
 
 // Run the 'deploy peer' subcommand.
 func (o *PeerOptions) Run() error {
-	peerDir := path.Join(o.CertDir, o.Name)
+	peerDir := path.Join(o.CertDir, config.PeerDirectory(o.Name, o.Fabric))
 	if _, err := os.Stat(peerDir); err != nil {
 		return fmt.Errorf("failed to open certificates folder: %w", err)
 	}
