@@ -1,7 +1,6 @@
 {
     "name": "allow-all",
     "spec": {
-        "privileged": false,
         "action": "allow",
         "from": [
             {

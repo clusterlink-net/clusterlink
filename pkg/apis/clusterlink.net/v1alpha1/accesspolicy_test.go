@@ -30,22 +30,22 @@ var (
 
 func TestValidation(t *testing.T) {
 	badPolicy := v1alpha1.AccessPolicy{}
-	err := badPolicy.Validate()
+	err := badPolicy.Spec.Validate()
 	require.NotNil(t, err) // action is an empty string
 
 	badPolicy.Spec.Action = "notAnAction"
-	err = badPolicy.Validate()
+	err = badPolicy.Spec.Validate()
 	require.NotNil(t, err) // action is not a legal action
 
 	badPolicy.Spec.Action = "deny"
-	err = badPolicy.Validate()
+	err = badPolicy.Spec.Validate()
 	require.NotNil(t, err) // missing from
 
 	badPolicy.Spec.From = []v1alpha1.WorkloadSetOrSelector{trivialWorkloadSet}
-	err = badPolicy.Validate()
+	err = badPolicy.Spec.Validate()
 	require.NotNil(t, err) // missing to
 
 	badPolicy.Spec.To = []v1alpha1.WorkloadSetOrSelector{trivialWorkloadSet}
-	err = badPolicy.Validate()
+	err = badPolicy.Spec.Validate()
 	require.Nil(t, err)
 }
