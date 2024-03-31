@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 
+	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
@@ -365,7 +366,7 @@ func (f *Fabric) Namespace() string {
 
 // NewFabric returns a new empty fabric.
 func NewFabric() (*Fabric, error) {
-	cert, err := bootstrap.CreateFabricCertificate()
+	cert, err := bootstrap.CreateFabricCertificate(config.DefaultFabric)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create fabric certificate: %w", err)
 	}

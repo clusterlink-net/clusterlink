@@ -32,6 +32,8 @@ import (
 type PeerOptions struct {
 	// Name of the peer to create.
 	Name string
+	// Name of the fabric that the peer belongs to.
+	Fabric string
 	// Namespace where the ClusterLink components are deployed.
 	Namespace string
 	// Dataplanes is the number of dataplanes to create.
@@ -52,6 +54,7 @@ type PeerOptions struct {
 // AddFlags adds flags to fs and binds them to options.
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
+	fs.StringVar(&o.Fabric, "fabric", config.DefaultFabric, "Fabric name.")
 	fs.StringVar(&o.Namespace, "namespace", app.SystemNamespace, "Namespace where the ClusterLink components are deployed.")
 	fs.Uint16Var(&o.Dataplanes, "dataplanes", 1, "Number of dataplanes.")
 	fs.StringVar(&o.DataplaneType, "dataplane-type", platform.DataplaneTypeEnvoy,
@@ -86,7 +89,7 @@ func (o *PeerOptions) createControlplane(peerCert *bootstrap.Certificate) (*boot
 		return nil, err
 	}
 
-	outDirectory := config.ControlplaneDirectory(o.Name)
+	outDirectory := config.ControlplaneDirectory(o.Name, o.Fabric)
 	if err := os.Mkdir(outDirectory, 0o755); err != nil {
 		return nil, err
 	}
@@ -104,7 +107,7 @@ func (o *PeerOptions) createDataplane(peerCert *bootstrap.Certificate) (*bootstr
 		return nil, err
 	}
 
-	outDirectory := config.DataplaneDirectory(o.Name)
+	outDirectory := config.DataplaneDirectory(o.Name, o.Fabric)
 	if err := os.Mkdir(outDirectory, 0o755); err != nil {
 		return nil, err
 	}
@@ -122,7 +125,7 @@ func (o *PeerOptions) createGWCTL(peerCert *bootstrap.Certificate) (*bootstrap.C
 		return nil, err
 	}
 
-	outDirectory := config.GWCTLDirectory(o.Name)
+	outDirectory := config.GWCTLDirectory(o.Name, o.Fabric)
 	if err := os.Mkdir(outDirectory, 0o755); err != nil {
 		return nil, err
 	}
@@ -149,13 +152,13 @@ func (o *PeerOptions) Run() error {
 	}
 
 	// read fabric certificate
-	rawFabricCert, err := os.ReadFile(config.CertificateFileName)
+	rawFabricCert, err := os.ReadFile(config.FabricCertificate(o.Fabric))
 	if err != nil {
 		return err
 	}
 
 	// read fabric key
-	rawFabricKey, err := os.ReadFile(config.PrivateKeyFileName)
+	rawFabricKey, err := os.ReadFile(config.FabricKey(o.Fabric))
 	if err != nil {
 		return err
 	}
@@ -165,7 +168,7 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	peerDirectory := config.PeerDirectory(o.Name)
+	peerDirectory := config.PeerDirectory(o.Name, o.Fabric)
 	if err := os.Mkdir(peerDirectory, 0o755); err != nil {
 		return err
 	}
@@ -175,7 +178,7 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	err = o.saveCertificate(peerCertificate, config.PeerDirectory(o.Name))
+	err = o.saveCertificate(peerCertificate, config.PeerDirectory(o.Name, o.Fabric))
 	if err != nil {
 		return err
 	}

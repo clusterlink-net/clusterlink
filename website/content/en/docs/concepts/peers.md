@@ -45,13 +45,12 @@ clusterlink create peer-cert --name <peer_name> --fabric <fabric_name>
 ```
 
 {{< notice tip >}}
-The Fabric CA files (certificate and private key) are expected in the current
-working directory (i.e., `./<fabric_name>.crt` and `./<fabric_name>.key`).
+The Fabric CA files (certificate and private key) are expected to be in a subdirectory (i.e., `./<fabric_name>/cert.name` and `./<fabric_name>/key.pem`).
 {{< /notice >}}
 
-This will create the certificate and private key files (`<peer_name>.cert` and
- `<peer_name>.key`, respectively) for the new peer. By default, the files are
- created in a subdirectory named `<peer_name>` under the current working directory.
+This will create the certificate and private key files (`cert.pem` and
+ `key.pem`, respectively) for the new peer. By default, the files are
+ created in a subdirectory named `<peer_name>` under the subdirectory of the fabric `<fabric_name>`.
  You can override the default by setting the `--output <path>` option.
 
 {{< notice info >}}

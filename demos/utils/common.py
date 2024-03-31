@@ -40,7 +40,7 @@ def createPeer(name, dir, logLevel="info", dataplane="envoy",localImage=False):
 
 # applyPeer deploys the peer certificates and yaml to the cluster.
 def applyPeer(name,dir):
-    runcmd(f"kubectl apply -f {dir}/{name}/k8s.yaml")
+    runcmd(f"kubectl apply -f {dir}/default_fabric/{name}/k8s.yaml")
     waitPod("cl-controlplane")
     waitPod("cl-dataplane")
     waitPod("gwctl")
@@ -48,7 +48,7 @@ def applyPeer(name,dir):
 # startGwctl sets gwctl configuration
 def startGwctl(name,geIP, gwPort, testOutputFolder):
     runcmd(f'gwctl init --id {name} --gwIP {geIP} --gwPort {gwPort}  --dataplane mtls \
-    --certca {testOutputFolder}/cert.pem --cert {testOutputFolder}/{name}/gwctl/cert.pem --key {testOutputFolder}/{name}/gwctl/key.pem')
+    --certca {testOutputFolder}/default_fabric/cert.pem --cert {testOutputFolder}/default_fabric/{name}/gwctl/cert.pem --key {testOutputFolder}/default_fabric/{name}/gwctl/key.pem')
 
 # Log Functions
 # runcmd runs os system command.

@@ -17,32 +17,56 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
 )
 
+// FabricOptions contains everything necessary to create and run a 'createfabric' subcommand.
+type FabricOptions struct {
+	// Name of the peer to create.
+	Name string
+}
+
+// AddFlags adds flags to fs and binds them to options.
+func (o *FabricOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.Name, "name", config.DefaultFabric, "Fabric name.")
+}
+
 // NewCmdCreateFabric returns a cobra.Command to run the 'create fabric' subcommand.
 func NewCmdCreateFabric() *cobra.Command {
-	return &cobra.Command{
+	opts := &FabricOptions{}
+	cmd := &cobra.Command{
 		Use:   "fabric",
 		Short: "Create fabric certificates",
 		Long:  `Create fabric certificates`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fabricCert, err := bootstrap.CreateFabricCertificate()
-			if err != nil {
-				return err
-			}
-
-			// save certificate to file
-			err = os.WriteFile(config.CertificateFileName, fabricCert.RawCert(), 0o600)
-			if err != nil {
-				return err
-			}
-
-			// save private key to file
-			return os.WriteFile(config.PrivateKeyFileName, fabricCert.RawKey(), 0o600)
+			return opts.Run()
 		},
 	}
+
+	opts.AddFlags(cmd.Flags())
+	return cmd
+}
+
+// Run the 'create fabric' subcommand.
+func (o *FabricOptions) Run() error {
+	fabricCert, err := bootstrap.CreateFabricCertificate(o.Name)
+	if err != nil {
+		return err
+	}
+
+	if err := os.Mkdir(config.FabricDirectory(o.Name), 0o755); err != nil {
+		return err
+	}
+	// save certificate to file
+	err = os.WriteFile(config.FabricCertificate(o.Name), fabricCert.RawCert(), 0o600)
+	if err != nil {
+		return err
+	}
+
+	// save private key to file
+	return os.WriteFile(config.FabricKey(o.Name), fabricCert.RawKey(), 0o600)
 }
