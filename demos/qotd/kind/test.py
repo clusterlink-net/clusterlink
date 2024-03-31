@@ -134,11 +134,12 @@ if __name__ == "__main__":
     printHeader(f"\n\nStart import svc {quoteApp.name} to cl3 from cl2")
     cl3.imports.create(quoteApp.name,  pdfApp.namespace, quoteApp.port,  cl2.name, quoteApp.name,  quoteApp.namespace)
 
-    # Set policies
+    # Set privileged_policies
     printHeader(f"\n\nApplying allow-all policy")
-    cl1.policies.create(name="allow-all",namespace= gwNS, privileged=False,action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
-    cl2.policies.create(name="allow-all",namespace= gwNS, privileged=False,action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
-    cl3.policies.create(name="allow-all",namespace= gwNS, privileged=False,action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
+    cl1.policies.create(name="allow-all",namespace= webApp.namespace, action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
+    cl2.policies.create(name="allow-all",namespace= quoteApp.namespace, action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
+    cl2.policies.create(name="allow-all",namespace= imageApp.namespace, action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
+    cl3.policies.create(name="allow-all",namespace= pdfApp.namespace, action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
 
     # Get service and policies
     cl1.useCluster()

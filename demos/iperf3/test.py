@@ -72,5 +72,5 @@ def iperf3Test(cl1:Cluster, cl2:Cluster, testOutputFolder,logLevel="info" ,datap
 
     #Add policy
     printHeader("Applying policies")
-    cl1.policies.create(name="allow-all",namespace=namespace, privileged=False,action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
-    cl2.policies.create(name="allow-all",namespace=namespace, privileged=False,action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
+    cl1.policies.create(name="allow-all",namespace=namespace, action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
+    cl2.policies.create(name="allow-all",namespace=namespace, action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])

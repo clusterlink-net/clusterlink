@@ -162,7 +162,7 @@ class Policies(CRDObject):
     def __init__(self):
         super().__init__()
 
-    def set_policy_object(self, name, namespace, privileged, action, from_attribute, to_attribute):
+    def set_policy_object(self, name, namespace, action, from_attribute, to_attribute):
         policy_object = {
             "apiVersion": f"{self.group}/{self.version}",
             "kind": "AccessPolicy",
@@ -170,22 +170,49 @@ class Policies(CRDObject):
             "spec": {
                 "action": action,
                 "from": from_attribute,
-                "privileged": privileged,
                 "to": to_attribute
             }
         }
         return policy_object
 
-    def create(self, name, namespace, privileged, action, from_attribute, to_attribute):
-        policy_object = self.set_policy_object(name, namespace, privileged, action, from_attribute, to_attribute)
+    def create(self, name, namespace, action, from_attribute, to_attribute):
+        policy_object = self.set_policy_object(name, namespace, action, from_attribute, to_attribute)
         self.create_object('accesspolicies', name, namespace, policy_object)
 
-    def update(self, name, namespace, privileged, action, from_attribute, to_attribute):
-        policy_object = self.set_policy_object(name, namespace, privileged, action, from_attribute, to_attribute)
+    def update(self, name, namespace, action, from_attribute, to_attribute):
+        policy_object = self.set_policy_object(name, namespace, action, from_attribute, to_attribute)
         self.update_object('accesspolicies', name, namespace, policy_object)
 
     def delete(self, name, namespace):
         self.delete_object('accesspolicies', name, namespace)
+
+class PrivilegedPolicies(CRDObject):
+    def __init__(self):
+        super().__init__()
+
+    def set_policy_object(self, name, namespace, action, from_attribute, to_attribute):
+        policy_object = {
+            "apiVersion": f"{self.group}/{self.version}",
+            "kind": "PrivilegedAccessPolicy",
+            "metadata": {"name": name, "namespace": namespace},
+            "spec": {
+                "action": action,
+                "from": from_attribute,
+                "to": to_attribute
+            }
+        }
+        return policy_object
+
+    def create(self, name, namespace, action, from_attribute, to_attribute):
+        policy_object = self.set_policy_object(name, namespace, action, from_attribute, to_attribute)
+        self.create_object('privilegedaccesspolicies', name, namespace, policy_object)
+
+    def update(self, name, namespace, action, from_attribute, to_attribute):
+        policy_object = self.set_policy_object(name, namespace, action, from_attribute, to_attribute)
+        self.update_object('privilegedaccesspolicies', name, namespace, policy_object)
+
+    def delete(self, name, namespace):
+        self.delete_object('privilegedaccesspolicies', name, namespace)
 
 # ClusterLink class contains all the commands for deploying ClusterLink CRDs.
 class ClusterLink:
@@ -195,6 +222,7 @@ class ClusterLink:
         self.exports  = Exports()
         self.imports  = Imports()
         self.policies = Policies()
+        self.privileged_policies = PrivilegedPolicies()
 
     # set_kube_config set config for all objects.
     def set_kube_config(self):
@@ -202,6 +230,7 @@ class ClusterLink:
         self.exports.set_kube_config()
         self.imports.set_kube_config()
         self.policies.set_kube_config()
+        self.privileged_policies.set_kube_config()
 
     # create_fabric creates fabric certificates using ClusterLink CLI.
     def create_fabric(self, dir):

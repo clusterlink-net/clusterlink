@@ -19,23 +19,23 @@ import argparse
 projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{projDir}')
 from demos.utils.common import runcmd, printHeader
-from demos.utils.kind import cluster
+from demos.utils.kind import Cluster
 
 srcSvc   = "firefox"
 destSvc  = "openspeedtest"
 denyIAccessPolicy=f"{projDir}/demos/speedtest/testdata/policy/denyToSpeedtest.yaml"
 denyCluster3Policy=f"{projDir}/demos/speedtest/testdata/policy/denyFromGw.yaml"
 
-def applyAccessPolicy(cl:cluster, policyFile):
+def applyAccessPolicy(cl:Cluster, policyFile):
     cl.useCluster()
     printHeader(f"\n\nApplying policy file {policyFile} to {cl}")
     runcmd(f'kubectl create -f {policyFile}')
 
-def deleteAccessPolicy(cl:cluster, policyFile):
+def deleteAccessPolicy(cl:Cluster, policyFile):
     cl.useCluster()
     runcmd(f'kubectl delete -f {policyFile}')
 
-def applyPolicy(cl:cluster, type):
+def applyPolicy(cl:Cluster, type):
     if type == "show":
         printHeader(f"Show Policies in {cl.name}")
         runcmd('kubectl get accesspolicies.clusterlink.net')
@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     args = vars(parser.parse_args())
 
-    cl = cluster(name=args["peer"])
+    cl = Cluster(name=args["peer"])
     type = args["type"]
 
 

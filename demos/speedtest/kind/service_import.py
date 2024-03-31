@@ -18,15 +18,15 @@ projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.pa
 sys.path.insert(0,f'{projDir}')
 
 from demos.utils.common import printHeader
-from demos.utils.kind import cluster
+from demos.utils.kind import Cluster
 ############################### MAIN ##########################
 if __name__ == "__main__":
     srcSvc1        = "firefox"
     srcSvc2        = "firefox2"
     destSvc        = "openspeedtest"
-    cl1            = cluster(name="peer1")
-    cl2            = cluster(name="peer2")
-    cl3            = cluster(name="peer3")
+    cl1            = Cluster(name="peer1")
+    cl2            = Cluster(name="peer2")
+    cl3            = Cluster(name="peer3")
 
     namespace = "default"
 
@@ -51,9 +51,9 @@ if __name__ == "__main__":
 
     #Add policy
     printHeader("Applying policies")
-    cl1.policies.create(name="allow-all",namespace=namespace , privileged=False,action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
-    cl2.policies.create(name="allow-all",namespace=namespace, privileged=False,action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
-    cl3.policies.create(name="allow-all",namespace=namespace, privileged=False,action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
+    cl1.policies.create(name="allow-all",namespace=namespace , action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
+    cl2.policies.create(name="allow-all",namespace=namespace, action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
+    cl3.policies.create(name="allow-all",namespace=namespace, action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
 
 
     #Firefox communications

@@ -114,9 +114,9 @@ def bookInfoDemo(cl1:Cluster, cl2:Cluster, cl3:Cluster, testOutputFolder,logLeve
 
     # Set policies
     printHeader(f"\n\nApplying allow-all policy file")
-    cl1.policies.create(name="allow-all",namespace= namespace, privileged=False,action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
-    cl2.policies.create(name="allow-all",namespace= namespace, privileged=False,action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
-    cl3.policies.create(name="allow-all",namespace= namespace, privileged=False,action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
+    cl1.policies.create(name="allow-all",namespace= namespace, action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
+    cl2.policies.create(name="allow-all",namespace= namespace, action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
+    cl3.policies.create(name="allow-all",namespace= namespace, action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
 
 # applyPolicy apply policy for the bookInfo demo
 def applyPolicy(cl:Cluster, type):
@@ -132,14 +132,14 @@ def applyPolicy(cl:Cluster, type):
         cl.imports.update(reviewSvc,  namespace, srcK8sSvcPort,  ["peer2","peer3"], [reviewSvc,reviewSvc], [namespace,namespace],"static")
     elif type == "diff":
         cl.policies.delete(name="allow-all",namespace= namespace)
-        cl.policies.create(name="src1topeer2",namespace= namespace, privileged=False,action="allow", from_attribute=[{"workloadSelector": {"matchLabels": {"clusterlink/metadata.serviceName": srcSvc1}}}],to_attribute=[{"workloadSelector": {"matchLabels": {"clusterlink/metadata.serviceName": reviewSvc, "clusterlink/metadata.gatewayName": "peer2"}}}])
-        cl.policies.create(name="src2topeer3",namespace= namespace, privileged=False,action="allow", from_attribute=[{"workloadSelector": {"matchLabels": {"clusterlink/metadata.serviceName": srcSvc2}}}],to_attribute=[{"workloadSelector": {"matchLabels": {"clusterlink/metadata.serviceName": reviewSvc, "clusterlink/metadata.gatewayName": "peer3"}}}])
+        cl.policies.create(name="src1topeer2",namespace= namespace, action="allow", from_attribute=[{"workloadSelector": {"matchLabels": {"clusterlink/metadata.serviceName": srcSvc1}}}],to_attribute=[{"workloadSelector": {"matchLabels": {"clusterlink/metadata.serviceName": reviewSvc, "clusterlink/metadata.gatewayName": "peer2"}}}])
+        cl.policies.create(name="src2topeer3",namespace= namespace, action="allow", from_attribute=[{"workloadSelector": {"matchLabels": {"clusterlink/metadata.serviceName": srcSvc2}}}],to_attribute=[{"workloadSelector": {"matchLabels": {"clusterlink/metadata.serviceName": reviewSvc, "clusterlink/metadata.gatewayName": "peer3"}}}])
     elif type == "show":
         runcmd(f'kubectl get imports.clusterlink.net')
     elif type == "clean":
         cl.policies.delete(name="src1topeer2",namespace= namespace)
         cl.policies.delete(name="src2topeer3",namespace= namespace)
-        cl.policies.create(name="allow-all",namespace= namespace, privileged=False,action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
+        cl.policies.create(name="allow-all",namespace= namespace, action="allow", from_attribute=[{"workloadSelector": {}}],to_attribute=[{"workloadSelector": {}}])
         cl.imports.update(reviewSvc,  namespace, srcK8sSvcPort,  ["peer2","peer3"], [reviewSvc,reviewSvc], [namespace,namespace],"round-robin")
 
 def apply_failover(cl:Cluster, type, testOutputFolder,container_reg="", ingress_type="", ingress_port=0):
