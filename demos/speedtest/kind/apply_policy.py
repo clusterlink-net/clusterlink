@@ -19,40 +19,43 @@ import argparse
 projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{projDir}')
 from demos.utils.common import runcmd, printHeader
+from demos.utils.kind import Cluster
 
 srcSvc   = "firefox"
 destSvc  = "openspeedtest"
-denyIAccessPolicy=f"{projDir}/demos/speedtest/testdata/policy/denyToSpeedtest.json"
-denyCluster3Policy=f"{projDir}/demos/speedtest/testdata/policy/denyFromGw.json"    
+denyIAccessPolicy=f"{projDir}/demos/speedtest/testdata/policy/denyToSpeedtest.yaml"
+denyCluster3Policy=f"{projDir}/demos/speedtest/testdata/policy/denyFromGw.yaml"
 
-def applyAccessPolicy(cl, policyFile):
+def applyAccessPolicy(cl:Cluster, policyFile):
+    cl.useCluster()
     printHeader(f"\n\nApplying policy file {policyFile} to {cl}")
-    runcmd(f'gwctl --myid {cl} create policy --type access --policyFile {policyFile}')
+    runcmd(f'kubectl create -f {policyFile}')
 
-def deleteAccessPolicy(cl, policyFile):
-    runcmd(f'gwctl delete policy --myid {cl} --type access --policyFile {policyFile}')
-    
-def applyPolicy(cl, type):
+def deleteAccessPolicy(cl:Cluster, policyFile):
+    cl.useCluster()
+    runcmd(f'kubectl delete -f {policyFile}')
+
+def applyPolicy(cl:Cluster, type):
     if type == "show":
-        printHeader(f"Show Policies in {cl}")
-        runcmd(f'gwctl get policy --myid {cl}')
+        printHeader(f"Show Policies in {cl.name}")
+        runcmd('kubectl get accesspolicies.clusterlink.net')
         return
-    
-    if cl in ["peer1","peer3"]:
+
+    if cl.name in ["peer1","peer3"]:
         if type == "deny":
-            printHeader(f"Block Traffic in {cl}")
+            printHeader(f"Block Traffic in {cl.name}")
             applyAccessPolicy(cl, denyIAccessPolicy)
         elif type == "allow": # Remove the deny policy
-            printHeader(f"Allow Traffic in {cl}")
+            printHeader(f"Allow Traffic in {cl.name}")
             deleteAccessPolicy(cl, denyIAccessPolicy)
         else:
             print("Unknown command")
-    if cl == "peer2":
+    if cl.name == "peer2":
         if type == "deny":
-            printHeader(f"Block Traffic in {cl}")
+            printHeader(f"Block Traffic in {cl.name}")
             applyAccessPolicy(cl, denyCluster3Policy)
         elif type == "allow": # Remove the deny policy
-            printHeader(f"Allow Traffic in {cl}")
+            printHeader(f"Allow Traffic in {cl.name}")
             deleteAccessPolicy(cl, denyCluster3Policy)
         else:
             print("Unknown command")
@@ -66,7 +69,7 @@ if __name__ == "__main__":
 
     args = vars(parser.parse_args())
 
-    cl = args["peer"]
+    cl = Cluster(name=args["peer"])
     type = args["type"]
 
 

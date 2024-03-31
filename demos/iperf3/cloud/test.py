@@ -20,13 +20,13 @@ sys.path.insert(0,f'{projDir}')
 
 from demos.utils.common import runcmd, printHeader
 from demos.utils.k8s import  getPodNameIp
-from demos.utils.cloud import cluster
+from demos.utils.cloud import Cluster
 from demos.iperf3.test import iperf3Test
 
-cl1gcp = cluster(name="peer1", zone = "us-west1-b", platform = "gcp") 
-cl1ibm = cluster(name="peer1", zone = "dal10",      platform = "ibm")
-cl2gcp = cluster(name="peer2", zone = "us-west1-b", platform = "gcp")
-cl2ibm = cluster(name="peer2", zone = "dal10",      platform = "ibm")
+cl1gcp = Cluster(name="peer1", zone = "us-west1-b", platform = "gcp")
+cl1ibm = Cluster(name="peer1", zone = "dal10",      platform = "ibm")
+cl2gcp = Cluster(name="peer2", zone = "us-west1-b", platform = "gcp")
+cl2ibm = Cluster(name="peer2", zone = "dal10",      platform = "ibm")
 
 srcSvc           = "iperf3-client"
 destSvc          = "iperf3-server"
@@ -37,9 +37,6 @@ iperf3DirectPort = "30001"
 folCl=f"{projDir}/demos/iperf3/testdata/manifests/iperf3-client"
 folSv=f"{projDir}/demos/iperf3/testdata/manifests/iperf3-server"
 testOutputFolder = f"{projDir}/bin/tests/iperf3"
-
-# Policy
-allowAllPolicy=f"{projDir}/pkg/policyengine/examples/allowAll.json"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
@@ -60,7 +57,7 @@ if __name__ == "__main__":
     cl2 = cl2gcp if cloud in ["gcp"]        else cl2ibm
     print(f'Working directory {projDir}')
     os.chdir(projDir)
-    
+
     if command =="delete":
         cl1.deleteCluster(runBg=True)
         cl2.deleteCluster()
@@ -71,14 +68,14 @@ if __name__ == "__main__":
         cl2.cleanCluster()
         exit()
 
-    ### build docker environment 
+    ### build docker environment
     printHeader("Build docker image")
     os.system("make build")
-    os.system("sudo make install")
-    
+    os.system("make install")
+
     cl1.machineType=machineType
     cl2.machineType=machineType
-    
+
     iperf3Test(cl1, cl2, testOutputFolder, args["logLevel"], args["dataplane"])
 
     # iPerf3 test
