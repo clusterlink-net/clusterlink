@@ -15,7 +15,7 @@ Here are the key steps for setting up your developer environment, making a chang
     - [Go](https://go.dev/doc/install) version 1.20 or higher.
     - [Git](https://git-scm.com/downloads) command line.
     - We recommend using a [local development environment](https://kubernetes.io/docs/tasks/tools/)
-      such as Kind/kubectl for local development and integration testing.
+      such as kind/kubectl for local development and integration testing.
     - Additional development packages, such as `goimports` and `golangci-lint`. See the full list in
       [post-create.sh](https://github.com/clusterlink-net/clusterlink/blob/main/.devcontainer/dev/post-create.sh).
 1. Clone our repository with `git clone git@github.com:clusterlink-net/clusterlink.git`.

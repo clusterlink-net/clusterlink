@@ -1,15 +1,15 @@
 ---
 title: Services
-description: Sharing Services
+description: Sharing services
 weight: 30
 ---
 
 ClusterLink uses services as the unit of sharing between peers.
- One or more peers can expose an (internal) Kubernetes Service to
+ One or more peers can expose an (internal) K8s Service to
  be consumed by other [peers]({{% ref "peers" %}}) in the [fabric]({{% ref "fabric" %}}).
- A service is exposed by creating an `Export` CRD instance referencing it in the
+ A service is exposed by creating an `Export` CR referencing it in the
  source cluster. Similarly, the exported service can be made accessible to workloads
- in a peer by defining an `Import` CRD instance in the destination cluster[^KEP-1645].
+ in a peer by defining an `Import` CR in the destination cluster[^KEP-1645].
  Thus, service sharing is an explicit operation. Services are not automatically
  shared by peers in the fabric. Note that the exporting cluster must be
  [configured as a peer]({{% ref "peers#add-or-remove-peers" %}}) of the importing
@@ -52,8 +52,8 @@ The following assume that you have `kubectl` access to two or more clusters wher
 
 In order to make a service potentially accessible by other clusters, it must be
  explicitly configured for remote access via ClusterLink. Exporting is
- accomplished by creating an `Export` CRD instance in the **same** namespace
- as the service being exposed. The CRD instance acts as a marker for enabling
+ accomplished by creating an `Export` CR in the **same** namespace
+ as the service being exposed. The CR acts as a marker for enabling
  remote access to the service via ClusterLink.
 
 {{% expand summary="Export Custom Resource" %}}
@@ -82,7 +82,7 @@ type ExportStatus struct {
 The ExportSpec defines the following fields:
 
 - **Host** (string, optional): the name of the service being exported. The service
- must be defined in the same namespace as the Export CRD instance. If empty,
+ must be defined in the same namespace as the Export CR. If empty,
  the export shall refer to a Kubernetes Service with the same name as the instance's
  `metadata.name`. It is an error to refer to a non-existent service or one that is
  not present in the local namespace. The error will be reflected in the CRD's status.
@@ -101,9 +101,9 @@ Note that exporting a Service does not automatically make is accessible to other
 
 ### Importing a service
 
-Exposing remote services to a peer is accomplished by creating an `Import` CRD
- instance to a namespace. The CRD representing the imported service and its
- available backends across all peers. In response to an Import CRD, ClusterLink
+Exposing remote services to a peer is accomplished by creating an `Import` CR
+ to a namespace. The CR represents the imported service and its
+ available backends across all peers. In response to an Import CR, ClusterLink
  control plane will create a local Kubernetes Service selecting the ClusterLink
  data plane Pods. The use of native Kubernetes constructs, allows ClusterLink
  to work with any compliant cluster and CNI, transparently.
@@ -112,7 +112,7 @@ The Import instance creates the service endpoint in the same namespace as it is
  defined in. The created service will have the Import's `metadata.Name`. This
  allows maintaining independent names for services between peers. Alternately,
  you may use the same name for the import and related source exports.
- You can define multiple Import CRDs for the same set of Exports in different
+ You can define multiple Import CRs for the same set of Exports in different
  namespaces. These are independent of each other.
 
 {{% expand summary="Import Custom Resource" %}}
@@ -148,7 +148,7 @@ type ImportStatus struct {
 
 The ImportSpec defines the following fields:
 
-- **Port** (integer, required): the imported, user facing, port number define
+- **Port** (integer, required): the imported, user facing, port number defined
  on the created service object.
 - **TargetPort** (integer, optional): this is the internal listening port
  used by the ClusterLink data plane pods to represent the remote services. Typically the
@@ -159,20 +159,20 @@ The ImportSpec defines the following fields:
  [port conflicts](https://kubernetes.io/docs/concepts/services-networking/service/#avoid-nodeport-collisions)
  as is done for NodePort services.
 - **Sources** (source array, required): references to remote exports providing backends
- for the Import. Each reference names a different export through the combination of
+ for the Import. Each reference names a different export through the combination of:
   - *Peer* (string, required): name of ClusterLink peer where the export is defined.
   - *ExportNamespace* (string, required): name of the namespace on the remote peer where
    the export is defined.
   - *ExportName* (string, required): name of the remote export.
 - **LBScheme** (string, optional): load balancing method to select between different
- Sources defined. The default policy is `round-robin`, but you could override it to use
- `random` or `static` (fixed) assignment.
+ Sources defined. The default policy is `random`, but you could override it to use
+ `round-robin` or `static` (fixed) assignment.
 
 <!-- Importing multiport? It is not possible... Could use merge in future?
  perhaps, but might requires explicit service name so can merge correctly
  or use port set instead of individual port per export/import -->
 
-As with exports, importing a Service does not automatically make it accessible by
+As with exports, importing a service does not automatically make it accessible by
  workloads, but only enables *potential* access. To complete service sharing,
  you must define at least one [access control policy]({{% ref "policies" %}}) that
  allows access in the importing cluster. To grant access, a connection must be

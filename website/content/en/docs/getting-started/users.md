@@ -8,7 +8,8 @@ This guide will give you a quick start on installing and setting up the ClusterL
 
 ## Prerequisites
 
-Before you start, you must have access to a Kubernetes cluster. For example, you can set up a local environment using the [Kind](https://kind.sigs.k8s.io/) project.
+Before you start, you must have access to a Kubernetes cluster.
+For example, you can set up a local environment using the [kind](https://kind.sigs.k8s.io/) project.
 
 ## Installation
 
@@ -28,40 +29,45 @@ Before you start, you must have access to a Kubernetes cluster. For example, you
 
 To set up ClusterLink on a Kubernetes cluster, follow these steps:
 
-1. {{< anchor create-fabric-ca >}}Create the Fabric's CA certificate and private key.
-
-    The ClusterLink Fabric is defined as all Kubernetes clusters (peers) that install ClusterLink gateways and can share services between the clusters, enabling communication among those services.
-    First, create the fabric Certificate Authority (CA):
+1. {{< anchor create-fabric-ca >}}Create the fabric's CA certificate and private key:
 
     ```sh
     clusterlink create fabric --name <fabric_name>
     ```
 
-    This command will create the CA files `cert.pem` and `key.pem` in a folder named <fabric_name>. The `--name` option is optional, and by default, "default_fabric" will be used.
+    The ClusterLink fabric is defined as all K8s clusters (peers) that install ClusterLink gateways
+    and can share services between the clusters, enabling communication among those services.
+    This command will create the CA files `cert.pem` and `key.pem` in a directory named <fabric_name>.
+    The `--name` option is optional, and by default, "default_fabric" will be used.
 
-1. {{< anchor create-peer-certs >}}Create peer certificates.
-
-    Create a peer (cluster) certificate:
+1. {{< anchor create-peer-certs >}}Create a peer (cluster) certificate:
 
     ```sh
     clusterlink create peer-cert --name <peer_name> --fabric <fabric_name>
     ```
 
-    This command will create the certificate files `cert.pem` and `key.pem` in a folder named <fabric_name/peer_name>. The `--path <path>` flag can be used to change the folder location.The `--name` option is optional, and by default, "default_fabric" will be used.
+    This command will create the certificate files `cert.pem` and `key.pem`
+    in a directory named <fabric_name>/<peer_name>.
+    The `--path <path>` flag can be used to change the directory location.
+    The `--name` option is optional, and by default, "default_fabric" will be used.
 
-1. {{< anchor install-cl-operator >}}Install ClusterLink.
-
-    To install ClusterLink on the peer, first install the ClusterLink deployment operator.
+1. {{< anchor install-cl-operator >}}Install ClusterLink deployment operator:
 
     ```sh
     clusterlink peer deploy --autostart --name <peer_name> --fabric <fabric_name>
     ```
 
-    This command will deploy the ClusterLink operator on the `clusterlink-operator` namespace and convert the peer certificates to secrets in the namespace.
-    The command assumes that `kubectl` is set to the correct peer (Kubernetes cluster) and that the certificates were created in the local folder. If they were not, use the flag `--path <path>`. The `--fabric` option is optional, and by default, "default_fabric" will be used.
-    The `--autostart` option will deploy the ClusterLink components in the `clusterlink-system` namespace, and the ClusterLink project will start to run in the cluster.
+    This command will deploy the ClusterLink operator on the `clusterlink-operator` namespace
+    and convert the peer certificates to secrets in this namespace.
+    The command assumes that `kubectl` is set to the correct peer (K8s cluster)
+    and that the certificates were created by running the previous command on the same working directory.
+    If they were not, use the flag `--path <path>` for pointing to the working directory
+    that was used in the previous command.
+    The `--fabric` option is optional, and by default, "default_fabric" will be used.
+    The `--autostart` option will deploy the ClusterLink components in the `clusterlink-system` namespace,
+    and the ClusterLink project will start running in the cluster.
 
-To deploy ClusterLink on another cluster, please repeat steps 2-3 in the console with access to the cluster.
+To deploy ClusterLink on another cluster, please repeat steps 2-3 in a console with access to the cluster.
 
 ### Additional configurations
 
@@ -71,23 +77,21 @@ To deploy ClusterLink on another cluster, please repeat steps 2-3 in the console
     clusterlink peer deploy --autostart --name <peer_name> --fabric <fabric_name> --namespace <namespace>
     ```
 
-    The `--namespace` determines the namespace where the ClusterLink components are deployed. Note that you must set `--autostart`, and the namespace should already exist.
+    The `--namespace` parameter determines the namespace where the ClusterLink components are deployed.
+    Note that you must set `--autostart`, and the namespace should already exist.
 
-* Setting ClusterLink Ingress type:
+* Setting ClusterLink ingress type:
 
     ```sh
     clusterlink peer deploy --autostart --name <peer_name> --fabric <fabric_name> --ingress <ingress_type>
     ```
 
-    The `--ingress` controls the ClusterLink ingress type, with `LoadBalancer` being the default. If you're using a Kind cluster, replace `<ingress_type>` with `NodePort`. For a cluster running in a cloud environment, use `LoadBalancer`.Note that you must set `--autostart` when you use this flag.
+    The `--ingress` parameter controls the ClusterLink ingress type, with `LoadBalancer` being the default.
+    If you're using a kind cluster, replace `<ingress_type>` with `NodePort`.
+    For a cluster running in a cloud environment, use `LoadBalancer`.
+    Note that you must set `--autostart` when you use this parameter.
 
-* {{< anchor deploy-crd-instance >}}Full configuration setting using ClusterLink CRD instance:
-
-    ```sh
-    clusterlink peer deploy
-    ```
-
-    After the operator is installed, you can deploy ClusterLink by applying the ClusterLink instance CRD:
+* {{< anchor deploy-cr-instance >}}Full configuration setting using a ClusterLink K8s custom resource object:
 
     ```yaml
     kubectl apply -f - <<EOF
@@ -103,8 +107,10 @@ To deploy ClusterLink on another cluster, please repeat steps 2-3 in the console
     EOF
     ```
 
-    The instance CRD will create the ClusterLink gateway components in the `clusterlink-system` namespace.
-    For more details and information about the ClusterLink instance CRD, refer to the [operator documentation](https://github.com/clusterlink-net/clusterlink/blob/main/design-proposals/project-deployment.md#clusterlink-crd).
+    After the operator is installed, you can deploy ClusterLink by applying a ClusterLink object as shown above.
+    The Clusterlink operator will create the ClusterLink gateway components in the `clusterlink-system` namespace.
+    For more details and information about the ClusterLink custom resource,
+    refer to the [operator documentation](https://github.com/clusterlink-net/clusterlink/blob/main/design-proposals/project-deployment.md#clusterlink-crd).
 
 ## Try it out
 
