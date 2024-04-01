@@ -59,7 +59,7 @@ And here’s the icing on the cake: I believe in clear separation of concerns. T
 
 ## So, what's next?
 
-I’m super excited to announce that I’m being released as version 0.2.0.
+I’m super excited to announce that I’m being released as version 0.1.0.
  It’s a big milestone for me, and I’m hoping to get some feedback and
  requirements from all of you folks out there. After all, I’m here
  to evolve and grow just like everyone else.
@@ -83,4 +83,4 @@ I can't wait to start on this journey with all of you. Together, we'll make
  Happy cluster linking! 🚀
 
 [^1]: While normal access control policies work, the implementation of privileged policy tier
- is ongoing and will be enabled shortly after the 0.2.0 release.
+ is ongoing and will be enabled shortly after the 0.1.0 release.
