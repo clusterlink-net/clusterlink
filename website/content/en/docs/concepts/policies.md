@@ -4,9 +4,11 @@ description: Controlling Service access across peers
 weight: 38
 ---
 
-Access policies allow users and administrators a fine-grained control over which client workload may access which service.
+Access policies allow users and administrators fine-grained control over which client workloads may access which service.
 This is an important security mechanism for applying [micro-segmentation](https://en.wikipedia.org/wiki/Microsegmentation_(network_security)),
 which is a basic requirement of [zero-trust](https://en.wikipedia.org/wiki/Zero_trust_security_model) systems.
+Another zero-trust principle, "Deny by default / Allow by exception", is also addressed by ClusterLink's access policies:
+a connection without an explicit policy allowing it, will be dropped.
 Access policies can also be used for enforcing corporate security rules, as well as segmenting the fabric into trust zones.
 
 ClusterLink's access policies are based on attributes that are attached to [peers]({{< ref "peers" >}}),
@@ -23,8 +25,8 @@ Both client workloads and target services may inherit some attributes from their
 
 There are two tiers of access policies in ClusterLink. The high-priority tier is intended for cluster/Peer administrators 
 to set access rules which cannot be overridden by cluster users.
-High-priority policies are controlled by the `PrivilegedAccessPolicy` CRD, and are cluster-scoped (have no namespace).
-Regular policies are intended for cluster users, and are controlled by the `AccessPolicy` CRD. Regular policies are
+High-priority policies are controlled by the `PrivilegedAccessPolicy` CRD, and are cluster-scoped (i.e., have no namespace).
+Regular policies are intended for cluster users, such as application developers and owners, and are controlled by the `AccessPolicy` CRD. Regular policies are
 namespaced, and have an effect in their namespace only. That is, they do not affect connections to/from other namespaces.
 
 For a connection to be established, both the ClusterLink gateway on the client side and the ClusterLink gateway
@@ -84,13 +86,13 @@ type WorkloadSetOrSelector struct {
 {{% /expand %}}
 
 The `AccessPolicySpec` defines the following fields:
-- **Action** (`string`, required): whether the policy allows or denies the specified connection. Value must be either `allow` or `deny`.
-- **From** (`WorkloadSetOrSelectorList`, required): a list of `WorkloadSetOrSelector` objects, each defining a possible connection source
-- **To** (`WorkloadSetOrSelectorList`, required): a list of `WorkloadSetOrSelector` objects, each defining a possible connection destination
+- **Action** (string, required): whether the policy allows or denies the specified connection. Value must be either `allow` or `deny`.
+- **From** (WorkloadSetOrSelector array, required): specifies connection sources. A connection's source must match one of the specified sources to be matched by the policy
+- **To** (WorkloadSetOrSelectorList array, required): specifies connection destinations. A connection's destination must match one of the specified destinations to be matched by the policy
 
 A `WorkloadSetOrSelector` object has two fields; exactly one of them must be specified.
-- **WorkloadSets** (list of `string`s, optional) - a list of predefined sets of workload. Currently not supported.
-- **WorkloadSelector** (`metav1.LabelSelector`, optional) - a Kubernetes [label selector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#labelselector-v1-meta) defining a set of client workloads or a set of services, based on their
+- **WorkloadSets** (string array, optional) - an array of predefined sets of workload. Currently not supported.
+- **WorkloadSelector** (LabelSelector, optional) - a Kubernetes [label selector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#labelselector-v1-meta) defining a set of client workloads or a set of services, based on their
 attributes. An empty selector matches all workloads/services.
 
 The following policy allows all incoming/outgoing connections in the `default` namespace.
