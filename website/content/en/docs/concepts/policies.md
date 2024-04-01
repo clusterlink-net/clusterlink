@@ -1,6 +1,6 @@
 ---
 title: Access Policies
-description: Controlling Service access across peers
+description: Controlling service access across peers
 weight: 40
 ---
 
@@ -50,7 +50,7 @@ The following assumes that you have `kubectl` access to two or more clusters whe
 ### Creating access policies
 Recall that a connection is dropped if it does not match any access policy.
 Hence, for a connection to be allowed, an access policy with an `allow` action must be created on both sides of the connection.
-Creating an access policy is accomplished by creating an `AccessPolicy` CRD instance in the relevant namespace (see Note above).
+Creating an access policy is accomplished by creating an `AccessPolicy` CR in the relevant namespace (see Note above).
 
 {{% expand summary="Export Custom Resource" %}}
 

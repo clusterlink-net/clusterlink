@@ -11,7 +11,7 @@ build: ; $(info building site...)
 	@hugo
 
 # delete hugo modules under clean?
-clean: ; $(info cleaning website output folder...)
+clean: ; $(info cleaning website output directory...)
 	@rm -rf ./public
 
 serve: ; $(info running locally with env=production...)

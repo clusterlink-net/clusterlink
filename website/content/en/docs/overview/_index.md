@@ -34,8 +34,7 @@ ClusterLink uses a set of unprivileged gateways serving connections to and from 
  continuously exchange control-plane information, forming a secure distributed control plane.
  In addition, ClusterLink gateways represent the remotely deployed services to applications running in a local cluster,
  acting as L4 proxies. On connection establishment, the control plane components in the source and the target ClusterLink
- gateways validate and establish the connection based on specified policies, then promote the control connection into a
- data plane session, with no overhead.
+ gateways validate and establish the connection based on specified policies.
 
 ## Why is it unique?
 
