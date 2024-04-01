@@ -56,7 +56,7 @@ To setup two kind clusters:
 kind uses the prefix "kind", so the name of created clusters will be **kind-client** and **kind-server**.
 {{< /notice >}}
 
-1. Setup `KUBECONFIG` on each terminal to access the cluster:
+4. Setup `KUBECONFIG` on each terminal to access the cluster:
 
     Client cluster:
 
@@ -86,14 +86,14 @@ using `kubectl config use-context kind-client` and `kubectl config use-context k
     Client cluster:
 
     ```sh
-    export IPERF3_FILES=https://github.com/clusterlink-net/clusterlink/raw/main/demos/iperf3/testdata/manifests
+    export IPERF3_FILES=https://raw.githubusercontent.com/clusterlink-net/clusterlink/main/demos/iperf3/testdata/manifests
     kubectl apply -f $IPERF3_FILES/iperf3-client/iperf3-client.yaml
     ```
 
     Server cluster:
 
     ```sh
-    export IPERF3_FILES=https://github.com/clusterlink-net/clusterlink/raw/main/demos/iperf3/testdata/manifests
+    export IPERF3_FILES=https://raw.githubusercontent.com/clusterlink-net/clusterlink/main/demos/iperf3/testdata/manifests
     kubectl apply -f $IPERF3_FILES/iperf3-server/iperf3.yaml
     ```
 
@@ -116,7 +116,7 @@ using `kubectl config use-context kind-client` and `kubectl config use-context k
 
     For more details about fabric and peer concepts see [core concepts](https://clusterlink.net/docs/concepts).
 
-1. Deploy ClusterLink on each cluster:
+2. Deploy ClusterLink on each cluster:
 
     Client cluster:
 
@@ -136,7 +136,7 @@ By default `deploy peer` creates an ingress of type LoadBalancer,
 which is more suitable for Kubernetes clusters running in the cloud.
 {{< /notice >}}
 
-1. Verify that ClusterLink controlplane and dataplane are running:
+3. Verify that ClusterLink controlplane and dataplane are running:
 
     Client cluster:
 
@@ -151,6 +151,16 @@ which is more suitable for Kubernetes clusters running in the cloud.
     kubectl rollout status deployment cl-controlplane -n clusterlink-system
     kubectl rollout status deployment cl-dataplane -n clusterlink-system
     ```
+
+{{% expand summary="Output" %}}
+It may take a few seconds for the deployments to be successfully created.
+
+```sh
+deployment "cl-controlplane" successfully rolled out
+deployment "cl-dataplane" successfully rolled out
+```
+
+{{% /expand %}}
 
 ## Enable cross-cluster access
 
@@ -162,21 +172,34 @@ In this step, we enable connectivity access between the iPerf3 client and server
 
     ```sh
     export SERVER_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' server-control-plane`
-    envsubst < $IPERF3_FILES/clusterlink/peer-server.yaml | kubectl apply -f -
+    curl -s $IPERF3_FILES/clusterlink/peer-server.yaml | envsubst | kubectl apply -f -
     ```
 
     Server cluster:
 
     ```sh
     export CLIENT_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' client-control-plane`
-    envsubst < $IPERF3_FILES/clusterlink/peer-client.yaml | kubectl apply -f -
+    curl -s $IPERF3_FILES/clusterlink/peer-client.yaml | envsubst | kubectl apply -f -
     ```
 
+{{% expand summary="Install **envsubst** for **macOS users**" %}}
+In case `envsubst` does not exist, you can install it with:
+
+```sh
+brew install gettext
+brew link --force gettext
+```
+
+{{% /expand %}}
+
+<br>
+
 {{< notice note >}}
-The `PEER_X_IP` refers to the node IP of the peer kind cluster, which assigns the peer YAML file
+
+The `CLIENT_IP` and `SERVER_IP` refers to the node IP of the peer kind cluster, which assigns the peer YAML file.
 {{< /notice >}}
 
-1. In the server cluster, export the iperf3-server service:
+2. In the server cluster, export the iperf3-server service:
 
     Server cluster:
 
@@ -184,7 +207,7 @@ The `PEER_X_IP` refers to the node IP of the peer kind cluster, which assigns th
     kubectl apply -f $IPERF3_FILES/clusterlink/export-iperf3.yaml
     ```
 
-1. In the client cluster, import the iperf3-server service from the server cluster:
+3. In the client cluster, import the iperf3-server service from the server cluster:
 
     Client cluster:
 
@@ -192,7 +215,7 @@ The `PEER_X_IP` refers to the node IP of the peer kind cluster, which assigns th
     kubectl apply -f $IPERF3_FILES/clusterlink/import-iperf3.yaml
     ```
 
-1. Create access policies on both clusters to allow connectivity:
+4. Create access policies on both clusters to allow connectivity:
 
     Client cluster:
 
@@ -206,7 +229,7 @@ The `PEER_X_IP` refers to the node IP of the peer kind cluster, which assigns th
     kubectl apply -f $IPERF3_FILES/clusterlink/allow-policy.yaml
     ```
 
-    For more details about policies see [ClusterLink policies](https://clusterlink.net/docs/concepts/policies)
+    For more details about policies see [ClusterLink policies](https://clusterlink.net/docs/concepts/policies).
 
 ## Test service connectivity
 
@@ -218,6 +241,32 @@ Client cluster:
 export IPERF3CLIENT=`kubectl get pods -l app=iperf3-client -o custom-columns=:metadata.name --no-headers`
 kubectl exec -i $IPERF3CLIENT -- iperf3 -c iperf3-server --port 5000
 ```
+
+{{% expand summary="Output" %}}
+
+```
+Connecting to host iperf3-server, port 5000
+[  5] local 10.244.0.5 port 51666 connected to 10.96.46.198 port 5000
+[ ID] Interval           Transfer     Bitrate         Retr  Cwnd
+[  5]   0.00-1.00   sec   639 MBytes  5.36 Gbits/sec    0    938 KBytes
+[  5]   1.00-2.00   sec   627 MBytes  5.26 Gbits/sec    0    938 KBytes
+[  5]   2.00-3.00   sec   628 MBytes  5.26 Gbits/sec    0    938 KBytes
+[  5]   3.00-4.00   sec   635 MBytes  5.33 Gbits/sec    0    938 KBytes
+[  5]   4.00-5.00   sec   630 MBytes  5.29 Gbits/sec    0    938 KBytes
+[  5]   5.00-6.00   sec   636 MBytes  5.33 Gbits/sec    0    938 KBytes
+[  5]   6.00-7.00   sec   639 MBytes  5.36 Gbits/sec    0    938 KBytes
+[  5]   7.00-8.00   sec   634 MBytes  5.32 Gbits/sec    0    938 KBytes
+[  5]   8.00-9.00   sec   641 MBytes  5.39 Gbits/sec    0    938 KBytes
+[  5]   9.00-10.00  sec   633 MBytes  5.30 Gbits/sec    0    938 KBytes
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bitrate         Retr
+[  5]   0.00-10.00  sec  6.19 GBytes  5.32 Gbits/sec    0             sender
+[  5]   0.00-10.00  sec  6.18 GBytes  5.31 Gbits/sec                  receiver
+
+iperf Done.
+```
+
+{{% /expand %}}
 
 ## Cleanup
 
