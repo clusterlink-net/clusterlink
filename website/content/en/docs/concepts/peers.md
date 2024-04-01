@@ -1,7 +1,7 @@
 ---
 title: Peers
 description: Defining ClusterLink Peers as part of Fabric
-weight: 34
+weight: 20
 ---
 
 A `Peer` represents a location, such as a Kubernetes cluster, participating in a

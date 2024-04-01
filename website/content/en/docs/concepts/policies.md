@@ -1,7 +1,7 @@
 ---
 title: Access Policies
 description: Controlling Service access across peers
-weight: 38
+weight: 40
 ---
 
 Access policies allow users and administrators fine-grained control over which client workloads may access which service.
