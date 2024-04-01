@@ -4,11 +4,6 @@ description: Sharing Services
 weight: 30
 ---
 
-{{< notice info >}}
-Services sharing is done on a per namespace basis and does not require cluster wide privileges.
- It is intended to be used by application owners having access to their own namespaces only.
-{{< /notice >}}
-
 ClusterLink uses services as the unit of sharing between peers.
  One or more peers can expose an (internal) Kubernetes Service to
  be consumed by other [peers]({{% ref "peers" %}}) in the [fabric]({{% ref "fabric" %}}).
@@ -19,6 +14,11 @@ ClusterLink uses services as the unit of sharing between peers.
  shared by peers in the fabric. Note that the exporting cluster must be
  [configured as a peer]({{% ref "peers#add-or-remove-peers" %}}) of the importing
  cluster.
+
+{{< notice info >}}
+Services sharing is done on a per namespace basis and does not require cluster wide privileges.
+ It is intended to be used by application owners having access to their own namespaces only.
+{{< /notice >}}
 
 A service is shared using a logical name. The logical name does not have to match
  the actual Kubernetes Service name in the exporting cluster. Exporting a service
@@ -81,11 +81,11 @@ type ExportStatus struct {
 
 The ExportSpec defines the following fields:
 
-- **Host** (string, optional): the name of the service being exported. If empty,
+- **Host** (string, optional): the name of the service being exported. The service
+ must be defined in the same namespace as the Export CRD instance. If empty,
  the export shall refer to a Kubernetes Service with the same name as the instance's
- `metadata.name`. Currently, only TCP based services can be exported[^UDP]. It is an
- error to refer to a non-existent service or one that is not present in the local
- namespace. The error will be reflected in the CRD's status.
+ `metadata.name`. It is an error to refer to a non-existent service or one that is
+ not present in the local namespace. The error will be reflected in the CRD's status.
 - **Port** (integer, required): the port number being exposed. If you wish to export
  a multi-port service[^multiport], you will need to define multiple Exports using
  the same `Host` value and a different `Port` each. This is aligned with ClusterLink's
@@ -110,7 +110,7 @@ Exposing remote services to a peer is accomplished by creating an `Import` CRD
 
 The Import instance creates the service endpoint in the same namespace as it is
  defined in. The created service will have the Import's `metadata.Name`. This
- allows maintaining independent names for services between peers[^TLS]. Alternately,
+ allows maintaining independent names for services between peers. Alternately,
  you may use the same name for the import and related source exports.
  You can define multiple Import CRDs for the same set of Exports in different
  namespaces. These are independent of each other.
@@ -151,7 +151,7 @@ The ImportSpec defines the following fields:
 - **Port** (integer, required): the imported, user facing, port number define
  on the created service object.
 - **TargetPort** (integer, optional): this is the internal listening port
- used by the data plane pods to represent the remote services. Typically the
+ used by the ClusterLink data plane pods to represent the remote services. Typically the
  choice of TargetPort should be left to the ClusterLink control plane, allowing
  it to select a random and non-conflicting port, but there may be cases where
  you wish to assume responsibility for port selection (e.g., a-priori define
@@ -165,8 +165,8 @@ The ImportSpec defines the following fields:
    the export is defined.
   - *ExportName* (string, required): name of the remote export.
 - **LBScheme** (string, optional): load balancing method to select between different
- Sources defined. The default policy is `random`, but you could override it to use
- `round-robin` or `static` (fixed) assignment.
+ Sources defined. The default policy is `round-robin`, but you could override it to use
+ `random` or `static` (fixed) assignment.
 
 <!-- Importing multiport? It is not possible... Could use merge in future?
  perhaps, but might requires explicit service name so can merge correctly
@@ -190,15 +190,7 @@ Once a service is exported and imported by one or more clusters, you should
  the ClusterLink implementation intentionally differs from and is not compliant with the
  KEP (e.g., there is no `ClusterSet` and "name sameness" assumption).
 
-[^UDP]: Support for UDP based services is tracked [here](https://github.com/clusterlink-net/clusterlink/issues/13)
-
 [^multiport]: ClusterLink intentionally does not expose all service ports, as
  typically only a small subset in a multi-port service is meant to be user
  accessible, and other ports are service internal (e.g., ports used for internal
  service coordination and replication).
-
-[^TLS]: Note that if the exported service uses TLS, the imported name should match
- the Subject or Alternate Names presented in the certificate. Otherwise, the
- client's certificate verification might fail. Having the same source and destination
- namespace and name is common in many use cases (e.g., service migration and/or
- clusters, common namespace assignment across clusters).
