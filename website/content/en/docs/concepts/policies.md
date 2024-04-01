@@ -1,7 +1,7 @@
 ---
 title: Policies
 description: Controlling Service access across peers
-weight: 38
+weight: 40
 ---
 
 <!--
