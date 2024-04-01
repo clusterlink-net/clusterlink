@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os,time
-import subprocess as sp
+import os
 import sys
 import argparse
 
@@ -22,17 +21,17 @@ sys.path.insert(0,f'{projDir}')
 sys.path.insert(1,f'{projDir}/demos/utils/cloud/')
 
 from demos.bookinfo.test import applyPolicy
-from demos.utils.cloud import cluster
+from demos.utils.cloud import Cluster
 
 srcSvc1  = "productpage"
 srcSvc2  = "productpage2"
 destSvc  = "reviews"
-clList = { "peer1gcp" : cluster(name="peer1", zone = "us-west1-b"    , platform = "gcp"),  # Oregon
-            "peer1ibm" : cluster(name="peer1", zone = "sjc04"         , platform = "ibm"), # San jose
-            "peer2gcp" : cluster(name="peer2", zone = "us-central1-b" , platform = "gcp"), # Iowa
-            "peer2ibm" : cluster(name="peer2", zone = "dal10"         , platform = "ibm"), # Dallas
-            "peer3gcp" : cluster(name="peer3", zone = "us-east4-b"    , platform = "gcp"), # Virginia
-            "peer3ibm" : cluster(name="peer3", zone = "wdc04"         , platform = "ibm")} # Washington DC
+clList = { "peer1gcp" : Cluster(name="peer1", zone = "us-west1-b"    , platform = "gcp"),  # Oregon
+            "peer1ibm" : Cluster(name="peer1", zone = "sjc04"         , platform = "ibm"), # San jose
+            "peer2gcp" : Cluster(name="peer2", zone = "us-central1-b" , platform = "gcp"), # Iowa
+            "peer2ibm" : Cluster(name="peer2", zone = "dal10"         , platform = "ibm"), # Dallas
+            "peer3gcp" : Cluster(name="peer3", zone = "us-east4-b"    , platform = "gcp"), # Virginia
+            "peer3ibm" : Cluster(name="peer3", zone = "wdc04"         , platform = "ibm")} # Washington DC
 
 ############################### MAIN ##########################
 if __name__ == "__main__":

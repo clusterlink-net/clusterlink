@@ -19,14 +19,14 @@ import argparse
 projDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname( os.path.abspath(__file__)))))
 sys.path.insert(0,f'{projDir}')
 sys.path.insert(1,f'{projDir}/demos/utils/cloud/')
-from demos.bookinfo.test import applyFailover
-from demos.utils.cloud import cluster
-testOutputFolder = f"{projDir}/bin/tests/bookinfo" 
+from demos.bookinfo.test import apply_failover
+from demos.utils.cloud import Cluster
+testOutputFolder = f"{projDir}/bin/tests/bookinfo"
 
 # cl3 parameters
-cl3gcp = cluster(name="peer3", zone = "us-east4-b"   , platform = "gcp") # Virginia
-cl3ibm = cluster(name="peer3", zone = "wdc04"        , platform = "ibm") # Washington DC
-    
+cl3gcp = Cluster(name="peer3", zone = "us-east4-b"   , platform = "gcp") # Virginia
+cl3ibm = Cluster(name="peer3", zone = "wdc04"        , platform = "ibm") # Washington DC
+
 ############################### MAIN ##########################
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
@@ -36,5 +36,5 @@ if __name__ == "__main__":
     print(f'Working directory {projDir}')
     os.chdir(projDir)
     cl3 = cl3gcp if args["cloud"] in ["gcp"]        else cl3ibm
-    applyFailover(cl3, args["type",testOutputFolder])
-    
+    apply_failover(cl3, args["type",testOutputFolder])
+

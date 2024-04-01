@@ -22,6 +22,8 @@ const (
 	PrivateKeyFileName = "key.pem"
 	// CertificateFileName is the filename used by certificate files.
 	CertificateFileName = "cert.pem"
+	// DefaultFabric is the default fabric name.
+	DefaultFabric = "default_fabric"
 	// DockerRunFile is the filename of the docker-run script.
 	DockerRunFile = "docker-run.sh"
 	// GWCTLInitFile is the filename of the gwctl-init script.
@@ -49,26 +51,36 @@ const (
 )
 
 // FabricDirectory returns the base path of the fabric.
-func FabricDirectory() string {
-	return "."
+func FabricDirectory(name string) string {
+	return filepath.Join(".", name)
 }
 
 // PeerDirectory returns the base path for a specific peer.
-func PeerDirectory(peer string) string {
-	return filepath.Join(FabricDirectory(), peer)
+func PeerDirectory(peer, fabric string) string {
+	return filepath.Join(FabricDirectory(fabric), peer)
 }
 
 // ControlplaneDirectory returns the path for a controlplane server.
-func ControlplaneDirectory(peer string) string {
-	return filepath.Join(PeerDirectory(peer), ControlplaneDirectoryName)
+func ControlplaneDirectory(peer, fabric string) string {
+	return filepath.Join(PeerDirectory(peer, fabric), ControlplaneDirectoryName)
 }
 
 // DataplaneDirectory returns the path for a dataplane server.
-func DataplaneDirectory(peer string) string {
-	return filepath.Join(PeerDirectory(peer), DataplaneDirectoryName)
+func DataplaneDirectory(peer, fabric string) string {
+	return filepath.Join(PeerDirectory(peer, fabric), DataplaneDirectoryName)
 }
 
 // GWCTLDirectory returns the path for a gwctl instance.
-func GWCTLDirectory(peer string) string {
-	return filepath.Join(PeerDirectory(peer), GWCTLDirectoryName)
+func GWCTLDirectory(peer, fabric string) string {
+	return filepath.Join(PeerDirectory(peer, fabric), GWCTLDirectoryName)
+}
+
+// FabricCertificate returns the fabric certificate name.
+func FabricCertificate(name string) string {
+	return filepath.Join(FabricDirectory(name), CertificateFileName)
+}
+
+// FabricKey returns the fabric key name.
+func FabricKey(name string) string {
+	return filepath.Join(FabricDirectory(name), PrivateKeyFileName)
 }

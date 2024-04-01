@@ -37,7 +37,7 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
     clusterlink create fabric --name <fabric_name>
     ```
 
-    This command will create the CA files `<fabric_name>.cert` and `<fabric_name>.key` in the current folder.
+    This command will create the CA files `cert.pem` and `key.pem` in a folder named <fabric_name>. The `--name` option is optional, and by default, "default_fabric" will be used.
 
 1. {{< anchor create-peer-certs >}}Create peer certificates.
 
@@ -47,19 +47,19 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
     clusterlink create peer-cert --name <peer_name> --fabric <fabric_name>
     ```
 
-    This command will create the certificate files `<peer_name>.cert` and `<peer_name>.key` in a folder named <peer_name>. The `--path <path>` flag can be used to change the folder location.
+    This command will create the certificate files `cert.pem` and `key.pem` in a folder named <fabric_name/peer_name>. The `--path <path>` flag can be used to change the folder location.The `--name` option is optional, and by default, "default_fabric" will be used.
 
 1. {{< anchor install-cl-operator >}}Install ClusterLink.
 
     To install ClusterLink on the peer, first install the ClusterLink deployment operator.
 
     ```sh
-    clusterlink peer deploy --start
+    clusterlink peer deploy --autostart --name <peer_name> --fabric <fabric_name>
     ```
 
     This command will deploy the ClusterLink operator on the `clusterlink-operator` namespace and convert the peer certificates to secrets in the namespace.
-    The command assumes that `kubectl` is set to the correct peer (Kubernetes cluster) and that the certificates were created in the local folder. If they were not, use the flag `--path <path>`.
-    The `--start` option will deploy the ClusterLink components in the `clusterlink-system` namespace, and the ClusterLink project will start to run in the cluster.
+    The command assumes that `kubectl` is set to the correct peer (Kubernetes cluster) and that the certificates were created in the local folder. If they were not, use the flag `--path <path>`. The `--fabric` option is optional, and by default, "default_fabric" will be used.
+    The `--autostart` option will deploy the ClusterLink components in the `clusterlink-system` namespace, and the ClusterLink project will start to run in the cluster.
 
 To deploy ClusterLink on another cluster, please repeat steps 2-3 in the console with access to the cluster.
 
@@ -68,18 +68,18 @@ To deploy ClusterLink on another cluster, please repeat steps 2-3 in the console
 * Setting ClusterLink namespace:
 
     ```sh
-    clusterlink peer deploy --start --start-namespace <namespace>
+    clusterlink peer deploy --autostart --name <peer_name> --fabric <fabric_name> --namespace <namespace>
     ```
 
-    The `--start-namespace` determines the namespace where the ClusterLink components are deployed. Note that you must set `--start`, and the namespace should already exist.
+    The `--namespace` determines the namespace where the ClusterLink components are deployed. Note that you must set `--autostart`, and the namespace should already exist.
 
 * Setting ClusterLink Ingress type:
 
     ```sh
-    clusterlink peer deploy --start --start-ingress <ingress_type>
+    clusterlink peer deploy --autostart --name <peer_name> --fabric <fabric_name> --ingress <ingress_type>
     ```
 
-    The `--start-ingress` controls the ClusterLink ingress type, with `LoadBalancer` being the default. If you're using a Kind cluster, replace `<ingress_type>` with `NodePort`. For a cluster running in a cloud environment, use `LoadBalancer`.Note that you must set `--start` when you use this flag.
+    The `--ingress` controls the ClusterLink ingress type, with `LoadBalancer` being the default. If you're using a Kind cluster, replace `<ingress_type>` with `NodePort`. For a cluster running in a cloud environment, use `LoadBalancer`.Note that you must set `--autostart` when you use this flag.
 
 * {{< anchor deploy-crd-instance >}}Full configuration setting using ClusterLink CRD instance:
 

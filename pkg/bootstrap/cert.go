@@ -38,9 +38,9 @@ func (c *Certificate) RawKey() []byte {
 }
 
 // CreateFabricCertificate creates a clusterlink fabric (root) certificate.
-func CreateFabricCertificate() (*Certificate, error) {
+func CreateFabricCertificate(name string) (*Certificate, error) {
 	cert, err := createCertificate(&certificateConfig{
-		Name: "root",
+		Name: name,
 		IsCA: true,
 	})
 	if err != nil {

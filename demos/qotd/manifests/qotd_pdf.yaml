@@ -38,7 +38,7 @@ spec:
             - name: ANOMALY_GENERATOR_URL
               value: "qotd-usecase.qotd-load.svc.cluster.local:3012"
             - name: QUOTE_SVC
-              value: "qotd-quote.default.svc.cluster.local:3001"
+              value: "qotd-quote:3001"
           livenessProbe:
             httpGet:
               path: /health

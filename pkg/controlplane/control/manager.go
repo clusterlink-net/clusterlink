@@ -39,10 +39,10 @@ import (
 )
 
 const (
-	appName              = "clusterlink.net"
-	labelManagedBy       = "app.kubernetes.io/managed-by"
-	labelImportName      = "clusterlink.net/import-name"
-	labelImportNamespace = "clusterlink.net/import-namespace"
+	AppName              = "clusterlink.net"
+	LabelManagedBy       = "app.kubernetes.io/managed-by"
+	LabelImportName      = "clusterlink.net/import-name"
+	LabelImportNamespace = "clusterlink.net/import-namespace"
 )
 
 type exportServiceNotExistError struct {
@@ -145,7 +145,7 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 
 	serviceName := imp.Name
 	if imp.Namespace != m.namespace {
-		serviceName = systemServiceName(types.NamespacedName{
+		serviceName = SystemServiceName(types.NamespacedName{
 			Namespace: imp.Namespace,
 			Name:      imp.Name,
 		})
@@ -205,7 +205,7 @@ func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) e
 		// delete system service
 		systemService := types.NamespacedName{
 			Namespace: m.namespace,
-			Name:      systemServiceName(name),
+			Name:      SystemServiceName(name),
 		}
 		errs[1] = m.deleteImportService(ctx, systemService, name)
 	}
@@ -388,9 +388,9 @@ func (m *Manager) allocateTargetPort(ctx context.Context, imp *v1alpha1.Import) 
 }
 
 func (m *Manager) addImportService(ctx context.Context, imp *v1alpha1.Import, service *v1.Service) error {
-	service.Labels[labelManagedBy] = appName
-	service.Labels[labelImportName] = imp.Name
-	service.Labels[labelImportNamespace] = imp.Namespace
+	service.Labels[LabelManagedBy] = AppName
+	service.Labels[LabelImportName] = imp.Name
+	service.Labels[LabelImportNamespace] = imp.Namespace
 
 	if imp.Namespace != service.Namespace {
 		m.lock.Lock()
@@ -460,7 +460,7 @@ func (m *Manager) deleteImportService(ctx context.Context, service, imp types.Na
 		return err
 	}
 
-	if oldService.Labels[labelImportNamespace] != imp.Namespace {
+	if oldService.Labels[LabelImportNamespace] != imp.Namespace {
 		m.lock.Lock()
 		delete(m.serviceToImport, service.Name)
 		m.lock.Unlock()
@@ -477,21 +477,21 @@ func checkServiceLabels(service *v1.Service, importName types.NamespacedName) er
 
 	var managedBy string
 	var ok bool
-	if managedBy, ok = service.Labels[labelManagedBy]; !ok || managedBy != appName {
+	if managedBy, ok = service.Labels[LabelManagedBy]; !ok || managedBy != AppName {
 		return conflictingServiceError{
 			name:      serviceName,
 			managedBy: managedBy,
 		}
 	}
 
-	if name, ok := service.Labels[labelImportName]; !ok || name != importName.Name {
+	if name, ok := service.Labels[LabelImportName]; !ok || name != importName.Name {
 		return conflictingServiceError{
 			name:      serviceName,
 			managedBy: managedBy,
 		}
 	}
 
-	if namespace, ok := service.Labels[labelImportNamespace]; !ok || namespace != importName.Namespace {
+	if namespace, ok := service.Labels[LabelImportNamespace]; !ok || namespace != importName.Namespace {
 		return conflictingServiceError{
 			name:      serviceName,
 			managedBy: managedBy,
@@ -501,7 +501,7 @@ func checkServiceLabels(service *v1.Service, importName types.NamespacedName) er
 	return nil
 }
 
-func systemServiceName(name types.NamespacedName) string {
+func SystemServiceName(name types.NamespacedName) string {
 	//nolint:gosec // G401: use of weak cryptographic primitive is fine for service name
 	hash := md5.New()
 	hash.Write([]byte(name.Namespace + "/" + name.Name))

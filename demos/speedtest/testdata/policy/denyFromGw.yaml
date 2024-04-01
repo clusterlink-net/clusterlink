@@ -1,0 +1,20 @@
+apiVersion: clusterlink.net/v1alpha1
+kind: AccessPolicy
+metadata:
+    name: deny-from-gw
+    namespace: default
+spec:
+    action: deny
+    from: [{
+            workloadSelector: {
+                matchLabels: {
+                    clusterlink/metadata.gatewayName: peer3
+                }
+            }
+        }
+    ]
+    to: [{
+            workloadSelector: {}
+        }
+    ]
+

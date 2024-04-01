@@ -15,11 +15,14 @@ import subprocess as sp
 import time
 import os
 from demos.utils.k8s import  cleanCluster, waitPod, getNodeIP
-from demos.utils.common import runcmd , createPeer, applyPeer, printHeader
+from demos.utils.common import runcmd, printHeader
+from demos.utils.clusterlink import ClusterLink, CLUSTELINK_NS
 
-# cluster class represents a cloud cluster for deploying the ClusterLink gateway. 
-class cluster:
-    def __init__(self, name, zone,platform,machineType="small"):
+
+# cluster class represents a cloud cluster for deploying the ClusterLink gateway.
+class Cluster(ClusterLink):
+    def __init__(self, name, zone,platform, machineType="small",namespace=CLUSTELINK_NS):
+        super().__init__(namespace)
         self.name        = name
         self.zone        = zone
         self.platform    = platform
@@ -27,7 +30,7 @@ class cluster:
         self.port        = 443
         self.ip          = ""
         self.nodeIP      = "" # the IP of the worker node
-    
+
     # createCluster creates a K8s cluster on cloud platform.
     def createCluster(self, runBg):
         print(f"create {self.name} cluster , zone {self.zone} , platform {self.platform}")
@@ -48,25 +51,26 @@ class cluster:
             print("vlanPublicIp:",vlanPublicIp)
             vlanPrivateString = "--private-vlan " + vlanPrivateIp  if (vlanPrivateIp != "" and "FAILED" not in vlanPrivateIp) else ""
             if (vlanPublicIp  != "" and "FAILED" not in vlanPublicIp):
-                vlanPublicString  = "--public-vlan "  + vlanPublicIp    
+                vlanPublicString  = "--public-vlan "  + vlanPublicIp
             else:
                 vlanPublicString= ""
                 vlanPrivateString = vlanPrivateString + " --private-only " if (vlanPrivateString != "") else ""
-            
+
             cmd= f"ibmcloud ks cluster create  classic  --name {self.name} --zone={self.zone} --flavor u3c.2x4 --workers=1 {vlanPrivateString} {vlanPublicString} {bgFlag}"
             print(cmd)
             os.system(cmd)
         else:
-            print ("ERROR: Cloud platform {} not supported".format(self.platform))    
-    
+            print ("ERROR: Cloud platform {} not supported".format(self.platform))
+
     # startCluster deploys Clusterlink into the cluster.
     def startCluster(self, testOutputFolder, logLevel="info",dataplane="envoy"):
         self.checkClusterIsReady()
-        createPeer(self.name,testOutputFolder, logLevel, dataplane)
-        applyPeer(self.name,testOutputFolder)
-        self.createLoadBalancer()
+        super().set_kube_config()
+        self.create_peer_cert(self.name,testOutputFolder, logLevel, dataplane)
+        self.deploy_peer(self.name, testOutputFolder)
+        self.waitToLoadBalancer()
         self.nodeIP = getNodeIP(num=1)
-    
+
     # useCluster sets the context for the input kind cluster.
     def useCluster(self):
         print(f"\n CONNECT TO: {self.name} in zone: {self.zone} ,platform: {self.platform}\n")
@@ -83,14 +87,14 @@ class cluster:
             else:
                 print (f"ERROR: Cloud platform {self.platform} not supported")
                 exit(1)
-            
+
             out=sp.getoutput(cmd)
             print(f"connection output: {out}")
             connectFlag = False if ("ERROR" in out or "WARNING" in out or "Failed" in out) else True
-            if not connectFlag: 
+            if not connectFlag:
                 time.sleep(30) #wait more time to connection
             return out
-    
+
     # checkClusterIsReady set the context for the input kind cluster.
     def checkClusterIsReady(self):
         connectFlag= False
@@ -100,7 +104,7 @@ class cluster:
             time.sleep(20)
 
         print(f"\n Cluster Ready: {self.name} in zone: {self.zone} ,platform: {self.platform}\n")
-        
+
     # replace the container registry ip according to the proxy platform.
     def replaceSourceImage(self,yamlPath,imagePrefix):
         with open(yamlPath, 'r') as file:
@@ -122,7 +126,7 @@ class cluster:
         self.useCluster()
         runcmd(f"kubectl create -f {yaml}")
         waitPod(name,namespace)
-    
+
     # deleteCluster deletes the K8s cluster.
     def deleteCluster(self, runBg=False):
         bgFlag= "&" if runBg else ""
@@ -140,18 +144,14 @@ class cluster:
     def cleanCluster(self):
         print("Start clean cluster")
         self.useCluster()
-        cleanCluster()    
-            
-    # createLoadBalancer creates load-balancer to external access. 
-    def createLoadBalancer(self,port="443", externalIp=""):
-        runcmd(f"kubectl expose deployment cl-dataplane --name=cl-dataplane-load-balancer --port={port} --target-port={port} --type=LoadBalancer")
+        cleanCluster()
+
+    # createLoadBalancer creates load-balancer to external access.
+    def waitToLoadBalancer(self):
         gwIp=""
-        if externalIp !="":
-            runcmd("kubectl patch svc cl-dataplane-load-balancer -p "+ "\'{\"spec\": {\"type\": \"LoadBalancer\", \"loadBalancerIP\": \""+ externalIp+ "\"}}\'")
-            gwIp= externalIp
         while gwIp =="":
-            print("Waiting for cl-dataplane ip...")
-            gwIp=sp.getoutput('kubectl get svc -l app=cl-dataplane  -o jsonpath="{.items[0].status.loadBalancer.ingress[0].ip}"')
+            print("Waiting for clusterlink loadbalncer ip...")
+            gwIp=sp.getoutput(f'kubectl get svc clusterlink -n {self.namespace} ' +' -o jsonpath="{.status.loadBalancer.ingress[0].ip}"')
             time.sleep(10)
         self.ip = gwIp
         return gwIp
