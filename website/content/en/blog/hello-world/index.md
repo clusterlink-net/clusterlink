@@ -1,10 +1,9 @@
 ---
 title: Hello, World!
 linkTitle: hello, world!
-date: 2024-03-24
+date: 2024-04-02
 author: Etai Lev Ran
 type: blog
-draft: true
 ---
 
 {{% imgproc "sunflower" Fill "800x250" /%}}
