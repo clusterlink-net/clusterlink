@@ -56,7 +56,7 @@ The ClusterLink APIs use the following entities for configuring cross cluster co
 
 Here are the key steps for setting up your developer environment, making a change and testing it:
 
-1. Install Go version 1.20 or higher.
+1. Install Go version 1.22 or higher.
 1. Clone our repository with `git clone git@github.com:clusterlink-net/clusterlink.git`.
 1. Run `make test-prereqs` and manually install any missing required development tools.
 1. Run `make build` to ensure the code builds fine. This will pull in all needed
