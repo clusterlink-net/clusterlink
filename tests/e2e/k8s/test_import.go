@@ -15,6 +15,7 @@ package k8s
 
 import (
 	"context"
+	"strings"
 
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
@@ -308,4 +309,28 @@ func (s *TestSuite) TestImportDelete() {
 	require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp2))
 	// verify status is good
 	require.Nil(s.T(), cl[0].WaitForImportCondition(imp2, v1alpha1.ImportServiceCreated, true))
+}
+
+// this test requires K8s 1.29+, as it relies on x-kubernetes-validations.
+func (s *TestSuite) TestImportInvalidName() {
+	cl, err := s.fabric.DeployClusterlinks(1, nil)
+	require.Nil(s.T(), err)
+
+	imp := &v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: cl[0].Namespace(),
+		},
+		Spec: v1alpha1.ImportSpec{
+			Port:    80,
+			Sources: []v1alpha1.ImportSource{{}},
+		},
+	}
+
+	// import name too long
+	imp.Name = strings.Repeat("a", 64)
+	require.NotNil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp))
+
+	// maximum import name length
+	imp.Name = strings.Repeat("a", 63)
+	require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp))
 }
