@@ -17,6 +17,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // +kubebuilder:object:root=true
@@ -82,6 +83,19 @@ type AccessPolicySpec struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Cluster
+
+// PrivilegedAccessPolicyList is a list of PrivilegedAccessPolicyList objects.
+type PrivilegedAccessPolicyList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	// Items is the list of access policy objects.
+	Items []PrivilegedAccessPolicy `json:"items"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Namespaced
 
 // AccessPolicyList is a list of AccessPolicy objects.
 type AccessPolicyList struct {
@@ -90,6 +104,30 @@ type AccessPolicyList struct {
 
 	// Items is the list of access policy objects.
 	Items []AccessPolicy `json:"items"`
+}
+
+func (p *PrivilegedAccessPolicy) IsPrivileged() bool {
+	return true
+}
+
+func (p *PrivilegedAccessPolicy) GetNamespacedName() types.NamespacedName {
+	return types.NamespacedName{Name: p.Name}
+}
+
+func (p *PrivilegedAccessPolicy) GetSpec() *AccessPolicySpec {
+	return &p.Spec
+}
+
+func (p *AccessPolicy) IsPrivileged() bool {
+	return false
+}
+
+func (p *AccessPolicy) GetNamespacedName() types.NamespacedName {
+	return types.NamespacedName{Namespace: p.Namespace, Name: p.Name}
+}
+
+func (p *AccessPolicy) GetSpec() *AccessPolicySpec {
+	return &p.Spec
 }
 
 // Validate returns an error if the given AccessPolicy is invalid. Otherwise, returns nil.
@@ -132,5 +170,5 @@ func (wss *WorkloadSetOrSelector) validate() error {
 }
 
 func init() {
-	SchemeBuilder.Register(&AccessPolicy{}, &AccessPolicyList{})
+	SchemeBuilder.Register(&AccessPolicy{}, &PrivilegedAccessPolicy{}, &AccessPolicyList{}, &PrivilegedAccessPolicyList{})
 }

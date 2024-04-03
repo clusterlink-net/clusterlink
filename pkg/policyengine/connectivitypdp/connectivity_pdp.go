@@ -33,6 +33,16 @@ const (
 	DecisionDeny
 )
 
+// SetsAccess is an abstraction for the two types of access policies.
+type SetsAccess interface {
+	// IsPrivileged returns whether the access policy is privileged or not.
+	IsPrivileged() bool
+	// GetNamespacedName returns the access policy name and namespace
+	GetNamespacedName() types.NamespacedName
+	// GetSpec returns the specification of an access policy (both AccessPolicy and PrivilegedAccessPolicy share the same spec).
+	GetSpec() *v1alpha1.AccessPolicySpec
+}
+
 // WorkloadAttrs are the actual key-value attributes attached to any given workload.
 type WorkloadAttrs map[string]string
 
@@ -101,38 +111,29 @@ func (pdp *PDP) GetPolicies() []v1alpha1.AccessPolicy {
 	return res
 }
 
-// AddOrUpdatePolicy adds a PrivilegedAccessPolicy to the PDP.
+// AddOrUpdatePolicy adds an AccessPolicy or a PrivilegedAccessPolicy to the PDP.
 // If a policy with the same name already exists in the PDP,
 // it is updated (including updating the Action field).
 // Invalid policies return an error.
-func (pdp *PDP) AddOrUpdatePrivilegedPolicy(policy *v1alpha1.PrivilegedAccessPolicy) error {
-	if err := policy.Spec.Validate(); err != nil {
+func (pdp *PDP) AddOrUpdatePolicy(policy SetsAccess) error {
+	polName := policy.GetNamespacedName()
+	polSpec := policy.GetSpec()
+	if err := polSpec.Validate(); err != nil {
 		return err
 	}
 
-	policyName := types.NamespacedName{Namespace: policy.Namespace, Name: policy.Name}
-	pdp.privilegedPolicies.addPolicy(policyName, &policy.Spec)
-	return nil
-}
-
-// AddOrUpdatePolicy adds an AccessPolicy to the PDP.
-// If a policy with the same name already exists in the PDP,
-// it is updated (including updating the Action field).
-// Invalid policies return an error.
-func (pdp *PDP) AddOrUpdatePolicy(policy *v1alpha1.AccessPolicy) error {
-	if err := policy.Spec.Validate(); err != nil {
-		return err
+	if policy.IsPrivileged() {
+		pdp.privilegedPolicies.addPolicy(polName, polSpec)
+	} else {
+		pdp.regularPolicies.addPolicy(polName, polSpec)
 	}
-
-	policyName := types.NamespacedName{Namespace: policy.Namespace, Name: policy.Name}
-	pdp.regularPolicies.addPolicy(policyName, &policy.Spec)
 	return nil
 }
 
 // DeletePolicy deletes an AccessPolicy with the given name and privilege from the PDP.
 // If no such AccessPolicy exists in the PDP, an error is returned.
-func (pdp *PDP) DeletePolicy(policyName types.NamespacedName, privileged bool) error {
-	if privileged {
+func (pdp *PDP) DeletePolicy(policyName types.NamespacedName) error {
+	if policyName.Namespace == "" { // privileged policies have no namespace, regular policies do
 		return pdp.privilegedPolicies.deletePolicy(policyName)
 	}
 	return pdp.regularPolicies.deletePolicy(policyName)

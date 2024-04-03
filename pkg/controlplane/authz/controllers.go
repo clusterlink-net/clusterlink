@@ -31,15 +31,29 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode boo
 			Name:   "authz.access-policy",
 			Object: &v1alpha1.AccessPolicy{},
 			AddHandler: func(ctx context.Context, object any) error {
-				return mgr.addAccessPolicy(object.(*v1alpha1.AccessPolicy))
+				return mgr.AddAccessPolicy(object.(*v1alpha1.AccessPolicy))
 			},
 			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-				return mgr.deleteAccessPolicy(name)
+				return mgr.DeleteAccessPolicy(name)
 			},
 		})
 		if err != nil {
 			return err
 		}
+
+		/*		err = controller.AddToManager(controllerManager, &controller.Spec{
+					Name:   "authz.privileged-access-policy",
+					Object: &v1alpha1.PrivilegedAccessPolicy{},
+					AddHandler: func(_ context.Context, object any) error {
+						return mgr.AddAccessPolicy(object.(*v1alpha1.PrivilegedAccessPolicy))
+					},
+					DeleteHandler: func(_ context.Context, name types.NamespacedName) error {
+						return mgr.DeleteAccessPolicy(name)
+					},
+				})
+				if err != nil {
+					return err
+				}*/
 
 		err = controller.AddToManager(controllerManager, &controller.Spec{
 			Name:   "authz.peer",

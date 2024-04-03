@@ -41,8 +41,8 @@ type PolicyDecider interface {
 	AddLBPolicy(policy *api.Policy) error
 	DeleteLBPolicy(policy *api.Policy) error
 
-	AddAccessPolicy(policy *api.Policy) error
-	DeleteAccessPolicy(policy *api.Policy) error
+	AddAccessPolicy(policy connectivitypdp.SetsAccess) error
+	DeleteAccessPolicy(name types.NamespacedName) error
 
 	AuthorizeAndRouteConnection(connReq *connectivitypdp.ConnectionRequest) (connectivitypdp.ConnectionResponse, error)
 
@@ -208,18 +208,6 @@ func (pH *PolicyHandler) AddExport(_ *crds.Export) ([]string, error) {
 func (pH *PolicyHandler) DeleteExport(_ string) {
 }
 
-// connPolicyFromBlob unmarshals a ConnectivityPolicy object encoded as json in a byte array.
-func connPolicyFromBlob(blob []byte) (*crds.AccessPolicy, error) {
-	bReader := bytes.NewReader(blob)
-	connPolicy := &crds.AccessPolicy{}
-	err := json.NewDecoder(bReader).Decode(connPolicy)
-	if err != nil {
-		plog.Errorf("failed decoding connectivity policy: %v", err)
-		return nil, err
-	}
-	return connPolicy, nil
-}
-
 // lbPolicyFromBlob unmarshals an LBPolicy object encoded as json in a byte array.
 func lbPolicyFromBlob(blob []byte) (*LBPolicy, error) {
 	bReader := bytes.NewReader(blob)
@@ -248,19 +236,10 @@ func (pH *PolicyHandler) DeleteLBPolicy(policy *api.Policy) error {
 	return pH.loadBalancer.DeletePolicy(lbPolicy)
 }
 
-func (pH *PolicyHandler) AddAccessPolicy(policy *api.Policy) error {
-	connPolicy, err := connPolicyFromBlob(policy.Spec.Blob)
-	if err != nil {
-		return err
-	}
-	return pH.connectivityPDP.AddOrUpdatePolicy(connPolicy)
+func (pH *PolicyHandler) AddAccessPolicy(policy connectivitypdp.SetsAccess) error {
+	return pH.connectivityPDP.AddOrUpdatePolicy(policy)
 }
 
-func (pH *PolicyHandler) DeleteAccessPolicy(policy *api.Policy) error {
-	connPolicy, err := connPolicyFromBlob(policy.Spec.Blob)
-	if err != nil {
-		return err
-	}
-	policyName := types.NamespacedName{Namespace: connPolicy.Namespace, Name: connPolicy.Name}
-	return pH.connectivityPDP.DeletePolicy(policyName, false)
+func (pH *PolicyHandler) DeleteAccessPolicy(name types.NamespacedName) error {
+	return pH.connectivityPDP.DeletePolicy(name)
 }

@@ -14,10 +14,12 @@
 package rest
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 )
 
@@ -27,6 +29,17 @@ type accessPolicyHandler struct {
 
 func accessPolicyToAPI(policy *store.AccessPolicy) *api.Policy {
 	return &policy.Policy
+}
+
+// accessPolicyFromBlob unmarshals an AccessPolicy object encoded as json in a byte array.
+func accessPolicyFromBlob(blob []byte) (*v1alpha1.AccessPolicy, error) {
+	bReader := bytes.NewReader(blob)
+	connPolicy := &v1alpha1.AccessPolicy{}
+	err := json.NewDecoder(bReader).Decode(connPolicy)
+	if err != nil {
+		return nil, err
+	}
+	return connPolicy, nil
 }
 
 // CreateAccessPolicy creates an access policy to allow/deny specific connections.
@@ -39,7 +52,12 @@ func (m *Manager) CreateAccessPolicy(policy *store.AccessPolicy) error {
 		}
 	}
 
-	return m.authzManager.AddAccessPolicy(&api.Policy{Spec: policy.Spec})
+	acPolicy, err := accessPolicyFromBlob(policy.Spec.Blob)
+	if err != nil {
+		m.logger.Errorf("failed decoding access policy %s", policy.Name)
+		return err
+	}
+	return m.authzManager.AddAccessPolicy(acPolicy)
 }
 
 // UpdateAccessPolicy updates an access policy to allow/deny specific connections.
@@ -53,7 +71,12 @@ func (m *Manager) UpdateAccessPolicy(policy *store.AccessPolicy) error {
 		return err
 	}
 
-	return m.authzManager.AddAccessPolicy(&api.Policy{Spec: policy.Spec})
+	acPolicy, err := accessPolicyFromBlob(policy.Spec.Blob)
+	if err != nil {
+		m.logger.Errorf("failed decoding access policy %s", policy.Name)
+		return err
+	}
+	return m.authzManager.AddAccessPolicy(acPolicy)
 }
 
 // DeleteAccessPolicy removes an access policy to allow/deny specific connections.
@@ -68,7 +91,13 @@ func (m *Manager) DeleteAccessPolicy(name string) (*store.AccessPolicy, error) {
 		return nil, nil
 	}
 
-	if err := m.authzManager.DeleteAccessPolicy(&policy.Policy); err != nil {
+	acPolicy, err := accessPolicyFromBlob(policy.Spec.Blob)
+	if err != nil {
+		m.logger.Errorf("failed decoding access policy %s", policy.Name)
+		return nil, err
+	}
+
+	if err := m.authzManager.DeleteAccessPolicy(acPolicy.GetNamespacedName()); err != nil {
 		return nil, err
 	}
 
