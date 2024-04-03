@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/k8s"
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 	"sigs.k8s.io/e2e-framework/klient/wait"
+	"sigs.k8s.io/e2e-framework/support"
 	"sigs.k8s.io/e2e-framework/support/kind"
 
 	clusterlink "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
@@ -84,7 +85,7 @@ type KindCluster struct {
 	created          sync.WaitGroup
 	name             string
 	ip               string
-	cluster          *kind.Cluster
+	cluster          support.E2EClusterProviderWithImageLoader
 	resources        *resources.Resources
 	clientset        *kubernetes.Clientset
 	nodeportServices map[string]*map[string]*v1.Service // map[namespace][name]
@@ -564,7 +565,7 @@ func (c *KindCluster) WaitForDeletion(obj k8s.Object) error {
 // NewKindCluster returns a new yet to be running kind cluster.
 func NewKindCluster(name string) *KindCluster {
 	return &KindCluster{
-		cluster:          kind.NewCluster(name),
+		cluster:          kind.NewCluster(name).WithVersion("v0.22.0").(support.E2EClusterProviderWithImageLoader),
 		name:             name,
 		nodeportServices: make(map[string]*map[string]*v1.Service),
 	}

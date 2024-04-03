@@ -19,6 +19,7 @@ import (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:validation:XValidation:rule="size(self.metadata.name) <= 63",message="import name cannot exceed 63 chars"
 
 // Import defines a service that is being imported to the local Peer from a remote Peer.
 type Import struct {
