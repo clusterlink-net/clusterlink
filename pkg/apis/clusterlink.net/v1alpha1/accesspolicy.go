@@ -106,32 +106,32 @@ type AccessPolicyList struct {
 	Items []AccessPolicy `json:"items"`
 }
 
-// IsPrivileged returns whether the policy is privileged (it is)
+// IsPrivileged returns whether the policy is privileged (it is).
 func (p *PrivilegedAccessPolicy) IsPrivileged() bool {
 	return true
 }
 
-// GetNamespacedName returns the policy name as a NamespacedName, even though PrivilegedAccessPolicies have no namespace
+// GetNamespacedName returns the policy name as a NamespacedName, even though PrivilegedAccessPolicies have no namespace.
 func (p *PrivilegedAccessPolicy) GetNamespacedName() types.NamespacedName {
 	return types.NamespacedName{Name: p.Name}
 }
 
-// GetSpec returns the policy's spec
+// GetSpec returns the policy's spec.
 func (p *PrivilegedAccessPolicy) GetSpec() *AccessPolicySpec {
 	return &p.Spec
 }
 
-// IsPrivileged returns whether the policy is privileged (it is not)
+// IsPrivileged returns whether the policy is privileged (it is not).
 func (p *AccessPolicy) IsPrivileged() bool {
 	return false
 }
 
-// GetNamespacedName returns the policy name and namespace as a NamespacedName
+// GetNamespacedName returns the policy name and namespace as a NamespacedName.
 func (p *AccessPolicy) GetNamespacedName() types.NamespacedName {
 	return types.NamespacedName{Namespace: p.Namespace, Name: p.Name}
 }
 
-// GetSpec returns the policy's spec
+// GetSpec returns the policy's spec.
 func (p *AccessPolicy) GetSpec() *AccessPolicySpec {
 	return &p.Spec
 }
