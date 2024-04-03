@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/peer"
@@ -171,18 +170,6 @@ func (m *Manager) AddAccessPolicy(policy *connectivitypdp.AccessPolicy) error {
 // DeleteAccessPolicy removes an access policy to allow/deny specific connections.
 func (m *Manager) DeleteAccessPolicy(name types.NamespacedName, privileged bool) error {
 	return m.policyDecider.DeleteAccessPolicy(name, privileged)
-}
-
-// AddLBPolicy adds a load-balancing policy to set a load-balancing scheme for specific connections.
-// TODO: merge this with AddImport.
-func (m *Manager) AddLBPolicy(policy *api.Policy) error {
-	return m.policyDecider.AddLBPolicy(policy)
-}
-
-// DeleteLBPolicy removes a load-balancing policy.
-// TODO: merge this with DeleteImport.
-func (m *Manager) DeleteLBPolicy(policy *api.Policy) error {
-	return m.policyDecider.DeleteLBPolicy(policy)
 }
 
 // deletePod deletes pod to ipToPod list.

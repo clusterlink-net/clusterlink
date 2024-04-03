@@ -17,7 +17,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 
-	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	event "github.com/clusterlink-net/clusterlink/pkg/controlplane/eventmanager"
 	"github.com/clusterlink-net/clusterlink/pkg/util/jsonapi"
@@ -36,8 +35,6 @@ type Client struct {
 	Imports *rest.Client
 	// Access policies client.
 	AccessPolicies *rest.Client
-	// Load-balancing policies client.
-	LBPolicies *rest.Client
 }
 
 // New returns a new client.
@@ -66,14 +63,8 @@ func New(host string, port uint16, tlsConfig *tls.Config) *Client {
 		AccessPolicies: rest.NewClient(&rest.Config{
 			Client:       client,
 			BasePath:     "/policies",
-			SampleObject: api.Policy{},
-			SampleList:   []api.Policy{},
-		}),
-		LBPolicies: rest.NewClient(&rest.Config{
-			Client:       client,
-			BasePath:     "/lbpolicies",
-			SampleObject: api.Policy{},
-			SampleList:   []api.Policy{},
+			SampleObject: v1alpha1.AccessPolicy{},
+			SampleList:   []v1alpha1.AccessPolicy{},
 		}),
 	}
 }
