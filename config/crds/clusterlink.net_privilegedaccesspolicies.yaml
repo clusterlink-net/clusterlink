@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: privilegedaccesspolicies.clusterlink.net
 spec:
   group: clusterlink.net
@@ -17,20 +17,26 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: PrivilegedAccessPolicy defines whether a group of potential connections
-          should be allowed or denied. If multiple AccessPolicy objects match a given
-          connection, privileged policies take precedence over non-privileged, and
-          within each tier deny policies take precedence over allow policies.
+        description: |-
+          PrivilegedAccessPolicy defines whether a group of potential connections should be allowed or denied.
+          If multiple AccessPolicy objects match a given connection, privileged policies
+          take precedence over non-privileged, and within each tier deny policies take
+          precedence over allow policies.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -45,9 +51,9 @@ spec:
                 description: From specifies the set of source workload to which this
                   policy refers.
                 items:
-                  description: WorkloadSetOrSelector describes a set of workloads,
-                    based on their attributes (labels). Exactly one of the two fields
-                    should be non-empty.
+                  description: |-
+                    WorkloadSetOrSelector describes a set of workloads, based on their attributes (labels).
+                    Exactly one of the two fields should be non-empty.
                   properties:
                     workloadSelector:
                       description: WorkloadSelector is a K8s-style label selector,
@@ -57,25 +63,25 @@ spec:
                           description: matchExpressions is a list of label selector
                             requirements. The requirements are ANDed.
                           items:
-                            description: A label selector requirement is a selector
-                              that contains values, a key, and an operator that relates
-                              the key and values.
+                            description: |-
+                              A label selector requirement is a selector that contains values, a key, and an operator that
+                              relates the key and values.
                             properties:
                               key:
                                 description: key is the label key that the selector
                                   applies to.
                                 type: string
                               operator:
-                                description: operator represents a key's relationship
-                                  to a set of values. Valid operators are In, NotIn,
-                                  Exists and DoesNotExist.
+                                description: |-
+                                  operator represents a key's relationship to a set of values.
+                                  Valid operators are In, NotIn, Exists and DoesNotExist.
                                 type: string
                               values:
-                                description: values is an array of string values.
-                                  If the operator is In or NotIn, the values array
-                                  must be non-empty. If the operator is Exists or
-                                  DoesNotExist, the values array must be empty. This
-                                  array is replaced during a strategic merge patch.
+                                description: |-
+                                  values is an array of string values. If the operator is In or NotIn,
+                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                  the values array must be empty. This array is replaced during a strategic
+                                  merge patch.
                                 items:
                                   type: string
                                 type: array
@@ -87,11 +93,10 @@ spec:
                         matchLabels:
                           additionalProperties:
                             type: string
-                          description: matchLabels is a map of {key,value} pairs.
-                            A single {key,value} in the matchLabels map is equivalent
-                            to an element of matchExpressions, whose key field is
-                            "key", the operator is "In", and the values array contains
-                            only "value". The requirements are ANDed.
+                          description: |-
+                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                            operator is "In", and the values array contains only "value". The requirements are ANDed.
                           type: object
                       type: object
                       x-kubernetes-map-type: atomic
@@ -107,9 +112,9 @@ spec:
                 description: To specifies the set of destination services to which
                   this policy refers.
                 items:
-                  description: WorkloadSetOrSelector describes a set of workloads,
-                    based on their attributes (labels). Exactly one of the two fields
-                    should be non-empty.
+                  description: |-
+                    WorkloadSetOrSelector describes a set of workloads, based on their attributes (labels).
+                    Exactly one of the two fields should be non-empty.
                   properties:
                     workloadSelector:
                       description: WorkloadSelector is a K8s-style label selector,
@@ -119,25 +124,25 @@ spec:
                           description: matchExpressions is a list of label selector
                             requirements. The requirements are ANDed.
                           items:
-                            description: A label selector requirement is a selector
-                              that contains values, a key, and an operator that relates
-                              the key and values.
+                            description: |-
+                              A label selector requirement is a selector that contains values, a key, and an operator that
+                              relates the key and values.
                             properties:
                               key:
                                 description: key is the label key that the selector
                                   applies to.
                                 type: string
                               operator:
-                                description: operator represents a key's relationship
-                                  to a set of values. Valid operators are In, NotIn,
-                                  Exists and DoesNotExist.
+                                description: |-
+                                  operator represents a key's relationship to a set of values.
+                                  Valid operators are In, NotIn, Exists and DoesNotExist.
                                 type: string
                               values:
-                                description: values is an array of string values.
-                                  If the operator is In or NotIn, the values array
-                                  must be non-empty. If the operator is Exists or
-                                  DoesNotExist, the values array must be empty. This
-                                  array is replaced during a strategic merge patch.
+                                description: |-
+                                  values is an array of string values. If the operator is In or NotIn,
+                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                  the values array must be empty. This array is replaced during a strategic
+                                  merge patch.
                                 items:
                                   type: string
                                 type: array
@@ -149,11 +154,10 @@ spec:
                         matchLabels:
                           additionalProperties:
                             type: string
-                          description: matchLabels is a map of {key,value} pairs.
-                            A single {key,value} in the matchLabels map is equivalent
-                            to an element of matchExpressions, whose key field is
-                            "key", the operator is "In", and the values array contains
-                            only "value". The requirements are ANDed.
+                          description: |-
+                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                            operator is "In", and the values array contains only "value". The requirements are ANDed.
                           type: object
                       type: object
                       x-kubernetes-map-type: atomic
