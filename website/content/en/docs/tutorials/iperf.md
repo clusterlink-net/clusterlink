@@ -81,21 +81,21 @@ using `kubectl config use-context kind-client` and `kubectl config use-context k
 
 ## Deploy iPerf3 client and server
 
-1. Install iPerf3 (client and server) on the clusters:
+Install iPerf3 (client and server) on the clusters:
 
-    Client cluster:
+Client cluster:
 
-    ```sh
-    export IPERF3_FILES=https://raw.githubusercontent.com/clusterlink-net/clusterlink/main/demos/iperf3/testdata/manifests
-    kubectl apply -f $IPERF3_FILES/iperf3-client/iperf3-client.yaml
-    ```
+```sh
+export IPERF3_FILES=https://raw.githubusercontent.com/clusterlink-net/clusterlink/main/demos/iperf3/testdata/manifests
+kubectl apply -f $IPERF3_FILES/iperf3-client/iperf3-client.yaml
+```
 
-    Server cluster:
+Server cluster:
 
-    ```sh
-    export IPERF3_FILES=https://raw.githubusercontent.com/clusterlink-net/clusterlink/main/demos/iperf3/testdata/manifests
-    kubectl apply -f $IPERF3_FILES/iperf3-server/iperf3.yaml
-    ```
+```sh
+export IPERF3_FILES=https://raw.githubusercontent.com/clusterlink-net/clusterlink/main/demos/iperf3/testdata/manifests
+kubectl apply -f $IPERF3_FILES/iperf3-server/iperf3.yaml
+```
 
 ## Deploy ClusterLink
 
@@ -165,22 +165,73 @@ deployment "cl-dataplane" successfully rolled out
 ## Enable cross-cluster access
 
 In this step, we enable connectivity access between the iPerf3 client and server.
+For each step, you have an example demonstrating how to apply the command from a file or providing the complete custom resource (CR) associated with the command.
 
-1. First, add the peers to each cluster:
+### Peers setup
 
-    Client cluster:
+Add the remote peer to each cluster:
 
-    ```sh
-    export SERVER_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' server-control-plane`
-    curl -s $IPERF3_FILES/clusterlink/peer-server.yaml | envsubst | kubectl apply -f -
-    ```
+Client cluster:
 
-    Server cluster:
+{{< tabpane text=true >}}
+{{% tab header="File" %}}
 
-    ```sh
-    export CLIENT_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' client-control-plane`
-    curl -s $IPERF3_FILES/clusterlink/peer-client.yaml | envsubst | kubectl apply -f -
-    ```
+```sh
+export SERVER_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' server-control-plane`
+curl -s $IPERF3_FILES/clusterlink/peer-server.yaml | envsubst | kubectl apply -f -
+```
+
+{{% /tab %}}
+{{% tab header="Full CR" %}}
+
+```sh
+export SERVER_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' server-control-plane`
+echo "
+apiVersion: clusterlink.net/v1alpha1
+kind: Peer
+metadata:
+  name: server
+  namespace: clusterlink-system
+spec:
+  gateways:
+    - host: "${SERVER_IP}"
+      port: 30443
+" | kubectl apply -f -
+```
+
+{{% /tab %}}
+{{< /tabpane >}}
+
+Server cluster:
+
+{{< tabpane text=true >}}
+{{% tab header="File" %}}
+
+```sh
+export CLIENT_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' client-control-plane`
+curl -s $IPERF3_FILES/clusterlink/peer-client.yaml | envsubst | kubectl apply -f -
+```
+
+{{% /tab %}}
+{{% tab header="Full CR" %}}
+
+```sh
+export CLIENT_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' client-control-plane`
+echo "
+apiVersion: clusterlink.net/v1alpha1
+kind: Peer
+metadata:
+  name: client
+  namespace: clusterlink-system
+spec:
+  gateways:
+    - host: "${CLIENT_IP}"
+      port: 30443
+" | kubectl apply -f -
+```
+
+{{% /tab %}}
+{{< /tabpane >}}
 
 {{% expand summary="Install **envsubst** for **macOS users**" %}}
 In case `envsubst` does not exist, you can install it with:
@@ -191,45 +242,145 @@ brew link --force gettext
 ```
 
 {{% /expand %}}
-
 <br>
-
 {{< notice note >}}
 
 The `CLIENT_IP` and `SERVER_IP` refers to the node IP of the peer kind cluster, which assigns the peer YAML file.
 {{< /notice >}}
 
-2. In the server cluster, export the iperf3-server service:
+### Export iPerf server endpoint
 
-    Server cluster:
+In the server cluster, export the iperf3-server service:
 
-    ```sh
-    kubectl apply -f $IPERF3_FILES/clusterlink/export-iperf3.yaml
-    ```
+Server cluster:
 
-3. In the client cluster, import the iperf3-server service from the server cluster:
+{{< tabpane text=true >}}
+{{% tab header="File" %}}
 
-    Client cluster:
+```sh
+kubectl apply -f $IPERF3_FILES/clusterlink/export-iperf3.yaml
+```
 
-    ```sh
-    kubectl apply -f $IPERF3_FILES/clusterlink/import-iperf3.yaml
-    ```
+{{% /tab %}}
+{{% tab header="Full CR" %}}
 
-4. Create access policies on both clusters to allow connectivity:
+```sh
+echo "
+apiVersion: clusterlink.net/v1alpha1
+kind: Export
+metadata:
+  name: iperf3-server
+  namespace: default
+spec:
+  port:  5000
+" | kubectl apply -f -
+```
 
-    Client cluster:
+{{% /tab %}}
+{{< /tabpane >}}
 
-    ```sh
-    kubectl apply -f $IPERF3_FILES/clusterlink/allow-policy.yaml
-    ```
+### Import setup
 
-    Server cluster:
+In the client cluster, import the iperf3-server service from the server cluster:
 
-    ```sh
-    kubectl apply -f $IPERF3_FILES/clusterlink/allow-policy.yaml
-    ```
+Client cluster:
 
-    For more details about policies see [ClusterLink policies](https://clusterlink.net/docs/concepts/policies).
+{{< tabpane text=true >}}
+{{% tab header="File" %}}
+
+```sh
+kubectl apply -f $IPERF3_FILES/clusterlink/import-iperf3.yaml
+```
+
+{{% /tab %}}
+{{% tab header="Full CR" %}}
+
+```sh
+echo "
+apiVersion: clusterlink.net/v1alpha1
+kind: Import
+metadata:
+  name: iperf3-server
+  namespace: default
+spec:
+  port:       5000
+  sources:
+    - exportName:       iperf3-server
+      exportNamespace:  default
+      peer:             server
+" | kubectl apply -f -
+```
+
+{{% /tab %}}
+{{< /tabpane >}}
+
+### Policies setup
+
+Create access policies on both clusters to allow connectivity:
+
+Client cluster:
+
+{{< tabpane text=true >}}
+{{% tab header="File" %}}
+
+```sh
+kubectl apply -f $IPERF3_FILES/clusterlink/allow-policy.yaml
+```
+
+{{% /tab %}}
+{{% tab header="Full CR" %}}
+
+```sh
+echo "
+apiVersion: clusterlink.net/v1alpha1
+kind: AccessPolicy
+metadata:
+  name: allow-policy
+  namespace: default
+spec:
+  action: allow
+  from:
+    - workloadSelector: {}
+  to:
+    - workloadSelector: {}
+" | kubectl apply -f -
+```
+
+{{% /tab %}}
+{{< /tabpane >}}
+
+Server cluster:
+
+{{< tabpane text=true >}}
+{{% tab header="File" %}}
+
+```sh
+kubectl apply -f $IPERF3_FILES/clusterlink/allow-policy.yaml
+```
+
+{{% /tab %}}
+{{% tab header="Full CR" %}}
+
+```sh
+echo "
+apiVersion: clusterlink.net/v1alpha1
+kind: AccessPolicy
+metadata:
+  name: allow-policy
+  namespace: default
+spec:
+  action: allow
+  from:
+    - workloadSelector: {}
+  to:
+    - workloadSelector: {}
+" | kubectl apply -f -
+```
+
+{{% /tab %}}
+{{< /tabpane >}}
+
+For more details regarding policy configuration, see [here](https://clusterlink.net/docs/concepts/policies).
 
 ## Test service connectivity
 

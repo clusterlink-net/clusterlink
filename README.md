@@ -56,7 +56,7 @@ The ClusterLink APIs use the following entities for configuring cross cluster co
 
 Here are the key steps for setting up your developer environment, making a change and testing it:
 
-1. Install Go version 1.20 or higher.
+1. Install Go version 1.22 or higher.
 1. Clone our repository with `git clone git@github.com:clusterlink-net/clusterlink.git`.
 1. Run `make test-prereqs` and manually install any missing required development tools.
 1. Run `make build` to ensure the code builds fine. This will pull in all needed
@@ -113,8 +113,7 @@ ClusterLink will be used in a cloud native environment with other
 - Certificate management: ClusterLink uses certificates and trust bundles provided to
  it. It does not manage certificate lifetimes, rotation, etc. - these are delegated to external tools.
 - Enabling IP level connectivity between sites. ClusterLink uses existing network paths.
-- Pod to Pod communications. ClusterLink works at the level of `Service`s (but you could create a Service per Pod
-Pod to Pod communications. ClusterLink works at the level of `Service`s , but can support this scenario by creating a service per pod.
+- Pod to Pod communications. ClusterLink works at the level of `Service`s. You can support Pod-to-Pod communications by creating a service per pod.
 
 ## Communications
 
