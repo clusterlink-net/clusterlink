@@ -17,9 +17,10 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: AccessPolicy defines whether a set of connections should be allowed
-          or denied. If multiple AccessPolicy objects match a given connection, deny
-          policies take precedence over allow policies.
+        description: |-
+          AccessPolicy defines whether a set of connections should be allowed or denied.
+          If multiple AccessPolicy objects match a given connection, deny policies take
+          precedence over allow policies.
         properties:
           apiVersion:
             description: |-

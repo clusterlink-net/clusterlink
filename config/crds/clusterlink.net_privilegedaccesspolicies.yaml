@@ -17,10 +17,10 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: PrivilegedAccessPolicy is the cluster-scoped version of AccessPolicy.
-          PrivilegedAccessPolicies are intended to be used by cluster admins, and
-          take precedence over AccessPolicies. Within each tier, deny policies take
-          precedence over allow policies.
+        description: |-
+          PrivilegedAccessPolicy is the cluster-scoped version of AccessPolicy.
+          PrivilegedAccessPolicies are intended to be used by cluster admins, and take precedence over AccessPolicies.
+          Within each tier, deny policies take precedence over allow policies.
         properties:
           apiVersion:
             description: |-
