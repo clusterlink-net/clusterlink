@@ -67,6 +67,7 @@ def cleanCluster():
     sp.getoutput('kubectl delete --all pvc')
     sp.getoutput('kubectl delete instances.clusterlink.net --all -A')
     sp.getoutput('kubectl delete accesspolicies.clusterlink.net --all -A')
+    sp.getoutput('kubectl delete privilegedaccesspolicies.clusterlink.net')
     sp.getoutput('kubectl delete imports.clusterlink.net --all -A')
     sp.getoutput('kubectl delete exports.clusterlink.net --all -A')
     sp.getoutput('kubectl delete peers.clusterlink.net --all -A')
