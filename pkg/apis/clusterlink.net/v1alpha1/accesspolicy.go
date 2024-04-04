@@ -17,30 +17,13 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
-
-// +kubebuilder:object:root=true
-// +kubebuilder:resource:scope=Cluster
-
-// PrivilegedAccessPolicy defines whether a group of potential connections should be allowed or denied.
-// If multiple AccessPolicy objects match a given connection, privileged policies
-// take precedence over non-privileged, and within each tier deny policies take
-// precedence over allow policies.
-type PrivilegedAccessPolicy struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	// Spec represents the attributes of the exported service.
-	Spec AccessPolicySpec `json:"spec,omitempty"`
-}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Namespaced
 
-// AccessPolicy defines whether a group of potential connections should be allowed or denied.
-// If multiple AccessPolicy objects match a given connection, privileged policies
-// take precedence over non-privileged, and within each tier deny policies take
+// AccessPolicy defines whether a set of connections should be allowed or denied.
+// If multiple AccessPolicy objects match a given connection, deny policies take
 // precedence over allow policies.
 type AccessPolicy struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -49,6 +32,14 @@ type AccessPolicy struct {
 	// Spec represents the attributes of the exported service.
 	Spec AccessPolicySpec `json:"spec,omitempty"`
 }
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Cluster
+
+// PrivilegedAccessPolicy is the cluster-scoped version of AccessPolicy.
+// PrivilegedAccessPolicies are intended to be used by cluster admins, and take precedence over AccessPolicies.
+// Within each tier, deny policies take precedence over allow policies.
+type PrivilegedAccessPolicy AccessPolicy
 
 // AccessPolicyAction specifies whether an AccessPolicy allows or denies
 // the connection specified by its 'From' and 'To' fields.
@@ -104,36 +95,6 @@ type AccessPolicyList struct {
 
 	// Items is the list of access policy objects.
 	Items []AccessPolicy `json:"items"`
-}
-
-// IsPrivileged returns whether the policy is privileged (it is).
-func (p *PrivilegedAccessPolicy) IsPrivileged() bool {
-	return true
-}
-
-// GetNamespacedName returns the policy name as a NamespacedName, even though PrivilegedAccessPolicies have no namespace.
-func (p *PrivilegedAccessPolicy) GetNamespacedName() types.NamespacedName {
-	return types.NamespacedName{Name: p.Name}
-}
-
-// GetSpec returns the policy's spec.
-func (p *PrivilegedAccessPolicy) GetSpec() *AccessPolicySpec {
-	return &p.Spec
-}
-
-// IsPrivileged returns whether the policy is privileged (it is not).
-func (p *AccessPolicy) IsPrivileged() bool {
-	return false
-}
-
-// GetNamespacedName returns the policy name and namespace as a NamespacedName.
-func (p *AccessPolicy) GetNamespacedName() types.NamespacedName {
-	return types.NamespacedName{Namespace: p.Namespace, Name: p.Name}
-}
-
-// GetSpec returns the policy's spec.
-func (p *AccessPolicy) GetSpec() *AccessPolicySpec {
-	return &p.Spec
 }
 
 // Validate returns an error if the given AccessPolicy is invalid. Otherwise, returns nil.

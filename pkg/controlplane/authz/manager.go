@@ -165,8 +165,8 @@ func (m *Manager) DeleteExport(name types.NamespacedName) {
 
 // AddAccessPolicy adds an access policy to allow/deny specific connections.
 // TODO: switch from api.Policy to v1alpha1.Policy.
-func (m *Manager) AddAccessPolicy(policy connectivitypdp.SetsAccess) error {
-	return m.policyDecider.AddAccessPolicy(policy)
+func (m *Manager) AddAccessPolicy(policy *v1alpha1.AccessPolicy, privileged bool) error {
+	return m.policyDecider.AddAccessPolicy(policy, privileged)
 }
 
 // DeleteAccessPolicy removes an access policy to allow/deny specific connections.

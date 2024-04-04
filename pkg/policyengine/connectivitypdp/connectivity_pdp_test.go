@@ -56,7 +56,7 @@ func TestPrivilegedVsRegular(t *testing.T) {
 			To:     workloadSet,
 		},
 	}
-	trivialPrivConnPol := v1alpha1.PrivilegedAccessPolicy{
+	trivialPrivConnPol := v1alpha1.AccessPolicy{
 		ObjectMeta: metav1.ObjectMeta{Name: "priv"},
 		Spec: v1alpha1.AccessPolicySpec{
 			Action: v1alpha1.AccessPolicyActionDeny,
@@ -73,7 +73,7 @@ func TestPrivilegedVsRegular(t *testing.T) {
 	require.Equal(t, connectivitypdp.DefaultDenyPolicyName, decisions[0].MatchedBy)
 	require.Equal(t, false, decisions[0].PrivilegedMatch)
 
-	err = pdp.AddOrUpdatePolicy(&trivialConnPol)
+	err = pdp.AddOrUpdatePolicy(&trivialConnPol, false)
 	require.Nil(t, err)
 	dests = []connectivitypdp.WorkloadAttrs{trivialLabel}
 	decisions, err = pdp.Decide(trivialLabel, dests, defaultNS)
@@ -82,7 +82,7 @@ func TestPrivilegedVsRegular(t *testing.T) {
 	require.Equal(t, types.NamespacedName{Name: "reg", Namespace: defaultNS}.String(), decisions[0].MatchedBy)
 	require.Equal(t, false, decisions[0].PrivilegedMatch)
 
-	err = pdp.AddOrUpdatePolicy(&trivialPrivConnPol)
+	err = pdp.AddOrUpdatePolicy(&trivialPrivConnPol, true)
 	require.Nil(t, err)
 	dests = []connectivitypdp.WorkloadAttrs{trivialLabel}
 	decisions, err = pdp.Decide(trivialLabel, dests, defaultNS)
@@ -206,7 +206,7 @@ func TestBadSelector(t *testing.T) {
 		},
 	}
 	pdp := connectivitypdp.NewPDP()
-	err := pdp.AddOrUpdatePolicy(&badSelectorPol)
+	err := pdp.AddOrUpdatePolicy(&badSelectorPol, false)
 	require.NotNil(t, err)
 }
 
@@ -252,20 +252,9 @@ func addPoliciesFromFile(pdp *connectivitypdp.PDP, filename string) error {
 			return err
 		}
 
-		if policy.Kind == "PrivilegedAccessPolicy" {
-			privPolicy := v1alpha1.PrivilegedAccessPolicy{
-				ObjectMeta: metav1.ObjectMeta{Name: policy.Name},
-				Spec:       policy.Spec,
-			}
-			err = pdp.AddOrUpdatePolicy(&privPolicy)
-			if err != nil {
-				fmt.Printf("invalid connectivity policy: %v\n", err)
-			}
-		} else {
-			err = pdp.AddOrUpdatePolicy(&policy)
-			if err != nil {
-				fmt.Printf("invalid connectivity policy: %v\n", err)
-			}
+		err = pdp.AddOrUpdatePolicy(&policy, policy.Kind == "PrivilegedAccessPolicy")
+		if err != nil {
+			fmt.Printf("invalid connectivity policy: %v\n", err)
 		}
 	}
 }

@@ -33,16 +33,6 @@ const (
 	DecisionDeny
 )
 
-// SetsAccess is an abstraction for the two types of access policies.
-type SetsAccess interface {
-	// IsPrivileged returns whether the access policy is privileged or not.
-	IsPrivileged() bool
-	// GetNamespacedName returns the access policy name and namespace
-	GetNamespacedName() types.NamespacedName
-	// GetSpec returns the specification of an access policy (both AccessPolicy and PrivilegedAccessPolicy share the same spec).
-	GetSpec() *v1alpha1.AccessPolicySpec
-}
-
 // WorkloadAttrs are the actual key-value attributes attached to any given workload.
 type WorkloadAttrs map[string]string
 
@@ -115,17 +105,16 @@ func (pdp *PDP) GetPolicies() []v1alpha1.AccessPolicy {
 // If a policy with the same name already exists in the PDP,
 // it is updated (including updating the Action field).
 // Invalid policies return an error.
-func (pdp *PDP) AddOrUpdatePolicy(policy SetsAccess) error {
-	polName := policy.GetNamespacedName()
-	polSpec := policy.GetSpec()
-	if err := polSpec.Validate(); err != nil {
+func (pdp *PDP) AddOrUpdatePolicy(policy *v1alpha1.AccessPolicy, privileged bool) error {
+	if err := policy.Spec.Validate(); err != nil {
 		return err
 	}
 
-	if policy.IsPrivileged() {
-		pdp.privilegedPolicies.addPolicy(polName, polSpec)
+	polName := types.NamespacedName{Namespace: policy.Namespace, Name: policy.Name}
+	if privileged {
+		pdp.privilegedPolicies.addPolicy(polName, &policy.Spec)
 	} else {
-		pdp.regularPolicies.addPolicy(polName, polSpec)
+		pdp.regularPolicies.addPolicy(polName, &policy.Spec)
 	}
 	return nil
 }
