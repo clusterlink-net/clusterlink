@@ -39,7 +39,16 @@ type AccessPolicy struct {
 // PrivilegedAccessPolicy is the cluster-scoped version of AccessPolicy.
 // PrivilegedAccessPolicies are intended to be used by cluster admins, and take precedence over AccessPolicies.
 // Within each tier, deny policies take precedence over allow policies.
-type PrivilegedAccessPolicy AccessPolicy
+type PrivilegedAccessPolicy struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Spec represents the attributes of the exported service.
+	Spec AccessPolicySpec `json:"spec,omitempty"`
+}
+
+// Important note: In the code, PrivilegedAccessPolicy is unmarshalled into AccessPolicy.
+// The two structs must be therefore identical, or something may break.
 
 // AccessPolicyAction specifies whether an AccessPolicy allows or denies
 // the connection specified by its 'From' and 'To' fields.

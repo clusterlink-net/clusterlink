@@ -61,9 +61,9 @@ rules:
   - clusterlink.net
   resources:
   - accesspolicies
-  - privilegedaccesspolicies
   - exports
   - peers
+  - privilegedaccesspolicies
   verbs:
   - get
   - list
