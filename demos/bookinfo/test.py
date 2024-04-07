@@ -64,15 +64,15 @@ def bookInfoDemo(cl1:Cluster, cl2:Cluster, cl3:Cluster, testOutputFolder,logLeve
 
     # Set GW services
     cl1.useCluster()
-    cl1.loadService(srcSvc1, "maistra/examples-bookinfo-productpage-v1",f"{folpdct}/product.yaml")
-    cl1.loadService(srcSvc2, "maistra/examples-bookinfo-productpage-v1",f"{folpdct}/product2.yaml")
-    cl1.loadService(srcSvc1, "maistra/examples-bookinfo-details-v1:0.12.0",f"{folpdct}/details.yaml")
+    cl1.loadService(srcSvc1, "istio/examples-bookinfo-productpage-v1",f"{folpdct}/product.yaml")
+    cl1.loadService(srcSvc2, "istio/examples-bookinfo-productpage-v1",f"{folpdct}/product2.yaml")
+    cl1.loadService(srcSvc1, "istio/examples-bookinfo-details-v1",f"{folpdct}/details.yaml")
     cl2.useCluster()
-    cl2.loadService(reviewSvc, "maistra/examples-bookinfo-reviews-v2",f"{folReview}/review-v2.yaml")
-    cl2.loadService("ratings", "maistra/examples-bookinfo-ratings-v1:0.12.0",f"{folReview}/rating.yaml")
+    cl2.loadService(reviewSvc, "istio/examples-bookinfo-reviews-v2",f"{folReview}/review-v2.yaml")
+    cl2.loadService("ratings", "istio/examples-bookinfo-ratings-v1",f"{folReview}/rating.yaml")
     cl3.useCluster()
-    cl3.loadService(reviewSvc, "maistra/examples-bookinfo-reviews-v3",f"{folReview}/review-v3.yaml")
-    cl3.loadService("ratings", "maistra/examples-bookinfo-ratings-v1:0.12.0",f"{folReview}/rating.yaml")
+    cl3.loadService(reviewSvc, "istio/examples-bookinfo-reviews-v3",f"{folReview}/review-v3.yaml")
+    cl3.loadService("ratings", "istio/examples-bookinfo-ratings-v1",f"{folReview}/rating.yaml")
 
     # Add GW Peers
     printHeader("Add cl2, cl3 peer to cl1")
