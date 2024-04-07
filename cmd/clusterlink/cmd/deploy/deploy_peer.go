@@ -27,6 +27,9 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/decoder"
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 
+	// Importing this package for initializing the OIDC authentication plugin for client-go.
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+
 	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
 	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	configFiles "github.com/clusterlink-net/clusterlink/config"
