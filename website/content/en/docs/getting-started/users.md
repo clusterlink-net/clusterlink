@@ -115,4 +115,12 @@ To deploy ClusterLink on another cluster, please repeat steps 2-3 in a console w
 ## Try it out
 
 Check out the [ClusterLink Tutorials]({{< ref "tutorials" >}}) for setting up
- multi-cluster connectivity for applications using two or more clusters.
+multi-cluster connectivity for applications using two or more clusters.
+
+## Uninstall ClusterLink
+
+To uninstall the ClusterLink CLI, use the following command:
+
+```sh
+rm `which clusterlink`
+```
