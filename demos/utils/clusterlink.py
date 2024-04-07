@@ -248,6 +248,6 @@ class ClusterLink:
         flag = f"--container-registry={container_reg} " if container_reg != "" else ""
         flag += f"--ingress={ingress_type} " if ingress_type != "" else ""
         flag += f"--ingress-port={ingress_port} " if ingress_port != 0 else ""
-        runcmdDir(f"{CL_CLI} deploy peer --name {name} --autostart  {flag} ",dir)
+        runcmdDir(f"{CL_CLI} deploy peer --name {name} --autostart {flag} ",dir)
         waitPod("cl-controlplane", CLUSTELINK_NS)
         waitPod("cl-dataplane", CLUSTELINK_NS)

@@ -35,6 +35,5 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     print(f'Working directory {projDir}')
     os.chdir(projDir)
-    cl3 = cl3gcp if args["cloud"] in ["gcp"]        else cl3ibm
-    apply_failover(cl3, args["type",testOutputFolder])
-
+    cl3 = cl3gcp if args["cloud"] in ["gcp"] else cl3ibm
+    apply_failover(cl3, args["type"], testOutputFolder)
