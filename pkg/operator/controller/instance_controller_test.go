@@ -143,7 +143,7 @@ func TestClusterLinkController(t *testing.T) {
 	}
 
 	cpID := types.NamespacedName{Name: controller.ControlPlaneName, Namespace: controller.InstanceNamespace}
-	cpResource := []client.Object{&appsv1.Deployment{}, &corev1.Service{}, &corev1.PersistentVolumeClaim{}}
+	cpResource := []client.Object{&appsv1.Deployment{}, &corev1.Service{}}
 	roleID := types.NamespacedName{
 		Name:      controller.ControlPlaneName + controller.InstanceNamespace,
 		Namespace: controller.InstanceNamespace,
