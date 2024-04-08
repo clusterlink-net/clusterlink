@@ -53,14 +53,14 @@ All pull requests undergo automated testing before being merged. This includes, 
  can be increased to `debug` by setting environment variable `DEBUG=1`. You can also enable
  debug logging from the UI when re-running a CICD job, by selecting "enable debug logging".
 
-## Release Management
+## Release management
 
 ClusterLink releases, including container images and binaries, are built based
  on version tags in github. Applying a tag that's prefixed by `-v` will automatically
  trigger a new release through the github [release](https://github.com/clusterlink-net/clusterlink/blob/main/.github/workflows/release.yml) action.
 
-Please kindly mark all PR's to aid in auto-generation of changelog from commits, by
- labeling pull requests with one or more of the following labels:
+To aid in auto-generation of changelog from commits, please kindly mark all PR's
+ with one or more of the following labels:
 
 - `ignore-for-release`: PR should not be included in the changelog report.
  This label should not be used together with any other label in this list.
