@@ -4,18 +4,18 @@ description: Defining a ClusterLink fabric
 weight: 10
 ---
 
-The concept of a `Fabric` encapsulates a set of cooperating [peers]({{< ref "peers" >}}).
+The concept of a *Fabric* encapsulates a set of cooperating [peers]({{< ref "peers" >}}).
  All peers in a fabric can communicate and may share [services]({{< ref "services" >}})
  between them, with access governed by [policies]({{< ref "policies" >}}).
- The `Fabric` acts as a root of trust for peer to peer communications (i.e.,
+ The Fabric acts as a root of trust for peer to peer communications (i.e.,
  it functions as the certificate authority enabling mutual authentication between
  peers).
 
-Currently, the concept of a `Fabric` is just that - a concept. It is not represented
- or backed by any managed resource in a ClusterLink deployment. Once a `Fabric` is created,
+Currently, the concept of a Fabric is just that - a concept. It is not represented
+ or backed by any managed resource in a ClusterLink deployment. Once a Fabric is created,
  its only relevance is in providing a certificate for use by each peer's gateways.
  One could potentially consider a more elaborate implementation where a central
- management entity explicitly deals with `Fabric` life cycle, association of peers to
+ management entity explicitly deals with Fabric life cycle, association of peers to
  a fabric, etc. The role of this central management component in ClusterLink is currently
  delegated to users who are responsible for coordinating the transfer of certificates
  between peers, out of band.
@@ -37,9 +37,9 @@ clusterlink create fabric --name <fabric_name>
 ```
 
 This command will create the CA files `cert.pem` and `key.pem` in a directory named <fabric_name>.
-The `--name` option is optional, and by default, "default_fabric" will be used.
-While you will need access to these files to create the peers` gateway certificates later,
-the private key file should be protected and not shared with others.
+ The `--name` option is optional, and by default, "default_fabric" will be used.
+ While you will need access to these files to create the peers` gateway certificates later,
+ the private key file should be protected and not shared with others.
 
 ## Related tasks
 
