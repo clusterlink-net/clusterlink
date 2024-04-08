@@ -21,6 +21,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
 )
 
@@ -31,10 +32,11 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode boo
 			Name:   "authz.access-policy",
 			Object: &v1alpha1.AccessPolicy{},
 			AddHandler: func(ctx context.Context, object any) error {
-				return mgr.AddAccessPolicy(object.(*v1alpha1.AccessPolicy), false)
+				accPolicy := connectivitypdp.PolicyFromCRD(object.(*v1alpha1.AccessPolicy))
+				return mgr.AddAccessPolicy(accPolicy)
 			},
 			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-				return mgr.DeleteAccessPolicy(name)
+				return mgr.DeleteAccessPolicy(name, false)
 			},
 		})
 		if err != nil {
@@ -45,10 +47,11 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode boo
 			Name:   "authz.privileged-access-policy",
 			Object: &v1alpha1.PrivilegedAccessPolicy{},
 			AddHandler: func(_ context.Context, object any) error {
-				return mgr.AddAccessPolicy(object.(*v1alpha1.AccessPolicy), true)
+				accPolicy := connectivitypdp.PolicyFromPrivilegedCRD(object.(*v1alpha1.PrivilegedAccessPolicy))
+				return mgr.AddAccessPolicy(accPolicy)
 			},
 			DeleteHandler: func(_ context.Context, name types.NamespacedName) error {
-				return mgr.DeleteAccessPolicy(name)
+				return mgr.DeleteAccessPolicy(name, true)
 			},
 		})
 		if err != nil {

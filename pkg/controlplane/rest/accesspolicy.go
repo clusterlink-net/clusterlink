@@ -21,6 +21,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
+	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -58,7 +59,7 @@ func (m *Manager) CreateAccessPolicy(policy *store.AccessPolicy) error {
 		m.logger.Errorf("failed decoding access policy %s", policy.Name)
 		return err
 	}
-	return m.authzManager.AddAccessPolicy(acPolicy, false)
+	return m.authzManager.AddAccessPolicy(connectivitypdp.PolicyFromCRD(acPolicy))
 }
 
 // UpdateAccessPolicy updates an access policy to allow/deny specific connections.
@@ -77,7 +78,7 @@ func (m *Manager) UpdateAccessPolicy(policy *store.AccessPolicy) error {
 		m.logger.Errorf("failed decoding access policy %s", policy.Name)
 		return err
 	}
-	return m.authzManager.AddAccessPolicy(acPolicy, false)
+	return m.authzManager.AddAccessPolicy(connectivitypdp.PolicyFromCRD(acPolicy))
 }
 
 // DeleteAccessPolicy removes an access policy to allow/deny specific connections.
@@ -99,7 +100,7 @@ func (m *Manager) DeleteAccessPolicy(name string) (*store.AccessPolicy, error) {
 	}
 
 	polName := types.NamespacedName{Namespace: acPolicy.Namespace, Name: acPolicy.Name}
-	if err := m.authzManager.DeleteAccessPolicy(polName); err != nil {
+	if err := m.authzManager.DeleteAccessPolicy(polName, false); err != nil {
 		return nil, err
 	}
 

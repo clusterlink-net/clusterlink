@@ -52,19 +52,21 @@ var (
 			To:     []crds.WorkloadSetOrSelector{simpleWorkloadSet},
 		},
 	}
+
+	pdpPolicy = connectivitypdp.PolicyFromCRD(&policy)
 )
 
 func TestAddAndDeleteConnectivityPolicy(t *testing.T) {
 	ph := policyengine.NewPolicyHandler()
-	err := ph.AddAccessPolicy(&policy, false)
+	err := ph.AddAccessPolicy(pdpPolicy)
 	require.Nil(t, err)
 
 	polName := types.NamespacedName{Namespace: policy.Namespace, Name: policy.Name}
-	err = ph.DeleteAccessPolicy(polName)
+	err = ph.DeleteAccessPolicy(polName, false)
 	require.Nil(t, err)
 
 	// deleting the same policy again should result in a not-found error
-	err = ph.DeleteAccessPolicy(polName)
+	err = ph.DeleteAccessPolicy(polName, false)
 	require.NotNil(t, err)
 }
 
@@ -75,7 +77,7 @@ func TestAddBadPolicy(t *testing.T) {
 			Name: "bad-policy",
 		},
 	}
-	err := ph.AddAccessPolicy(&badPolicy, false)
+	err := ph.AddAccessPolicy(connectivitypdp.PolicyFromCRD(&badPolicy))
 	require.NotNil(t, err)
 }
 
@@ -83,7 +85,7 @@ func TestIncomingConnectionRequests(t *testing.T) {
 	ph := policyengine.NewPolicyHandler()
 	policy2 := policy
 	policy2.Spec.To = []crds.WorkloadSetOrSelector{{WorkloadSelector: &selectAllSelector}}
-	err := ph.AddAccessPolicy(&policy2, false)
+	err := ph.AddAccessPolicy(connectivitypdp.PolicyFromCRD(&policy2))
 	require.Nil(t, err)
 
 	srcAttrs := connectivitypdp.WorkloadAttrs{policyengine.ServiceNameLabel: svcName}
@@ -112,7 +114,7 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	simpleWorkloadSet2 := crds.WorkloadSetOrSelector{WorkloadSelector: &simpleSelector2}
 	policy2 := policy
 	policy2.Spec.To = []crds.WorkloadSetOrSelector{simpleWorkloadSet2}
-	err := ph.AddAccessPolicy(&policy2, false)
+	err := ph.AddAccessPolicy(connectivitypdp.PolicyFromCRD(&policy2))
 	require.Nil(t, err)
 
 	addRemoteSvc(t, svcName, []string{peer1, peer2}, ph)
@@ -167,7 +169,7 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 func TestLoadBalancer(t *testing.T) {
 	ph := policyengine.NewPolicyHandler()
 	addRemoteSvc(t, svcName, []string{peer1, peer2}, ph)
-	err := ph.AddAccessPolicy(&policy, false)
+	err := ph.AddAccessPolicy(pdpPolicy)
 	require.Nil(t, err)
 
 	lbPolicy := policyengine.LBPolicy{
@@ -177,7 +179,7 @@ func TestLoadBalancer(t *testing.T) {
 	}
 	policyBuf, err := json.Marshal(lbPolicy)
 	require.Nil(t, err)
-	apiLBPolicy := api.Policy{Name: policy.Name, Spec: api.PolicySpec{Blob: policyBuf}}
+	apiLBPolicy := api.Policy{Name: "lb-policy", Spec: api.PolicySpec{Blob: policyBuf}}
 	err = ph.AddLBPolicy(&apiLBPolicy)
 	require.Nil(t, err)
 
@@ -233,7 +235,7 @@ func TestBadLBPolicy(t *testing.T) {
 func TestDisableEnablePeers(t *testing.T) {
 	ph := policyengine.NewPolicyHandler()
 	addRemoteSvc(t, svcName, []string{peer1, peer2}, ph)
-	err := ph.AddAccessPolicy(&policy, false)
+	err := ph.AddAccessPolicy(pdpPolicy)
 	require.Nil(t, err)
 
 	lbPolicy := policyengine.LBPolicy{
@@ -243,7 +245,7 @@ func TestDisableEnablePeers(t *testing.T) {
 	}
 	policyBuf, err := json.Marshal(lbPolicy)
 	require.Nil(t, err)
-	apiLBPolicy := api.Policy{Name: policy.Name, Spec: api.PolicySpec{Blob: policyBuf}}
+	apiLBPolicy := api.Policy{Name: "lb-policy", Spec: api.PolicySpec{Blob: policyBuf}}
 	err = ph.AddLBPolicy(&apiLBPolicy)
 	require.Nil(t, err)
 

@@ -101,28 +101,27 @@ func (pdp *PDP) GetPolicies() []v1alpha1.AccessPolicy {
 	return res
 }
 
-// AddOrUpdatePolicy adds an AccessPolicy or a PrivilegedAccessPolicy to the PDP.
+// AddOrUpdatePolicy adds an AccessPolicy to the PDP.
 // If a policy with the same name already exists in the PDP,
 // it is updated (including updating the Action field).
 // Invalid policies return an error.
-func (pdp *PDP) AddOrUpdatePolicy(policy *v1alpha1.AccessPolicy, privileged bool) error {
-	if err := policy.Spec.Validate(); err != nil {
+func (pdp *PDP) AddOrUpdatePolicy(policy *AccessPolicy) error {
+	if err := policy.spec.Validate(); err != nil {
 		return err
 	}
 
-	polName := types.NamespacedName{Namespace: policy.Namespace, Name: policy.Name}
-	if privileged {
-		pdp.privilegedPolicies.addPolicy(polName, &policy.Spec)
+	if policy.privileged {
+		pdp.privilegedPolicies.addPolicy(policy.name, &policy.spec)
 	} else {
-		pdp.regularPolicies.addPolicy(polName, &policy.Spec)
+		pdp.regularPolicies.addPolicy(policy.name, &policy.spec)
 	}
 	return nil
 }
 
 // DeletePolicy deletes an AccessPolicy with the given name and privilege from the PDP.
 // If no such AccessPolicy exists in the PDP, an error is returned.
-func (pdp *PDP) DeletePolicy(policyName types.NamespacedName) error {
-	if policyName.Namespace == "" { // privileged policies have no namespace, regular policies do
+func (pdp *PDP) DeletePolicy(policyName types.NamespacedName, privileged bool) error {
+	if privileged {
 		return pdp.privilegedPolicies.deletePolicy(policyName)
 	}
 	return pdp.regularPolicies.deletePolicy(policyName)

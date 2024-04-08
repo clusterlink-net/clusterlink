@@ -164,15 +164,13 @@ func (m *Manager) DeleteExport(name types.NamespacedName) {
 }
 
 // AddAccessPolicy adds an access policy to allow/deny specific connections.
-// TODO: switch from api.Policy to v1alpha1.Policy.
-func (m *Manager) AddAccessPolicy(policy *v1alpha1.AccessPolicy, privileged bool) error {
-	return m.policyDecider.AddAccessPolicy(policy, privileged)
+func (m *Manager) AddAccessPolicy(policy *connectivitypdp.AccessPolicy) error {
+	return m.policyDecider.AddAccessPolicy(policy)
 }
 
 // DeleteAccessPolicy removes an access policy to allow/deny specific connections.
-// TODO: switch from api.Policy to v1alpha1.Policy.
-func (m *Manager) DeleteAccessPolicy(name types.NamespacedName) error {
-	return m.policyDecider.DeleteAccessPolicy(name)
+func (m *Manager) DeleteAccessPolicy(name types.NamespacedName, privileged bool) error {
+	return m.policyDecider.DeleteAccessPolicy(name, privileged)
 }
 
 // AddLBPolicy adds a load-balancing policy to set a load-balancing scheme for specific connections.

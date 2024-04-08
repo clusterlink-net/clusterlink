@@ -41,8 +41,8 @@ type PolicyDecider interface {
 	AddLBPolicy(policy *api.Policy) error
 	DeleteLBPolicy(policy *api.Policy) error
 
-	AddAccessPolicy(policy *crds.AccessPolicy, privileged bool) error
-	DeleteAccessPolicy(name types.NamespacedName) error
+	AddAccessPolicy(policy *connectivitypdp.AccessPolicy) error
+	DeleteAccessPolicy(name types.NamespacedName, privileged bool) error
 
 	AuthorizeAndRouteConnection(connReq *connectivitypdp.ConnectionRequest) (connectivitypdp.ConnectionResponse, error)
 
@@ -236,10 +236,10 @@ func (pH *PolicyHandler) DeleteLBPolicy(policy *api.Policy) error {
 	return pH.loadBalancer.DeletePolicy(lbPolicy)
 }
 
-func (pH *PolicyHandler) AddAccessPolicy(policy *crds.AccessPolicy, privileged bool) error {
-	return pH.connectivityPDP.AddOrUpdatePolicy(policy, privileged)
+func (pH *PolicyHandler) AddAccessPolicy(policy *connectivitypdp.AccessPolicy) error {
+	return pH.connectivityPDP.AddOrUpdatePolicy(policy)
 }
 
-func (pH *PolicyHandler) DeleteAccessPolicy(name types.NamespacedName) error {
-	return pH.connectivityPDP.DeletePolicy(name)
+func (pH *PolicyHandler) DeleteAccessPolicy(name types.NamespacedName, privileged bool) error {
+	return pH.connectivityPDP.DeletePolicy(name, privileged)
 }

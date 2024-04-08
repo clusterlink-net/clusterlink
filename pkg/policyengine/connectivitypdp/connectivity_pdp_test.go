@@ -56,7 +56,7 @@ func TestPrivilegedVsRegular(t *testing.T) {
 			To:     workloadSet,
 		},
 	}
-	trivialPrivConnPol := v1alpha1.AccessPolicy{
+	trivialPrivConnPol := v1alpha1.PrivilegedAccessPolicy{
 		ObjectMeta: metav1.ObjectMeta{Name: "priv"},
 		Spec: v1alpha1.AccessPolicySpec{
 			Action: v1alpha1.AccessPolicyActionDeny,
@@ -73,7 +73,7 @@ func TestPrivilegedVsRegular(t *testing.T) {
 	require.Equal(t, connectivitypdp.DefaultDenyPolicyName, decisions[0].MatchedBy)
 	require.Equal(t, false, decisions[0].PrivilegedMatch)
 
-	err = pdp.AddOrUpdatePolicy(&trivialConnPol, false)
+	err = pdp.AddOrUpdatePolicy(connectivitypdp.PolicyFromCRD(&trivialConnPol))
 	require.Nil(t, err)
 	dests = []connectivitypdp.WorkloadAttrs{trivialLabel}
 	decisions, err = pdp.Decide(trivialLabel, dests, defaultNS)
@@ -82,7 +82,7 @@ func TestPrivilegedVsRegular(t *testing.T) {
 	require.Equal(t, types.NamespacedName{Name: "reg", Namespace: defaultNS}.String(), decisions[0].MatchedBy)
 	require.Equal(t, false, decisions[0].PrivilegedMatch)
 
-	err = pdp.AddOrUpdatePolicy(&trivialPrivConnPol, true)
+	err = pdp.AddOrUpdatePolicy(connectivitypdp.PolicyFromPrivilegedCRD(&trivialPrivConnPol))
 	require.Nil(t, err)
 	dests = []connectivitypdp.WorkloadAttrs{trivialLabel}
 	decisions, err = pdp.Decide(trivialLabel, dests, defaultNS)
@@ -129,7 +129,7 @@ func TestAllLayers(t *testing.T) {
 
 	privDenyPolicy := getNameOfFirstPolicyInPDP(pdp, v1alpha1.AccessPolicyActionDeny, true)
 	require.NotEmpty(t, privDenyPolicy)
-	err = pdp.DeletePolicy(types.NamespacedName{Name: privDenyPolicy})
+	err = pdp.DeletePolicy(types.NamespacedName{Name: privDenyPolicy}, true)
 	require.Nil(t, err)
 	dests = []connectivitypdp.WorkloadAttrs{privateMeteringLabel}
 	decisions, err = pdp.Decide(privateLabel, dests, defaultNS)
@@ -139,7 +139,7 @@ func TestAllLayers(t *testing.T) {
 
 	privAllowPolicy := getNameOfFirstPolicyInPDP(pdp, v1alpha1.AccessPolicyActionAllow, true)
 	require.NotEmpty(t, privAllowPolicy)
-	err = pdp.DeletePolicy(types.NamespacedName{Name: privAllowPolicy})
+	err = pdp.DeletePolicy(types.NamespacedName{Name: privAllowPolicy}, true)
 	require.Nil(t, err)
 	dests = []connectivitypdp.WorkloadAttrs{privateMeteringLabel}
 	decisions, err = pdp.Decide(privateLabel, dests, defaultNS)
@@ -148,7 +148,7 @@ func TestAllLayers(t *testing.T) {
 
 	regDenyPolicy := getNameOfFirstPolicyInPDP(pdp, v1alpha1.AccessPolicyActionDeny, false)
 	require.NotEmpty(t, regDenyPolicy)
-	err = pdp.DeletePolicy(types.NamespacedName{Name: regDenyPolicy, Namespace: defaultNS})
+	err = pdp.DeletePolicy(types.NamespacedName{Name: regDenyPolicy, Namespace: defaultNS}, false)
 	require.Nil(t, err)
 	dests = []connectivitypdp.WorkloadAttrs{privateMeteringLabel}
 	decisions, err = pdp.Decide(privateLabel, dests, defaultNS)
@@ -157,7 +157,7 @@ func TestAllLayers(t *testing.T) {
 
 	regAllowPolicy := getNameOfFirstPolicyInPDP(pdp, v1alpha1.AccessPolicyActionAllow, false)
 	require.NotEmpty(t, regAllowPolicy)
-	err = pdp.DeletePolicy(types.NamespacedName{Name: regAllowPolicy, Namespace: defaultNS})
+	err = pdp.DeletePolicy(types.NamespacedName{Name: regAllowPolicy, Namespace: defaultNS}, false)
 	require.Nil(t, err)
 	dests = []connectivitypdp.WorkloadAttrs{privateMeteringLabel}
 	decisions, err = pdp.Decide(privateLabel, dests, defaultNS)
@@ -188,7 +188,9 @@ func getNameOfFirstPolicyInPDP(pdp *connectivitypdp.PDP, action v1alpha1.AccessP
 
 func TestDeleteNonexistingPolicies(t *testing.T) {
 	pdp := connectivitypdp.NewPDP()
-	err := pdp.DeletePolicy(types.NamespacedName{Name: "no-such-policy"})
+	err := pdp.DeletePolicy(types.NamespacedName{Name: "no-such-policy"}, true)
+	require.NotNil(t, err)
+	err = pdp.DeletePolicy(types.NamespacedName{Name: "no-such-policy"}, false)
 	require.NotNil(t, err)
 }
 
@@ -206,7 +208,7 @@ func TestBadSelector(t *testing.T) {
 		},
 	}
 	pdp := connectivitypdp.NewPDP()
-	err := pdp.AddOrUpdatePolicy(&badSelectorPol, false)
+	err := pdp.AddOrUpdatePolicy(connectivitypdp.PolicyFromCRD(&badSelectorPol))
 	require.NotNil(t, err)
 }
 
@@ -252,7 +254,16 @@ func addPoliciesFromFile(pdp *connectivitypdp.PDP, filename string) error {
 			return err
 		}
 
-		err = pdp.AddOrUpdatePolicy(&policy, policy.Kind == "PrivilegedAccessPolicy")
+		pdpPolicy := connectivitypdp.PolicyFromCRD(&policy)
+		if policy.Kind == "PrivilegedAccessPolicy" {
+			privPolicy := v1alpha1.PrivilegedAccessPolicy{
+				ObjectMeta: metav1.ObjectMeta{Name: policy.Name},
+				Spec:       policy.Spec,
+			}
+			pdpPolicy = connectivitypdp.PolicyFromPrivilegedCRD(&privPolicy)
+		}
+
+		err = pdp.AddOrUpdatePolicy(pdpPolicy)
 		if err != nil {
 			fmt.Printf("invalid connectivity policy: %v\n", err)
 		}
