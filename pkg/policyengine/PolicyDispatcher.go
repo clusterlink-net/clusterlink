@@ -87,21 +87,21 @@ func getServiceAttrsForMultipleDsts(serviceName string, dsts []crds.ImportSource
 	return res
 }
 
-func (pH *PolicyHandler) filterOutDisabledPeers(dsts []crds.ImportSource) []crds.ImportSource {
+func (ph *PolicyHandler) filterOutDisabledPeers(dsts []crds.ImportSource) []crds.ImportSource {
 	res := []crds.ImportSource{}
 	for _, dst := range dsts {
-		if pH.enabledPeers[dst.Peer] {
+		if ph.enabledPeers[dst.Peer] {
 			res = append(res, dst)
 		}
 	}
 	return res
 }
 
-func (pH *PolicyHandler) decideIncomingConnection(
+func (ph *PolicyHandler) decideIncomingConnection(
 	req *connectivitypdp.ConnectionRequest,
 ) (connectivitypdp.ConnectionResponse, error) {
 	dest := getServiceAttrs(req.DstSvcName, "")
-	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, []connectivitypdp.WorkloadAttrs{dest},
+	decisions, err := ph.connectivityPDP.Decide(req.SrcWorkloadAttrs, []connectivitypdp.WorkloadAttrs{dest},
 		req.DstSvcNamespace)
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
@@ -113,22 +113,22 @@ func (pH *PolicyHandler) decideIncomingConnection(
 	return connectivitypdp.ConnectionResponse{Action: crds.AccessPolicyActionDeny}, nil
 }
 
-func (pH *PolicyHandler) decideOutgoingConnection(
+func (ph *PolicyHandler) decideOutgoingConnection(
 	req *connectivitypdp.ConnectionRequest,
 ) (connectivitypdp.ConnectionResponse, error) {
 	// Get a list of possible destinations for the service (a.k.a. service sources)
 	dstSvcNsName := types.NamespacedName{Namespace: req.DstSvcNamespace, Name: req.DstSvcName}
-	svcSourceList, err := pH.loadBalancer.GetSvcSources(dstSvcNsName)
+	svcSourceList, err := ph.loadBalancer.GetSvcSources(dstSvcNsName)
 	if err != nil {
 		plog.Errorf("error getting sources for service %s: %v", req.DstSvcName, err)
 		// this can be caused by a user typo - so only log this error
 		return connectivitypdp.ConnectionResponse{Action: crds.AccessPolicyActionDeny}, nil
 	}
 
-	svcSourceList = pH.filterOutDisabledPeers(svcSourceList)
+	svcSourceList = ph.filterOutDisabledPeers(svcSourceList)
 
 	dsts := getServiceAttrsForMultipleDsts(req.DstSvcName, svcSourceList)
-	decisions, err := pH.connectivityPDP.Decide(req.SrcWorkloadAttrs, dsts, req.DstSvcNamespace)
+	decisions, err := ph.connectivityPDP.Decide(req.SrcWorkloadAttrs, dsts, req.DstSvcNamespace)
 	if err != nil {
 		plog.Errorf("error deciding on a connection: %v", err)
 		return connectivitypdp.ConnectionResponse{Action: crds.AccessPolicyActionDeny}, err
@@ -147,7 +147,7 @@ func (pH *PolicyHandler) decideOutgoingConnection(
 	}
 
 	// Perform load-balancing using the filtered peer list
-	tgt, err := pH.loadBalancer.LookupWith(dstSvcNsName, allowedSvcSources)
+	tgt, err := ph.loadBalancer.LookupWith(dstSvcNsName, allowedSvcSources)
 	if err != nil {
 		return connectivitypdp.ConnectionResponse{Action: crds.AccessPolicyActionDeny}, err
 	}
@@ -159,7 +159,7 @@ func (pH *PolicyHandler) decideOutgoingConnection(
 	}, nil
 }
 
-func (pH *PolicyHandler) AuthorizeAndRouteConnection(req *connectivitypdp.ConnectionRequest) (
+func (ph *PolicyHandler) AuthorizeAndRouteConnection(req *connectivitypdp.ConnectionRequest) (
 	connectivitypdp.ConnectionResponse,
 	error,
 ) {
@@ -168,36 +168,36 @@ func (pH *PolicyHandler) AuthorizeAndRouteConnection(req *connectivitypdp.Connec
 	var resp connectivitypdp.ConnectionResponse
 	var err error
 	if req.Direction == connectivitypdp.Incoming {
-		resp, err = pH.decideIncomingConnection(req)
+		resp, err = ph.decideIncomingConnection(req)
 	} else if req.Direction == connectivitypdp.Outgoing {
-		resp, err = pH.decideOutgoingConnection(req)
+		resp, err = ph.decideOutgoingConnection(req)
 	}
 
 	plog.Infof("Response : %+v", resp)
 	return resp, err
 }
 
-func (pH *PolicyHandler) AddPeer(name string) {
-	pH.enabledPeers[name] = true
+func (ph *PolicyHandler) AddPeer(name string) {
+	ph.enabledPeers[name] = true
 	plog.Infof("Added Peer %s", name)
 }
 
-func (pH *PolicyHandler) DeletePeer(name string) {
-	delete(pH.enabledPeers, name)
+func (ph *PolicyHandler) DeletePeer(name string) {
+	delete(ph.enabledPeers, name)
 	plog.Infof("Removed Peer %s", name)
 }
 
-func (pH *PolicyHandler) AddImport(imp *crds.Import) {
-	pH.loadBalancer.AddImport(imp)
+func (ph *PolicyHandler) AddImport(imp *crds.Import) {
+	ph.loadBalancer.AddImport(imp)
 }
 
-func (pH *PolicyHandler) DeleteImport(name types.NamespacedName) {
-	pH.loadBalancer.DeleteImport(name)
+func (ph *PolicyHandler) DeleteImport(name types.NamespacedName) {
+	ph.loadBalancer.DeleteImport(name)
 }
 
-func (pH *PolicyHandler) AddExport(_ *crds.Export) ([]string, error) {
+func (ph *PolicyHandler) AddExport(_ *crds.Export) ([]string, error) {
 	retPeers := []string{}
-	for peer, enabled := range pH.enabledPeers {
+	for peer, enabled := range ph.enabledPeers {
 		if enabled {
 			retPeers = append(retPeers, peer)
 		}
@@ -205,7 +205,7 @@ func (pH *PolicyHandler) AddExport(_ *crds.Export) ([]string, error) {
 	return retPeers, nil
 }
 
-func (pH *PolicyHandler) DeleteExport(_ string) {
+func (ph *PolicyHandler) DeleteExport(_ string) {
 }
 
 // lbPolicyFromBlob unmarshals an LBPolicy object encoded as json in a byte array.
@@ -220,26 +220,26 @@ func lbPolicyFromBlob(blob []byte) (*LBPolicy, error) {
 	return lbPolicy, nil
 }
 
-func (pH *PolicyHandler) AddLBPolicy(policy *api.Policy) error {
+func (ph *PolicyHandler) AddLBPolicy(policy *api.Policy) error {
 	lbPolicy, err := lbPolicyFromBlob(policy.Spec.Blob)
 	if err != nil {
 		return err
 	}
-	return pH.loadBalancer.SetPolicy(lbPolicy)
+	return ph.loadBalancer.SetPolicy(lbPolicy)
 }
 
-func (pH *PolicyHandler) DeleteLBPolicy(policy *api.Policy) error {
+func (ph *PolicyHandler) DeleteLBPolicy(policy *api.Policy) error {
 	lbPolicy, err := lbPolicyFromBlob(policy.Spec.Blob)
 	if err != nil {
 		return err
 	}
-	return pH.loadBalancer.DeletePolicy(lbPolicy)
+	return ph.loadBalancer.DeletePolicy(lbPolicy)
 }
 
-func (pH *PolicyHandler) AddAccessPolicy(policy *connectivitypdp.AccessPolicy) error {
-	return pH.connectivityPDP.AddOrUpdatePolicy(policy)
+func (ph *PolicyHandler) AddAccessPolicy(policy *connectivitypdp.AccessPolicy) error {
+	return ph.connectivityPDP.AddOrUpdatePolicy(policy)
 }
 
-func (pH *PolicyHandler) DeleteAccessPolicy(name types.NamespacedName, privileged bool) error {
-	return pH.connectivityPDP.DeletePolicy(name, privileged)
+func (ph *PolicyHandler) DeleteAccessPolicy(name types.NamespacedName, privileged bool) error {
+	return ph.connectivityPDP.DeletePolicy(name, privileged)
 }
