@@ -25,8 +25,8 @@ type AccessPolicy struct {
 	spec       v1alpha1.AccessPolicySpec
 }
 
-// PolicyFromCRD converts the AccessPolicy CRD into the PDP's AccessPolicy.
-func PolicyFromCRD(vap *v1alpha1.AccessPolicy) *AccessPolicy {
+// PolicyFromCR converts the AccessPolicy Custom Resource into the PDP's AccessPolicy.
+func PolicyFromCR(vap *v1alpha1.AccessPolicy) *AccessPolicy {
 	return &AccessPolicy{
 		name:       types.NamespacedName{Namespace: vap.Namespace, Name: vap.Name},
 		privileged: false,
@@ -34,8 +34,8 @@ func PolicyFromCRD(vap *v1alpha1.AccessPolicy) *AccessPolicy {
 	}
 }
 
-// PolicyFromPrivilegedCRD converts the PrivilegedAccessPolicy CRD into the PDP's AccessPolicy.
-func PolicyFromPrivilegedCRD(vap *v1alpha1.PrivilegedAccessPolicy) *AccessPolicy {
+// PolicyFromPrivilegedCR converts the PrivilegedAccessPolicy Custom Resource into the PDP's AccessPolicy.
+func PolicyFromPrivilegedCR(vap *v1alpha1.PrivilegedAccessPolicy) *AccessPolicy {
 	return &AccessPolicy{
 		name:       types.NamespacedName{Name: vap.Name},
 		privileged: true,

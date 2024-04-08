@@ -32,7 +32,7 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode boo
 			Name:   "authz.access-policy",
 			Object: &v1alpha1.AccessPolicy{},
 			AddHandler: func(ctx context.Context, object any) error {
-				accPolicy := connectivitypdp.PolicyFromCRD(object.(*v1alpha1.AccessPolicy))
+				accPolicy := connectivitypdp.PolicyFromCR(object.(*v1alpha1.AccessPolicy))
 				return mgr.AddAccessPolicy(accPolicy)
 			},
 			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
@@ -47,7 +47,7 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode boo
 			Name:   "authz.privileged-access-policy",
 			Object: &v1alpha1.PrivilegedAccessPolicy{},
 			AddHandler: func(_ context.Context, object any) error {
-				accPolicy := connectivitypdp.PolicyFromPrivilegedCRD(object.(*v1alpha1.PrivilegedAccessPolicy))
+				accPolicy := connectivitypdp.PolicyFromPrivilegedCR(object.(*v1alpha1.PrivilegedAccessPolicy))
 				return mgr.AddAccessPolicy(accPolicy)
 			},
 			DeleteHandler: func(_ context.Context, name types.NamespacedName) error {

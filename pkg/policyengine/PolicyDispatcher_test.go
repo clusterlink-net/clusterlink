@@ -53,7 +53,7 @@ var (
 		},
 	}
 
-	pdpPolicy = connectivitypdp.PolicyFromCRD(&policy)
+	pdpPolicy = connectivitypdp.PolicyFromCR(&policy)
 )
 
 func TestAddAndDeleteConnectivityPolicy(t *testing.T) {
@@ -77,7 +77,7 @@ func TestAddBadPolicy(t *testing.T) {
 			Name: "bad-policy",
 		},
 	}
-	err := ph.AddAccessPolicy(connectivitypdp.PolicyFromCRD(&badPolicy))
+	err := ph.AddAccessPolicy(connectivitypdp.PolicyFromCR(&badPolicy))
 	require.NotNil(t, err)
 }
 
@@ -85,7 +85,7 @@ func TestIncomingConnectionRequests(t *testing.T) {
 	ph := policyengine.NewPolicyHandler()
 	policy2 := policy
 	policy2.Spec.To = []crds.WorkloadSetOrSelector{{WorkloadSelector: &selectAllSelector}}
-	err := ph.AddAccessPolicy(connectivitypdp.PolicyFromCRD(&policy2))
+	err := ph.AddAccessPolicy(connectivitypdp.PolicyFromCR(&policy2))
 	require.Nil(t, err)
 
 	srcAttrs := connectivitypdp.WorkloadAttrs{policyengine.ServiceNameLabel: svcName}
@@ -114,7 +114,7 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	simpleWorkloadSet2 := crds.WorkloadSetOrSelector{WorkloadSelector: &simpleSelector2}
 	policy2 := policy
 	policy2.Spec.To = []crds.WorkloadSetOrSelector{simpleWorkloadSet2}
-	err := ph.AddAccessPolicy(connectivitypdp.PolicyFromCRD(&policy2))
+	err := ph.AddAccessPolicy(connectivitypdp.PolicyFromCR(&policy2))
 	require.Nil(t, err)
 
 	addRemoteSvc(t, svcName, []string{peer1, peer2}, ph)

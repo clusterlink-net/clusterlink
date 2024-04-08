@@ -59,7 +59,7 @@ func (m *Manager) CreateAccessPolicy(policy *store.AccessPolicy) error {
 		m.logger.Errorf("failed decoding access policy %s", policy.Name)
 		return err
 	}
-	return m.authzManager.AddAccessPolicy(connectivitypdp.PolicyFromCRD(acPolicy))
+	return m.authzManager.AddAccessPolicy(connectivitypdp.PolicyFromCR(acPolicy))
 }
 
 // UpdateAccessPolicy updates an access policy to allow/deny specific connections.
@@ -78,7 +78,7 @@ func (m *Manager) UpdateAccessPolicy(policy *store.AccessPolicy) error {
 		m.logger.Errorf("failed decoding access policy %s", policy.Name)
 		return err
 	}
-	return m.authzManager.AddAccessPolicy(connectivitypdp.PolicyFromCRD(acPolicy))
+	return m.authzManager.AddAccessPolicy(connectivitypdp.PolicyFromCR(acPolicy))
 }
 
 // DeleteAccessPolicy removes an access policy to allow/deny specific connections.
