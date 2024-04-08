@@ -35,7 +35,7 @@ Orchestration of service sharing is the responsibility of users wishing to
 
 <!-- TODO: image showing export/import (from >2 clusters?) -->
 
-<!-- 
+<!--
  TODO centralized management may apply simplification of sharing via policies
   (e.g., auto-expose)
   can also simplify some via clusterlink cli (e.g., allow-all policy default)
@@ -99,6 +99,20 @@ Note that exporting a Service does not automatically make is accessible to other
  [service imports](#importing-a-service) and [policies]({{% ref "policies" %}})
  in their respective namespaces.
 
+{{% expand summary="Example YAML for `kubectl apply -f <export_file>`" %}}
+
+```yaml
+apiVersion: clusterlink.net/v1alpha1
+kind: Export
+metadata:
+  name: iperf3-server
+  namespace: default
+spec:
+  port:  5000
+```
+
+{{% /expand %}}
+
 ### Importing a service
 
 Exposing remote services to a peer is accomplished by creating an Import CR
@@ -121,7 +135,7 @@ The Import instance creates the service endpoint in the same namespace as it is
 type Import struct {
     metav1.TypeMeta   `json:",inline"`
     metav1.ObjectMeta `json:"metadata,omitempty"`
-    
+
     Spec ImportSpec     `json:"spec"`
     Status ImportStatus `json:"status,omitempty"`
 }
@@ -178,6 +192,24 @@ As with exports, importing a service does not automatically make it accessible b
  allows access in the importing cluster. To grant access, a connection must be
  evaluated to "allow" by both egress (importing cluster) and ingress (exporting
  cluster) policies.
+
+{{% expand summary="Example YAML for `kubectl apply -f <import_file>`" %}}
+
+```yaml
+apiVersion: clusterlink.net/v1alpha1
+kind: Import
+metadata:
+  name: iperf3-server
+  namespace: default
+spec:
+  port:       5000
+  sources:
+    - exportName:       iperf3-server
+      exportNamespace:  default
+      peer:             server
+```
+
+{{% /expand %}}
 
 ## Related tasks
 
