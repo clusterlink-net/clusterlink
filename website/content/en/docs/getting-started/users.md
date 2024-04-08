@@ -54,7 +54,7 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
 1. {{< anchor install-cl-operator >}}Install ClusterLink deployment operator:
 
    ```sh
-   clusterlink peer deploy --autostart --name <peer_name> --fabric <fabric_name>
+   clusterlink deploy peer --autostart --name <peer_name> --fabric <fabric_name>
    ```
 
    This command will deploy the ClusterLink operator on the `clusterlink-operator` namespace
@@ -76,7 +76,7 @@ To deploy ClusterLink on another cluster, repeat steps 2-3 in a console with acc
 * Setting ClusterLink namespace:
 
    ```sh
-   clusterlink peer deploy --autostart --name <peer_name> --fabric <fabric_name> \
+   clusterlink deploy peer --autostart --name <peer_name> --fabric <fabric_name> \
          --namespace <namespace>
    ```
 
@@ -86,7 +86,7 @@ To deploy ClusterLink on another cluster, repeat steps 2-3 in a console with acc
 * Setting ClusterLink ingress type:
 
    ```sh
-   clusterlink peer deploy --autostart --name <peer_name> --fabric <fabric_name> \
+   clusterlink deploy peer --autostart --name <peer_name> --fabric <fabric_name> \
          --ingress <ingress_type>
    ```
 

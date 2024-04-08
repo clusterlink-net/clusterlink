@@ -130,11 +130,11 @@ kind: AccessPolicy
 metadata:
     name: allow-all
     namespace: default
-spec: 
+spec:
     action: allow
     from:
     - workloadSelector: {}
-    to: 
+    to:
     - workloadSelector: {}
 ```
 
