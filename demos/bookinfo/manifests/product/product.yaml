@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
       - name: productpage
-        image: docker.io/maistra/examples-bookinfo-productpage-v1
+        image: docker.io/istio/examples-bookinfo-productpage-v1
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9080

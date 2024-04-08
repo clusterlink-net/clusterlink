@@ -4,7 +4,7 @@ description: Defining ClusterLink peers as part of a fabric
 weight: 20
 ---
 
-A `Peer` represents a location, such as a Kubernetes cluster, participating in a
+A *Peer* represents a location, such as a Kubernetes cluster, participating in a
  [fabric]({{< ref "fabric" >}}). Each peer may host one or more [services]({{< ref "services" >}})
  it wishes to share with other peers. A peer is managed by a peer administrator,
  which is responsible for running the ClusterLink control and data planes. The
@@ -17,7 +17,7 @@ Once a peer has been added to a fabric, it can communicate with any other peer
  belonging to it. All configuration relating to service sharing (e.g., the exporting
  and importing of services, and the setting of fine grained application policies) can be
  done with lowered privileges (e.g., by users, such as application owners). Remote peers are
- represented by the `Peer` Custom Resource Definition (CRD). Each Peer CR instance
+ represented by the Peer Custom Resource Definition (CRD). Each Peer CR instance
  defines a remote cluster and the network endpoints of its ClusterLink gateways.
 
 ## Prerequisites
@@ -46,7 +46,7 @@ clusterlink create peer-cert --name <peer_name> --fabric <fabric_name>
 
 {{< notice tip >}}
 The fabric CA files (certificate and private key) are expected to be in a subdirectory
-(i.e., `./<fabric_name>/cert.name` and `./<fabric_name>/key.pem`).
+ (i.e., `./<fabric_name>/cert.name` and `./<fabric_name>/key.pem`).
 {{< /notice >}}
 
 This will create the certificate and private key files (`cert.pem` and
@@ -81,17 +81,17 @@ clusterlink peer init
 <!-- TODO: is this the right command -->
 
 The command assumes that kubectl is set to the correct context and credentials
-and that the certificates were created in respective sub-directories
-under the current working directory.
-If they were not, add the `-f <path>` CLI option to set the correct path.
+ and that the certificates were created in respective sub-directories
+ under the current working directory.
+ If they were not, add the `-f <path>` CLI option to set the correct path.
 
 This command will deploy the ClusterLink deployment CRDs using the current
-kubectl context. The operation requires cluster administrator privileges
-in order to install CRDs into the cluster.
-The ClusterLink operator is installed to the `clusterlink-operator` namespace
-and the CA and peer certificate and private key are set as K8s secrets
-in the namespace. You can confirm the successful completion of this step using
-the following commands:
+ `kubectl` context. The operation requires cluster administrator privileges
+ in order to install CRDs into the cluster.
+ The ClusterLink operator is installed to the `clusterlink-operator` namespace
+ and the CA and peer certificate and private key are set as K8s secrets
+ in the namespace. You can confirm the successful completion of this step using
+ the following commands:
 
 ```sh
 kubectl get crds

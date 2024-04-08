@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     ### build docker environment
     os.system("make build")
-    os.system("sudo make install")
+    os.system("make install")
 
     cl1.machineType = machineType
     cl2.machineType = machineType

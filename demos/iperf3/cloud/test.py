@@ -24,8 +24,11 @@ from demos.utils.cloud import Cluster
 from demos.iperf3.test import iperf3Test
 
 cl1gcp = Cluster(name="peer1", zone = "us-west1-b", platform = "gcp")
+cl1aws = Cluster(name="peer1", zone = "us-west-2",  platform = "aws")
 cl1ibm = Cluster(name="peer1", zone = "dal10",      platform = "ibm")
+
 cl2gcp = Cluster(name="peer2", zone = "us-west1-b", platform = "gcp")
+cl2aws = Cluster(name="peer2", zone = "us-west-1",  platform = "aws")
 cl2ibm = Cluster(name="peer2", zone = "dal10",      platform = "ibm")
 
 srcSvc           = "iperf3-client"
@@ -48,13 +51,13 @@ if __name__ == "__main__":
     parser.add_argument('-d','--dataplane', help='Which dataplane to use envoy/go', required=False, default="envoy")
 
     args = vars(parser.parse_args())
-
     command = args["command"]
     cloud = args["cloud"]
     dltCluster = args["deleteCluster"]
     machineType = args["machineType"]
-    cl1 = cl1gcp if cloud in ["gcp","diff"] else cl1ibm
-    cl2 = cl2gcp if cloud in ["gcp"]        else cl2ibm
+    cl1 = cl1gcp if cloud in ["gcp","diff"] else cl1aws if cloud in ["aws"] else cl1ibm
+    cl2 = cl2gcp if cloud in ["gcp"] else cl2aws if cloud in ["aws"] else cl2ibm
+
     print(f'Working directory {projDir}')
     os.chdir(projDir)
 

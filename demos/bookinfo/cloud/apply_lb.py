@@ -37,11 +37,12 @@ clList = { "peer1gcp" : Cluster(name="peer1", zone = "us-west1-b"    , platform 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('-p','--peer', help='Either peer1/peer2/peer3', required=False, default="peer1")
-    parser.add_argument('-t','--type', help='Either round-robin/same/diff/clean/show', required=False, default="round-robin")
+    parser.add_argument('-t','--type', help='Either round-robin/random/same/diff/clean/show', required=False, default="round-robin")
     parser.add_argument('-cloud','--cloud', help='Cloud setup using gcp/ibm', required=False, default="gcp")
 
     args = vars(parser.parse_args())
     print(f'Working directory {projDir}')
     os.chdir(projDir)
     cl = clList[args["peer"] + args["cloud"]]
+    cl.set_kube_config()
     applyPolicy(cl, args["type"])

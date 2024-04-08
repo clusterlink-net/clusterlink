@@ -41,7 +41,7 @@ class Cluster(ClusterLink):
             print(cmd)
             os.system(cmd)
         elif self.platform == "aws": #--instance-selector-vcpus 2  --instance-selector-memory 4 --instance-selector-cpu-architecture arm64
-            cmd =f"eksctl create cluster --name {self.name} --region {self.zone} -N 1  {flags}  {bgFlag}"
+            cmd =f"eksctl create cluster --name {self.name} --region {self.zone} -N 1 {bgFlag}"
             print(cmd)
             os.system(cmd)
 
@@ -65,6 +65,7 @@ class Cluster(ClusterLink):
     # startCluster deploys Clusterlink into the cluster.
     def startCluster(self, testOutputFolder, logLevel="info",dataplane="envoy"):
         self.checkClusterIsReady()
+        self.useCluster()
         super().set_kube_config()
         self.create_peer_cert(self.name,testOutputFolder, logLevel, dataplane)
         self.deploy_peer(self.name, testOutputFolder)
@@ -74,36 +75,43 @@ class Cluster(ClusterLink):
     # useCluster sets the context for the input kind cluster.
     def useCluster(self):
         print(f"\n CONNECT TO: {self.name} in zone: {self.zone} ,platform: {self.platform}\n")
-        connectFlag= False
-        while (not connectFlag):
-            if self.platform == "gcp":
-                PROJECT_ID=sp.getoutput("gcloud info --format='value(config.project)'")
-                cmd=f"gcloud container clusters  get-credentials {self.name} --zone {self.zone} --project {PROJECT_ID}"
-                print(cmd)
-            elif self.platform == "aws":
-                cmd=f"aws eks --region {self.zone} update-kubeconfig --name {self.name}"
-            elif self.platform == "ibm":
-                cmd=f"ibmcloud ks cluster config --cluster {self.name}"
-            else:
-                print (f"ERROR: Cloud platform {self.platform} not supported")
-                exit(1)
+        if self.platform == "gcp":
+            PROJECT_ID=sp.getoutput("gcloud info --format='value(config.project)'")
+            cmd=f"gcloud container clusters  get-credentials {self.name} --zone {self.zone} --project {PROJECT_ID}"
+        elif self.platform == "aws":
+            cmd=f"aws eks --region {self.zone} update-kubeconfig --name {self.name}"
+        elif self.platform == "ibm":
+            cmd=f"ibmcloud ks cluster config --cluster {self.name}"
+        else:
+            print (f"ERROR: Cloud platform {self.platform} not supported")
+            exit(1)
+        print(cmd)
+        out=sp.getoutput(cmd)
+        print(f"connection output: {out}")
 
-            out=sp.getoutput(cmd)
-            print(f"connection output: {out}")
-            connectFlag = False if ("ERROR" in out or "WARNING" in out or "Failed" in out) else True
-            if not connectFlag:
-                time.sleep(30) #wait more time to connection
-            return out
 
     # checkClusterIsReady set the context for the input kind cluster.
     def checkClusterIsReady(self):
-        connectFlag= False
-        while (not connectFlag):
-            out=self.useCluster()
-            connectFlag = False if ("ERROR" in out or "Failed" in out or "FAILED" in out) else True
+        while (True):
+            print(f"\n Check cluster {self.name} in zone: {self.zone} ,platform: {self.platform} is ready.\n")
+            if self.platform == "gcp":
+                PROJECT_ID=sp.getoutput("gcloud info --format='value(config.project)'")
+                cmd = f"gcloud container clusters describe {self.name} --zone {self.zone} --project {PROJECT_ID} --format='value(status)'"
+            elif self.platform == "aws":
+                cmd = f'aws eks --region {self.zone} describe-cluster --name {self.name} --query "cluster.status"'
+            elif self.platform == "ibm":
+                cmd = f"ibmcloud ks cluster get --cluster {self.name}"
+            else:
+                print (f"ERROR: Cloud platform {self.platform} not supported")
+            print(cmd)
+            out=sp.getoutput(cmd)
+            if ("ACTIVE" in out  and  self.platform == "aws") or ("RUNNING" in out and  self.platform == "gcp") or \
+               ("normal" in out and self.platform == "ibm"):
+                break
+
             time.sleep(20)
 
-        print(f"\n Cluster Ready: {self.name} in zone: {self.zone} ,platform: {self.platform}\n")
+        print(f"\n Cluster is ready: {self.name} in zone: {self.zone} ,platform: {self.platform}\n")
 
     # replace the container registry ip according to the proxy platform.
     def replaceSourceImage(self,yamlPath,imagePrefix):
@@ -148,10 +156,13 @@ class Cluster(ClusterLink):
 
     # createLoadBalancer creates load-balancer to external access.
     def waitToLoadBalancer(self):
-        gwIp=""
-        while gwIp =="":
+        gwHost=""
+        while gwHost =="":
             print("Waiting for clusterlink loadbalncer ip...")
-            gwIp=sp.getoutput(f'kubectl get svc clusterlink -n {self.namespace} ' +' -o jsonpath="{.status.loadBalancer.ingress[0].ip}"')
+            if self.platform == "aws":
+                gwHost=sp.getoutput(f'kubectl get svc clusterlink -n {self.namespace} ' +' -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"')
+            else:
+                gwHost=sp.getoutput(f'kubectl get svc clusterlink -n {self.namespace} ' +' -o jsonpath="{.status.loadBalancer.ingress[0].ip}"')
             time.sleep(10)
-        self.ip = gwIp
-        return gwIp
+        self.ip = gwHost
+        return gwHost

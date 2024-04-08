@@ -7,9 +7,9 @@ weight: 30
 ClusterLink uses services as the unit of sharing between peers.
  One or more peers can expose an (internal) K8s Service to
  be consumed by other [peers]({{% ref "peers" %}}) in the [fabric]({{% ref "fabric" %}}).
- A service is exposed by creating an `Export` CR referencing it in the
+ A service is exposed by creating an *Export* CR referencing it in the
  source cluster. Similarly, the exported service can be made accessible to workloads
- in a peer by defining an `Import` CR in the destination cluster[^KEP-1645].
+ in a peer by defining an *Import* CR in the destination cluster[^KEP-1645].
  Thus, service sharing is an explicit operation. Services are not automatically
  shared by peers in the fabric. Note that the exporting cluster must be
  [configured as a peer]({{% ref "peers#add-or-remove-peers" %}}) of the importing
@@ -52,7 +52,7 @@ The following assume that you have `kubectl` access to two or more clusters wher
 
 In order to make a service potentially accessible by other clusters, it must be
  explicitly configured for remote access via ClusterLink. Exporting is
- accomplished by creating an `Export` CR in the **same** namespace
+ accomplished by creating an Export CR in the **same** namespace
  as the service being exposed. The CR acts as a marker for enabling
  remote access to the service via ClusterLink.
 
@@ -101,7 +101,7 @@ Note that exporting a Service does not automatically make is accessible to other
 
 ### Importing a service
 
-Exposing remote services to a peer is accomplished by creating an `Import` CR
+Exposing remote services to a peer is accomplished by creating an Import CR
  to a namespace. The CR represents the imported service and its
  available backends across all peers. In response to an Import CR, ClusterLink
  control plane will create a local Kubernetes Service selecting the ClusterLink
@@ -166,7 +166,7 @@ The ImportSpec defines the following fields:
   - *ExportName* (string, required): name of the remote export.
 - **LBScheme** (string, optional): load balancing method to select between different
  Sources defined. The default policy is `random`, but you could override it to use
- `round-robin` or `static` (fixed) assignment.
+ `round-robin` or `static` (i.e., fixed) assignment.
 
 <!-- Importing multiport? It is not possible... Could use merge in future?
  perhaps, but might requires explicit service name so can merge correctly
