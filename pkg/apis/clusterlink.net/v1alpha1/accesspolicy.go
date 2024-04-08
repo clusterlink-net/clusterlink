@@ -47,9 +47,6 @@ type PrivilegedAccessPolicy struct {
 	Spec AccessPolicySpec `json:"spec,omitempty"`
 }
 
-// Important note: In the code, PrivilegedAccessPolicy is unmarshalled into AccessPolicy.
-// The two structs must be therefore identical, or something may break.
-
 // AccessPolicyAction specifies whether an AccessPolicy allows or denies
 // the connection specified by its 'From' and 'To' fields.
 type AccessPolicyAction string
