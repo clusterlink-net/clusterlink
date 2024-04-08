@@ -68,7 +68,7 @@ type InstanceReconciler struct {
 // +kubebuilder:rbac:groups="",resources=services;serviceaccounts,verbs=list;get;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=list;get;watch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=list;get;watch
-// +kubebuilder:rbac:groups=clusterlink.net,resources=exports;peers;accesspolicies,verbs=list;get;watch
+// +kubebuilder:rbac:groups=clusterlink.net,resources=exports;peers;accesspolicies;privilegedaccesspolicies,verbs=list;get;watch
 // +kubebuilder:rbac:groups=clusterlink.net,resources=imports,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=clusterlink.net,resources=peers/status;exports/status;imports/status,verbs=update
 // +kubebuilder:rbac:groups="apps",resources=deployments,verbs=list;get;watch;create;update;patch;delete
@@ -421,7 +421,7 @@ func (r *InstanceReconciler) createAccessControl(ctx context.Context, name, name
 			},
 			{
 				APIGroups: []string{"clusterlink.net"},
-				Resources: []string{"peers", "exports", "accesspolicies"},
+				Resources: []string{"peers", "exports", "accesspolicies", "privilegedaccesspolicies"},
 				Verbs:     []string{"get", "list", "watch"},
 			},
 			{

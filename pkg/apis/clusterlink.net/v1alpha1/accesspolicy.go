@@ -20,13 +20,12 @@ import (
 )
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:scope=Cluster
+// +kubebuilder:resource:scope=Namespaced
 
-// PrivilegedAccessPolicy defines whether a group of potential connections should be allowed or denied.
-// If multiple AccessPolicy objects match a given connection, privileged policies
-// take precedence over non-privileged, and within each tier deny policies take
+// AccessPolicy defines whether a set of connections should be allowed or denied.
+// If multiple AccessPolicy objects match a given connection, deny policies take
 // precedence over allow policies.
-type PrivilegedAccessPolicy struct {
+type AccessPolicy struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -35,13 +34,12 @@ type PrivilegedAccessPolicy struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:resource:scope=Cluster
 
-// AccessPolicy defines whether a group of potential connections should be allowed or denied.
-// If multiple AccessPolicy objects match a given connection, privileged policies
-// take precedence over non-privileged, and within each tier deny policies take
-// precedence over allow policies.
-type AccessPolicy struct {
+// PrivilegedAccessPolicy is the cluster-scoped version of AccessPolicy.
+// PrivilegedAccessPolicies are intended to be used by cluster admins, and take precedence over AccessPolicies.
+// Within each tier, deny policies take precedence over allow policies.
+type PrivilegedAccessPolicy struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -82,6 +80,19 @@ type AccessPolicySpec struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Cluster
+
+// PrivilegedAccessPolicyList is a list of PrivilegedAccessPolicyList objects.
+type PrivilegedAccessPolicyList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	// Items is the list of access policy objects.
+	Items []PrivilegedAccessPolicy `json:"items"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Namespaced
 
 // AccessPolicyList is a list of AccessPolicy objects.
 type AccessPolicyList struct {
@@ -132,5 +143,5 @@ func (wss *WorkloadSetOrSelector) validate() error {
 }
 
 func init() {
-	SchemeBuilder.Register(&AccessPolicy{}, &AccessPolicyList{})
+	SchemeBuilder.Register(&AccessPolicy{}, &PrivilegedAccessPolicy{}, &AccessPolicyList{}, &PrivilegedAccessPolicyList{})
 }

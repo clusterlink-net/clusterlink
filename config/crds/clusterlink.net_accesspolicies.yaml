@@ -18,9 +18,8 @@ spec:
     schema:
       openAPIV3Schema:
         description: |-
-          AccessPolicy defines whether a group of potential connections should be allowed or denied.
-          If multiple AccessPolicy objects match a given connection, privileged policies
-          take precedence over non-privileged, and within each tier deny policies take
+          AccessPolicy defines whether a set of connections should be allowed or denied.
+          If multiple AccessPolicy objects match a given connection, deny policies take
           precedence over allow policies.
         properties:
           apiVersion:

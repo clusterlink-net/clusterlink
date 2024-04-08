@@ -16,7 +16,6 @@ package authz
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -26,7 +25,6 @@ import (
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/api"
@@ -166,15 +164,13 @@ func (m *Manager) DeleteExport(name types.NamespacedName) {
 }
 
 // AddAccessPolicy adds an access policy to allow/deny specific connections.
-// TODO: switch from api.Policy to v1alpha1.Policy.
-func (m *Manager) AddAccessPolicy(policy *api.Policy) error {
+func (m *Manager) AddAccessPolicy(policy *connectivitypdp.AccessPolicy) error {
 	return m.policyDecider.AddAccessPolicy(policy)
 }
 
 // DeleteAccessPolicy removes an access policy to allow/deny specific connections.
-// TODO: switch from api.Policy to v1alpha1.Policy.
-func (m *Manager) DeleteAccessPolicy(policy *api.Policy) error {
-	return m.policyDecider.DeleteAccessPolicy(policy)
+func (m *Manager) DeleteAccessPolicy(name types.NamespacedName, privileged bool) error {
+	return m.policyDecider.DeleteAccessPolicy(name, privileged)
 }
 
 // AddLBPolicy adds a load-balancing policy to set a load-balancing scheme for specific connections.
@@ -215,37 +211,6 @@ func (m *Manager) addPod(pod *v1.Pod) {
 			m.ipToPod[ip.IP] = podID
 		}
 	}
-}
-
-func (m *Manager) deleteAccessPolicy(name types.NamespacedName) error {
-	accessPolicy := v1alpha1.AccessPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name.Name,
-			Namespace: name.Namespace,
-		},
-	}
-
-	policyData, err := json.Marshal(accessPolicy)
-	if err != nil {
-		return err
-	}
-
-	return m.policyDecider.DeleteAccessPolicy(&api.Policy{
-		Name: accessPolicy.Name,
-		Spec: api.PolicySpec{Blob: policyData},
-	})
-}
-
-func (m *Manager) addAccessPolicy(accessPolicy *v1alpha1.AccessPolicy) error {
-	policyData, err := json.Marshal(accessPolicy)
-	if err != nil {
-		return err
-	}
-
-	return m.policyDecider.AddAccessPolicy(&api.Policy{
-		Name: accessPolicy.Name,
-		Spec: api.PolicySpec{Blob: policyData},
-	})
 }
 
 // getLabelsFromIP returns the labels associated with Pod with the specified IP address.

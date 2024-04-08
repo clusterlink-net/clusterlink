@@ -51,6 +51,7 @@ rules:
   - accesspolicies
   - exports
   - peers
+  - privilegedaccesspolicies
   verbs:
   - get
   - list
