@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -34,6 +35,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	configFiles "github.com/clusterlink-net/clusterlink/config"
 	apis "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 )
 
@@ -59,6 +61,17 @@ type PeerOptions struct {
 	ContainerRegistry string
 	// Tag represents the tag of the project images.
 	Tag string
+	// Dataplanes is the number of dataplanes to create.
+	Dataplanes uint16
+	// DataplaneType is the type of dataplane to create (envoy or go-based)
+	DataplaneType string
+	// LogLevel is the log level.
+	LogLevel string
+	// CRDMode indicates whether to run a k8s CRD-based controlplane.
+	// This flag will be removed once the CRD-based controlplane feature is complete and stable.
+	CRDMode bool
+	// DryRun doesn't deploy the ClusterLink operator but creates the ClusterLink instance YAML.
+	DryRun bool
 }
 
 // NewCmdDeployPeer returns a cobra.Command to run the 'deploy peer' subcommand.
@@ -108,6 +121,15 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringToStringVar(&o.IngressAnnotations, "ingress-annotations", nil, "Represents the annotations that"+
 		"will be added to ingress services.\nThe flag can be repeated to add several annotations.\n"+
 		"For example: --ingress-annotations <key1>=<value1> --ingress-annotations <key2>=<value2>.")
+
+	fs.Uint16Var(&o.Dataplanes, "dataplanes", 1, "Number of dataplanes.")
+	fs.StringVar(&o.DataplaneType, "dataplane-type", platform.DataplaneTypeEnvoy,
+		"Type of dataplane, Supported values: \"envoy\" (default), \"go\"")
+	fs.StringVar(&o.LogLevel, "log-level", "info",
+		"The log level. One of fatal, error, warn, info, debug.")
+	fs.BoolVar(&o.DryRun, "dry-run", false,
+		"Dry-run doesn't deploy the ClusterLink operator but creates the ClusterLink instance YAML")
+	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -122,6 +144,81 @@ func (o *PeerOptions) Run() error {
 		return fmt.Errorf("failed to open certificates folder: %w", err)
 	}
 
+	if err := o.verifyDataplaneType(o.DataplaneType); err != nil {
+		return err
+	}
+
+	// Read certificates
+	fabricCert, err := bootstrap.ReadCertificates(config.FabricDirectory(o.Fabric))
+	if err != nil {
+		return err
+	}
+
+	peerCertificate, err := bootstrap.ReadCertificates(config.PeerDirectory(o.Name, o.Fabric))
+	if err != nil {
+		return err
+	}
+
+	controlplaneCert, err := bootstrap.ReadCertificates(config.ControlplaneDirectory(o.Name, o.Fabric))
+	if err != nil {
+		return err
+	}
+
+	dataplaneCert, err := bootstrap.ReadCertificates(config.DataplaneDirectory(o.Name, o.Fabric))
+	if err != nil {
+		return err
+	}
+
+	gwctlCert, err := bootstrap.ReadCertificates(config.GWCTLDirectory(o.Name, o.Fabric))
+	if err != nil {
+		return err
+	}
+
+	// Create k8s deployment YAML
+	platformCfg := &platform.Config{
+		Peer:                    o.Name,
+		FabricCertificate:       fabricCert,
+		PeerCertificate:         peerCertificate,
+		ControlplaneCertificate: controlplaneCert,
+		DataplaneCertificate:    dataplaneCert,
+		GWCTLCertificate:        gwctlCert,
+		Dataplanes:              o.Dataplanes,
+		DataplaneType:           o.DataplaneType,
+		LogLevel:                o.LogLevel,
+		ContainerRegistry:       o.ContainerRegistry,
+		CRDMode:                 o.CRDMode,
+		Namespace:               o.Namespace,
+		IngressType:             o.Ingress,
+		IngressAnnotations:      o.IngressAnnotations,
+		Tag:                     o.Tag,
+	}
+
+	k8sConfig, err := platform.K8SConfig(platformCfg)
+	if err != nil {
+		return err
+	}
+
+	outPath := filepath.Join(peerDir, config.K8SYAMLFile)
+	if err := os.WriteFile(outPath, k8sConfig, 0o600); err != nil {
+		return err
+	}
+
+	// Create clusterlink instance YAML for the operator.
+	clConfig, err := platform.K8SClusterLinkInstanceConfig(platformCfg, "cl-instance")
+	if err != nil {
+		return err
+	}
+
+	clOutPath := filepath.Join(peerDir, config.K8SClusterLinkInstanceYAMLFile)
+	if err := os.WriteFile(clOutPath, clConfig, 0o600); err != nil {
+		return err
+	}
+
+	// Return in case of dry-run mode.
+	if o.DryRun {
+		return nil
+	}
+
 	// Create k8s resources
 	cfg, err := ctrl.GetConfig()
 	if err != nil {
@@ -132,7 +229,6 @@ func (o *PeerOptions) Run() error {
 	if err != nil {
 		return err
 	}
-
 	// Create operator
 	ghImage := path.Join(config.DefaultRegistry, "cl-operator:latest")
 	newImage := path.Join(o.ContainerRegistry, "cl-operator:"+o.Tag)
@@ -154,16 +250,14 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	// Create cl-secret
-	secretFileName := path.Join(peerDir, config.K8SSecretYAMLFile)
-	secretFile, err := os.ReadFile(secretFileName)
+	// Create k8s secrets that contains the components certificates.
+	secretConfig, err := platform.K8SCertificateConfig(platformCfg)
 	if err != nil {
 		return err
 	}
-
 	err = decoder.DecodeEach(
 		context.Background(),
-		strings.NewReader(string(secretFile)),
+		strings.NewReader(string(secretConfig)),
 		decoder.CreateIgnoreAlreadyExists(resource),
 		decoder.MutateNamespace(o.Namespace),
 	)
@@ -173,22 +267,11 @@ func (o *PeerOptions) Run() error {
 
 	// Create ClusterLink instance
 	if o.StartInstance {
-		cfg := &platform.Config{
-			Peer:               o.Name,
-			Dataplanes:         1,
-			DataplaneType:      platform.DataplaneTypeEnvoy,
-			LogLevel:           "info",
-			ContainerRegistry:  o.ContainerRegistry,
-			Namespace:          o.Namespace,
-			IngressType:        o.Ingress,
-			IngressAnnotations: o.IngressAnnotations,
-			Tag:                o.Tag,
-		}
 		if o.IngressPort != apis.DefaultExternalPort {
-			cfg.IngressPort = o.IngressPort
+			platformCfg.IngressPort = o.IngressPort
 		}
 
-		instance, err := platform.K8SClusterLinkInstanceConfig(cfg, "cl-instance")
+		instance, err := platform.K8SClusterLinkInstanceConfig(platformCfg, "cl-instance")
 		if err != nil {
 			return err
 		}
@@ -219,4 +302,16 @@ func (o *PeerOptions) deployDir(dir string, resource *resources.Resources) error
 	}
 
 	return err
+}
+
+// verifyDataplaneType checks if the given dataplane type is valid.
+func (o *PeerOptions) verifyDataplaneType(dType string) error {
+	switch dType {
+	case platform.DataplaneTypeEnvoy:
+		return nil
+	case platform.DataplaneTypeGo:
+		return nil
+	default:
+		return fmt.Errorf("undefined dataplane-type %s", dType)
+	}
 }

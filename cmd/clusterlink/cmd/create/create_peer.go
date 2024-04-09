@@ -22,10 +22,8 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/net/idna"
 
-	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
 	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
-	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 )
 
 // PeerOptions contains everything necessary to create and run a 'create peer-cert' subcommand.
@@ -34,37 +32,12 @@ type PeerOptions struct {
 	Name string
 	// Name of the fabric that the peer belongs to.
 	Fabric string
-	// Namespace where the ClusterLink components are deployed.
-	Namespace string
-	// Dataplanes is the number of dataplanes to create.
-	Dataplanes uint16
-	// DataplaneType is the type of dataplane to create (envoy or go-based)
-	DataplaneType string
-	// LogLevel is the log level.
-	LogLevel string
-	// ContainerRegistry is the container registry to pull the project images.
-	ContainerRegistry string
-	// Tag represents the tag of the project images.
-	Tag string
-	// CRDMode indicates whether to run a k8s CRD-based controlplane.
-	// This flag will be removed once the CRD-based controlplane feature is complete and stable.
-	CRDMode bool
 }
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
 	fs.StringVar(&o.Fabric, "fabric", config.DefaultFabric, "Fabric name.")
-	fs.StringVar(&o.Namespace, "namespace", app.SystemNamespace, "Namespace where the ClusterLink components are deployed.")
-	fs.Uint16Var(&o.Dataplanes, "dataplanes", 1, "Number of dataplanes.")
-	fs.StringVar(&o.DataplaneType, "dataplane-type", platform.DataplaneTypeEnvoy,
-		"Type of dataplane, Supported values: \"envoy\" (default), \"go\"")
-	fs.StringVar(&o.LogLevel, "log-level", "info",
-		"The log level. One of fatal, error, warn, info, debug.")
-	fs.StringVar(&o.ContainerRegistry, "container-registry", config.DefaultRegistry,
-		"The container registry to pull the project images. If empty will use local registry.")
-	fs.StringVar(&o.Tag, "tag", "latest", "The tag of the project images.")
-	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -147,23 +120,7 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	if err := verifyDataplaneType(o.DataplaneType); err != nil {
-		return err
-	}
-
-	// read fabric certificate
-	rawFabricCert, err := os.ReadFile(config.FabricCertificate(o.Fabric))
-	if err != nil {
-		return err
-	}
-
-	// read fabric key
-	rawFabricKey, err := os.ReadFile(config.FabricKey(o.Fabric))
-	if err != nil {
-		return err
-	}
-
-	fabricCert, err := bootstrap.CertificateFromRaw(rawFabricCert, rawFabricKey)
+	fabricCert, err := bootstrap.ReadCertificates(config.FabricDirectory(o.Fabric))
 	if err != nil {
 		return err
 	}
@@ -183,66 +140,19 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	controlplaneCert, err := o.createControlplane(peerCertificate)
-	if err != nil {
+	if _, err := o.createControlplane(peerCertificate); err != nil {
 		return err
 	}
 
-	dataplaneCert, err := o.createDataplane(peerCertificate)
-	if err != nil {
+	if _, err := o.createDataplane(peerCertificate); err != nil {
 		return err
 	}
 
-	gwctlCert, err := o.createGWCTL(peerCertificate)
-	if err != nil {
+	if _, err := o.createGWCTL(peerCertificate); err != nil {
 		return err
 	}
 
-	// create k8s deployment YAML
-	platformCfg := &platform.Config{
-		Peer:                    o.Name,
-		FabricCertificate:       fabricCert,
-		PeerCertificate:         peerCertificate,
-		ControlplaneCertificate: controlplaneCert,
-		DataplaneCertificate:    dataplaneCert,
-		GWCTLCertificate:        gwctlCert,
-		Dataplanes:              o.Dataplanes,
-		DataplaneType:           o.DataplaneType,
-		LogLevel:                o.LogLevel,
-		ContainerRegistry:       o.ContainerRegistry,
-		CRDMode:                 o.CRDMode,
-		Namespace:               o.Namespace,
-		Tag:                     o.Tag,
-	}
-	k8sConfig, err := platform.K8SConfig(platformCfg)
-	if err != nil {
-		return err
-	}
-
-	outPath := filepath.Join(peerDirectory, config.K8SYAMLFile)
-	if err := os.WriteFile(outPath, k8sConfig, 0o600); err != nil {
-		return err
-	}
-
-	// Create k8s secrets YAML file that contains the components certificates.
-	certConfig, err := platform.K8SCertificateConfig(platformCfg)
-	if err != nil {
-		return err
-	}
-
-	certOutPath := filepath.Join(peerDirectory, config.K8SSecretYAMLFile)
-	if err := os.WriteFile(certOutPath, certConfig, 0o600); err != nil {
-		return err
-	}
-
-	// Create clusterlink instance YAML for the operator.
-	clConfig, err := platform.K8SClusterLinkInstanceConfig(platformCfg, "cl-instance")
-	if err != nil {
-		return err
-	}
-
-	clOutPath := filepath.Join(peerDirectory, config.K8SClusterLinkInstanceYAMLFile)
-	return os.WriteFile(clOutPath, clConfig, 0o600)
+	return nil
 }
 
 // NewCmdCreatePeerCert returns a cobra.Command to run the 'create peer-cert' subcommand.
@@ -283,16 +193,4 @@ func verifyNotExists(path string) error {
 	}
 
 	return nil
-}
-
-// verifyDataplaneType checks if the given dataplane type is valid.
-func verifyDataplaneType(dType string) error {
-	switch dType {
-	case platform.DataplaneTypeEnvoy:
-		return nil
-	case platform.DataplaneTypeGo:
-		return nil
-	default:
-		return fmt.Errorf("undefined dataplane-type %s", dType)
-	}
 }
