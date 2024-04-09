@@ -62,7 +62,7 @@ type PeerOptions struct {
 	// Tag represents the tag of the project images.
 	Tag string
 	// Dataplanes is the number of dataplanes to create.
-	Dataplanes uint16
+	DataplaneReplicas uint16
 	// DataplaneType is the type of dataplane to create (envoy or go-based)
 	DataplaneType string
 	// LogLevel is the log level.
@@ -121,10 +121,9 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringToStringVar(&o.IngressAnnotations, "ingress-annotations", nil, "Represents the annotations that"+
 		"will be added to ingress services.\nThe flag can be repeated to add several annotations.\n"+
 		"For example: --ingress-annotations <key1>=<value1> --ingress-annotations <key2>=<value2>.")
-
-	fs.Uint16Var(&o.Dataplanes, "dataplanes", 1, "Number of dataplanes.")
-	fs.StringVar(&o.DataplaneType, "dataplane-type", platform.DataplaneTypeEnvoy,
+	fs.StringVar(&o.DataplaneType, "dataplane", platform.DataplaneTypeEnvoy,
 		"Type of dataplane, Supported values: \"envoy\" (default), \"go\"")
+	fs.Uint16Var(&o.DataplaneReplicas, "dataplane-replicas", 1, "Number of dataplanes.")
 	fs.StringVar(&o.LogLevel, "log-level", "info",
 		"The log level. One of fatal, error, warn, info, debug.")
 	fs.BoolVar(&o.DryRun, "dry-run", false,
@@ -182,7 +181,7 @@ func (o *PeerOptions) Run() error {
 		ControlplaneCertificate: controlplaneCert,
 		DataplaneCertificate:    dataplaneCert,
 		GWCTLCertificate:        gwctlCert,
-		Dataplanes:              o.Dataplanes,
+		Dataplanes:              o.DataplaneReplicas,
 		DataplaneType:           o.DataplaneType,
 		LogLevel:                o.LogLevel,
 		ContainerRegistry:       o.ContainerRegistry,
