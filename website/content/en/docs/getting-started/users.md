@@ -58,63 +58,18 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
    ```
 
    This command will deploy the ClusterLink operator on the `clusterlink-operator` namespace
-    and convert the peer certificates to secrets in this namespace.
+    and convert the peer certificates to secrets in this namespace where ClusterLink components will be installed, which by default is `clusterlink-system`.
     The command assumes that `kubectl` is set to the correct peer (K8s cluster)
     and that the certificates were created by running the previous command on the same working directory.
     If they were not, use the flag `--path <path>` for pointing to the working directory
     that was used in the previous command.
     The `--fabric` option is optional, and by default, "default_fabric" will be used.
     The `--autostart` option will deploy the ClusterLink components in the `clusterlink-system` namespace,
-    and enable ClusterLink in the cluster.
+    and enable ClusterLink in the cluster. For more details and deployment configuration see [ClusterLink deployment operator](https://clusterlink.net/docs/concepts/operator/).
 
 {{< notice note >}}
 To deploy ClusterLink on another cluster, repeat steps 2-3 in a console with access to the cluster.
 {{< /notice >}}
-
-### Additional configurations
-
-* Setting ClusterLink namespace:
-
-   ```sh
-   clusterlink deploy peer --autostart --name <peer_name> --fabric <fabric_name> \
-         --namespace <namespace>
-   ```
-
-   The `--namespace` parameter determines the namespace where the ClusterLink components are deployed.
-    Note that you must set `--autostart`, and the namespace should already exist.
-
-* Setting ClusterLink ingress type:
-
-   ```sh
-   clusterlink deploy peer --autostart --name <peer_name> --fabric <fabric_name> \
-         --ingress <ingress_type>
-   ```
-
-   The `--ingress` parameter controls the ClusterLink ingress type, with `LoadBalancer` being the default.
-    If you're using a local kind cluster, replace `<ingress_type>` with `NodePort`.
-    For a cluster running on cloud, use `LoadBalancer` or leave ingress type unspecified.
-    Note that `--autostart` must be set when configuring ingress type.
-
-* {{< anchor deploy-cr-instance >}}Full configuration setting using a ClusterLink K8s custom resource object:
-
-    ```yaml
-    kubectl apply -f - <<EOF
-    apiVersion: clusterlink.net/v1alpha1
-    kind: ClusterLink
-    metadata:
-        namespace: clusterlink-operator
-        name: <peer_name>
-    spec:
-        ingress:
-            type: <ingress_type>
-        namespace: clusterlink-system
-    EOF
-    ```
-
-    After the operator is installed, you can deploy ClusterLink by applying a ClusterLink object as shown above.
-    The ClusterLink operator will create the ClusterLink gateway components in the `clusterlink-system` namespace.
-    For more details and information about the ClusterLink custom resource,
-    refer to the [operator documentation](https://github.com/clusterlink-net/clusterlink/blob/main/design-proposals/project-deployment.md#clusterlink-crd).
 
 ## Try it out
 
