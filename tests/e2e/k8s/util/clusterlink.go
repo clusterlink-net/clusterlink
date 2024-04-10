@@ -15,7 +15,6 @@ package util
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -26,7 +25,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/client"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
@@ -374,27 +372,11 @@ func (c *ClusterLink) CreatePolicy(policy *v1alpha1.AccessPolicy) error {
 		return c.cluster.Resources().Create(context.Background(), policy)
 	}
 
-	data, err := json.Marshal(policy)
-	if err != nil {
-		return err
-	}
-
-	return c.client.AccessPolicies.Create(&api.Policy{
-		Name: policy.Name,
-		Spec: api.PolicySpec{Blob: data},
-	})
+	return c.client.AccessPolicies.Create(policy)
 }
 
 func (c *ClusterLink) UpdatePolicy(policy *v1alpha1.AccessPolicy) error {
-	data, err := json.Marshal(policy)
-	if err != nil {
-		return err
-	}
-
-	return c.client.AccessPolicies.Update(&api.Policy{
-		Name: policy.Name,
-		Spec: api.PolicySpec{Blob: data},
-	})
+	return c.client.AccessPolicies.Update(&policy)
 }
 
 func (c *ClusterLink) GetPolicy(name string) (*v1alpha1.AccessPolicy, error) {
@@ -403,12 +385,7 @@ func (c *ClusterLink) GetPolicy(name string) (*v1alpha1.AccessPolicy, error) {
 		return nil, err
 	}
 
-	var policy v1alpha1.AccessPolicy
-	if err := json.Unmarshal(res.(*api.Policy).Spec.Blob, &policy); err != nil {
-		return nil, err
-	}
-
-	return &policy, nil
+	return res.(*v1alpha1.AccessPolicy), nil
 }
 
 func (c *ClusterLink) GetAllPolicies() (*[]v1alpha1.AccessPolicy, error) {
@@ -417,14 +394,7 @@ func (c *ClusterLink) GetAllPolicies() (*[]v1alpha1.AccessPolicy, error) {
 		return nil, err
 	}
 
-	policies := make([]v1alpha1.AccessPolicy, len(*res.(*[]api.Policy)))
-	for i, p := range *res.(*[]api.Policy) {
-		if err := json.Unmarshal(p.Spec.Blob, &policies[i]); err != nil {
-			return nil, err
-		}
-	}
-
-	return &policies, nil
+	return res.(*[]v1alpha1.AccessPolicy), nil
 }
 
 func (c *ClusterLink) DeletePolicy(name string) error {

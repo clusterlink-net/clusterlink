@@ -14,39 +14,47 @@
 package rest
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 
-	"github.com/clusterlink-net/clusterlink/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 type accessPolicyHandler struct {
 	manager *Manager
 }
 
-func accessPolicyToAPI(policy *store.AccessPolicy) *api.Policy {
-	return &policy.Policy
+func toPDPPolicy(policy *store.AccessPolicy, namespace string) *connectivitypdp.AccessPolicy {
+	return connectivitypdp.PolicyFromCR(&v1alpha1.AccessPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      policy.Name,
+			Namespace: namespace,
+		},
+		Spec: policy.AccessPolicySpec,
+	})
 }
 
-// accessPolicyFromBlob unmarshals an AccessPolicy object encoded as json in a byte array.
-func accessPolicyFromBlob(blob []byte) (*v1alpha1.AccessPolicy, error) {
-	bReader := bytes.NewReader(blob)
-	connPolicy := &v1alpha1.AccessPolicy{}
-	err := json.NewDecoder(bReader).Decode(connPolicy)
-	if err != nil {
-		return nil, err
+func accessPolicyToAPI(policy *store.AccessPolicy) *v1alpha1.AccessPolicy {
+	if policy == nil {
+		return nil
 	}
-	return connPolicy, nil
+
+	return &v1alpha1.AccessPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: policy.Name,
+		},
+		Spec: policy.AccessPolicySpec,
+	}
 }
 
 // CreateAccessPolicy creates an access policy to allow/deny specific connections.
 func (m *Manager) CreateAccessPolicy(policy *store.AccessPolicy) error {
-	m.logger.Infof("Creating access policy '%s'.", policy.Spec.Blob)
+	m.logger.Infof("Creating access policy '%s'.", policy.Name)
 
 	if m.initialized {
 		if err := m.acPolicies.Create(policy); err != nil {
@@ -54,17 +62,12 @@ func (m *Manager) CreateAccessPolicy(policy *store.AccessPolicy) error {
 		}
 	}
 
-	acPolicy, err := accessPolicyFromBlob(policy.Spec.Blob)
-	if err != nil {
-		m.logger.Errorf("failed decoding access policy %s", policy.Name)
-		return err
-	}
-	return m.authzManager.AddAccessPolicy(connectivitypdp.PolicyFromCR(acPolicy))
+	return m.authzManager.AddAccessPolicy(toPDPPolicy(policy, m.namespace))
 }
 
 // UpdateAccessPolicy updates an access policy to allow/deny specific connections.
 func (m *Manager) UpdateAccessPolicy(policy *store.AccessPolicy) error {
-	m.logger.Infof("Updating access policy '%s'.", policy.Spec.Blob)
+	m.logger.Infof("Updating access policy '%s'.", policy.Name)
 
 	err := m.acPolicies.Update(policy.Name, func(old *store.AccessPolicy) *store.AccessPolicy {
 		return policy
@@ -73,12 +76,7 @@ func (m *Manager) UpdateAccessPolicy(policy *store.AccessPolicy) error {
 		return err
 	}
 
-	acPolicy, err := accessPolicyFromBlob(policy.Spec.Blob)
-	if err != nil {
-		m.logger.Errorf("failed decoding access policy %s", policy.Name)
-		return err
-	}
-	return m.authzManager.AddAccessPolicy(connectivitypdp.PolicyFromCR(acPolicy))
+	return m.authzManager.AddAccessPolicy(toPDPPolicy(policy, m.namespace))
 }
 
 // DeleteAccessPolicy removes an access policy to allow/deny specific connections.
@@ -93,14 +91,11 @@ func (m *Manager) DeleteAccessPolicy(name string) (*store.AccessPolicy, error) {
 		return nil, nil
 	}
 
-	acPolicy, err := accessPolicyFromBlob(policy.Spec.Blob)
-	if err != nil {
-		m.logger.Errorf("failed decoding access policy %s", policy.Name)
-		return nil, err
+	namespacedName := types.NamespacedName{
+		Name:      name,
+		Namespace: m.namespace,
 	}
-
-	polName := types.NamespacedName{Namespace: acPolicy.Namespace, Name: acPolicy.Name}
-	if err := m.authzManager.DeleteAccessPolicy(polName, false); err != nil {
+	if err := m.authzManager.DeleteAccessPolicy(namespacedName, false); err != nil {
 		return nil, err
 	}
 
@@ -121,13 +116,13 @@ func (m *Manager) GetAllAccessPolicies() []*store.AccessPolicy {
 
 // Decode an access policy.
 func (h *accessPolicyHandler) Decode(data []byte) (any, error) {
-	var policy api.Policy
+	var policy v1alpha1.AccessPolicy
 	if err := json.Unmarshal(data, &policy); err != nil {
 		return nil, fmt.Errorf("cannot decode access policy: %w", err)
 	}
 
-	if len(policy.Spec.Blob) == 0 {
-		return nil, fmt.Errorf("empty spec blob")
+	if err := policy.Spec.Validate(); err != nil {
+		return nil, err
 	}
 
 	return store.NewAccessPolicy(&policy), nil
@@ -160,7 +155,7 @@ func (h *accessPolicyHandler) Get(name string) (any, error) {
 // List all access policies.
 func (h *accessPolicyHandler) List() (any, error) {
 	policies := h.manager.GetAllAccessPolicies()
-	apiPolicies := make([]*api.Policy, len(policies))
+	apiPolicies := make([]*v1alpha1.AccessPolicy, len(policies))
 	for i, policy := range policies {
 		apiPolicies[i] = accessPolicyToAPI(policy)
 	}

@@ -15,21 +15,14 @@
 package policyengine
 
 import (
-	"bytes"
-	"encoding/json"
-
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/clusterlink-net/clusterlink/pkg/api"
 	crds "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
 )
 
 const (
-	LbType     = "lb"     // Type for load-balancing policies
-	AccessType = "access" // Type for access policies
-
 	ServiceNameLabel = "clusterlink/metadata.serviceName"
 	GatewayNameLabel = "clusterlink/metadata.gatewayName"
 )
@@ -38,9 +31,6 @@ var plog = logrus.WithField("component", "PolicyEngine")
 
 // PolicyDecider is an interface for entities that make policy-based decisions on various ClusterLink operations.
 type PolicyDecider interface {
-	AddLBPolicy(policy *api.Policy) error
-	DeleteLBPolicy(policy *api.Policy) error
-
 	AddAccessPolicy(policy *connectivitypdp.AccessPolicy) error
 	DeleteAccessPolicy(name types.NamespacedName, privileged bool) error
 
@@ -206,34 +196,6 @@ func (ph *PolicyHandler) AddExport(_ *crds.Export) ([]string, error) {
 }
 
 func (ph *PolicyHandler) DeleteExport(_ string) {
-}
-
-// lbPolicyFromBlob unmarshals an LBPolicy object encoded as json in a byte array.
-func lbPolicyFromBlob(blob []byte) (*LBPolicy, error) {
-	bReader := bytes.NewReader(blob)
-	lbPolicy := &LBPolicy{}
-	err := json.NewDecoder(bReader).Decode(lbPolicy)
-	if err != nil {
-		plog.Errorf("failed decoding load-balancing policy: %v", err)
-		return nil, err
-	}
-	return lbPolicy, nil
-}
-
-func (ph *PolicyHandler) AddLBPolicy(policy *api.Policy) error {
-	lbPolicy, err := lbPolicyFromBlob(policy.Spec.Blob)
-	if err != nil {
-		return err
-	}
-	return ph.loadBalancer.SetPolicy(lbPolicy)
-}
-
-func (ph *PolicyHandler) DeleteLBPolicy(policy *api.Policy) error {
-	lbPolicy, err := lbPolicyFromBlob(policy.Spec.Blob)
-	if err != nil {
-		return err
-	}
-	return ph.loadBalancer.DeletePolicy(lbPolicy)
 }
 
 func (ph *PolicyHandler) AddAccessPolicy(policy *connectivitypdp.AccessPolicy) error {

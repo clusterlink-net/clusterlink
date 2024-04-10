@@ -20,21 +20,16 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/cmd/gwctl/config"
 	cmdutil "github.com/clusterlink-net/clusterlink/cmd/util"
-	"github.com/clusterlink-net/clusterlink/pkg/api"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 )
 
 // PolicyOptions is the command line options for 'create policy' or 'update policy'.
 type policyOptions struct {
 	myID       string
-	pType      string
-	serviceSrc string
-	serviceDst string
-	gwDest     string
-	policy     string
 	policyFile string
 }
 
@@ -43,8 +38,8 @@ func PolicyCreateCmd() *cobra.Command {
 	o := policyOptions{}
 	cmd := &cobra.Command{
 		Use:   "policy",
-		Short: "Create a policy in the gateway",
-		Long:  `Create a load-balancing policy or an access policy in the gateway.`,
+		Short: "Create an access policy in the gateway.",
+		Long:  `Create an access policy in the gateway.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return o.run(false)
 		},
@@ -60,8 +55,8 @@ func PolicyUpdateCmd() *cobra.Command {
 	o := policyOptions{}
 	cmd := &cobra.Command{
 		Use:   "policy",
-		Short: "Update a policy in the gateway",
-		Long:  `Update a load-balancing policy or an access policy in the gateway.`,
+		Short: "Update an access policy in the gateway.",
+		Long:  `Update an access policy in the gateway.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return o.run(true)
 		},
@@ -75,11 +70,6 @@ func PolicyUpdateCmd() *cobra.Command {
 // addFlags registers flags for the CLI.
 func (o *policyOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
-	fs.StringVar(&o.pType, "type", "", "Policy agent command (For now: lb, access)")
-	fs.StringVar(&o.serviceSrc, "serviceSrc", "*", "Name of Source Service (* for wildcard)")
-	fs.StringVar(&o.serviceDst, "serviceDst", "*", "Name of Dest Service (* for wildcard)")
-	fs.StringVar(&o.gwDest, "gwDest", "*", "Name of gateway the dest service belongs to (* for wildcard)")
-	fs.StringVar(&o.policy, "policy", "random", "lb policy: random, round-robin, static")
 	fs.StringVar(&o.policyFile, "policyFile", "", "File to load access policy from")
 }
 
@@ -89,85 +79,42 @@ func (o *policyOptions) run(isUpdate bool) error {
 	if err != nil {
 		return err
 	}
-	switch o.pType {
-	case policyengine.LbType:
-		policy, err := lbPolicyFromParams(o.serviceSrc, o.serviceDst, o.policy, o.gwDest)
-		if err != nil {
-			return err
-		}
 
-		lbOperation := policyClient.LBPolicies.Create
-		if isUpdate {
-			lbOperation = policyClient.LBPolicies.Update
-		}
-
-		err = lbOperation(policy)
-		if err != nil {
-			return err
-		}
-
-		return nil
-
-	case policyengine.AccessType:
-		policy, err := policyFromFile(o.policyFile)
-		if err != nil {
-			return err
-		}
-
-		acOperation := policyClient.AccessPolicies.Create
-		if isUpdate {
-			acOperation = policyClient.AccessPolicies.Update
-		}
-
-		err = acOperation(policy)
-		if err != nil {
-			return err
-		}
-
-		return nil
-
-	default:
-		return fmt.Errorf("unknown policy type")
+	policy, err := policyFromFile(o.policyFile)
+	if err != nil {
+		return err
 	}
+
+	acOperation := policyClient.AccessPolicies.Create
+	if isUpdate {
+		acOperation = policyClient.AccessPolicies.Update
+	}
+
+	err = acOperation(policy)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func policyFromFile(filename string) (api.Policy, error) {
+func policyFromFile(filename string) (*v1alpha1.AccessPolicy, error) {
 	fileBuf, err := os.ReadFile(filename)
 	if err != nil {
-		return api.Policy{}, fmt.Errorf("error reading policy file: %w", err)
+		return nil, fmt.Errorf("error reading policy file: %w", err)
 	}
-	var policy api.Policy
+	var policy v1alpha1.AccessPolicy
 	err = json.Unmarshal(fileBuf, &policy)
 	if err != nil {
-		return api.Policy{}, fmt.Errorf("error parsing Json in policy file: %w", err)
+		return nil, fmt.Errorf("error parsing Json in policy file: %w", err)
 	}
-	policy.Spec.Blob = fileBuf
-	return policy, nil
-}
 
-func lbPolicyFromParams(serviceSrc, serviceDst, scheme, defaultPeer string) (api.Policy, error) {
-	lbPolicy := policyengine.LBPolicy{
-		ServiceSrc:  serviceSrc,
-		ServiceDst:  serviceDst,
-		Scheme:      policyengine.LBScheme(scheme),
-		DefaultPeer: defaultPeer,
-	}
-	blob, err := json.Marshal(lbPolicy)
-	if err != nil {
-		return api.Policy{}, fmt.Errorf("error marshaling a load-balancing policy: %w", err)
-	}
-	policyName := fmt.Sprintf("%s%%%s", serviceSrc, serviceDst)
-	return api.Policy{Name: policyName, Spec: api.PolicySpec{Blob: blob}}, nil
+	return &policy, nil
 }
 
 // PolicyDeleteOptions is the command line options for 'delete policy'.
 type policyDeleteOptions struct {
 	myID       string
-	pType      string
-	serviceSrc string
-	serviceDst string
-	gwDest     string
-	policy     string
 	policyFile string
 }
 
@@ -191,11 +138,6 @@ func PolicyDeleteCmd() *cobra.Command {
 // addFlags registers flags for the CLI.I.
 func (o *policyDeleteOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.myID, "myid", "", "gwctl ID")
-	fs.StringVar(&o.pType, "type", "", "Policy agent command (For now: lb, access)")
-	fs.StringVar(&o.serviceSrc, "serviceSrc", "*", "Name of Source Service (* for wildcard)")
-	fs.StringVar(&o.serviceDst, "serviceDst", "*", "Name of Dest Service (* for wildcard)")
-	fs.StringVar(&o.gwDest, "gwDest", "*", "Name of gateway the dest service belongs to (* for wildcard)")
-	fs.StringVar(&o.policy, "policy", "random", "lb policy: random, round-robin, static")
 	fs.StringVar(&o.policyFile, "policyFile", "", "File to load access policy from")
 }
 
@@ -205,33 +147,19 @@ func (o *policyDeleteOptions) run() error {
 	if err != nil {
 		return err
 	}
-	switch o.pType {
-	case policyengine.LbType:
-		policy, err := lbPolicyFromParams(o.serviceSrc, o.serviceDst, o.policy, o.gwDest)
-		if err != nil {
-			return err
-		}
-		err = policyClient.LBPolicies.Delete(policy.Name)
-		if err != nil {
-			return err
-		}
 
-		return nil
-
-	case policyengine.AccessType:
-		policy, err := policyFromFile(o.policyFile)
-		if err != nil {
-			return err
-		}
-		err = policyClient.AccessPolicies.Delete(policy.Name)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	default:
-		return fmt.Errorf("unknown policy type")
+	policy, err := policyFromFile(o.policyFile)
+	if err != nil {
+		return err
 	}
+	err = policyClient.AccessPolicies.Delete(types.NamespacedName{
+		Name: policy.Name,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // PolicyGetOptions is the command line options for 'get policy'.
@@ -245,7 +173,7 @@ func PolicyGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "policy",
 		Short: "Get policy list from the GW",
-		Long:  `Get policy list from the GW (Access and Load-Balancing)`,
+		Long:  `Get policy list from the GW`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return o.run()
 		},
@@ -273,18 +201,9 @@ func (o *policyGetOptions) run() error {
 	}
 
 	fmt.Printf("Access policies\n")
-	for d, policy := range *accessPolicies.(*[]api.Policy) {
-		fmt.Printf("Access policy %d: %s\n", d, policy.Name)
-	}
-
-	lbPolicies, err := g.LBPolicies.List()
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("\nLoad balancing policies\n")
-	for d, policy := range *lbPolicies.(*[]api.Policy) {
-		fmt.Printf("Load-balancing policy %d: %s\n", d, policy.Name)
+	policies := *accessPolicies.(*[]v1alpha1.AccessPolicy)
+	for i := 0; i < len(policies); i++ {
+		fmt.Printf("Access policy %d: %s\n", i, policies[i].Name)
 	}
 
 	return nil

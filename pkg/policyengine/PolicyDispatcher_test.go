@@ -14,14 +14,12 @@
 package policyengine_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/clusterlink-net/clusterlink/pkg/api"
 	crds "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
@@ -117,7 +115,7 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 	err := ph.AddAccessPolicy(connectivitypdp.PolicyFromCR(&policy2))
 	require.Nil(t, err)
 
-	addRemoteSvc(t, svcName, []string{peer1, peer2}, ph)
+	addRemoteSvc(t, svcName, []string{peer1, peer2}, "", ph)
 
 	// Should choose between peer1 and peer2, but only peer2 is allowed by the single access policy
 	srcAttrs := connectivitypdp.WorkloadAttrs{policyengine.ServiceNameLabel: svcName}
@@ -168,20 +166,10 @@ func TestOutgoingConnectionRequests(t *testing.T) {
 
 func TestLoadBalancer(t *testing.T) {
 	ph := policyengine.NewPolicyHandler()
-	addRemoteSvc(t, svcName, []string{peer1, peer2}, ph)
-	err := ph.AddAccessPolicy(pdpPolicy)
-	require.Nil(t, err)
+	addRemoteSvc(t, svcName, []string{peer1, peer2}, "", ph)
+	require.Nil(t, ph.AddAccessPolicy(pdpPolicy))
 
-	lbPolicy := policyengine.LBPolicy{
-		ServiceDst:  defaultNS + "/" + svcName,
-		Scheme:      policyengine.Static,
-		DefaultPeer: peer1,
-	}
-	policyBuf, err := json.Marshal(lbPolicy)
-	require.Nil(t, err)
-	apiLBPolicy := api.Policy{Name: "lb-policy", Spec: api.PolicySpec{Blob: policyBuf}}
-	err = ph.AddLBPolicy(&apiLBPolicy)
-	require.Nil(t, err)
+	addRemoteSvc(t, svcName, []string{peer1, peer2}, policyengine.Static, ph)
 
 	srcAttrs := connectivitypdp.WorkloadAttrs{policyengine.ServiceNameLabel: svcName}
 	requestAttr := connectivitypdp.ConnectionRequest{
@@ -195,8 +183,8 @@ func TestLoadBalancer(t *testing.T) {
 	require.Equal(t, crds.AccessPolicyActionAllow, connReqResp.Action)
 	require.Equal(t, peer1, connReqResp.DstPeer) // LB policy requires this request to be served by peer1
 
-	err = ph.DeleteLBPolicy(&apiLBPolicy) // LB policy is deleted - the random default policy now takes effect
-	require.Nil(t, err)
+	addRemoteSvc(t, svcName, []string{peer1, peer2}, "", ph)
+	// LB policy is deleted - the random default policy now takes effect
 	connReqResp, err = ph.AuthorizeAndRouteConnection(&requestAttr)
 	require.Nil(t, err)
 	require.Equal(t, crds.AccessPolicyActionAllow, connReqResp.Action)
@@ -220,34 +208,12 @@ func TestLoadBalancer(t *testing.T) {
 	require.Equal(t, crds.AccessPolicyActionDeny, connReqResp.Action)
 }
 
-func TestBadLBPolicy(t *testing.T) {
-	ph := policyengine.NewPolicyHandler()
-	notEvenAPolicy := []byte{'{'}
-	apiPolicy := api.Policy{Name: "bad-json", Spec: api.PolicySpec{Blob: notEvenAPolicy}}
-
-	err := ph.AddLBPolicy(&apiPolicy)
-	require.NotNil(t, err)
-
-	err = ph.DeleteLBPolicy(&apiPolicy)
-	require.NotNil(t, err)
-}
-
 func TestDisableEnablePeers(t *testing.T) {
 	ph := policyengine.NewPolicyHandler()
-	addRemoteSvc(t, svcName, []string{peer1, peer2}, ph)
-	err := ph.AddAccessPolicy(pdpPolicy)
-	require.Nil(t, err)
+	addRemoteSvc(t, svcName, []string{peer1, peer2}, "", ph)
+	require.Nil(t, ph.AddAccessPolicy(pdpPolicy))
 
-	lbPolicy := policyengine.LBPolicy{
-		ServiceDst:  defaultNS + "/" + svcName,
-		Scheme:      policyengine.Static,
-		DefaultPeer: peer1,
-	}
-	policyBuf, err := json.Marshal(lbPolicy)
-	require.Nil(t, err)
-	apiLBPolicy := api.Policy{Name: "lb-policy", Spec: api.PolicySpec{Blob: policyBuf}}
-	err = ph.AddLBPolicy(&apiLBPolicy)
-	require.Nil(t, err)
+	addRemoteSvc(t, svcName, []string{peer1, peer2}, policyengine.Static, ph)
 
 	srcAttrs := connectivitypdp.WorkloadAttrs{policyengine.ServiceNameLabel: svcName}
 	requestAttr := connectivitypdp.ConnectionRequest{
@@ -285,7 +251,13 @@ func TestDisableEnablePeers(t *testing.T) {
 }
 
 //nolint:unparam // `svc` always receives `svcName` (allow passing other names in future)
-func addRemoteSvc(t *testing.T, svc string, peers []string, ph policyengine.PolicyDecider) {
+func addRemoteSvc(
+	t *testing.T,
+	svc string,
+	peers []string,
+	lbScheme policyengine.LBScheme,
+	ph policyengine.PolicyDecider,
+) {
 	t.Helper()
 
 	srcs := []crds.ImportSource{}
@@ -295,8 +267,14 @@ func addRemoteSvc(t *testing.T, svc string, peers []string, ph policyengine.Poli
 	}
 
 	imp := crds.Import{
-		ObjectMeta: metav1.ObjectMeta{Namespace: defaultNS, Name: svcName},
-		Spec:       crds.ImportSpec{Sources: srcs},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName,
+			Namespace: defaultNS,
+		},
+		Spec: crds.ImportSpec{
+			Sources:  srcs,
+			LBScheme: string(lbScheme),
+		},
 	}
 	ph.AddImport(&imp)
 }
