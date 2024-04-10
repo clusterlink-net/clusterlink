@@ -122,7 +122,7 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 		"will be added to ingress services.\nThe flag can be repeated to add several annotations.\n"+
 		"For example: --ingress-annotations <key1>=<value1> --ingress-annotations <key2>=<value2>.")
 	fs.StringVar(&o.DataplaneType, "dataplane", platform.DataplaneTypeEnvoy,
-		"Type of dataplane, Supported values: \"envoy\" (default), \"go\"")
+		"Type of dataplane, Supported values: \"envoy\", \"go\"")
 	fs.Uint16Var(&o.DataplaneReplicas, "dataplane-replicas", 1, "Number of dataplanes.")
 	fs.StringVar(&o.LogLevel, "log-level", "info",
 		"The log level. One of fatal, error, warn, info, debug.")
