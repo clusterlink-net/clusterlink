@@ -71,7 +71,7 @@ Recall that a connection is dropped if it does not match any access policy.
  Creating a high-priority access policy is accomplished by creating a `PrivilegedAccessPolicy` CR.
  Instances of `PrivilegedAccessPolicy` have no namespace and affect the entire cluster.
 
-{{% expand summary="Export Custom Resource" %}}
+{{% expand summary="PrivilegedAccessPolicy and AccessPolicy Custom Resources" %}}
 
 ```go
 type PrivilegedAccessPolicy struct {
