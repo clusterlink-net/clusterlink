@@ -32,12 +32,15 @@ type PeerOptions struct {
 	Name string
 	// Name of the fabric that the peer belongs to.
 	Fabric string
+	// Path where the certificates will be created.
+	Path string
 }
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
 	fs.StringVar(&o.Fabric, "fabric", config.DefaultFabric, "Fabric name.")
+	fs.StringVar(&o.Path, "path", ".", "Path where the certificates will be created.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -62,7 +65,7 @@ func (o *PeerOptions) createControlplane(peerCert *bootstrap.Certificate) (*boot
 		return nil, err
 	}
 
-	outDirectory := config.ControlplaneDirectory(o.Name, o.Fabric)
+	outDirectory := config.ControlplaneDirectory(o.Name, o.Fabric, o.Path)
 	if err := os.Mkdir(outDirectory, 0o755); err != nil {
 		return nil, err
 	}
@@ -80,7 +83,7 @@ func (o *PeerOptions) createDataplane(peerCert *bootstrap.Certificate) (*bootstr
 		return nil, err
 	}
 
-	outDirectory := config.DataplaneDirectory(o.Name, o.Fabric)
+	outDirectory := config.DataplaneDirectory(o.Name, o.Fabric, o.Path)
 	if err := os.Mkdir(outDirectory, 0o755); err != nil {
 		return nil, err
 	}
@@ -98,7 +101,7 @@ func (o *PeerOptions) createGWCTL(peerCert *bootstrap.Certificate) (*bootstrap.C
 		return nil, err
 	}
 
-	outDirectory := config.GWCTLDirectory(o.Name, o.Fabric)
+	outDirectory := config.GWCTLDirectory(o.Name, o.Fabric, o.Path)
 	if err := os.Mkdir(outDirectory, 0o755); err != nil {
 		return nil, err
 	}
@@ -120,12 +123,12 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	fabricCert, err := bootstrap.ReadCertificates(config.FabricDirectory(o.Fabric))
+	fabricCert, err := bootstrap.ReadCertificates(config.FabricDirectory(o.Fabric, o.Path))
 	if err != nil {
 		return err
 	}
 
-	peerDirectory := config.PeerDirectory(o.Name, o.Fabric)
+	peerDirectory := config.PeerDirectory(o.Name, o.Fabric, o.Path)
 	if err := os.Mkdir(peerDirectory, 0o755); err != nil {
 		return err
 	}
@@ -135,7 +138,7 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	err = o.saveCertificate(peerCertificate, config.PeerDirectory(o.Name, o.Fabric))
+	err = o.saveCertificate(peerCertificate, peerDirectory)
 	if err != nil {
 		return err
 	}

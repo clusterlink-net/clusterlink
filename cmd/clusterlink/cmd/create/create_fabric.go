@@ -25,13 +25,16 @@ import (
 
 // FabricOptions contains everything necessary to create and run a 'createfabric' subcommand.
 type FabricOptions struct {
-	// Name of the peer to create.
+	// Name of the fabric to create.
 	Name string
+	// Path where the certificates will be created.
+	Path string
 }
 
 // AddFlags adds flags to fs and binds them to options.
 func (o *FabricOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", config.DefaultFabric, "Fabric name.")
+	fs.StringVar(&o.Path, "path", ".", "Path where the certificates will be created.")
 }
 
 // NewCmdCreateFabric returns a cobra.Command to run the 'create fabric' subcommand.
@@ -58,15 +61,15 @@ func (o *FabricOptions) Run() error {
 		return err
 	}
 
-	if err := os.Mkdir(config.FabricDirectory(o.Name), 0o755); err != nil {
+	if err := os.Mkdir(config.FabricDirectory(o.Name, o.Path), 0o755); err != nil {
 		return err
 	}
 	// save certificate to file
-	err = os.WriteFile(config.FabricCertificate(o.Name), fabricCert.RawCert(), 0o600)
+	err = os.WriteFile(config.FabricCertificate(o.Name, o.Path), fabricCert.RawCert(), 0o600)
 	if err != nil {
 		return err
 	}
 
 	// save private key to file
-	return os.WriteFile(config.FabricKey(o.Name), fabricCert.RawKey(), 0o600)
+	return os.WriteFile(config.FabricKey(o.Name, o.Path), fabricCert.RawKey(), 0o600)
 }

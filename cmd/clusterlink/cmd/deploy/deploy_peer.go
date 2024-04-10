@@ -57,8 +57,8 @@ type PeerOptions struct {
 	Fabric string
 	// Namespace where the ClusterLink components are deployed.
 	Namespace string
-	// CertDir is the directory where the certificates for the fabric and peer are located.
-	CertDir string
+	// Path is the directory where the certificates for the fabric and peer are located.
+	Path string
 	// StartInstance, represents which component to deploy:
 	// `all` (clusterlink control-plane, data-plane and operator), `operator`, or `none`.
 	StartInstance string
@@ -113,7 +113,7 @@ func NewCmdDeployPeer() *cobra.Command {
 func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "name", "", "Peer name.")
 	fs.StringVar(&o.Fabric, "fabric", config.DefaultFabric, "Fabric name.")
-	fs.StringVar(&o.CertDir, "cert-dir", ".", "The directory where the certificates for the fabric and peer are located.")
+	fs.StringVar(&o.Path, "path", ".", "The directory where the certificates for the fabric and peer are located.")
 	fs.StringVar(&o.Namespace, "namespace", app.SystemNamespace,
 		"Namespace where the ClusterLink components are deployed.")
 	fs.StringVar(&o.ContainerRegistry, "container-registry", config.DefaultRegistry,
@@ -145,7 +145,7 @@ func (o *PeerOptions) RequiredFlags() []string {
 
 // Run the 'deploy peer' subcommand.
 func (o *PeerOptions) Run() error {
-	peerDir := path.Join(o.CertDir, config.PeerDirectory(o.Name, o.Fabric))
+	peerDir := config.PeerDirectory(o.Name, o.Fabric, o.Path)
 	if _, err := os.Stat(peerDir); err != nil {
 		return fmt.Errorf("failed to open certificates folder: %w", err)
 	}
@@ -157,27 +157,27 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 	// Read certificates
-	fabricCert, err := bootstrap.ReadCertificates(config.FabricDirectory(o.Fabric))
+	fabricCert, err := bootstrap.ReadCertificates(config.FabricDirectory(o.Fabric, o.Path))
 	if err != nil {
 		return err
 	}
 
-	peerCertificate, err := bootstrap.ReadCertificates(config.PeerDirectory(o.Name, o.Fabric))
+	peerCertificate, err := bootstrap.ReadCertificates(config.PeerDirectory(o.Name, o.Fabric, o.Path))
 	if err != nil {
 		return err
 	}
 
-	controlplaneCert, err := bootstrap.ReadCertificates(config.ControlplaneDirectory(o.Name, o.Fabric))
+	controlplaneCert, err := bootstrap.ReadCertificates(config.ControlplaneDirectory(o.Name, o.Fabric, o.Path))
 	if err != nil {
 		return err
 	}
 
-	dataplaneCert, err := bootstrap.ReadCertificates(config.DataplaneDirectory(o.Name, o.Fabric))
+	dataplaneCert, err := bootstrap.ReadCertificates(config.DataplaneDirectory(o.Name, o.Fabric, o.Path))
 	if err != nil {
 		return err
 	}
 
-	gwctlCert, err := bootstrap.ReadCertificates(config.GWCTLDirectory(o.Name, o.Fabric))
+	gwctlCert, err := bootstrap.ReadCertificates(config.GWCTLDirectory(o.Name, o.Fabric, o.Path))
 	if err != nil {
 		return err
 	}
