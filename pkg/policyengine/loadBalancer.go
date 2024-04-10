@@ -88,32 +88,6 @@ func nsNameFromFullName(fullName string) types.NamespacedName {
 	return types.NamespacedName{Name: fullName}
 }
 
-// SetPolicy is being used by the CRUD interface and is now deprecated.
-func (lb *LoadBalancer) SetPolicy(lbPolicy *LBPolicy) error {
-	plog.Infof("Set LB policy %+v", lbPolicy)
-
-	state, ok := lb.services[nsNameFromFullName(lbPolicy.ServiceDst)]
-	if !ok {
-		return fmt.Errorf("service %s was not imported yet", lbPolicy.ServiceDst)
-	}
-	state.scheme = lbPolicy.Scheme
-
-	return nil
-}
-
-// DeletePolicy is being used by the CRUD interface and is now deprecated.
-func (lb *LoadBalancer) DeletePolicy(lbPolicy *LBPolicy) error {
-	plog.Infof("Delete LB policy %+v", lbPolicy)
-
-	state, ok := lb.services[nsNameFromFullName(lbPolicy.ServiceDst)]
-	if !ok {
-		return fmt.Errorf("service %s was not imported yet", lbPolicy.ServiceDst)
-	}
-	state.scheme = Random // back to default
-
-	return nil
-}
-
 func (lb *LoadBalancer) lookupRandom(svc types.NamespacedName, svcSrcs []crds.ImportSource) *crds.ImportSource {
 	index := rand.Intn(len(svcSrcs)) //nolint:gosec // G404: use of weak random is fine for load balancing
 	plog.Infof("LoadBalancer selects index(%d) - source %v for service %s", index, svcSrcs[index], svc)

@@ -33,7 +33,6 @@ type Manager struct {
 	exports    *cpstore.Exports
 	imports    *cpstore.Imports
 	acPolicies *cpstore.AccessPolicies
-	lbPolicies *cpstore.LBPolicies
 
 	xdsManager     *xds.Manager
 	authzManager   *authz.Manager
@@ -70,13 +69,6 @@ func (m *Manager) init() error {
 	// add access policies
 	for _, policy := range m.GetAllAccessPolicies() {
 		if err := m.CreateAccessPolicy(policy); err != nil {
-			return err
-		}
-	}
-
-	// add load-balancing policies
-	for _, policy := range m.GetAllLBPolicies() {
-		if err := m.CreateLBPolicy(policy); err != nil {
 			return err
 		}
 	}
@@ -120,19 +112,12 @@ func NewManager(
 	}
 	logger.Infof("Loaded %d access policies.", acPolicies.Len())
 
-	lbPolicies, err := cpstore.NewLBPolicies(storeManager)
-	if err != nil {
-		return nil, fmt.Errorf("cannot load load-balancing policies from store: %w", err)
-	}
-	logger.Infof("Loaded %d load-balancing policies.", lbPolicies.Len())
-
 	m := &Manager{
 		namespace:      namespace,
 		peers:          peers,
 		exports:        exports,
 		imports:        imports,
 		acPolicies:     acPolicies,
-		lbPolicies:     lbPolicies,
 		xdsManager:     xdsManager,
 		authzManager:   authzManager,
 		controlManager: controlManager,

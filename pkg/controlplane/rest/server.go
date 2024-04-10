@@ -42,10 +42,4 @@ func RegisterHandlers(manager *Manager, srv *rest.Server) {
 		Handler:       &accessPolicyHandler{manager: manager},
 		DeleteByValue: false,
 	})
-
-	srv.AddObjectHandlers(&rest.ServerObjectSpec{
-		BasePath:      "/lbpolicies",
-		Handler:       &lbPolicyHandler{manager: manager},
-		DeleteByValue: false,
-	})
 }

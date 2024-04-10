@@ -14,13 +14,11 @@
 package k8s
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
@@ -181,23 +179,13 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		}
 		require.Nil(s.T(), client0.Peers.Create(&peer2))
 
-		allowAllPolicy := *util.PolicyAllowAll
-		allowAllPolicy.Namespace = s.fabric.Namespace()
-		data, err := json.Marshal(allowAllPolicy)
-		require.Nil(s.T(), err)
-
 		// test access policy API
-		policy := api.Policy{
-			Name: "allow-all",
-			Spec: api.PolicySpec{
-				Blob: data,
-			},
-		}
+		policy := *util.PolicyAllowAll
 
 		// list access policies when empty
 		objects, err = client0.AccessPolicies.List()
 		require.Nil(s.T(), err)
-		require.Empty(s.T(), objects.(*[]api.Policy))
+		require.Empty(s.T(), objects.(*[]v1alpha1.AccessPolicy))
 
 		// get non-existing access policy
 		_, err = client0.AccessPolicies.Get(policy.Name)
@@ -219,12 +207,12 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// get access policy
 		objects, err = client0.AccessPolicies.Get(policy.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), *objects.(*api.Policy), policy)
+		require.Equal(s.T(), *objects.(*v1alpha1.AccessPolicy), policy)
 
 		// list access policies
 		objects, err = client0.AccessPolicies.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Policy), []api.Policy{policy})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.AccessPolicy), []v1alpha1.AccessPolicy{policy})
 
 		// test export API
 		export := v1alpha1.Export{
@@ -278,59 +266,16 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Nil(s.T(), err)
 		require.Equal(s.T(), str, cl[1].Name())
 
-		// test LB policy API
-		staticPolicy := &policyengine.LBPolicy{
-			ServiceDst: s.fabric.Namespace() + "/" + imp.Name,
-			Scheme:     policyengine.Static,
-		}
-
-		data, err = json.Marshal(staticPolicy)
-		require.Nil(s.T(), err)
-
-		lbPolicy := api.Policy{
-			Name: "static",
-			Spec: api.PolicySpec{
-				Blob: data,
-			},
-		}
-
-		// list LB policies when empty
-		objects, err = client0.LBPolicies.List()
-		require.Nil(s.T(), err)
-		require.Empty(s.T(), objects.(*[]api.Policy))
-
-		// get non-existing LB policy
-		_, err = client0.LBPolicies.Get(lbPolicy.Name)
-		require.NotNil(s.T(), err)
-
-		// delete non-existing LB policy
-		require.NotNil(s.T(), client0.LBPolicies.Delete(lbPolicy.Name))
-		// update non-existing LB policy
-		require.NotNil(s.T(), client0.LBPolicies.Update(&lbPolicy))
-		// create LB policy
-		require.Nil(s.T(), client0.LBPolicies.Create(&lbPolicy))
-		// create LB policy which already exists
-		require.NotNil(s.T(), client0.LBPolicies.Create(&lbPolicy))
-
 		// create false binding to verify LB policy
 		imp.Spec.Sources = append(imp.Spec.Sources,
 			v1alpha1.ImportSource{Peer: cl[2].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[2].Namespace()})
+		imp.Spec.LBScheme = string(policyengine.Static)
 		require.Nil(s.T(), client0.Imports.Update(&imp))
 
 		// verify access
 		str, err = accessService(false, nil)
 		require.Nil(s.T(), err)
 		require.Equal(s.T(), str, cl[1].Name())
-
-		// get LB policy
-		objects, err = client0.LBPolicies.Get(lbPolicy.Name)
-		require.Nil(s.T(), err)
-		require.Equal(s.T(), *objects.(*api.Policy), lbPolicy)
-
-		// list LB policies
-		objects, err = client0.LBPolicies.List()
-		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Policy), []api.Policy{lbPolicy})
 
 		// update import port
 		imp.Spec.Port++
@@ -363,22 +308,16 @@ func (s *TestSuite) TestControlplaneCRUD() {
 
 		//  update access policy
 		policy2 := *util.PolicyAllowAll
-		policy2.Namespace = s.fabric.Namespace()
 		policy2.Spec.Action = v1alpha1.AccessPolicyActionDeny
-		data, err = json.Marshal(&policy2)
-		require.Nil(s.T(), err)
-		oldPolicyBlob := policy.Spec.Blob
-		policy.Spec.Blob = data
-		require.Nil(s.T(), client0.AccessPolicies.Update(&policy))
+		require.Nil(s.T(), client0.AccessPolicies.Update(&policy2))
 		// get access policy after update
-		objects, err = client0.AccessPolicies.Get(policy.Name)
+		objects, err = client0.AccessPolicies.Get(policy2.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), objects.(*api.Policy).Spec, policy.Spec)
+		require.Equal(s.T(), objects.(*v1alpha1.AccessPolicy).Spec, policy2.Spec)
 		// verify no access after update
 		_, err = accessService(false, &services.ConnectionResetError{})
 		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 		//  update access policy back
-		policy.Spec.Blob = oldPolicyBlob
 		require.Nil(s.T(), client0.AccessPolicies.Update(&policy))
 		// verify access after update back
 		str, err = accessService(false, nil)
@@ -434,9 +373,6 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.ErrorIs(s.T(), err, &services.ServiceNotFoundError{})
 		// re-create import
 		require.Nil(s.T(), client0.Imports.Create(&imp))
-		// set LB policy again, as it is now attached to Import
-		require.Nil(s.T(), client0.LBPolicies.Delete(lbPolicy.Name))
-		require.Nil(s.T(), client0.LBPolicies.Create(&lbPolicy))
 		// re-get import from server
 		objects, err = client0.Imports.Get(imp.Name)
 		require.Nil(s.T(), err)
@@ -491,21 +427,6 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Nil(s.T(), err)
 		require.Equal(s.T(), str, cl[1].Name())
 
-		// delete LB policy
-		require.Nil(s.T(), client0.LBPolicies.Delete(lbPolicy.Name))
-		// get LB policy after delete
-		_, err = client0.LBPolicies.Get(lbPolicy.Name)
-		require.NotNil(s.T(), err)
-		// verify random access after delete
-		_, err = accessService(true, &services.ConnectionResetError{})
-		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
-		// re-create LB policy
-		require.Nil(s.T(), client0.LBPolicies.Create(&lbPolicy))
-		// verify access after re-create
-		str, err = accessService(false, nil)
-		require.Nil(s.T(), err)
-		require.Equal(s.T(), str, cl[1].Name())
-
 		// restart controlplanes
 		runner := util.AsyncRunner{}
 		runner.Run(cl[0].RestartControlplane)
@@ -525,17 +446,12 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// verify access policies after restart
 		objects, err = client0.AccessPolicies.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Policy), []api.Policy{policy})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.AccessPolicy), []v1alpha1.AccessPolicy{policy})
 
 		// verify exports after restart
 		objects, err = client1.Exports.List()
 		require.Nil(s.T(), err)
 		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Export), []v1alpha1.Export{export})
-
-		// verify lb policies after restart
-		objects, err = client0.LBPolicies.List()
-		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]api.Policy), []api.Policy{lbPolicy})
 
 		// verify access after restart
 		str, err = accessService(true, nil)
