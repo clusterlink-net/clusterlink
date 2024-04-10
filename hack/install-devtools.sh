@@ -53,14 +53,14 @@ if [ -z "$(which kubectl)" ] || [ "$1" = "--force" ]; then
 fi
 
 #-- kind
-VERSION=v0.17.0
+VERSION=v0.22.0
 if [ -z "$(which kind)" ] || [ "$1" = "--force" ]; then
   echo installing kind "($VERSION)"
   go install sigs.k8s.io/kind@$VERSION
 fi
 
 #-- golangci-lint
-VERSION=v1.51.2
+VERSION=v1.54.2
 if [ -z "$(which golangci-lint)" ] || [ "$1" = "--force" ]; then
   echo installing golangci-lint "($VERSION)"
   go install "github.com/golangci/golangci-lint/cmd/golangci-lint@$VERSION"
@@ -74,7 +74,7 @@ if [ -z "$(which tparse)" ] || [ "$1" = "--force" ]; then
 fi
 
 #-- gofumpt
-VERSION="0.6.0"
+VERSION="v0.6.0"
 if [ -z "$(which gofumpt)" ] || [ "$1" = "--force" ]; then
   echo installing gofumpt "($VERSION)"
   go install "mvdan.cc/gofumpt@$VERSION"
