@@ -56,8 +56,6 @@ For a connection to be established, both the ClusterLink gateway on the client
  the corresponding Import CR on the client side and the namespace of the corresponding
  Export on the service side.
 
-**Note**: Creating and deleting instances of `PrivilegedAccessPolicy` is currently not supported.
-
 ## Prerequisites
 
 The following assumes that you have `kubectl` access to two or more clusters where ClusterLink
@@ -70,10 +68,19 @@ Recall that a connection is dropped if it does not match any access policy.
  must be created on both sides of the connection.
  Creating an access policy is accomplished by creating an `AccessPolicy` CR in
  the relevant namespace (see Note above).
+ Creating a high-priority access policy is accomplished by creating a `PrivilegedAccessPolicy` CR.
+ Instances of `PrivilegedAccessPolicy` have no namespace and affect the entire cluster.
 
 {{% expand summary="Export Custom Resource" %}}
 
 ```go
+type PrivilegedAccessPolicy struct {
+    metav1.TypeMeta   `json:",inline"`
+    metav1.ObjectMeta `json:"metadata,omitempty"`
+
+    Spec AccessPolicySpec `json:"spec,omitempty"`
+}
+
 type AccessPolicy struct {
     metav1.TypeMeta   `json:",inline"`
     metav1.ObjectMeta `json:"metadata,omitempty"`
