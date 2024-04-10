@@ -1,5 +1,5 @@
 ---
 title: Tasks
-description: Tasks and guidelines for the ClusterLink system.
+description: How to do single specific targeted activities with ClusterLink.
 weight: 35
 ---
