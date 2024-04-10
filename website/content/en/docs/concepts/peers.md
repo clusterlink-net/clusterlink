@@ -9,7 +9,7 @@ A *Peer* represents a location, such as a Kubernetes cluster, participating in a
  it wishes to share with other peers. A peer is managed by a peer administrator,
  which is responsible for running the ClusterLink control and data planes. The
  administrator will typically deploy the ClusterLink components by configuring
- the [deployment CR]({{< ref "users#deploy-cr-instance" >}}). They may also wish to provide
+ the [deployment CR]({{< ref "operator#deploy-cr-instance" >}}). They may also wish to provide
  (often) coarse-grained access policies in accordance with high level corporate
  policies (e.g., "production peers should only communicate with other production peers").
 

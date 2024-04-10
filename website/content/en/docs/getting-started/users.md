@@ -58,14 +58,16 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
    ```
 
    This command will deploy the ClusterLink operator on the `clusterlink-operator` namespace
-    and convert the peer certificates to secrets in this namespace where ClusterLink components will be installed, which by default is `clusterlink-system`.
+    and convert the peer certificates to secrets in this namespace where ClusterLink components will be installed.
+    By default, the `clusterlink-system` namespace is used.
     The command assumes that `kubectl` is set to the correct peer (K8s cluster)
     and that the certificates were created by running the previous command on the same working directory.
     If they were not, use the flag `--path <path>` for pointing to the working directory
     that was used in the previous command.
     The `--fabric` option is optional, and by default, "default_fabric" will be used.
     The `--autostart` option will deploy the ClusterLink components in the `clusterlink-system` namespace,
-    and enable ClusterLink in the cluster. For more details and deployment configuration see [ClusterLink deployment operator](https://clusterlink.net/docs/concepts/operator/).
+    and enable ClusterLink in the cluster.
+    For more details and deployment configuration see [ClusterLink deployment operator]({{< ref "operator" >}}).
 
 {{< notice note >}}
 To deploy ClusterLink on another cluster, repeat steps 2-3 in a console with access to the cluster.
