@@ -123,13 +123,13 @@ kubectl apply -f $IPERF3_FILES/iperf3-server/iperf3.yaml
     *Client cluster*:
 
     ```sh
-    clusterlink deploy peer --name client --autostart --ingress=NodePort --ingress-port=30443
+    clusterlink deploy peer --name client --ingress=NodePort --ingress-port=30443
     ```
 
     *Server cluster*:
 
     ```sh
-    clusterlink deploy peer --name server --autostart --ingress=NodePort --ingress-port=30443
+    clusterlink deploy peer --name server --ingress=NodePort --ingress-port=30443
     ```
 
    {{< notice note >}}

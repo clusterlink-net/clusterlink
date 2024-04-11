@@ -39,6 +39,16 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 )
 
+const (
+	// StartAll deploys the clusterlink operator, converts the peer certificates to secrets,
+	// and deploys the operator ClusterLink custom resource to create the ClusterLink components.
+	StartAll = "all"
+	// StartOperator deploys only the operator and converts the peer certificates to secrets.
+	StartOperator = "operator"
+	// StartNone doesn't deploy anything but creates custom resource YAMLs.
+	StartNone = "none"
+)
+
 // PeerOptions contains everything necessary to create and run a 'deploy peer' subcommand.
 type PeerOptions struct {
 	// Name of the peer to deploy.
@@ -49,8 +59,9 @@ type PeerOptions struct {
 	Namespace string
 	// CertDir is the directory where the certificates for the fabric and peer are located.
 	CertDir string
-	// StartInstance, if set to true, deploys a ClusterLink instance that will create the ClusterLink components.
-	StartInstance bool
+	// StartInstance, represents which component to deploy:
+	// `all` (clusterlink components and operator), `operator`, or `none`.
+	StartInstance string
 	// Ingress, represents the type of service used to expose the ClusterLink deployment.
 	Ingress string
 	// IngressPort, represents the port number of the service used to expose the ClusterLink deployment.
@@ -70,8 +81,6 @@ type PeerOptions struct {
 	// CRDMode indicates whether to run a k8s CRD-based controlplane.
 	// This flag will be removed once the CRD-based controlplane feature is complete and stable.
 	CRDMode bool
-	// DryRun doesn't deploy the ClusterLink operator but creates the ClusterLink instance YAML.
-	DryRun bool
 }
 
 // NewCmdDeployPeer returns a cobra.Command to run the 'deploy peer' subcommand.
@@ -110,14 +119,14 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.ContainerRegistry, "container-registry", config.DefaultRegistry,
 		"The container registry to pull the project images.")
 	fs.StringVar(&o.Tag, "tag", "latest", "The tag of the project images.")
-	fs.BoolVar(&o.StartInstance, "autostart", false,
-		"If false, it will deploy only the ClusteLink operator and ClusterLink K8s secrets.\n"+
-			"If true, it will also deploy the ClusterLink instance CRD, which will create the ClusterLink components.")
+	fs.StringVar(&o.StartInstance, "start", StartAll,
+		"Represents which component to deploy and start in the cluster: "+
+			"`all` (clusterlink components and operator), `operator`, or `none`.")
 	fs.StringVar(&o.Ingress, "ingress", string(apis.IngressTypeLoadBalancer), "Represents the type of service used"+
-		"to expose the ClusterLink deployment (LoadBalancer/NodePort/none).\nThis option is only valid if --autostart is set.")
+		"to expose the ClusterLink deployment (LoadBalancer/NodePort/none).")
 	fs.Uint16Var(&o.IngressPort, "ingress-port", apis.DefaultExternalPort,
 		"Represents the ingress port. By default it is set to 443 for LoadBalancer"+
-			" and a random port in range (30000 to 32767) for NodePort.\nThis option is only valid if --autostart is set.")
+			" and a random port in range (30000 to 32767) for NodePort.")
 	fs.StringToStringVar(&o.IngressAnnotations, "ingress-annotations", nil, "Represents the annotations that"+
 		"will be added to ingress services.\nThe flag can be repeated to add several annotations.\n"+
 		"For example: --ingress-annotations <key1>=<value1> --ingress-annotations <key2>=<value2>.")
@@ -126,8 +135,6 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.Uint16Var(&o.DataplaneReplicas, "dataplane-replicas", 1, "Number of dataplanes.")
 	fs.StringVar(&o.LogLevel, "log-level", "info",
 		"The log level. One of fatal, error, warn, info, debug.")
-	fs.BoolVar(&o.DryRun, "dry-run", false,
-		"Dry-run doesn't deploy the ClusterLink operator but creates the ClusterLink instance YAML")
 	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }
 
@@ -146,7 +153,9 @@ func (o *PeerOptions) Run() error {
 	if err := o.verifyDataplaneType(o.DataplaneType); err != nil {
 		return err
 	}
-
+	if err := o.verifyStartInstance(o.StartInstance); err != nil {
+		return err
+	}
 	// Read certificates
 	fabricCert, err := bootstrap.ReadCertificates(config.FabricDirectory(o.Fabric))
 	if err != nil {
@@ -213,8 +222,7 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	// Return in case of dry-run mode.
-	if o.DryRun {
+	if o.StartInstance == StartNone {
 		return nil
 	}
 
@@ -265,7 +273,7 @@ func (o *PeerOptions) Run() error {
 	}
 
 	// Create ClusterLink instance
-	if o.StartInstance {
+	if o.StartInstance == StartAll {
 		if o.IngressPort != apis.DefaultExternalPort {
 			platformCfg.IngressPort = o.IngressPort
 		}
@@ -280,13 +288,6 @@ func (o *PeerOptions) Run() error {
 			fmt.Println("CRD instance for ClusterLink (\"cl-instance\") was already exist.")
 		} else if err != nil {
 			return err
-		}
-	} else {
-		if o.Ingress != string(apis.IngressTypeLoadBalancer) {
-			fmt.Println("flag --autostart is not set, ignoring --ingres flag")
-		}
-		if o.IngressPort != apis.DefaultExternalPort {
-			fmt.Println("flag --autostart is not set, ignoring --ingres-port flag")
 		}
 	}
 
@@ -312,5 +313,15 @@ func (o *PeerOptions) verifyDataplaneType(dType string) error {
 		return nil
 	default:
 		return fmt.Errorf("undefined dataplane-type %s", dType)
+	}
+}
+
+// verifyStartInstance checks if the given start instance is valid.
+func (o *PeerOptions) verifyStartInstance(sType string) error {
+	switch sType {
+	case StartAll, StartOperator, StartNone:
+		return nil
+	default:
+		return fmt.Errorf("undefined start type %s", sType)
 	}
 }
