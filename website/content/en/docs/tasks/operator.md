@@ -42,7 +42,6 @@ Alternatively, you can install MetalLB to add a Load Balancer implementation to 
 The port flag is optional, and by default, ClusterLink will use any allocated NodePort that the Kind cluster provides.
 However, it is more convenient to use a fixed setting NodePort for peer configuration, as demonstrated in the [ClusterLink Tutorials]({{< ref "tutorials">}}).
 
-
 ## Deployment of specific version
 
 To deploy a specific ClusterLink image version use the `tag` flag:
@@ -70,10 +69,10 @@ The deployment process can be split into two steps:
     ```yaml
     kubectl apply -f - <<EOF
     apiVersion: clusterlink.net/v1alpha1
-    kind: ClusterLink
+    kind: Instance
     metadata:
         namespace: clusterlink-operator
-        name: <peer_name>
+        name: peer-instance
     spec:
         ingress:
             type: <ingress_type>
@@ -107,3 +106,48 @@ The `deploy peer` command has the following flags:
 - **tag:** This field determines the version of project images to pull. By default, it uses the `latest` version.
 
 All the flags are mapped to corresponding field in the ClusterLink custom resource.
+
+## Manual Deployment without CLI
+
+To deploy the ClusterLink without using the CLI, follow the instructions below:
+
+1. Download the configuration files (CRDs, operator RBACs, and deployment) from GitHub:
+
+    ```sh
+    git clone git@github.com:clusterlink-net/clusterlink.git
+    ```
+
+2. Install  ClusterLink CRDs:
+
+    ```sh
+    kubectl apply --recursive -f  ./clusterlink/config/crds
+    ```
+
+3. Install the ClusterLink operator:
+
+    ```sh
+    kubectl apply --recursive -f  ./clusterlink/config/operator
+    ```
+
+4. Convert the peer and fabric certificates to secrets:
+
+    ```sh
+    export CERTS =<path to fabric certificates folder>
+    kubectl create secret generic cl-fabric -n clusterlink-system --from-file=ca=$CERTS /cert.pem
+    kubectl create secret generic cl-peer   -n clusterlink-system --from-file=ca=$CERTS /peer1/cert.pem
+    kubectl create secret generic cl-controlplane -n clusterlink-system --from-file=cert=$CERTS /peer1/controlplane/cert.pem --from-file=key=$CERTS /peer1/controlplane/key.pem
+    kubectl create secret generic cl-dataplane -n clusterlink-system --from-file=cert=$CERTS /peer1/dataplane/cert.pem --from-file=key=$CERTS /peer1/dataplane/key.pem
+    kubectl create secret generic gwctl -n clusterlink-system --from-file=cert=$CERTS /peer1/gwctl/cert.pem --from-file=key=$CERTS /peer1/gwctl/key.pem
+    ```
+
+5. Deploy a ClusterLink K8s custom resource object:
+
+    ```yaml
+    kubectl apply -f - <<EOF
+    apiVersion: clusterlink.net/v1alpha1
+    kind: Instance
+    metadata:
+        namespace: clusterlink-operator
+        name: peer-instance
+    EOF
+    ```
