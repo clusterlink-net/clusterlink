@@ -18,7 +18,7 @@ serve: ; $(info running locally with env=production...)
 	@hugo server --gc --cleanDestinationDir --disableFastRender
 
 serve-dev: ; $(info running locally env=dev \(drafts and future\)...)
-	@hugo server --gc --cleanDestinationDir --disableFastRender --buildDrafts --buildFuture
+	@hugo server --gc --cleanDestinationDir --disableFastRender --buildDrafts --buildFuture --enableGitInfo
 
 checklinks: ; $(info running link check on https://clusterlink.net...)
 	@muffet -c 16 -b 65536  --rate-limit 16 https://clusterlink.net

@@ -37,7 +37,7 @@ spec:
     spec:
       containers:
       - name: details
-        image: docker.io/maistra/examples-bookinfo-details-v1:0.12.0
+        image: docker.io/istio/examples-bookinfo-details-v1
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9080

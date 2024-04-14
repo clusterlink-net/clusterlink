@@ -101,31 +101,20 @@ func (pdp *PDP) GetPolicies() []v1alpha1.AccessPolicy {
 	return res
 }
 
-// AddOrUpdatePolicy adds a PrivilegedAccessPolicy to the PDP.
-// If a policy with the same name already exists in the PDP,
-// it is updated (including updating the Action field).
-// Invalid policies return an error.
-func (pdp *PDP) AddOrUpdatePrivilegedPolicy(policy *v1alpha1.PrivilegedAccessPolicy) error {
-	if err := policy.Spec.Validate(); err != nil {
-		return err
-	}
-
-	policyName := types.NamespacedName{Namespace: policy.Namespace, Name: policy.Name}
-	pdp.privilegedPolicies.addPolicy(policyName, &policy.Spec)
-	return nil
-}
-
 // AddOrUpdatePolicy adds an AccessPolicy to the PDP.
 // If a policy with the same name already exists in the PDP,
 // it is updated (including updating the Action field).
 // Invalid policies return an error.
-func (pdp *PDP) AddOrUpdatePolicy(policy *v1alpha1.AccessPolicy) error {
-	if err := policy.Spec.Validate(); err != nil {
+func (pdp *PDP) AddOrUpdatePolicy(policy *AccessPolicy) error {
+	if err := policy.spec.Validate(); err != nil {
 		return err
 	}
 
-	policyName := types.NamespacedName{Namespace: policy.Namespace, Name: policy.Name}
-	pdp.regularPolicies.addPolicy(policyName, &policy.Spec)
+	if policy.privileged {
+		pdp.privilegedPolicies.addPolicy(policy.name, &policy.spec)
+	} else {
+		pdp.regularPolicies.addPolicy(policy.name, &policy.spec)
+	}
 	return nil
 }
 

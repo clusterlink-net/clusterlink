@@ -1,10 +1,11 @@
 apiVersion: clusterlink.net/v1alpha1
 kind: Peer
 metadata:
-   name: cluster17.us-east
-   namespace: clusterlink-system
+  name: cluster17.us-east
+  namespace: clusterlink-system
 spec:
-  gateways: [ "192.168.0.12:32287", "192.168.0.17:32287"]
-  attributes:
-  - location: us-east
-  - environment: dev
+  gateways:
+  - host: "192.168.0.12"
+    port: 443
+  - host: "192.168.0.17"
+    port: 443

@@ -16,7 +16,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"reflect"
 	"time"
 
@@ -24,7 +23,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -67,11 +65,10 @@ type InstanceReconciler struct {
 // +kubebuilder:rbac:groups=clusterlink.net,resources=instances,verbs=list;get;watch;update;patch
 // +kubebuilder:rbac:groups=clusterlink.net,resources=instances/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=clusterlink.net,resources=instances/finalizers,verbs=update
-// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=list;get;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services;serviceaccounts,verbs=list;get;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=list;get;watch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=list;get;watch
-// +kubebuilder:rbac:groups=clusterlink.net,resources=exports;peers;accesspolicies,verbs=list;get;watch
+// +kubebuilder:rbac:groups=clusterlink.net,resources=exports;peers;accesspolicies;privilegedaccesspolicies,verbs=list;get;watch
 // +kubebuilder:rbac:groups=clusterlink.net,resources=imports,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=clusterlink.net,resources=peers/status;exports/status;imports/status,verbs=update
 // +kubebuilder:rbac:groups="apps",resources=deployments,verbs=list;get;watch;create;update;patch;delete
@@ -190,10 +187,6 @@ func (r *InstanceReconciler) applyClusterLink(ctx context.Context, instance *clu
 		instance.Spec.ContainerRegistry += "/"
 	}
 	// Create controlplane components
-	if err := r.createPVC(ctx, ControlPlaneName, instance.Spec.Namespace); err != nil {
-		return err
-	}
-
 	if err := r.createAccessControl(ctx, ControlPlaneName, instance.Spec.Namespace); err != nil {
 		return err
 	}
@@ -241,14 +234,6 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 					},
 				},
 			},
-			{
-				Name: ControlPlaneName,
-				VolumeSource: corev1.VolumeSource{
-					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: ControlPlaneName,
-					},
-				},
-			},
 		},
 		Containers: []corev1.Container{
 			{
@@ -279,10 +264,6 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 						MountPath: cpapp.KeyFile,
 						SubPath:   "key",
 						ReadOnly:  true,
-					},
-					{
-						Name:      ControlPlaneName,
-						MountPath: filepath.Dir(cpapp.StoreFile),
 					},
 				},
 				Env: []corev1.EnvVar{
@@ -408,27 +389,6 @@ func (r *InstanceReconciler) createService(ctx context.Context, name, namespace 
 	return r.createResource(ctx, service)
 }
 
-// createPVC sets up k8s a persistent volume claim for the.
-func (r *InstanceReconciler) createPVC(ctx context.Context, name, namespace string) error {
-	// Create the PVC for cl-controlplane
-	controlplanePVC := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			Resources: corev1.VolumeResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: resource.MustParse("100Mi"),
-				},
-			},
-		},
-	}
-
-	return r.createResource(ctx, controlplanePVC)
-}
-
 // createAccessControl sets up k8s ClusterRule and ClusterRoleBinding for the controlplane.
 func (r *InstanceReconciler) createAccessControl(ctx context.Context, name, namespace string) error {
 	// Create ServiceAccount object
@@ -461,7 +421,7 @@ func (r *InstanceReconciler) createAccessControl(ctx context.Context, name, name
 			},
 			{
 				APIGroups: []string{"clusterlink.net"},
-				Resources: []string{"peers", "exports", "accesspolicies"},
+				Resources: []string{"peers", "exports", "accesspolicies", "privilegedaccesspolicies"},
 				Verbs:     []string{"get", "list", "watch"},
 			},
 			{
@@ -604,10 +564,6 @@ func (r *InstanceReconciler) deleteClusterLink(ctx context.Context, namespace st
 	}
 
 	if err := r.deleteResource(ctx, &corev1.Service{ObjectMeta: cpObj}); err != nil {
-		return err
-	}
-
-	if err := r.deleteResource(ctx, &corev1.PersistentVolumeClaim{ObjectMeta: cpObj}); err != nil {
 		return err
 	}
 

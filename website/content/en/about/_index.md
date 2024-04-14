@@ -2,7 +2,7 @@
 title: About ClusterLink
 linkTitle: About
 description: Why and where should you use ClusterLink
-menu: {main: {weight: 10, pre: "<i class='fa-solid fa-info-circle'></i>" }}
+menu: {main: {weight: 30, pre: "<i class='fa-solid fa-info-circle'></i>" }}
 ---
 
 {{% blocks/section color="secondary" %}}

@@ -4,12 +4,12 @@ description: Defining ClusterLink peers as part of a fabric
 weight: 20
 ---
 
-A `Peer` represents a location, such as a Kubernetes cluster, participating in a
+A *Peer* represents a location, such as a Kubernetes cluster, participating in a
  [fabric]({{< ref "fabric" >}}). Each peer may host one or more [services]({{< ref "services" >}})
  it wishes to share with other peers. A peer is managed by a peer administrator,
  which is responsible for running the ClusterLink control and data planes. The
  administrator will typically deploy the ClusterLink components by configuring
- the [deployment CR]({{< ref "users#deploy-cr-instance" >}}). They may also wish to provide
+ the [deployment CR]({{< ref "operator#deploy-cr-instance" >}}). They may also wish to provide
  (often) coarse-grained access policies in accordance with high level corporate
  policies (e.g., "production peers should only communicate with other production peers").
 
@@ -17,7 +17,7 @@ Once a peer has been added to a fabric, it can communicate with any other peer
  belonging to it. All configuration relating to service sharing (e.g., the exporting
  and importing of services, and the setting of fine grained application policies) can be
  done with lowered privileges (e.g., by users, such as application owners). Remote peers are
- represented by the `Peer` Custom Resource Definition (CRD). Each Peer CR instance
+ represented by the Peer Custom Resource Definition (CRD). Each Peer CR instance
  defines a remote cluster and the network endpoints of its ClusterLink gateways.
 
 ## Prerequisites
@@ -46,7 +46,7 @@ clusterlink create peer-cert --name <peer_name> --fabric <fabric_name>
 
 {{< notice tip >}}
 The fabric CA files (certificate and private key) are expected to be in a subdirectory
-(i.e., `./<fabric_name>/cert.name` and `./<fabric_name>/key.pem`).
+ (i.e., `./<fabric_name>/cert.name` and `./<fabric_name>/key.pem`).
 {{< /notice >}}
 
 This will create the certificate and private key files (`cert.pem` and
@@ -76,37 +76,45 @@ Before proceeding, ensure that the CA certificate (the CA private key is not nee
 Install the ClusterLink operator by running the following command:
 
 ```sh
-clusterlink peer init
+clusterlink deploy peer --autostart --name <peer_name> --fabric <fabric_name>
 ```
-<!-- TODO: is this the right command -->
 
 The command assumes that kubectl is set to the correct context and credentials
-and that the certificates were created in respective sub-directories
-under the current working directory.
-If they were not, add the `-f <path>` CLI option to set the correct path.
+ and that the certificates were created in respective sub-directories
+ under the current working directory.
+ If they were not, add the `--path <path>` CLI option to set the correct path.
 
 This command will deploy the ClusterLink deployment CRDs using the current
-kubectl context. The operation requires cluster administrator privileges
-in order to install CRDs into the cluster.
-The ClusterLink operator is installed to the `clusterlink-operator` namespace
-and the CA and peer certificate and private key are set as K8s secrets
-in the namespace. You can confirm the successful completion of this step using
-the following commands:
+ `kubectl` context. The operation requires cluster administrator privileges
+ in order to install CRDs into the cluster.
+ The ClusterLink operator is installed to the `clusterlink-operator` namespace.
+ The CA, peer certificate, and private key are set as K8s secrets
+ in the namespace where ClusterLink components are installed, which by default is `clusterlink-system`.
+ You can confirm the successful completion of this step using the following commands:
 
 ```sh
 kubectl get crds
-kubectl get secret --namespace clusterlink-operator
+kubectl get secret --namespace clusterlink-system
 ```
 
 {{% expand summary="Example output" %}}
 
 ```sh
 $ kubectl get crds
-output of `kubectl get crds`
-over multiple lines
-$ kubectl get secret --namespace clusterlink-operator
-multiline output of `kubectl get secret --namespace clusterlink-operator` command
-...
+NAME                                       CREATED AT
+accesspolicies.clusterlink.net             2024-04-07T12:08:24Z
+exports.clusterlink.net                    2024-04-07T12:08:24Z
+imports.clusterlink.net                    2024-04-07T12:08:24Z
+instances.clusterlink.net                  2024-04-07T12:08:24Z
+peers.clusterlink.net                      2024-04-07T12:08:24Z
+privilegedaccesspolicies.clusterlink.net   2024-04-07T12:08:24Z
+
+$ kubectl get secret --namespace clusterlink-system
+NAME              TYPE     DATA   AGE
+cl-controlplane   Opaque   2      19h
+cl-dataplane      Opaque   2      19h
+cl-fabric         Opaque   1      19h
+cl-peer           Opaque   1      19h
 ```
 
 {{% /expand %}}
@@ -124,8 +132,6 @@ After the operator is installed, you can deploy ClusterLink by applying
 Refer to the [getting started guide]({{< ref "users#setup" >}}) for a description
  of the ClusterLink CR fields.
 
-<!-- TODO expand the sample CRD file? -->
-
 ## Add or remove peers
 
 {{< notice info >}}
@@ -140,6 +146,35 @@ Managing peers is done by creating, deleting and updating peer CRs
  by the fabric or remote peer administrator over email). In the future, these may
  be configured via a management plane.
 
+{{% expand summary="Peer Custom Resource" %}}
+
+```go
+type Peer struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec PeerSpec `json:"spec"`
+	Status PeerStatus `json:"status,omitempty"`
+}
+
+
+type PeerSpec struct {
+	Gateways []Endpoint `json:"gateways"`
+}
+
+type PeerStatus struct {
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+type Endpoint struct {
+	Host string `json:"host"`
+	Port uint16 `json:"port"`
+}
+
+```
+
+{{% /expand %}}
+
 There are two fundamental attributes in the peer CRD: the peer name and the list of
  ClusterLink gateway endpoints through which the remote peer's services are available.
  Peer names are unique and must align with the Subject name present in their certificate
@@ -150,7 +185,7 @@ Gateway endpoint would typically be a implemented via a `NodePort` or `LoadBalan
  K8s service. A `NodePort` service would typically be used in local deployments
  (e.g., when running in kind clusters during development) and a `LoadBalancer` service
  would be used in cloud based deployments. These can be automatically configured and
- created via the [ClusterLink CRD]{{< ref "#deploy-clusterlink-via-the-operator-and-clusterlink-crd" >}}.
+ created via the [ClusterLink CR]({{< ref "peers#deploy-clusterlink-via-the-operator-and-clusterlink-cr" >}}).
  The peer's status section includes a `Reachable` condition indicating whether the peer is currently reachable,
  and in case it is not reachable, the last time it was.
 

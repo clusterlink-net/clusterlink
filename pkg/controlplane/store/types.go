@@ -14,7 +14,6 @@
 package store
 
 import (
-	"github.com/clusterlink-net/clusterlink/pkg/api"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 )
 
@@ -88,30 +87,18 @@ func NewImport(imp *v1alpha1.Import) *Import {
 
 // AccessPolicy to allow/deny specific connections.
 type AccessPolicy struct {
-	api.Policy
+	v1alpha1.AccessPolicySpec
+	// Name of access policy.
+	Name string
 	// Version of the struct when object was created.
 	Version uint32
 }
 
 // NewAccessPolicy creates a new access policy.
-func NewAccessPolicy(policy *api.Policy) *AccessPolicy {
+func NewAccessPolicy(policy *v1alpha1.AccessPolicy) *AccessPolicy {
 	return &AccessPolicy{
-		Policy:  *policy,
-		Version: accessPolicyStructVersion,
-	}
-}
-
-// LBPolicy specifies the load-balancing scheme for specific connections.
-type LBPolicy struct {
-	api.Policy
-	// Version of the struct when object was created.
-	Version uint32
-}
-
-// NewLBPolicy creates a new load-balancing policy.
-func NewLBPolicy(policy *api.Policy) *LBPolicy {
-	return &LBPolicy{
-		Policy:  *policy,
-		Version: accessPolicyStructVersion,
+		AccessPolicySpec: policy.Spec,
+		Name:             policy.Name,
+		Version:          accessPolicyStructVersion,
 	}
 }

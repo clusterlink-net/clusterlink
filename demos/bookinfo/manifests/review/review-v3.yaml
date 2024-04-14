@@ -35,7 +35,7 @@ spec:
     spec:
       containers:
       - name: reviews-v3
-        image: docker.io/maistra/examples-bookinfo-reviews-v3
+        image: docker.io/istio/examples-bookinfo-reviews-v3
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9080

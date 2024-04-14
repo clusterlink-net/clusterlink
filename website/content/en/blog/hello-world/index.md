@@ -81,5 +81,5 @@ I can't wait to start on this journey with all of you. Together, we'll make
  the world of Kubernetes a better, safer, and more connected place.
  Happy cluster linking! 🚀
 
-[^1]: While normal access control policies work, the implementation of privileged policy tier
- is ongoing and will be enabled shortly after the 0.1.0 release.
+[^1]: While normal access policies work, the implementation of privileged policy tier
+was ongoing and enabled shortly after the 0.1.0 release - it is currently part of `main` branch.

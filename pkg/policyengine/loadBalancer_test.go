@@ -41,14 +41,17 @@ var (
 	svc3NS2 = types.NamespacedName{Namespace: ns2, Name: svc3}
 )
 
-func makeSimpleImport(impName, impNs string, peers []string) *crds.Import {
+func makeSimpleImport(impName, impNs string, peers []string, lbScheme policyengine.LBScheme) *crds.Import {
 	srcs := []crds.ImportSource{}
 	for _, peer := range peers {
 		srcs = append(srcs, crds.ImportSource{Peer: peer, ExportName: impName, ExportNamespace: impNs})
 	}
 	return &crds.Import{
 		ObjectMeta: v1.ObjectMeta{Name: impName, Namespace: impNs},
-		Spec:       crds.ImportSpec{Sources: srcs},
+		Spec: crds.ImportSpec{
+			Sources:  srcs,
+			LBScheme: string(lbScheme),
+		},
 	}
 }
 
@@ -56,9 +59,9 @@ func addImports(lb *policyengine.LoadBalancer) {
 	// svc1 is imported from peer1 and peer2
 	// svc2 is imported only from peer1
 	// svc3 is imported from peer1 and peer2
-	lb.AddImport(makeSimpleImport(svc1, ns1, []string{peer1, peer2}))
-	lb.AddImport(makeSimpleImport(svc2, ns1, []string{peer1}))
-	lb.AddImport(makeSimpleImport(svc3, ns2, []string{peer1, peer2}))
+	lb.AddImport(makeSimpleImport(svc1, ns1, []string{peer1, peer2}, ""))
+	lb.AddImport(makeSimpleImport(svc2, ns1, []string{peer1}, ""))
+	lb.AddImport(makeSimpleImport(svc3, ns2, []string{peer1, peer2}, ""))
 }
 
 // We repeat lookups enough times to make sure we get all the peers allowed by the relevant policy.
@@ -126,12 +129,7 @@ func TestFixedPeer(t *testing.T) {
 	lb := policyengine.NewLoadBalancer()
 	addImports(lb)
 
-	lbPolicy := policyengine.LBPolicy{
-		ServiceDst: svc1NS1.String(),
-		Scheme:     policyengine.Static,
-	}
-	err := lb.SetPolicy(&lbPolicy)
-	require.Nil(t, err)
+	lb.AddImport(makeSimpleImport(svc1, ns1, []string{peer1, peer2}, policyengine.Static))
 
 	svc1Tgts, err := lb.GetSvcSources(svc1NS1)
 	require.Nil(t, err)
@@ -144,9 +142,7 @@ func TestFixedPeer(t *testing.T) {
 	}
 	require.Equal(t, "peer1/ns1/svc1", tgt) // should always select first src, which is currently peer1
 
-	lb.AddImport(makeSimpleImport(svc1, ns1, []string{peer2, peer1})) // now peer2 is the first peer
-	err = lb.SetPolicy(&lbPolicy)
-	require.Nil(t, err)
+	lb.AddImport(makeSimpleImport(svc1, ns1, []string{peer2, peer1}, policyengine.Static)) // now peer2 is the first peer
 
 	tgts = repeatLookups(t, lb, svc1NS1, svc1Tgts, false)
 	require.Len(t, tgts, 1)
@@ -168,12 +164,7 @@ func TestRoundRobin(t *testing.T) {
 	lb := policyengine.NewLoadBalancer()
 	addImports(lb)
 
-	lbPolicy := policyengine.LBPolicy{
-		ServiceDst: svc1NS1.String(),
-		Scheme:     policyengine.RoundRobin,
-	}
-	err := lb.SetPolicy(&lbPolicy)
-	require.Nil(t, err)
+	lb.AddImport(makeSimpleImport(svc1, ns1, []string{peer1, peer2}, policyengine.RoundRobin))
 
 	svc1Tgts, err := lb.GetSvcSources(svc1NS1)
 	require.Nil(t, err)

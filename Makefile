@@ -76,9 +76,9 @@ GO ?= CGO_ENABLED=0 go
 # Allow setting of go build flags from the command line.
 GOFLAGS :=
 BIN_DIR := ./bin
-LDFLAGS := -ldflags "-X github.com/clusterlink-net/clusterlink/pkg/versioninfo.GitTag=$(shell git describe --tags --abbrev=0)"
-LDFLAGS_OPERATOR:=$(LDFLAGS) \
-                -ldflags "-X github.com/clusterlink-net/clusterlink/pkg/versioninfo.Revision=$(shell git rev-parse --short HEAD)"
+VERSION_FLAG := -X 'github.com/clusterlink-net/clusterlink/pkg/versioninfo.GitTag=$(shell git describe --tags --abbrev=0)'
+REVISION_FLAG := -X 'github.com/clusterlink-net/clusterlink/pkg/versioninfo.Revision=$(shell git rev-parse --short HEAD)'
+LD_FLAGS := -ldflags "$(VERSION_FLAG) $(REVISION_FLAG)"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -89,7 +89,7 @@ endif
 
 # Controller Gen for crds
 CONTROLLER_GEN ?= $(GOBIN)/controller-gen
-CONTROLLER_TOOLS_VERSION ?= v0.13.0
+CONTROLLER_TOOLS_VERSION ?= v0.14.0
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary. If wrong version is installed, it will be overwritten.
@@ -106,14 +106,14 @@ codegen: controller-gen  ## Generate ClusterRole, CRDs and DeepCopyObject.
 
 cli-build:
 	@echo "Start go build phase"
-	$(GO) build -o $(BIN_DIR)/gwctl  $(LDFLAGS) ./cmd/gwctl
-	$(GO) build -o $(BIN_DIR)/clusterlink $(LDFLAGS) ./cmd/clusterlink
+	$(GO) build -o $(BIN_DIR)/gwctl $(LD_FLAGS) ./cmd/gwctl
+	$(GO) build -o $(BIN_DIR)/clusterlink $(LD_FLAGS) ./cmd/clusterlink
 
 build: cli-build
-	$(GO) build -o $(BIN_DIR)/cl-controlplane ./cmd/cl-controlplane
+	$(GO) build -o $(BIN_DIR)/cl-controlplane $(LD_FLAGS) ./cmd/cl-controlplane
 	$(GO) build -o $(BIN_DIR)/cl-dataplane ./cmd/cl-dataplane
 	$(GO) build -o $(BIN_DIR)/cl-go-dataplane ./cmd/cl-go-dataplane
-	$(GO) build -o $(BIN_DIR)/cl-operator  $(LDFLAGS_OPERATOR) ./cmd/cl-operator/main.go
+	$(GO) build -o $(BIN_DIR)/cl-operator $(LD_FLAGS) ./cmd/cl-operator/main.go
 
 docker-build: build
 	docker build --progress=plain --rm --tag cl-controlplane -f ./cmd/cl-controlplane/Dockerfile .
