@@ -45,8 +45,8 @@ const (
 	StartAll = "all"
 	// StartOperator deploys only the operator and converts the peer certificates to secrets.
 	StartOperator = "operator"
-	// StartNone doesn't deploy anything but creates custom resource YAMLs.
-	StartNone = "none"
+	// NoStart doesn't deploy anything but creates custom resource YAMLs.
+	NoStart = "none"
 )
 
 // PeerOptions contains everything necessary to create and run a 'deploy peer' subcommand.
@@ -60,7 +60,7 @@ type PeerOptions struct {
 	// CertDir is the directory where the certificates for the fabric and peer are located.
 	CertDir string
 	// StartInstance, represents which component to deploy:
-	// `all` (clusterlink components and operator), `operator`, or `none`.
+	// `all` (clusterlink control-plane, data-plane and operator), `operator`, or `none`.
 	StartInstance string
 	// Ingress, represents the type of service used to expose the ClusterLink deployment.
 	Ingress string
@@ -222,7 +222,7 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	if o.StartInstance == StartNone {
+	if o.StartInstance == NoStart {
 		return nil
 	}
 
@@ -319,7 +319,7 @@ func (o *PeerOptions) verifyDataplaneType(dType string) error {
 // verifyStartInstance checks if the given start instance is valid.
 func (o *PeerOptions) verifyStartInstance(sType string) error {
 	switch sType {
-	case StartAll, StartOperator, StartNone:
+	case StartAll, StartOperator, NoStart:
 		return nil
 	default:
 		return fmt.Errorf("undefined start type %s", sType)

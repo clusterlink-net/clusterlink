@@ -24,7 +24,7 @@ If they are not, use the flag `--path <path>` to reference the directory where c
 The command deploys the ClusterLink operator in the `clusterlink-operator` namespace and converts
 the peer certificates to secrets in the `clusterlink-system` namespace, where ClusterLink components will be installed.
 By default, these components are deployed in the `clusterlink-system` namespace.
-In addition, the command will create a ClusterLink K8s custom resource object and deploy it to the operator.
+In addition, the command will create a ClusterLink instance custom resource object and deploy it to the operator.
 The operator will then create the ClusterLink components in the `clusterlink-system` namespace and enable ClusterLink in the cluster.
 Additionally, a `LoadBalancer` service is created to allow cross-cluster connectivity using ClusterLink.
 
@@ -52,7 +52,7 @@ To deploy a specific ClusterLink image version use the `tag` flag:
 clusterlink deploy peer --name <peer_name> --fabric <fabric_name> --tag <version_tag>
 ```
 
-The `tag` flag will change the tag version in the ClusterLink K8s custom resource object that will be deployed to the operator.
+The `tag` flag will change the tag version in the ClusterLink instance custom resource object that will be deployed to the operator.
 
 ## Deployment using manually defined ClusterLink custom resource
 
@@ -66,7 +66,7 @@ The deployment process can be split into two steps:
 
     The `start` flag will deploy only the ClusterLink operator and the certificate's secrets as described in the [common use case][cloud-install] above.
 
-2. {{< anchor deploy-cr-instance >}} Deploy a ClusterLink K8s custom resource object:
+2. {{< anchor deploy-cr-instance >}} Deploy a ClusterLink instance custom resource object:
 
     ```yaml
     kubectl apply -f - <<EOF
@@ -133,13 +133,13 @@ To deploy the ClusterLink without using the CLI, follow the instructions below:
 2. Install ClusterLink CRDs:
 
     ```sh
-    kubectl apply --recursive -f  ./clusterlink/config/crds
+    kubectl apply --recursive -f ./clusterlink/config/crds
     ```
 
 3. Install the ClusterLink operator:
 
     ```sh
-    kubectl apply --recursive -f  ./clusterlink/config/operator
+    kubectl apply --recursive -f ./clusterlink/config/operator
     ```
 
 4. Convert the peer and fabric certificates to secrets:
@@ -147,7 +147,7 @@ To deploy the ClusterLink without using the CLI, follow the instructions below:
     ```sh
     export CERTS =<path to fabric certificates folder>
     kubectl create secret generic cl-fabric -n clusterlink-system --from-file=ca=$CERTS /cert.pem
-    kubectl create secret generic cl-peer   -n clusterlink-system --from-file=ca=$CERTS /peer1/cert.pem
+    kubectl create secret generic cl-peer -n clusterlink-system --from-file=ca=$CERTS /peer1/cert.pem
     kubectl create secret generic cl-controlplane -n clusterlink-system --from-file=cert=$CERTS /peer1/controlplane/cert.pem --from-file=key=$CERTS /peer1/controlplane/key.pem
     kubectl create secret generic cl-dataplane -n clusterlink-system --from-file=cert=$CERTS /peer1/dataplane/cert.pem --from-file=key=$CERTS /peer1/dataplane/key.pem
     kubectl create secret generic gwctl -n clusterlink-system --from-file=cert=$CERTS /peer1/gwctl/cert.pem --from-file=key=$CERTS /peer1/gwctl/key.pem
