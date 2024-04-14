@@ -65,7 +65,7 @@ languageName ="English"
 weight = 1
 [languages.en.params]
 title = "ClusterLink"
-description = "ClsuetrLink documentation"
+description = "ClusterLink documentation"
 
 [markup]
   [markup.goldmark]
