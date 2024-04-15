@@ -38,6 +38,7 @@ header:
     - ".gitignore"
     - "LICENSE"
     - "NOTICE"
+    - "CODEOWNERS"
     - "**/Dockerfile"
     - "**/dockerfile"
     - "**/Containerfile.*"
