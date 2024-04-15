@@ -80,8 +80,26 @@ multi-cluster connectivity for applications using two or more clusters.
 
 ## Uninstall ClusterLink
 
-To uninstall the ClusterLink CLI, use the following command:
+1. To remove a ClusterLink instance from the cluster, please delete the ClusterLink instance custom resource.
+   The ClusterLink operator will subsequently remove all instance components (control-plane, data-plane, and ingress service).
 
-```sh
-rm `which clusterlink`
-```
+   ```sh
+   kubectl delete instances.clusterlink.net  -A --all
+   ```
+
+2. To completely remove ClusterLink from the cluster, including the operator, CRDs, namespaces, and instances,
+   use the following command:
+
+   ```sh
+   clusterlink delete peer --name peer1
+   ```
+
+{{< notice note >}}
+This command  using the current `kubectl` context.
+{{< /notice >}}
+
+3. To uninstall the ClusterLink CLI, use the following command:
+
+   ```sh
+   rm `which clusterlink`
+   ```
