@@ -15,6 +15,9 @@ package control
 
 import (
 	"context"
+	"reflect"
+	"strconv"
+	"strings"
 
 	//nolint:gosec // G505: use of weak cryptographic primitive is fine for service name
 	"crypto/md5"
@@ -24,12 +27,13 @@ import (
 
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	discv1 "k8s.io/api/discovery/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/strings"
+	k8sstrings "k8s.io/utils/strings"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -39,10 +43,15 @@ import (
 )
 
 const (
-	AppName              = "clusterlink.net"
+	AppName = "clusterlink.net"
+
+	// service labels.
 	LabelManagedBy       = "app.kubernetes.io/managed-by"
 	LabelImportName      = "clusterlink.net/import-name"
 	LabelImportNamespace = "clusterlink.net/import-namespace"
+
+	// endpoint slice labels.
+	LabelDPEndpointSliceName = "clusterlink.net/dataplane-endpointslice-name"
 )
 
 type exportServiceNotExistError struct {
@@ -51,8 +60,28 @@ type exportServiceNotExistError struct {
 
 func (e exportServiceNotExistError) Error() string {
 	return fmt.Sprintf(
-		"service '%s/%s' does not exist",
+		"export service '%s/%s' does not exist",
 		e.name.Namespace, e.name.Name)
+}
+
+func (e exportServiceNotExistError) Is(target error) bool {
+	_, ok := target.(*exportServiceNotExistError)
+	return ok
+}
+
+type importServiceNotExistError struct {
+	name types.NamespacedName
+}
+
+func (e importServiceNotExistError) Error() string {
+	return fmt.Sprintf(
+		"import service '%s/%s' does not exist",
+		e.name.Namespace, e.name.Name)
+}
+
+func (e importServiceNotExistError) Is(target error) bool {
+	_, ok := target.(*importServiceNotExistError)
+	return ok
 }
 
 type conflictingServiceError struct {
@@ -64,6 +93,39 @@ func (e conflictingServiceError) Error() string {
 	return fmt.Sprintf(
 		"service '%s/%s' already exists and managed by '%s'",
 		e.name.Namespace, e.name.Name, e.managedBy)
+}
+
+func (e conflictingServiceError) Is(target error) bool {
+	_, ok := target.(*conflictingServiceError)
+	return ok
+}
+
+type importEndpointSliceName struct {
+	importName                 string
+	dataplaneEndpointSliceName string
+}
+
+func (n *importEndpointSliceName) Get() string {
+	return fmt.Sprintf(
+		"clusterlink-%d-%s-%s",
+		len(n.importName), n.importName, n.dataplaneEndpointSliceName)
+}
+
+func (n *importEndpointSliceName) Parse(importEndpointSliceName string) bool {
+	components := strings.SplitN(importEndpointSliceName, "-", 3)
+	if len(components) != 3 || components[0] != "clusterlink" {
+		return false
+	}
+
+	importNameLength, err := strconv.Atoi(components[1])
+	if err != nil || importNameLength <= 0 || importNameLength >= len(components[2]) {
+		return false
+	}
+
+	n.importName = components[2][:importNameLength]
+	n.dataplaneEndpointSliceName = components[2][importNameLength+1:]
+
+	return n.dataplaneEndpointSliceName != ""
 }
 
 // Manager is responsible for handling control operations,
@@ -81,7 +143,20 @@ type Manager struct {
 	lock            sync.Mutex
 	serviceToImport map[string]types.NamespacedName
 
+	// callback for getting all merge imports (for non-CRD mode)
+	getMergeImportListCallback func() *v1alpha1.ImportList
+	// callback for getting an import (for non-CRD mode)
+	getImportCallback func(name string, imp *v1alpha1.Import) error
+
 	logger *logrus.Entry
+}
+
+func (m *Manager) SetGetMergeImportListCallback(callback func() *v1alpha1.ImportList) {
+	m.getMergeImportListCallback = callback
+}
+
+func (m *Manager) SetGetImportCallback(callback func(name string, imp *v1alpha1.Import) error) {
+	m.getImportCallback = callback
 }
 
 // AddImport adds a listening socket for an imported remote service.
@@ -98,22 +173,22 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 			return
 		}
 
-		serviceCreatedCond := &metav1.Condition{
-			Type:   v1alpha1.ImportServiceCreated,
+		serviceValidCond := &metav1.Condition{
+			Type:   v1alpha1.ImportServiceValid,
 			Status: metav1.ConditionTrue,
-			Reason: "Created",
+			Reason: "Valid",
 		}
 
 		if err != nil {
-			serviceCreatedCond.Status = metav1.ConditionFalse
-			serviceCreatedCond.Reason = "Error"
-			serviceCreatedCond.Message = err.Error()
+			serviceValidCond.Status = metav1.ConditionFalse
+			serviceValidCond.Reason = "Error"
+			serviceValidCond.Message = err.Error()
 		}
 
 		conditions := &imp.Status.Conditions
-		if conditionChanged(conditions, serviceCreatedCond) || conditionChanged(conditions, targetPortValidCond) {
+		if conditionChanged(conditions, serviceValidCond) || conditionChanged(conditions, targetPortValidCond) {
 			meta.SetStatusCondition(conditions, *targetPortValidCond)
-			meta.SetStatusCondition(conditions, *serviceCreatedCond)
+			meta.SetStatusCondition(conditions, *serviceValidCond)
 
 			m.logger.Infof("Updating import '%s/%s' status: %v.", imp.Namespace, imp.Name, *conditions)
 			statusError := m.client.Status().Update(ctx, imp)
@@ -128,7 +203,9 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 			}
 		}
 
-		if errors.Is(err, &conflictingServiceError{}) || errors.Is(err, &conflictingTargetPortError{}) {
+		if errors.Is(err, &conflictingServiceError{}) ||
+			errors.Is(err, &conflictingTargetPortError{}) ||
+			errors.Is(err, &importServiceNotExistError{}) {
 			err = reconcile.TerminalError(err)
 		}
 	}()
@@ -143,12 +220,23 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 	targetPortValidCond.Status = metav1.ConditionTrue
 	targetPortValidCond.Reason = "Leased"
 
+	if imp.Labels[v1alpha1.LabelImportMerge] == "true" {
+		return m.addImportEndpointSlices(ctx, imp)
+	}
+
+	importName := types.NamespacedName{
+		Namespace: imp.Namespace,
+		Name:      imp.Name,
+	}
+
+	// delete import endpoint slices, in case the import was previously a "merge: true" import
+	if err := m.deleteImportEndpointSlices(ctx, importName); err != nil {
+		return err
+	}
+
 	serviceName := imp.Name
 	if imp.Namespace != m.namespace {
-		serviceName = SystemServiceName(types.NamespacedName{
-			Namespace: imp.Namespace,
-			Name:      imp.Name,
-		})
+		serviceName = SystemServiceName(importName)
 	}
 
 	systemService := &v1.Service{
@@ -198,7 +286,7 @@ func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) e
 	m.logger.Infof("Deleting import '%s/%s'.", name.Namespace, name.Name)
 
 	// delete user service
-	errs := make([]error, 2)
+	errs := make([]error, 3)
 	errs[0] = m.deleteImportService(ctx, name, name)
 
 	if name.Namespace != m.namespace {
@@ -210,22 +298,12 @@ func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) e
 		errs[1] = m.deleteImportService(ctx, systemService, name)
 	}
 
+	// delete import endpoint slices
+	errs[2] = m.deleteImportEndpointSlices(ctx, name)
+
 	m.ports.Release(name)
 
-	err := errors.Join(errs...)
-	if err != nil && m.crdMode {
-		// if all errors are conflictingServiceError, mark as TerminalError
-		// so that reconciler will not retry
-		for _, err2 := range errs {
-			if err2 != nil && !errors.Is(err2, &conflictingServiceError{}) {
-				return err
-			}
-		}
-
-		err = reconcile.TerminalError(err)
-	}
-
-	return err
+	return errors.Join(errs...)
 }
 
 // addExport defines a new route target for ingress dataplane connections.
@@ -313,7 +391,73 @@ func (m *Manager) deleteService(ctx context.Context, name types.NamespacedName) 
 	return m.checkExportService(ctx, name)
 }
 
+// addEndpointSlice adds a dataplane / import endpoint slices.
+func (m *Manager) addEndpointSlice(ctx context.Context, endpointSlice *discv1.EndpointSlice) error {
+	if endpointSlice.Labels[discv1.LabelServiceName] == dpapp.Name && endpointSlice.Namespace == m.namespace {
+		m.logger.Infof("Adding a dataplane endpoint slice: %s", endpointSlice.Name)
+
+		mergeImportList, err := m.getMergeImportList(ctx)
+		if err != nil {
+			return err
+		}
+
+		mergeImports := &mergeImportList.Items
+		for i := range *mergeImports {
+			err := m.checkImportEndpointSlice(ctx, &(*mergeImports)[i], endpointSlice)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	return m.checkEndpointSlice(ctx, endpointSlice.Namespace, endpointSlice.Name)
+}
+
+// deleteEndpointSlice is used to track deleted dataplane endpoint slices.
+func (m *Manager) deleteEndpointSlice(ctx context.Context, name types.NamespacedName) error {
+	if err := m.checkEndpointSlice(ctx, name.Namespace, name.Name); err != nil {
+		return err
+	}
+
+	if name.Namespace != m.namespace {
+		// not a dataplane endpoint slice
+		return nil
+	}
+
+	importsEndpointSliceList := discv1.EndpointSliceList{}
+	err := m.client.List(
+		ctx,
+		&importsEndpointSliceList,
+		client.MatchingLabels{
+			discv1.LabelManagedBy:    AppName,
+			LabelDPEndpointSliceName: name.Name,
+		})
+	if err != nil {
+		return err
+	}
+
+	importsEndpointSlices := &importsEndpointSliceList.Items
+	for i := range *importsEndpointSlices {
+		importEndpointSlice := &(*importsEndpointSlices)[i]
+		m.logger.Infof(
+			"Deleting import endpoint slice: %s/%s",
+			importEndpointSlice.Namespace, importEndpointSlice.Name)
+		err := m.client.Delete(ctx, importEndpointSlice)
+		if err != nil && !k8serrors.IsNotFound(err) {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (m *Manager) checkExportService(ctx context.Context, name types.NamespacedName) error {
+	if !m.crdMode {
+		return nil
+	}
+
 	var export v1alpha1.Export
 	if err := m.client.Get(ctx, name, &export); err != nil {
 		if !k8serrors.IsNotFound(err) {
@@ -328,7 +472,7 @@ func (m *Manager) checkExportService(ctx context.Context, name types.NamespacedN
 
 func (m *Manager) checkImportService(ctx context.Context, name types.NamespacedName) error {
 	var imp v1alpha1.Import
-	if err := m.client.Get(ctx, name, &imp); err != nil {
+	if err := m.getImport(ctx, name, &imp); err != nil {
 		if !k8serrors.IsNotFound(err) {
 			return err
 		}
@@ -350,7 +494,7 @@ func (m *Manager) checkImportService(ctx context.Context, name types.NamespacedN
 		return nil
 	}
 
-	if err := m.client.Get(ctx, name, &imp); err != nil {
+	if err := m.getImport(ctx, name, &imp); err != nil {
 		if !k8serrors.IsNotFound(err) {
 			return err
 		}
@@ -392,23 +536,24 @@ func (m *Manager) addImportService(ctx context.Context, imp *v1alpha1.Import, se
 	service.Labels[LabelImportName] = imp.Name
 	service.Labels[LabelImportNamespace] = imp.Namespace
 
+	importName := types.NamespacedName{
+		Namespace: imp.Namespace,
+		Name:      imp.Name,
+	}
+
 	if imp.Namespace != service.Namespace {
 		m.lock.Lock()
-		m.serviceToImport[service.Name] = types.NamespacedName{
-			Namespace: imp.Namespace,
-			Name:      imp.Namespace,
-		}
+		m.serviceToImport[service.Name] = importName
 		m.lock.Unlock()
 	}
 
+	serviceName := types.NamespacedName{
+		Name:      service.Name,
+		Namespace: service.Namespace,
+	}
+
 	var oldService v1.Service
-	err := m.client.Get(
-		ctx,
-		types.NamespacedName{
-			Name:      service.Name,
-			Namespace: service.Namespace,
-		},
-		&oldService)
+	err := m.client.Get(ctx, serviceName, &oldService)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			return err
@@ -418,11 +563,11 @@ func (m *Manager) addImportService(ctx context.Context, imp *v1alpha1.Import, se
 		return m.client.Create(ctx, service)
 	}
 
-	if err := checkServiceLabels(&oldService, types.NamespacedName{
-		Namespace: imp.Namespace,
-		Name:      imp.Name,
-	}); err != nil {
-		return err
+	if !checkServiceLabels(&oldService, importName) {
+		return conflictingServiceError{
+			name:      serviceName,
+			managedBy: oldService.Labels[LabelManagedBy],
+		}
 	}
 
 	if !serviceChanged(&oldService, service) {
@@ -445,8 +590,8 @@ func (m *Manager) deleteImportService(ctx context.Context, service, imp types.Na
 		return nil
 	}
 
-	if err := checkServiceLabels(&oldService, imp); err != nil {
-		return err
+	if !checkServiceLabels(&oldService, imp) {
+		return nil
 	}
 
 	m.logger.Infof("Deleting service: %v.", service)
@@ -469,36 +614,225 @@ func (m *Manager) deleteImportService(ctx context.Context, service, imp types.Na
 	return nil
 }
 
-func checkServiceLabels(service *v1.Service, importName types.NamespacedName) error {
-	serviceName := types.NamespacedName{
-		Namespace: service.Namespace,
-		Name:      service.Name,
+func (m *Manager) checkEndpointSlice(ctx context.Context, namespace, endpointSliceName string) error {
+	var parsed importEndpointSliceName
+	if !parsed.Parse(endpointSliceName) {
+		return nil
 	}
 
-	var managedBy string
-	var ok bool
-	if managedBy, ok = service.Labels[LabelManagedBy]; !ok || managedBy != AppName {
-		return conflictingServiceError{
-			name:      serviceName,
-			managedBy: managedBy,
+	m.logger.Infof(
+		"Checking import endpoint slice %s/%s'.",
+		namespace, endpointSliceName)
+
+	var imp v1alpha1.Import
+	var dataplaneEndpointSlice discv1.EndpointSlice
+	shouldDelete := false
+	if err := m.getImport(ctx, types.NamespacedName{
+		Namespace: namespace,
+		Name:      parsed.importName,
+	}, &imp); err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return err
 		}
-	}
 
-	if name, ok := service.Labels[LabelImportName]; !ok || name != importName.Name {
-		return conflictingServiceError{
-			name:      serviceName,
-			managedBy: managedBy,
+		m.logger.Infof(
+			"Deleting an import endpoint slice with no corresponding import: %s",
+			endpointSliceName)
+		shouldDelete = true
+	} else if imp.Labels[v1alpha1.LabelImportMerge] != "true" {
+		m.logger.Infof(
+			"Deleting an import endpoint slice with no corresponding merge-type import: %s",
+			endpointSliceName)
+
+		shouldDelete = true
+	} else if err := m.client.Get(ctx, types.NamespacedName{
+		Namespace: m.namespace,
+		Name:      parsed.dataplaneEndpointSliceName,
+	}, &dataplaneEndpointSlice); err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return err
 		}
+
+		m.logger.Infof(
+			"Deleting an import endpoint slice with no corresponding dataplane endpoint slice: %s",
+			endpointSliceName)
+		shouldDelete = true
 	}
 
-	if namespace, ok := service.Labels[LabelImportNamespace]; !ok || namespace != importName.Namespace {
-		return conflictingServiceError{
-			name:      serviceName,
-			managedBy: managedBy,
+	if shouldDelete {
+		err := m.client.Delete(ctx, &discv1.EndpointSlice{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      endpointSliceName,
+				Namespace: namespace,
+			},
+		})
+		if err != nil && !k8serrors.IsNotFound(err) {
+			return err
+		}
+
+		return nil
+	}
+
+	return m.checkImportEndpointSlice(ctx, &imp, &dataplaneEndpointSlice)
+}
+
+func (m *Manager) checkImportEndpointSlice(
+	ctx context.Context,
+	imp *v1alpha1.Import,
+	dataplaneEndpointSlice *discv1.EndpointSlice,
+) error {
+	m.logger.Infof(
+		"Checking endpoint slice %s for import %s/%s'.",
+		dataplaneEndpointSlice.Name, imp.Namespace, imp.Name)
+
+	importEndpointSliceName := (&importEndpointSliceName{
+		importName:                 imp.Name,
+		dataplaneEndpointSliceName: dataplaneEndpointSlice.Name,
+	}).Get()
+	protocol := v1.ProtocolTCP
+	port32 := int32(imp.Spec.TargetPort)
+
+	importEndpointSlice := discv1.EndpointSlice{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      importEndpointSliceName,
+			Namespace: imp.Namespace,
+			Labels: map[string]string{
+				discv1.LabelServiceName:  imp.Name,
+				discv1.LabelManagedBy:    AppName,
+				LabelDPEndpointSliceName: dataplaneEndpointSlice.Name,
+			},
+		},
+		AddressType: discv1.AddressTypeIPv4,
+		Endpoints:   dataplaneEndpointSlice.Endpoints,
+		Ports: []discv1.EndpointPort{
+			{
+				Port:     &port32,
+				Protocol: &protocol,
+			},
+		},
+	}
+
+	var oldImportEndpointSlice discv1.EndpointSlice
+	err := m.client.Get(
+		ctx,
+		types.NamespacedName{
+			Name:      importEndpointSliceName,
+			Namespace: imp.Namespace,
+		},
+		&oldImportEndpointSlice)
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return err
+		}
+
+		m.logger.Infof("Creating import endpoint slice: %s.", importEndpointSliceName)
+		return m.client.Create(ctx, &importEndpointSlice)
+	}
+
+	if !endpointSliceChanged(&importEndpointSlice, &oldImportEndpointSlice) {
+		return nil
+	}
+
+	m.logger.Infof("Updating import endpoint slice: %s.", importEndpointSliceName)
+	return m.client.Update(ctx, &importEndpointSlice)
+}
+
+func (m *Manager) addImportEndpointSlices(ctx context.Context, imp *v1alpha1.Import) error {
+	// check that import service exists
+	importName := types.NamespacedName{
+		Namespace: imp.Namespace,
+		Name:      imp.Name,
+	}
+
+	if err := m.client.Get(ctx, importName, &v1.Service{}); err != nil {
+		if k8serrors.IsNotFound(err) && m.crdMode {
+			return &importServiceNotExistError{name: importName}
+		}
+
+		return err
+	}
+
+	// get dataplane endpoint slices
+	dataplaneEndpointSliceList := discv1.EndpointSliceList{}
+	err := m.client.List(
+		ctx,
+		&dataplaneEndpointSliceList,
+		client.MatchingLabels{discv1.LabelServiceName: dpapp.Name},
+		client.InNamespace(m.namespace))
+	if err != nil {
+		return err
+	}
+
+	// copy dataplane endpoint slices to import endpoint slices
+	dataplaneEndpointSlices := &dataplaneEndpointSliceList.Items
+	for i := range *dataplaneEndpointSlices {
+		err := m.checkImportEndpointSlice(ctx, imp, &(*dataplaneEndpointSlices)[i])
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+func (m *Manager) deleteImportEndpointSlices(ctx context.Context, imp types.NamespacedName) error {
+	endpointSlices := discv1.EndpointSliceList{}
+	labelSelector := client.MatchingLabels{
+		discv1.LabelManagedBy:   AppName,
+		discv1.LabelServiceName: imp.Name,
+	}
+	if err := m.client.List(ctx, &endpointSlices, labelSelector, client.InNamespace(imp.Namespace)); err != nil {
+		return err
+	}
+
+	for i := range endpointSlices.Items {
+		endpointSlice := &endpointSlices.Items[i]
+		m.logger.Infof("Deleting import endpoint slice: %s", endpointSlice.Name)
+		err := m.client.Delete(ctx, endpointSlice)
+		if err != nil && !k8serrors.IsNotFound(err) {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *Manager) getImport(ctx context.Context, name types.NamespacedName, imp *v1alpha1.Import) error {
+	if m.getImportCallback != nil {
+		return m.getImportCallback(name.Name, imp)
+	}
+
+	return m.client.Get(ctx, name, imp)
+}
+
+func (m *Manager) getMergeImportList(ctx context.Context) (*v1alpha1.ImportList, error) {
+	if m.getMergeImportListCallback != nil {
+		return m.getMergeImportListCallback(), nil
+	}
+
+	mergeImportList := v1alpha1.ImportList{}
+	labelSelector := client.MatchingLabels{v1alpha1.LabelImportMerge: "true"}
+	if err := m.client.List(ctx, &mergeImportList, labelSelector); err != nil {
+		return nil, err
+	}
+
+	return &mergeImportList, nil
+}
+
+func checkServiceLabels(service *v1.Service, importName types.NamespacedName) bool {
+	if managedBy, ok := service.Labels[LabelManagedBy]; !ok || managedBy != AppName {
+		return false
+	}
+
+	if name, ok := service.Labels[LabelImportName]; !ok || name != importName.Name {
+		return false
+	}
+
+	if namespace, ok := service.Labels[LabelImportNamespace]; !ok || namespace != importName.Namespace {
+		return false
+	}
+
+	return true
 }
 
 func SystemServiceName(name types.NamespacedName) string {
@@ -507,8 +841,8 @@ func SystemServiceName(name types.NamespacedName) string {
 	hash.Write([]byte(name.Namespace + "/" + name.Name))
 	return fmt.Sprintf(
 		"import-%s-%s-%x",
-		strings.ShortenString(name.Name, 10),
-		strings.ShortenString(name.Namespace, 10),
+		k8sstrings.ShortenString(name.Name, 10),
+		k8sstrings.ShortenString(name.Namespace, 10),
 		hash.Sum(nil))
 }
 
@@ -567,6 +901,36 @@ func conditionChanged(conditions *[]metav1.Condition, cond *metav1.Condition) bo
 	}
 
 	return oldCond.Message != cond.Message
+}
+
+func endpointSliceChanged(endpointSlice1, endpointSlice2 *discv1.EndpointSlice) bool {
+	if endpointSlice1.AddressType != endpointSlice2.AddressType {
+		return true
+	}
+
+	if !reflect.DeepEqual(endpointSlice1.Labels, endpointSlice2.Labels) {
+		return true
+	}
+
+	if len(endpointSlice1.Endpoints) != len(endpointSlice2.Endpoints) {
+		return true
+	}
+
+	for i := range endpointSlice1.Endpoints {
+		addresses1 := endpointSlice1.Endpoints[i].Addresses
+		addresses2 := endpointSlice2.Endpoints[i].Addresses
+		if len(addresses1) != len(addresses2) {
+			return true
+		}
+
+		for j := range addresses1 {
+			if addresses1[j] != addresses2[j] {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // NewManager returns a new control manager.

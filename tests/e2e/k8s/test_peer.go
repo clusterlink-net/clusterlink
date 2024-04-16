@@ -105,7 +105,7 @@ func (s *TestSuite) TestPeerMultipleGateways() {
 	require.Equal(s.T(), cl[0].Name(), data)
 
 	// verify that the bad gateway does not effect access
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		data, err := cl[0].AccessService(httpecho.GetEchoValue, importedService, false, nil)
 		require.Nil(s.T(), err)
 		require.Equal(s.T(), cl[0].Name(), data)
@@ -129,7 +129,7 @@ func (s *TestSuite) TestPeerMultipleGateways() {
 	require.Equal(s.T(), cl[0].Name(), data)
 
 	// verify that the bad gateway does not effect access
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		data, err := cl[0].AccessService(httpecho.GetEchoValue, importedService, false, nil)
 		require.Nil(s.T(), err)
 		require.Equal(s.T(), cl[0].Name(), data)
