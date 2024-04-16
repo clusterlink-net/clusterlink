@@ -48,7 +48,7 @@ The ClusterLink and its leadership embrace the following values:
 
 ClusterLink Maintainers have write access to the [clusterlink-net/clusterlink](https://github.com/clusterlink-net/clusterlink)
  repository. They can merge their own patches or patches from others. The current maintainers
- can be found in [MAINTAINERS.md](./MAINTAINERS.md). Maintainers collectively manage the
+ can be found in [CODEOWNERS](./CODEOWNERS). Maintainers collectively manage the
  project's resources and contributors.
 
 This privilege is granted with some expectation of responsibility: maintainers
