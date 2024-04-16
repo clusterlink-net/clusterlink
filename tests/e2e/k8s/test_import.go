@@ -15,6 +15,7 @@ package k8s
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"github.com/stretchr/testify/require"
@@ -24,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/control"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/httpecho"
@@ -49,7 +51,7 @@ func (s *TestSuite) TestImportConflictingTargetPort() {
 	require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp1))
 
 	// verify import service is created
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp1, v1alpha1.ImportServiceCreated, true))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp1, v1alpha1.ImportServiceValid, true))
 
 	// create a second import with the same explicit target port
 	imp2 := &v1alpha1.Import{
@@ -66,7 +68,7 @@ func (s *TestSuite) TestImportConflictingTargetPort() {
 	require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp2))
 
 	// verify import status indicates a conflict
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp2, v1alpha1.ImportServiceCreated, false))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp2, v1alpha1.ImportServiceValid, false))
 	require.True(s.T(), meta.IsStatusConditionFalse(imp2.Status.Conditions, v1alpha1.ImportTargetPortValid))
 
 	// verify that service for the second import was not created
@@ -82,7 +84,7 @@ func (s *TestSuite) TestImportConflictingTargetPort() {
 	require.Nil(s.T(), cl[0].Cluster().Resources().Update(context.Background(), imp2))
 
 	// verify the status is now good
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp2, v1alpha1.ImportServiceCreated, true))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp2, v1alpha1.ImportServiceValid, true))
 	require.True(s.T(), meta.IsStatusConditionTrue(imp2.Status.Conditions, v1alpha1.ImportTargetPortValid))
 
 	// second import service should now exist (but return RST as it has no sources)
@@ -122,7 +124,7 @@ func (s *TestSuite) TestImportConflictingService() {
 	require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp))
 
 	// verify import status indicates service could not be created (due to conflict)
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceCreated, false))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, false))
 
 	// update the service to look as service managed by clusterlink
 	service.Labels = make(map[string]string)
@@ -132,7 +134,7 @@ func (s *TestSuite) TestImportConflictingService() {
 	require.Nil(s.T(), cl[0].Cluster().Resources().Update(context.Background(), service))
 
 	// check import status reflects that service was updated successfully
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceCreated, true))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, true))
 
 	// verify service exist (RST instead of service not found)
 	impService := &util.Service{
@@ -149,7 +151,7 @@ func (s *TestSuite) TestImportConflictingService() {
 	_, err = cl[0].AccessService(httpecho.GetEchoValue, impService, true, &services.ConnectionResetError{})
 	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 	// verify status is good
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceCreated, true))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, true))
 
 	// update service managed-by label to non-clusterlink
 	require.Nil(s.T(), cl[0].Cluster().Resources().Get(context.Background(), service.Name, service.Namespace, service))
@@ -157,14 +159,14 @@ func (s *TestSuite) TestImportConflictingService() {
 	require.Nil(s.T(), cl[0].Cluster().Resources().Update(context.Background(), service))
 
 	// verify import status indicates invalid
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceCreated, false))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, false))
 
 	// update managed-by label back to clusterlink
 	service.Labels[control.LabelManagedBy] = control.AppName
 	require.Nil(s.T(), cl[0].Cluster().Resources().Update(context.Background(), service))
 
 	// verify access and status are back ok
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceCreated, true))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, true))
 	_, err = cl[0].AccessService(httpecho.GetEchoValue, impService, true, &services.ConnectionResetError{})
 	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 }
@@ -224,12 +226,12 @@ func (s *TestSuite) TestImportUnprivilegedNamespace() {
 	require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp))
 
 	// verify status indicates invalid
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceCreated, false))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, false))
 
 	// delete the conflicting system service
 	require.Nil(s.T(), cl[0].Cluster().Resources().Delete(context.Background(), systemService))
 	// wait for status to be good
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceCreated, true))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, true))
 
 	// update the import service to a bad service managed by other
 	require.Nil(s.T(), cl[0].Cluster().Resources().Get(context.Background(), service.Name, service.Namespace, service))
@@ -238,14 +240,14 @@ func (s *TestSuite) TestImportUnprivilegedNamespace() {
 	require.Nil(s.T(), cl[0].Cluster().Resources().Update(context.Background(), service))
 
 	// wait for status to indicate invalid
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceCreated, false))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, false))
 
 	// return service to be managed by clusterlink
 	service.Labels[control.LabelManagedBy] = control.AppName
 	require.Nil(s.T(), cl[0].Cluster().Resources().Update(context.Background(), service))
 
 	// wait for status to be good
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceCreated, true))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, true))
 
 	// verify imported service exists (getting a RST since no sources are defined)
 	impService := &util.Service{
@@ -282,7 +284,7 @@ func (s *TestSuite) TestImportDelete() {
 	require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp))
 
 	// wait for status to indicate service was created
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceCreated, true))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, true))
 
 	// delete import
 	require.Nil(s.T(), cl[0].Cluster().Resources().Delete(context.Background(), imp))
@@ -308,7 +310,7 @@ func (s *TestSuite) TestImportDelete() {
 	}
 	require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp2))
 	// verify status is good
-	require.Nil(s.T(), cl[0].WaitForImportCondition(imp2, v1alpha1.ImportServiceCreated, true))
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp2, v1alpha1.ImportServiceValid, true))
 }
 
 // this test requires K8s 1.29+, as it relies on x-kubernetes-validations.
@@ -333,4 +335,131 @@ func (s *TestSuite) TestImportInvalidName() {
 	// maximum import name length
 	imp.Name = strings.Repeat("a", 63)
 	require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp))
+}
+
+func (s *TestSuite) TestImportMerge() {
+	testFunc := func(crdMode bool) {
+		cfg := &util.PeerConfig{
+			CRUDMode:      !crdMode,
+			DataplaneType: platform.DataplaneTypeEnvoy,
+			Dataplanes:    1,
+		}
+
+		cl, err := s.fabric.DeployClusterlinks(1, cfg)
+		require.Nil(s.T(), err)
+
+		// create export, peer, and allow-all policy
+		require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
+		require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
+		require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
+		require.Nil(s.T(), cl[0].CreatePeer(cl[0]))
+
+		importedService := &util.Service{
+			Name: "imported",
+			Port: 80,
+		}
+
+		// create merge import
+		imp := &v1alpha1.Import{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      importedService.Name,
+				Namespace: cl[0].Namespace(),
+				Labels: map[string]string{
+					v1alpha1.LabelImportMerge: "true",
+				},
+			},
+			Spec: v1alpha1.ImportSpec{
+				Port: importedService.Port,
+				Sources: []v1alpha1.ImportSource{{
+					Peer:            cl[0].Name(),
+					ExportName:      httpEchoService.Name,
+					ExportNamespace: cl[0].Namespace(),
+				}},
+			},
+		}
+		if crdMode {
+			require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp))
+
+			// verify status is bad, since imported service should be pre-created for a merge import
+			require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, false))
+		} else {
+			// CRUD mode will fail since service does not exist, and operation is not async
+			require.NotNil(s.T(), cl[0].Client().Imports.Create(imp))
+		}
+
+		// create the import service
+		service := &v1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      importedService.Name,
+				Namespace: cl[0].Namespace(),
+			},
+			Spec: v1.ServiceSpec{
+				Ports: []v1.ServicePort{{
+					Port: int32(importedService.Port),
+				}},
+			},
+		}
+		require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), service))
+
+		if crdMode {
+			// verify status becomes good
+			require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, true))
+		} else {
+			// update import to re-try endpoint slice creation
+			require.Nil(s.T(), cl[0].Client().Imports.Update(imp))
+		}
+
+		// verify service access
+		data, err := cl[0].AccessService(httpecho.RunClientInPod, importedService, true, nil)
+		require.Nil(s.T(), err)
+		require.Equal(s.T(), cl[0].Name(), data)
+
+		// update dataplane endpoint slice via scaling
+		require.Nil(s.T(), cl[0].ScaleDataplane(0))
+		require.Nil(s.T(), cl[0].ScaleDataplane(1))
+
+		// verify service access
+		_, err = cl[0].AccessService(httpecho.RunClientInPod, importedService, true, nil)
+		require.Nil(s.T(), err)
+
+		// delete dataplane endpoint slice by deleting the dataplane service
+		var dataplaneService v1.Service
+		require.Nil(s.T(), cl[0].Cluster().Resources().Get(
+			context.Background(), "cl-dataplane", cl[0].Namespace(), &dataplaneService))
+		require.Nil(s.T(), cl[0].Cluster().Resources().Delete(
+			context.Background(), &dataplaneService))
+
+		// verify no access
+		_, err = cl[0].AccessService(httpecho.RunClientInPod, importedService, true, &util.PodFailedError{})
+		require.ErrorIs(s.T(), err, &util.PodFailedError{})
+
+		// create dataplane endpoint slice
+		dataplaneService.ResourceVersion = ""
+		require.Nil(s.T(), cl[0].Cluster().Resources().Create(
+			context.Background(), &dataplaneService))
+
+		// verify access is back
+		_, err = cl[0].AccessService(httpecho.RunClientInPod, importedService, true, nil)
+		require.Nil(s.T(), err)
+
+		// remove merge property of import
+		delete(imp.Labels, v1alpha1.LabelImportMerge)
+		if crdMode {
+			require.Nil(s.T(), cl[0].Cluster().Resources().Update(context.Background(), imp))
+		} else {
+			// CRUD mode will fail since service does not exist, and operation is not async
+			require.NotNil(s.T(), cl[0].Client().Imports.Update(imp))
+		}
+
+		// verify no access
+		_, err = cl[0].AccessService(
+			httpecho.RunClientInPod, importedService, true, &util.PodFailedError{})
+		require.ErrorIs(s.T(), err, &util.PodFailedError{})
+	}
+
+	// run test on both CRDMode = {true, false}
+	for _, crdMode := range []bool{true, false} {
+		testName := "CRDMode" + strings.ToUpper(strconv.FormatBool(crdMode))
+		s.RunSubTest(testName, func() { testFunc(crdMode) })
+	}
 }

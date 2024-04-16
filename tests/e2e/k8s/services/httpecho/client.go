@@ -74,3 +74,13 @@ func GetEchoValue(cluster *util.KindCluster, server *util.Service) (string, erro
 
 	return strings.TrimSpace(string(body)), nil
 }
+
+func RunClientInPod(cluster *util.KindCluster, server *util.Service) (string, error) {
+	body, err := cluster.RunPod(&util.Pod{
+		Name:      "echo-client",
+		Namespace: server.Namespace,
+		Image:     "curlimages/curl",
+		Args:      []string{"curl", "-s", "-m", "1", "http://" + server.Name},
+	})
+	return strings.TrimSpace(body), err
+}

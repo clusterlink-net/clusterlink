@@ -18,6 +18,8 @@ import (
 
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
 	v1 "k8s.io/api/core/v1"
+	discv1 "k8s.io/api/discovery/v1"
+
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
@@ -25,57 +27,72 @@ import (
 )
 
 // CreateControllers creates the various k8s controllers used to update the control manager.
-func CreateControllers(mgr *Manager, controllerManager ctrl.Manager) error {
-	err := controller.AddToManager(controllerManager, &controller.Spec{
-		Name:   "control.peer",
-		Object: &v1alpha1.Peer{},
-		AddHandler: func(ctx context.Context, object any) error {
-			mgr.AddPeer(object.(*v1alpha1.Peer))
-			return nil
-		},
-		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-			mgr.DeletePeer(name.Name)
-			return nil
-		},
-	})
-	if err != nil {
-		return err
-	}
+func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode bool) error {
+	if crdMode {
+		err := controller.AddToManager(controllerManager, &controller.Spec{
+			Name:   "control.peer",
+			Object: &v1alpha1.Peer{},
+			AddHandler: func(ctx context.Context, object any) error {
+				mgr.AddPeer(object.(*v1alpha1.Peer))
+				return nil
+			},
+			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+				mgr.DeletePeer(name.Name)
+				return nil
+			},
+		})
+		if err != nil {
+			return err
+		}
+		err = controller.AddToManager(controllerManager, &controller.Spec{
+			Name:   "control.service",
+			Object: &v1.Service{},
+			AddHandler: func(ctx context.Context, object any) error {
+				return mgr.addService(ctx, object.(*v1.Service))
+			},
+			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+				return mgr.deleteService(ctx, name)
+			},
+		})
+		if err != nil {
+			return err
+		}
 
-	err = controller.AddToManager(controllerManager, &controller.Spec{
-		Name:   "control.service",
-		Object: &v1.Service{},
-		AddHandler: func(ctx context.Context, object any) error {
-			return mgr.addService(ctx, object.(*v1.Service))
-		},
-		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-			return mgr.deleteService(ctx, name)
-		},
-	})
-	if err != nil {
-		return err
-	}
+		err = controller.AddToManager(controllerManager, &controller.Spec{
+			Name:   "control.export",
+			Object: &v1alpha1.Export{},
+			AddHandler: func(ctx context.Context, object any) error {
+				return mgr.addExport(ctx, object.(*v1alpha1.Export))
+			},
+			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+				return nil
+			},
+		})
+		if err != nil {
+			return err
+		}
 
-	err = controller.AddToManager(controllerManager, &controller.Spec{
-		Name:   "control.export",
-		Object: &v1alpha1.Export{},
-		AddHandler: func(ctx context.Context, object any) error {
-			return mgr.addExport(ctx, object.(*v1alpha1.Export))
-		},
-		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-			return nil
-		},
-	})
-	if err != nil {
-		return err
+		err = controller.AddToManager(controllerManager, &controller.Spec{
+			Name:   "control.import",
+			Object: &v1alpha1.Import{},
+			AddHandler: func(ctx context.Context, object any) error {
+				return mgr.AddImport(ctx, object.(*v1alpha1.Import))
+			},
+			DeleteHandler: mgr.DeleteImport,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return controller.AddToManager(controllerManager, &controller.Spec{
-		Name:   "control.import",
-		Object: &v1alpha1.Import{},
+		Name:   "control.endpointslice",
+		Object: &discv1.EndpointSlice{},
 		AddHandler: func(ctx context.Context, object any) error {
-			return mgr.AddImport(ctx, object.(*v1alpha1.Import))
+			return mgr.addEndpointSlice(ctx, object.(*discv1.EndpointSlice))
 		},
-		DeleteHandler: mgr.DeleteImport,
+		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+			return mgr.deleteEndpointSlice(ctx, name)
+		},
 	})
 }
