@@ -32,6 +32,7 @@ type importOptions struct {
 	name  string
 	port  uint16
 	peers []string
+	merge bool
 }
 
 // ImportCreateCmd - create an imported service.
@@ -76,6 +77,7 @@ func (o *importOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "Imported service name")
 	fs.Uint16Var(&o.port, "port", 0, "Imported service port")
 	fs.StringSliceVar(&o.peers, "peer", []string{}, "Remote peer to import the service from")
+	fs.BoolVar(&o.merge, "merge", false, "Merge with an existing service endpoint")
 }
 
 // run performs the execution of the 'create import' or 'update import' subcommand.
@@ -96,9 +98,15 @@ func (o *importOptions) run(isUpdate bool) error {
 		sources[i].ExportName = o.name
 	}
 
+	labels := make(map[string]string)
+	if o.merge {
+		labels[v1alpha1.LabelImportMerge] = "true"
+	}
+
 	err = importOperation(&v1alpha1.Import{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: o.name,
+			Name:   o.name,
+			Labels: labels,
 		},
 		Spec: v1alpha1.ImportSpec{
 			Port:    o.port,

@@ -72,6 +72,8 @@ type Import struct {
 	v1alpha1.ImportSpec
 	// Name of import.
 	Name string
+	// Labels defined for the import
+	Labels map[string]string
 	// Version of the struct when object was created.
 	Version uint32
 }
@@ -81,6 +83,7 @@ func NewImport(imp *v1alpha1.Import) *Import {
 	return &Import{
 		ImportSpec: imp.Spec,
 		Name:       imp.Name,
+		Labels:     imp.Labels,
 		Version:    importStructVersion,
 	}
 }

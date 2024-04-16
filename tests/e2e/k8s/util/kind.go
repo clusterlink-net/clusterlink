@@ -46,6 +46,13 @@ const (
 	ExportedLogsPath = "/tmp/clusterlink-k8s-tests"
 )
 
+// PodFailedError represents a pod that ran and returned a failure.
+type PodFailedError struct{}
+
+func (e PodFailedError) Error() string {
+	return "pod failed"
+}
+
 // Service represents a kubernetes service.
 type Service struct {
 	// Name is the service name.
@@ -333,6 +340,9 @@ func (c *KindCluster) RunPod(podSpec *Pod) (string, error) {
 		return "", fmt.Errorf("cannot get pod status: %w", err)
 	}
 	if pod.Status.Phase != v1.PodSucceeded {
+		if pod.Status.Phase == v1.PodFailed {
+			return "", &PodFailedError{}
+		}
 		return "", fmt.Errorf("pod did not succeed: %s", pod.Status.Phase)
 	}
 
