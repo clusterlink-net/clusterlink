@@ -55,7 +55,7 @@ func (s *TestSuite) TestPolicyLabels() {
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), cl[0].Name(), data)
 
-	// 2. Add a deny policy in cl[1] - should have a higher priority and so block the connection
+	// 2. Add a "deny echo service" policy in cl[1] - should have a higher priority and so block the connection
 	denyEchoPolicyName := "deny-access-to-echo"
 	dstLabels = map[string]string{policyengine.ServiceNameLabel: httpEchoService.Name}
 	denyEchoPolicy := util.NewPolicy(denyEchoPolicyName, v1alpha1.AccessPolicyActionDeny, nil, dstLabels)
@@ -71,7 +71,38 @@ func (s *TestSuite) TestPolicyLabels() {
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), cl[0].Name(), data)
 
-	// 4. Replace the policy in cl[1] with a policy having a wrong service name - connection should be denied
+	// 4. Add a "deny peer cl0" policy in cl[1] - should have a higher priority and so block the connection
+	denyCl0PolicyName := "deny-access-to-cl0"
+	dstLabels = map[string]string{policyengine.GatewayNameLabel: cl[0].Name()}
+	denyCl0Policy := util.NewPolicy(denyCl0PolicyName, v1alpha1.AccessPolicyActionDeny, nil, dstLabels)
+	require.Nil(s.T(), cl[1].CreatePolicy(denyCl0Policy))
+
+	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
+	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+
+	// 5. Delete deny policy - connection is now allowed again
+	require.Nil(s.T(), cl[1].DeletePolicy(denyCl0PolicyName))
+
+	data, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
+	require.Nil(s.T(), err)
+	require.Equal(s.T(), cl[0].Name(), data)
+
+	// 6. Add a deny policy in cl[0] - should have a higher priority and so block the connection
+	denyCl1PolicyName := "deny-access-from-cl1"
+	denyCl1Policy := util.NewPolicy(denyCl1PolicyName, v1alpha1.AccessPolicyActionDeny, srcLabels, nil)
+	require.Nil(s.T(), cl[0].CreatePolicy(denyCl1Policy))
+
+	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
+	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+
+	// 7. Delete deny policy in cl[0] - connection is now allowed again
+	require.Nil(s.T(), cl[0].DeletePolicy(denyCl1PolicyName))
+
+	data, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
+	require.Nil(s.T(), err)
+	require.Equal(s.T(), cl[0].Name(), data)
+
+	// 8. Replace the policy in cl[1] with a policy having a wrong service name - connection should be denied
 	require.Nil(s.T(), cl[1].DeletePolicy(allowEchoPolicyName))
 
 	badSvcLabels := map[string]string{
