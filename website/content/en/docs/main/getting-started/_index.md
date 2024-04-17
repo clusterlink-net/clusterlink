@@ -13,4 +13,3 @@ If you're a content author, wishing to contribute additional documentation or gu
 [user-getting-started]: users.md
 [dev-getting-started]: developers.md
 [doc-contribution]: ../doc-contribution/_index.md
-
