@@ -479,8 +479,9 @@ func (r *InstanceReconciler) createExternalService(ctx context.Context, instance
 	// Create a Service object
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      IngressName,
-			Namespace: instance.Spec.Namespace,
+			Name:        IngressName,
+			Namespace:   instance.Spec.Namespace,
+			Annotations: instance.Spec.Ingress.Annotations,
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{

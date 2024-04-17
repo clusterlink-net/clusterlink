@@ -56,7 +56,7 @@ func TestMain(m *testing.M) {
 	// Bootstrap test environment
 	ctx, cancel = context.WithCancel(context.TODO())
 	testEnv := &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "..", "config", "operator", "crds")},
+		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "..", "config", "crds")},
 		ErrorIfCRDPathMissing: true,
 		BinaryAssetsDirectory: filepath.Join("..", "..", "..", "bin", "k8s",
 			fmt.Sprintf("1.28.3-%s-%s", runtime.GOOS, runtime.GOARCH)),
@@ -210,14 +210,17 @@ func TestClusterLinkController(t *testing.T) {
 	})
 
 	t.Run("Update ClusterLink deployment", func(t *testing.T) {
+		annotation := map[string]string{"networking.cl.io/load-balancer-type": "Internal"}
 		svc := &corev1.Service{}
 		// Update ingress resource to LoadBalancer type
 		getResource(t, types.NamespacedName{Name: ClusterLinkName, Namespace: controller.OperatorNamespace}, &cl)
 		cl.Spec.Ingress.Type = clusterlink.IngressTypeLoadBalancer
+		cl.Spec.Ingress.Annotations = annotation
 		err := k8sClient.Update(ctx, &cl)
 		require.Nil(t, err)
 		checkResourceCreated(t, ingressID, svc)
 		require.Equal(t, corev1.ServiceTypeLoadBalancer, svc.Spec.Type)
+		require.Equal(t, annotation, svc.ObjectMeta.Annotations)
 
 		// Update ingress resource to NodePort type
 		err = k8sClient.Delete(ctx, svc)
