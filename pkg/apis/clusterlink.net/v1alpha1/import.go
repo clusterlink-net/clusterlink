@@ -60,8 +60,10 @@ type ImportSpec struct {
 const (
 	// ImportTargetPortValid is a condition type for indicating whether the import target port is valid.
 	ImportTargetPortValid string = "ImportTargetPortValid"
-	// ImportServiceCreated is a condition type for indicating whether the import service was successfully created.
-	ImportServiceCreated string = "ImportServiceCreated"
+	// ImportServiceValid is a condition type for indicating whether the import service exists and valid.
+	ImportServiceValid string = "ImportServiceValid"
+
+	LabelImportMerge string = "import.clusterlink.net/merge"
 )
 
 // ImportStatus represents the status of an imported service.

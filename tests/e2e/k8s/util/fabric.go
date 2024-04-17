@@ -147,6 +147,19 @@ func (f *Fabric) SwitchToNewNamespace(name string, appendName bool) error {
 	if f.namespace != "" {
 		// delete old namespace
 		for _, p := range f.peers {
+			// delete imports to avoid slowing down upcoming tests
+			var imports v1alpha1.ImportList
+			if err := p.cluster.Resources().List(context.Background(), &imports); err != nil {
+				return err
+			}
+
+			for i := range imports.Items {
+				err := p.cluster.Resources().Delete(context.Background(), &(imports.Items[i]))
+				if err != nil {
+					return err
+				}
+			}
+
 			if err := p.cluster.DeleteNamespace(f.namespace); err != nil {
 				return fmt.Errorf("cannot delete namespace %s: %w", f.namespace, err)
 			}

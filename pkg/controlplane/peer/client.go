@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 
@@ -44,24 +45,63 @@ type RemoteServerAuthorizationResponse struct {
 	AccessToken string
 }
 
-// authorize a request for accessing a peer exported service, yielding an access token.
+// getResponse tries all gateways in parallel for a response.
+// The first successful response is returned.
+// If all responses failed, a joined error of all responses is returned.
+func (c *Client) getResponse(
+	getRespFunc func(client *jsonapi.Client) (*jsonapi.Response, error),
+) (*jsonapi.Response, error) {
+	if len(c.clients) == 1 {
+		return getRespFunc(c.clients[0])
+	}
+
+	results := make(chan struct {
+		*jsonapi.Response
+		error
+	})
+	var done bool
+	var lock sync.Mutex
+	for _, client := range c.clients {
+		go func(currClient *jsonapi.Client) {
+			resp, err := getRespFunc(currClient)
+			lock.Lock()
+			defer lock.Unlock()
+			if done {
+				return
+			}
+			results <- struct {
+				*jsonapi.Response
+				error
+			}{resp, err}
+		}(client)
+	}
+
+	var retErr error
+	for range c.clients {
+		result := <-results
+		if result.error == nil {
+			lock.Lock()
+			done = true
+			lock.Unlock()
+			return result.Response, nil
+		}
+
+		retErr = errors.Join(retErr, result.error)
+	}
+
+	return nil, retErr
+}
+
+// Authorize a request for accessing a peer exported service, yielding an access token.
 func (c *Client) Authorize(req *api.AuthorizationRequest) (*RemoteServerAuthorizationResponse, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to serialize authorization request: %w", err)
 	}
 
-	var serverResp *jsonapi.Response
-	for _, client := range c.clients {
-		serverResp, err = client.Post(api.RemotePeerAuthorizationPath, body)
-		if err == nil {
-			break
-		}
-
-		c.logger.Errorf("Error authorizing using endpoint %s: %v",
-			client.ServerURL(), err)
-	}
-
+	serverResp, err := c.getResponse(func(client *jsonapi.Client) (*jsonapi.Response, error) {
+		return client.Post(api.RemotePeerAuthorizationPath, body)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -93,23 +133,19 @@ func (c *Client) Authorize(req *api.AuthorizationRequest) (*RemoteServerAuthoriz
 
 // GetHeartbeat get a heartbeat from other peers.
 func (c *Client) GetHeartbeat() error {
-	var retErr error
-	for _, client := range c.clients {
-		serverResp, err := client.Get(api.HeartbeatPath)
-		if err != nil {
-			retErr = errors.Join(retErr, err)
-			continue
-		}
-
-		if serverResp.Status == http.StatusOK {
-			return nil
-		}
-
-		retErr = errors.Join(retErr, fmt.Errorf("unable to get heartbeat (%d), server returned: %s",
-			serverResp.Status, serverResp.Body))
+	serverResp, err := c.getResponse(func(client *jsonapi.Client) (*jsonapi.Response, error) {
+		return client.Get(api.HeartbeatPath)
+	})
+	if err != nil {
+		return err
 	}
 
-	return retErr // Return an error if all client targets are unreachable
+	if serverResp.Status != http.StatusOK {
+		return fmt.Errorf("unable to get heartbeat (%d), server returned: %s",
+			serverResp.Status, serverResp.Body)
+	}
+
+	return nil
 }
 
 // NewClient returns a new Peer API client.

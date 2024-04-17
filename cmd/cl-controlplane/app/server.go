@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
+	discv1 "k8s.io/api/discovery/v1"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -150,25 +151,29 @@ func (o *Options) Run() error {
 		return fmt.Errorf("unable to add core v1 objects to scheme: %w", err)
 	}
 
+	if err := discv1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("unable to add discovery v1 objects to scheme: %w", err)
+	}
+
 	// set logger for controller-runtime components
 	ctrl.SetLogger(logrusr.New(logrus.WithField("component", "k8s.controller-runtime")))
 
-	// limit watch for v1alpha1.Peer to the namespace given by 'namespace'
-	managerOptions := manager.Options{}
+	managerOptions := manager.Options{
+		Cache: cache.Options{
+			ByObject: make(map[client.Object]cache.ByObject),
+		},
+		Scheme: scheme,
+	}
+
+	// limit watch for v1alpha1.Peer and EndpointSlice to the namespace given by 'namespace'
 	if o.CRDMode {
-		managerOptions = manager.Options{
-			Cache: cache.Options{
-				ByObject: map[client.Object]cache.ByObject{
-					&v1alpha1.Peer{}: {
-						Namespaces: map[string]cache.Config{
-							namespace: {},
-						},
-					},
-				},
+		managerOptions.Cache.ByObject[&v1alpha1.Peer{}] = cache.ByObject{
+			Namespaces: map[string]cache.Config{
+				namespace: {},
 			},
-			Scheme: scheme,
 		}
 	}
+
 	mgr, err := manager.New(config, managerOptions)
 	if err != nil {
 		return fmt.Errorf(
@@ -198,6 +203,11 @@ func (o *Options) Run() error {
 
 	controlManager := control.NewManager(mgr.GetClient(), parsedCertData, namespace, o.CRDMode)
 
+	err = control.CreateControllers(controlManager, mgr, o.CRDMode)
+	if err != nil {
+		return fmt.Errorf("cannot create control controllers: %w", err)
+	}
+
 	xdsManager := xds.NewManager(o.CRDMode)
 	xds.RegisterService(
 		context.Background(), xdsManager, grpcServer.GetGRPCServer())
@@ -206,11 +216,6 @@ func (o *Options) Run() error {
 		err := xds.CreateControllers(xdsManager, mgr)
 		if err != nil {
 			return fmt.Errorf("cannot create xDS controllers: %w", err)
-		}
-
-		err = control.CreateControllers(controlManager, mgr)
-		if err != nil {
-			return fmt.Errorf("cannot create control controllers: %w", err)
 		}
 	} else {
 		// open store
@@ -235,6 +240,8 @@ func (o *Options) Run() error {
 
 		cprest.RegisterHandlers(restManager, httpServer)
 
+		controlManager.SetGetMergeImportListCallback(restManager.GetMergeImportList)
+		controlManager.SetGetImportCallback(restManager.GetK8sImport)
 		controlManager.SetStatusCallback(func(pr *v1alpha1.Peer) {
 			authzManager.AddPeer(pr)
 		})

@@ -45,6 +45,11 @@ func (e conflictingTargetPortError) Error() string {
 	return fmt.Sprintf("port %d is already in use by service %v", e.port, e.leaseName)
 }
 
+func (e conflictingTargetPortError) Is(target error) bool {
+	_, ok := target.(*conflictingTargetPortError)
+	return ok
+}
+
 // portManager leases ports for use by imported services.
 type portManager struct {
 	lock         sync.Mutex

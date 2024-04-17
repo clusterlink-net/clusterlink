@@ -147,6 +147,8 @@ func (c *ClusterLink) AccessService(
 			continue
 		case errors.Is(err, &services.ConnectionResetError{}):
 			continue
+		case errors.Is(err, &PodFailedError{}):
+			continue
 		case err == nil && expectedError != nil:
 			continue
 		}
@@ -362,13 +364,13 @@ func (c *ClusterLink) DeleteImport(name string) error {
 }
 
 func (c *ClusterLink) CreatePolicy(policy *v1alpha1.AccessPolicy) error {
-	if c.crdMode {
-		if policy.Namespace == "" {
-			accessPolicyCopy := *policy
-			accessPolicyCopy.Namespace = c.namespace
-			policy = &accessPolicyCopy
-		}
+	if policy.Namespace == "" {
+		accessPolicyCopy := *policy
+		accessPolicyCopy.Namespace = c.namespace
+		policy = &accessPolicyCopy
+	}
 
+	if c.crdMode {
 		return c.cluster.Resources().Create(context.Background(), policy)
 	}
 

@@ -174,8 +174,8 @@ spec:
             secretName: cl-dataplane
       containers:
         - name: dataplane
-          image: {{.containerRegistry}}{{ 
-          if (eq .dataplaneType .dataplaneTypeEnvoy) }}cl-dataplane{{ 
+          image: {{.containerRegistry}}{{
+          if (eq .dataplaneType .dataplaneTypeEnvoy) }}cl-dataplane{{
           else }}cl-go-dataplane{{ end }}:{{.tag}}
           args: ["--log-level", "{{.logLevel}}", "--controlplane-host", "cl-controlplane"]
           imagePullPolicy: IfNotPresent
@@ -273,6 +273,9 @@ metadata:
 rules:
 - apiGroups: [""]
   resources: ["services"]
+  verbs: ["get", "list", "watch", "create", "delete", "update"]
+- apiGroups: ["discovery.k8s.io"]
+  resources: ["endpointslices"]
   verbs: ["get", "list", "watch", "create", "delete", "update"]
 - apiGroups: [""]
   resources: ["pods"]
@@ -433,4 +436,28 @@ func K8SClusterLinkInstanceConfig(config *Config, name string) ([]byte, error) {
 	}
 
 	return clConfig.Bytes(), nil
+}
+
+// K8SEmptyCertificateConfig returns Kubernetes empty secrets for the control plane and data plane,
+// used for deleting the secrets.
+func K8SEmptyCertificateConfig(config *Config) ([]byte, error) {
+	args := map[string]interface{}{
+		"fabricCA":         "",
+		"peerCA":           "",
+		"controlplaneCert": "",
+		"controlplaneKey":  "",
+		"dataplaneCert":    "",
+		"dataplaneKey":     "",
+		"gwctlCert":        "",
+		"gwctlKey":         "",
+		"namespace":        config.Namespace,
+	}
+
+	var certConfig bytes.Buffer
+	t := template.Must(template.New("").Parse(certsTemplate))
+	if err := t.Execute(&certConfig, args); err != nil {
+		return nil, fmt.Errorf("cannot create k8s certificate configuration from template: %w", err)
+	}
+
+	return certConfig.Bytes(), nil
 }

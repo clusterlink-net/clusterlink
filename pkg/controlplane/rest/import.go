@@ -18,7 +18,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
@@ -34,6 +36,7 @@ func toK8SImport(imp *store.Import, namespace string) *v1alpha1.Import {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imp.Name,
 			Namespace: namespace,
+			Labels:    imp.Labels,
 		},
 		Spec: imp.ImportSpec,
 	}
@@ -46,7 +49,8 @@ func importToAPI(imp *store.Import) *v1alpha1.Import {
 
 	return &v1alpha1.Import{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: imp.Name,
+			Name:   imp.Name,
+			Labels: imp.Labels,
 		},
 		Spec: imp.ImportSpec,
 	}
@@ -168,6 +172,29 @@ func (m *Manager) DeleteImport(name string) (*store.Import, error) {
 func (m *Manager) GetAllImports() []*store.Import {
 	m.logger.Info("Listing all imports.")
 	return m.imports.GetAll()
+}
+
+func (m *Manager) GetMergeImportList() *v1alpha1.ImportList {
+	mergeImportList := v1alpha1.ImportList{}
+	for _, imp := range m.imports.GetAll() {
+		if imp.Labels[v1alpha1.LabelImportMerge] != "true" {
+			continue
+		}
+
+		mergeImportList.Items = append(mergeImportList.Items, *toK8SImport(imp, m.namespace))
+	}
+
+	return &mergeImportList
+}
+
+func (m *Manager) GetK8sImport(name string, imp *v1alpha1.Import) error {
+	storeImport := m.imports.Get(name)
+	if storeImport == nil {
+		return errors.NewNotFound(schema.GroupResource{}, name)
+	}
+
+	*imp = *toK8SImport(storeImport, m.namespace)
+	return nil
 }
 
 // Decode an import.
