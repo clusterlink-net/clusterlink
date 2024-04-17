@@ -18,6 +18,7 @@ import (
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
+	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/httpecho"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/util"
 )
@@ -61,8 +62,8 @@ func (s *TestSuite) TestPolicyLabels() {
 		denyEchoPolicy := util.NewPolicy(denyEchoPolicyName, v1alpha1.AccessPolicyActionDeny, nil, dstLabels)
 		require.Nil(s.T(), cl[1].CreatePolicy(denyEchoPolicy))
 
-		_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
-		require.NotNil(s.T(), err)
+		_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
+		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 
 		// 3. Delete deny policy - connection is now allowed again
 		require.Nil(s.T(), cl[1].DeletePolicy(denyEchoPolicyName))
@@ -81,8 +82,8 @@ func (s *TestSuite) TestPolicyLabels() {
 		badSvcPolicy := util.NewPolicy("bad-svc", v1alpha1.AccessPolicyActionAllow, nil, badSvcLabels)
 		require.Nil(s.T(), cl[1].CreatePolicy(badSvcPolicy))
 
-		_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
-		require.NotNil(s.T(), err)
+		_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
+		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 	})
 }
 
@@ -124,8 +125,8 @@ func (s *TestSuite) TestPrivilegedPolicies() {
 		require.Nil(s.T(), cl[1].CreatePolicy(regAllowPolicy))
 
 		// 1. privileged deny has highest priority -> connection is denied
-		_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
-		require.NotNil(s.T(), err)
+		_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
+		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 
 		// 2. deleting privileged deny -> privileged allow now has highest priority -> connection is allowed
 		require.Nil(s.T(), cl[1].DeletePrivilegedPolicy(privDenyPolicyName))
@@ -137,8 +138,8 @@ func (s *TestSuite) TestPrivilegedPolicies() {
 		// 3. deleting privileged allow -> non-privileged deny now has highest priority -> connection is denied
 		require.Nil(s.T(), cl[1].DeletePrivilegedPolicy(privAllowPolicyName))
 
-		_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
-		require.NotNil(s.T(), err)
+		_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
+		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 
 		// 4. deleting non-privileged deny -> non-privileged allow now has highest priority -> connection is allowed
 		require.Nil(s.T(), cl[1].DeletePolicy(regDenyPolicyName))
@@ -150,7 +151,7 @@ func (s *TestSuite) TestPrivilegedPolicies() {
 		// 5. deleting non-privileged allow -> default deny takes place -> connection is denied
 		require.Nil(s.T(), cl[1].DeletePolicy(regAllowPolicyName))
 
-		_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
-		require.NotNil(s.T(), err)
+		_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
+		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 	})
 }
