@@ -116,7 +116,7 @@ kubectl apply -f $IPERF3_FILES/iperf3-server/iperf3.yaml
     clusterlink create peer-cert --name server
     ```
 
-    For more details regarding fabric and peer see [core concepts](https://clusterlink.net/docs/concepts).
+    For more details regarding fabric and peer see [core concepts][concepts].
 
 1. Deploy ClusterLink on each cluster:
 
@@ -387,7 +387,7 @@ spec:
 {{% /tab %}}
 {{< /tabpane >}}
 
-For more details regarding policy configuration, see [here](https://clusterlink.net/docs/concepts/policies).
+For more details regarding policy configuration, see [here][concept-policy].
 
 ## Test service connectivity
 
@@ -459,3 +459,6 @@ iperf Done.
     ```sh
     unset KUBECONFIG IPERF3_FILES
     ```
+
+[concepts]: ../concepts/_index.md
+[concept-policy]: ../concepts/policies.md

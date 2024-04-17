@@ -4,9 +4,9 @@ description: Defining a ClusterLink fabric
 weight: 10
 ---
 
-The concept of a *Fabric* encapsulates a set of cooperating [peers]({{< ref "peers" >}}).
- All peers in a fabric can communicate and may share [services]({{< ref "services" >}})
- between them, with access governed by [policies]({{< ref "policies" >}}).
+The concept of a *Fabric* encapsulates a set of cooperating [peers][concept-peer].
+ All peers in a fabric can communicate and may share [services][concept-service]
+ between them, with access governed by [policies][concept-policy].
  The Fabric acts as a root of trust for peer to peer communications (i.e.,
  it functions as the certificate authority enabling mutual authentication between
  peers).
@@ -44,5 +44,10 @@ This command will create the CA files `cert.pem` and `key.pem` in a directory na
 ## Related tasks
 
 Once a `Fabric` has been created and initialized, you can proceed with configuring
- [peers]({{< ref "peers" >}}). For a complete, end to end, use case please refer to the
- [iperf tutorial]({{< ref iperf >}}).
+ [peers][concept-peer]. For a complete, end to end, use case please refer to the
+ [iperf tutorial][tutorial-iperf].
+
+[concept-peer]: peers.md
+[concept-service]: services.md
+[concept-policy]: policies.md
+[tutorial-iperf]: ../tutorials/iperf.md
