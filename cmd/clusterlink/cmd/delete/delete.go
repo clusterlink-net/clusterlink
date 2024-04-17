@@ -11,28 +11,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package deletion
 
 import (
 	"github.com/spf13/cobra"
-
-	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/cmd/create"
-	deletion "github.com/clusterlink-net/clusterlink/cmd/clusterlink/cmd/delete"
-	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/cmd/deploy"
 )
 
-// NewCLADMCommand returns a cobra.Command to run the clusterlink command.
-func NewCLADMCommand() *cobra.Command {
+// NewCmdDelete returns a cobra.Command to run the delete command.
+func NewCmdDelete() *cobra.Command {
 	cmds := &cobra.Command{
-		Use:          "clusterlink",
-		Short:        "clusterlink: bootstrap a clink fabric",
-		Long:         `clusterlink: bootstrap a clink fabric`,
-		SilenceUsage: true,
+		Use:   "delete",
+		Short: "Delete ClusterLink resources",
+		Long:  "Delete ClusterLink resources",
 	}
 
-	cmds.AddCommand(create.NewCmdCreate())
-	cmds.AddCommand(deploy.NewCmdDeploy())
-	cmds.AddCommand(deletion.NewCmdDelete())
+	cmds.AddCommand(NewCmdDeletePeer())
 
 	return cmds
 }
