@@ -1,6 +1,14 @@
+{{- $href := .Get "url" }}
+{{- $pattern := "@VERSION@"}}
+{{- with $href }}
+  {{- if findRE $pattern . }}
+    {{- $href = strings.Replace . $pattern site.Params.latest_stable_version -}}
+  {{- end }}
+{{- end -}}
+
 <img src="{{ .Get "logo" }}" width="50%" class="site-logo" style="padding-top: 135px;" />
 
 <div class="mx-auto">
   <p style="color: white;">{{ .Inner }}</p>
-  <a class="btn btn-lg btn-secondary mr-3 mb-4" href="{{ .Site.BaseURL }}{{ .Get "buttonlink" }}">{{ .Get "buttontext" }} </a>
+  <a class="btn btn-lg btn-secondary mr-3 mb-4" href="{{ .Site.BaseURL }}{{ $href }}">{{ .Get "buttontext" }} </a>
 </div>
