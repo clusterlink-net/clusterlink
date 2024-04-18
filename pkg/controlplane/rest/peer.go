@@ -17,7 +17,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
@@ -33,6 +35,7 @@ func toK8SPeer(peer *store.Peer) *v1alpha1.Peer {
 		Spec: v1alpha1.PeerSpec{
 			Gateways: make([]v1alpha1.Endpoint, len(peer.Gateways)),
 		},
+		Status: peer.Status,
 	}
 
 	for i, gw := range peer.PeerSpec.Gateways {
@@ -53,7 +56,7 @@ func peerToAPI(peer *store.Peer) *v1alpha1.Peer {
 			Name: peer.Name,
 		},
 		Spec:   peer.PeerSpec,
-		Status: v1alpha1.PeerStatus{},
+		Status: peer.Status,
 	}
 }
 
@@ -90,6 +93,19 @@ func (m *Manager) UpdatePeer(peer *store.Peer) error {
 	return m.xdsManager.AddPeer(k8sPeer)
 }
 
+// UpdatePeerStatus updates the status of an existing peer.
+func (m *Manager) UpdatePeerStatus(name string, status *v1alpha1.PeerStatus) {
+	m.logger.Infof("Updating status of peer '%s'.", name)
+
+	err := m.peers.Update(name, func(old *store.Peer) *store.Peer {
+		old.Status = *status
+		return old
+	})
+	if err != nil {
+		m.logger.Errorf("Error updating status of peer '%s': %v", name, err)
+	}
+}
+
 // GetPeer returns an existing peer.
 func (m *Manager) GetPeer(name string) *store.Peer {
 	m.logger.Infof("Getting peer '%s'.", name)
@@ -124,6 +140,16 @@ func (m *Manager) DeletePeer(name string) (*store.Peer, error) {
 func (m *Manager) GetAllPeers() []*store.Peer {
 	m.logger.Info("Listing all peers.")
 	return m.peers.GetAll()
+}
+
+func (m *Manager) GetK8sPeer(name string, peer *v1alpha1.Peer) error {
+	storePeer := m.peers.Get(name)
+	if storePeer == nil {
+		return errors.NewNotFound(schema.GroupResource{}, name)
+	}
+
+	*peer = *toK8SPeer(storePeer)
+	return nil
 }
 
 // Decode a peer.

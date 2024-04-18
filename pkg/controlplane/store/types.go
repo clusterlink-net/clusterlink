@@ -22,13 +22,11 @@ const (
 	exportStoreName       = "export"
 	importStoreName       = "import"
 	accessPolicyStoreName = "accessPolicy"
-	lbPolicyStoreName     = "lbPolicy"
 
 	exportStructVersion       = 1
 	importStructVersion       = 1
 	peerStructVersion         = 1
 	accessPolicyStructVersion = 1
-	lbPolicyStructVersion     = 1
 )
 
 // Peer represents a remote peer.
@@ -36,6 +34,8 @@ type Peer struct {
 	v1alpha1.PeerSpec
 	// Name of the peer.
 	Name string
+	// Status of the peer.
+	Status v1alpha1.PeerStatus
 	// Version of the struct when object was created.
 	Version uint32
 }
@@ -45,6 +45,7 @@ func NewPeer(peer *v1alpha1.Peer) *Peer {
 	return &Peer{
 		PeerSpec: peer.Spec,
 		Name:     peer.Name,
+		Status:   peer.Status,
 		Version:  peerStructVersion,
 	}
 }
@@ -54,6 +55,8 @@ type Export struct {
 	v1alpha1.ExportSpec
 	// Name of the export.
 	Name string
+	// Status of the export.
+	Status v1alpha1.ExportStatus
 	// Version of the struct when object was created.
 	Version uint32
 }
@@ -63,6 +66,7 @@ func NewExport(export *v1alpha1.Export) *Export {
 	return &Export{
 		ExportSpec: export.Spec,
 		Name:       export.Name,
+		Status:     export.Status,
 		Version:    exportStructVersion,
 	}
 }

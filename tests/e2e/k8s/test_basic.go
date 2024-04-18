@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/httpecho"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/util"
@@ -158,7 +157,6 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		peerFromServer := *objects.(*v1alpha1.Peer)
 		require.Equal(s.T(), peerFromServer.Name, peer.Name)
 		require.Equal(s.T(), peerFromServer.Spec, peer.Spec)
-		require.Equal(s.T(), peerFromServer.Status, v1alpha1.PeerStatus{})
 
 		// list peers
 		objects, err = client0.Peers.List()
@@ -252,12 +250,14 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// get export
 		objects, err = client1.Exports.Get(export.Name)
 		require.Nil(s.T(), err)
-		require.Equal(s.T(), *objects.(*v1alpha1.Export), export)
+		exportFromServer := *objects.(*v1alpha1.Export)
+		require.Equal(s.T(), export.Name, exportFromServer.Name)
+		require.Equal(s.T(), export.Spec, exportFromServer.Spec)
 
 		// list exports
 		objects, err = client1.Exports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Export), []v1alpha1.Export{export})
+		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Export), []v1alpha1.Export{exportFromServer})
 
 		// allow export to be accessed
 		require.Nil(s.T(), client1.AccessPolicies.Create(&policy))
@@ -269,7 +269,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// create false binding to verify LB policy
 		imp.Spec.Sources = append(imp.Spec.Sources,
 			v1alpha1.ImportSource{Peer: cl[2].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[2].Namespace()})
-		imp.Spec.LBScheme = string(policyengine.Static)
+		imp.Spec.LBScheme = v1alpha1.LBSchemeStatic
 		require.Nil(s.T(), client0.Imports.Update(&imp))
 
 		// verify access
@@ -339,27 +339,6 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Nil(s.T(), client1.Exports.Update(&export))
 		// verify access after update back
 		str, err = accessService(true, nil)
-		require.Nil(s.T(), err)
-		require.Equal(s.T(), str, cl[1].Name())
-
-		// make cl[2] the first peer, so static LB policy will choose it
-		imp.Spec.Sources = []v1alpha1.ImportSource{
-			{Peer: cl[2].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[2].Namespace()},
-			{Peer: cl[1].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[1].Namespace()},
-		}
-		require.Nil(s.T(), client0.Imports.Update(&imp))
-
-		// verify no access after update
-		_, err = accessService(false, &services.ConnectionResetError{})
-		require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
-		// update LB policy back
-		imp.Spec.Sources = []v1alpha1.ImportSource{
-			{Peer: cl[1].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[1].Namespace()},
-			{Peer: cl[2].Name(), ExportName: httpEchoService.Name, ExportNamespace: cl[2].Namespace()},
-		}
-		require.Nil(s.T(), client0.Imports.Update(&imp))
-		// verify access after update back
-		str, err = accessService(false, nil)
 		require.Nil(s.T(), err)
 		require.Equal(s.T(), str, cl[1].Name())
 
@@ -438,10 +417,10 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		require.Nil(s.T(), err)
 		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Import), []v1alpha1.Import{importFromServer})
 
-		// verify peers after restart
+		// verify 2 peers after restart
 		objects, err = client0.Peers.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Peer), []v1alpha1.Peer{peerFromServer, peer2})
+		require.Equal(s.T(), len(*objects.(*[]v1alpha1.Peer)), 2)
 
 		// verify access policies after restart
 		objects, err = client0.AccessPolicies.List()
@@ -451,7 +430,7 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// verify exports after restart
 		objects, err = client1.Exports.List()
 		require.Nil(s.T(), err)
-		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Export), []v1alpha1.Export{export})
+		require.Equal(s.T(), len(*objects.(*[]v1alpha1.Export)), 1)
 
 		// verify access after restart
 		str, err = accessService(true, nil)

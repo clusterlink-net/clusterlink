@@ -42,6 +42,17 @@ type ImportSource struct {
 	ExportNamespace string `json:"exportNamespace"`
 }
 
+// LBScheme represents a load balancing scheme.
+type LBScheme string
+
+const (
+	LBSchemeRandom     LBScheme = "random"
+	LBSchemeRoundRobin LBScheme = "round-robin"
+	LBSchemeStatic     LBScheme = "static"
+
+	LBSchemeDefault = LBSchemeRoundRobin
+)
+
 // ImportSpec contains all attributes of an imported service.
 type ImportSpec struct {
 	// Port of the imported service.
@@ -53,8 +64,7 @@ type ImportSpec struct {
 	Sources []ImportSource `json:"sources"`
 	// +kubebuilder:default="round-robin"
 	// LBScheme is the load-balancing scheme to use (e.g., random, static, round-robin)
-	LBScheme string `json:"lbScheme"`
-	// TODO: Make LBScheme a proper type (when backwards compatibility is no longer needed)
+	LBScheme LBScheme `json:"lbScheme"`
 }
 
 const (
