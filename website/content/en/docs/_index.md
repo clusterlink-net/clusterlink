@@ -1,5 +1,7 @@
 ---
-title: Documentation
-linkTitle: Docs
-menu: {main: {weight: 10, pre: "<i class='fa-solid fa-book'></i>" }}
+title: Documentation Versions
+linkTitle: Versions
+simple_list: true
 ---
+
+Welcome to the ClusterLink docs! The following doc versions are available:

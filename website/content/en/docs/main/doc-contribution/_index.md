@@ -58,7 +58,7 @@ If you want to run your own local Hugo server to preview your changes as you wor
 
 <!-- TODO should add a dedicated getting-started for website authoring -->
 
-1. Follow the instructions in [Getting started]({{< ref "getting-started" >}}) to install Hugo
+1. Follow the instructions in [Getting started][getting-started-documentation] to install Hugo
  and any other tools you need. You'll need at least **Hugo version 0.110** (we recommend
  using the most recent available version), and it must be the **extended** version,
  which supports SCSS.
@@ -82,3 +82,6 @@ If you've found a problem in the docs, but you're not sure how to fix it yoursel
 * [Hugo documentation](https://gohugo.io/documentation/): Comprehensive reference for Hugo.
 * [Github Hello World!](https://guides.github.com/activities/hello-world/): A basic
  introduction to GitHub concepts and workflow.
+
+[getting-started-documentation]: ../getting-started/
+<!-- a documentation specific getting started guide is missing. Tracked in issue #526 -->

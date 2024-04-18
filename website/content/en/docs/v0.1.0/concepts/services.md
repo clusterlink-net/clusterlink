@@ -6,13 +6,13 @@ weight: 30
 
 ClusterLink uses services as the unit of sharing between peers.
  One or more peers can expose an (internal) K8s Service to
- be consumed by other [peers]({{% ref "peers" %}}) in the [fabric]({{% ref "fabric" %}}).
- A service is exposed by creating an *Export* CR referencing it in the
+ be consumed by other [peers][concept-peer] in the [fabric][concept-fabric].
+ A service is exposed by creating an `Export` CR referencing it in the
  source cluster. Similarly, the exported service can be made accessible to workloads
- in a peer by defining an *Import* CR in the destination cluster[^KEP-1645].
+ in a peer by defining an `Import` CR in the destination cluster[^KEP-1645].
  Thus, service sharing is an explicit operation. Services are not automatically
  shared by peers in the fabric. Note that the exporting cluster must be
- [configured as a peer]({{% ref "peers#add-or-remove-peers" %}}) of the importing
+ [configured as a peer][concept-peer-management] of the importing
  cluster.
 
 {{< notice info >}}
@@ -35,7 +35,7 @@ Orchestration of service sharing is the responsibility of users wishing to
 
 <!-- TODO: image showing export/import (from >2 clusters?) -->
 
-<!--
+<!-- 
  TODO centralized management may apply simplification of sharing via policies
   (e.g., auto-expose)
   can also simplify some via clusterlink cli (e.g., allow-all policy default)
@@ -46,13 +46,13 @@ Orchestration of service sharing is the responsibility of users wishing to
 ## Prerequisites
 
 The following assume that you have `kubectl` access to two or more clusters where ClusterLink
- has already been [deployed and configured]({{% ref "users#setup" %}}).
+ has already been [deployed and configured][getting-started-user-setup].
 
 ### Exporting a service
 
 In order to make a service potentially accessible by other clusters, it must be
  explicitly configured for remote access via ClusterLink. Exporting is
- accomplished by creating an Export CR in the **same** namespace
+ accomplished by creating an `Export` CR in the **same** namespace
  as the service being exposed. The CR acts as a marker for enabling
  remote access to the service via ClusterLink.
 
@@ -93,29 +93,15 @@ The ExportSpec defines the following fields:
 
 Note that exporting a Service does not automatically make is accessible to other
  peers, but only enables *potential* access. To complete service sharing, you must
- define at least one [access control policy]({{% ref "policies" %}}) that allows
+ define at least one [access control policy][concept-policy] that allows
  access in the exporting cluster.
  In addition, users in consuming clusters must still explicitly configure
- [service imports](#importing-a-service) and [policies]({{% ref "policies" %}})
+ [service imports](#importing-a-service) and [policies][concept-policy]
  in their respective namespaces.
-
-{{% expand summary="Example YAML for `kubectl apply -f <export_file>`" %}}
-
-```yaml
-apiVersion: clusterlink.net/v1alpha1
-kind: Export
-metadata:
-  name: iperf3-server
-  namespace: default
-spec:
-  port:  5000
-```
-
-{{% /expand %}}
 
 ### Importing a service
 
-Exposing remote services to a peer is accomplished by creating an Import CR
+Exposing remote services to a peer is accomplished by creating an `Import` CR
  to a namespace. The CR represents the imported service and its
  available backends across all peers. In response to an Import CR, ClusterLink
  control plane will create a local Kubernetes Service selecting the ClusterLink
@@ -135,7 +121,7 @@ The Import instance creates the service endpoint in the same namespace as it is
 type Import struct {
     metav1.TypeMeta   `json:",inline"`
     metav1.ObjectMeta `json:"metadata,omitempty"`
-
+    
     Spec ImportSpec     `json:"spec"`
     Status ImportStatus `json:"status,omitempty"`
 }
@@ -180,7 +166,7 @@ The ImportSpec defines the following fields:
   - *ExportName* (string, required): name of the remote export.
 - **LBScheme** (string, optional): load balancing method to select between different
  Sources defined. The default policy is `random`, but you could override it to use
- `round-robin` or `static` (i.e., fixed) assignment.
+ `round-robin` or `static` (fixed) assignment.
 
 <!-- Importing multiport? It is not possible... Could use merge in future?
  perhaps, but might requires explicit service name so can merge correctly
@@ -188,34 +174,16 @@ The ImportSpec defines the following fields:
 
 As with exports, importing a service does not automatically make it accessible by
  workloads, but only enables *potential* access. To complete service sharing,
- you must define at least one [access control policy]({{% ref "policies" %}}) that
+ you must define at least one [access control policy][concept-policy] that
  allows access in the importing cluster. To grant access, a connection must be
  evaluated to "allow" by both egress (importing cluster) and ingress (exporting
  cluster) policies.
 
-{{% expand summary="Example YAML for `kubectl apply -f <import_file>`" %}}
-
-```yaml
-apiVersion: clusterlink.net/v1alpha1
-kind: Import
-metadata:
-  name: iperf3-server
-  namespace: default
-spec:
-  port:       5000
-  sources:
-    - exportName:       iperf3-server
-      exportNamespace:  default
-      peer:             server
-```
-
-{{% /expand %}}
-
 ## Related tasks
 
 Once a service is exported and imported by one or more clusters, you should
- configure [polices]({{% ref "policies" %}}) governing its access.
- For a complete end to end use case, refer to [iperf toturial]({{< ref "iperf" >}}).
+ configure [polices][concept-policy] governing its access.
+ For a complete end to end use case, refer to [iperf tutorial][tutorial-iperf].
 
 [^KEP-1645]: While using similar terminology as the Kubernetes Multicluster Service
  enhancement proposal ([MCS KEP](https://github.com/kubernetes/enhancements/tree/master/keps/sig-multicluster/1645-multi-cluster-services-api)),
@@ -226,3 +194,10 @@ Once a service is exported and imported by one or more clusters, you should
  typically only a small subset in a multi-port service is meant to be user
  accessible, and other ports are service internal (e.g., ports used for internal
  service coordination and replication).
+
+[concept-fabric]: {{< relref "fabric"  >}}
+[concept-peer]: {{< relref "peers" >}}
+[concept-peer-management]: {{< relref "peers#add-or-remove-peers" >}}
+[concept-policy]: {{< relref "policies"  >}}
+[tutorial-iperf]: {{< relref "../tutorials/iperf" >}}
+[getting-started-user-setup]: {{< relref "../getting-started/users#setup" >}}

@@ -67,7 +67,7 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
     The `--fabric` option is optional, and by default, "default_fabric" will be used.
     The `--autostart` option will deploy the ClusterLink components in the `clusterlink-system` namespace,
     and enable ClusterLink in the cluster.
-    For more details and deployment configuration see [ClusterLink deployment operator]({{< ref "operator" >}}).
+    For more details and deployment configuration see [ClusterLink deployment operator][operator].
 
 {{< notice note >}}
 To deploy ClusterLink on another cluster, repeat steps 2-3 in a console with access to the cluster.
@@ -75,7 +75,7 @@ To deploy ClusterLink on another cluster, repeat steps 2-3 in a console with acc
 
 ## Try it out
 
-Check out the [ClusterLink Tutorials]({{< ref "tutorials" >}}) for setting up
+Check out the [ClusterLink Tutorials][tutorials] for setting up
 multi-cluster connectivity for applications using two or more clusters.
 
 ## Uninstall ClusterLink
@@ -103,3 +103,6 @@ This command  using the current `kubectl` context.
    ```sh
    rm `which clusterlink`
    ```
+
+[operator]: {{< relref "../tasks/operator" >}}
+[tutorials]: ../tutorials/

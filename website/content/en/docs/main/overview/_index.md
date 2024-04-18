@@ -4,7 +4,6 @@ description: A high level overview of ClusterLink
 weight: 10
 ---
 
-
 ## What is ClusterLink?
 
 <!-- Introduce your project, including what it does or lets you do, why you would use it, and its primary goal (and how it achieves it). This should be similar to your README description, though you can go into a little more detail here if you want. -->
@@ -45,6 +44,8 @@ The distributed control plane and the fine grained connection establishment cont
 
 ## Where should I go next?
 
-* [Getting Started]({{< ref "getting-started" >}}): Get started with ClusterLink
-* [Tutorials]({{< ref "tutorials" >}}): Check out some examples and step-by-step
-  instructions for different use cases.
+* [Getting Started][getting-started]: Get started with ClusterLink.
+* [Tutorials][tutorials]: Check out some examples and step-by-step instructions for different use cases.
+
+[getting-started]: ../getting-started/
+[tutorials]: ../tutorials/

@@ -14,7 +14,7 @@ Access policies allow users and administrators fine-grained control over
  as well as segmenting the fabric into trust zones.
 
 ClusterLink's access policies are based on attributes that are attached to
- [peers]({{< ref "peers" >}}), [services]({{< ref "services" >}}) and client workloads.
+ [peers][concept-peer], [services][concept-service] and client workloads.
  Each attribute is a key:value pair, similar to how
  [labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
  are used in Kubernetes. This approach, called ABAC (Attribute Based Access Control),
@@ -59,7 +59,7 @@ For a connection to be established, both the ClusterLink gateway on the client
 ## Prerequisites
 
 The following assumes that you have `kubectl` access to two or more clusters where ClusterLink
- has already been [deployed and configured]({{% ref "users#setup" %}}).
+ has already been [deployed and configured][getting-started-user-setup].
 
 ### Creating access policies
 
@@ -146,3 +146,7 @@ spec:
 ```
 
 More examples are available [here](https://github.com/clusterlink-net/clusterlink/tree/main/pkg/policyengine/examples)
+
+[concept-peer]: {{< relref "peers" >}}
+[concept-service]: {{< relref "services" >}}
+[getting-started-user-setup]: {{< relref "../getting-started/users#setup" >}}

@@ -1,3 +1,11 @@
+{{- $href := .Get "url" }}
+{{- $pattern := "@VERSION@"}}
+{{- with $href }}
+  {{- if findRE $pattern . }}
+    {{- $href = strings.Replace . $pattern site.Params.latest_stable_version -}}
+  {{- end }}
+{{- end -}}
+
 <div align="center" style="width: 33.3%; display: flex;">
     <div style="width: 13%;">&nbsp;</div>
     <div style="width: 74%; text-align: center; background-color: white; border-radius: 20px; padding-left: 10px; padding-right: 10px; padding-top: 30px; padding-bottom: 0px;">
@@ -9,7 +17,7 @@
             {{ .Inner }}
             <div style="height: 10px; background-color: white;">&nbsp;</div>
             <p>
-                <a class="btn btn-lg btn-light mr-3 mb-4" href="{{ .Site.BaseURL }}{{ .Get `url` }}">Learn More</a>
+                <a class="btn btn-lg btn-light mr-3 mb-4" href="{{ .Site.BaseURL }}{{ $href }}">Learn More</a>
             </p>
         </div>
     </div>

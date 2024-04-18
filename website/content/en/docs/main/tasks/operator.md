@@ -3,11 +3,12 @@ title: Deployment Operator
 description: Usage and configuration of the ClusterLink deployment operator.
 weight: 50
 ---
+
 The ClusterLink deployment operator allows easy deployment of ClusterLink to a K8s cluster.
 The preferred deployment approach involves utilizing the ClusterLink CLI,
 which automatically deploys both the ClusterLink operator and ClusterLink components.
 However, it's important to note that ClusterLink deployment necessitates peer certificates for proper functioning.
-Detailed instructions for creating these peer certificates can be found in the [getting started]({{< ref "users#Setup">}}).
+Detailed instructions for creating these peer certificates can be found in the [user guide][getting-started-user-setup].
 
 ## The common use-case
 
@@ -40,7 +41,8 @@ In this case, we will use a `NodePort` service to establish multi-cluster connec
 Alternatively, you can install MetalLB to add a Load Balancer implementation to the Kind cluster. See instructions
 [here](https://kind.sigs.k8s.io/docs/user/loadbalancer/).
 The port flag is optional, and by default, ClusterLink will use any allocated NodePort that the Kind cluster provides.
-However, it is more convenient to use a fixed setting NodePort for peer configuration, as demonstrated in the [ClusterLink Tutorials]({{< ref "tutorials">}}).
+However, it is more convenient to use a fixed setting NodePort for peer configuration, as demonstrated in the
+[ClusterLink Tutorials][tutorials].
 
 ## Deployment of specific version
 
@@ -62,7 +64,7 @@ The deployment process can be split into two steps:
     clusterlink deploy peer ---name <peer_name> --fabric <fabric_name>
     ```
 
-    This command will deploy only the ClusterLink operator and the certificate's secrets as described in the [common use case]({{< ref "operator#the-common-use-case" >}}).
+    This command will deploy only the ClusterLink operator and the certificate's secrets as described in the [common use case][cloud-install] above.
 
 1. {{< anchor deploy-cr-instance >}} Deploy a ClusterLink K8s custom resource object:
 
@@ -86,7 +88,7 @@ The deployment process can be split into two steps:
 
 ## Additional deployment configurations
 
-The `deploy peer` command has the following flags:
+The `deploy peer` {{< anchor commandline-flags >}} command has the following flags:
 
 - **namespace:** This field determines the namespace where the ClusterLink components are deployed.
  By default, it uses `clusterlink-system`, which is created by the `clusterlink deploy peer` command.
@@ -119,7 +121,7 @@ To deploy the ClusterLink without using the CLI, follow the instructions below:
     git clone git@github.com:clusterlink-net/clusterlink.git
     ```
 
-2. Install  ClusterLink CRDs:
+2. Install ClusterLink CRDs:
 
     ```sh
     kubectl apply --recursive -f  ./clusterlink/config/crds
@@ -153,3 +155,7 @@ To deploy the ClusterLink without using the CLI, follow the instructions below:
         name: peer-instance
     EOF
     ```
+
+[getting-started-user-setup]: {{< relref "../getting-started/users#setup" >}}
+[tutorials]: ../tutorials/
+[cloud-install]: #the-common-use-case
