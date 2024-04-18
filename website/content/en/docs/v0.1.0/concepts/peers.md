@@ -165,10 +165,11 @@ Once a peer has been created and initialized with the ClusterLink control and da
  [services][concept-service] and [policies][concept-policy].
  For a complete end to end use case, refer to the [iperf tutorial][tutorial-iperf].
 
-[concept-fabric]: fabric.md
-[concept-fabric-new]: fabric.md#create-a-new-fabric-ca
-[concept-service]: services.md
-[concept-policy]: policies.md
-[getting-started-user-deploy-via-cr]: ../getting-started/users.md#deploy-cr-instance
-[concept-peer-deploy-via-cr]: peers.md#deploy-clusterlink-via-the-operator-and-clusterlink-cr
-[tutorial-iperf]: ../tutorials/iperf.md
+[concept-fabric]: {{< relref "fabric" >}}
+[concept-fabric-new]: {{< relref "fabric#create-a-new-fabric-ca" >}}
+[concept-service]: {{< relref "services" >}}
+[concept-policy]: {{< relref "policies" >}}
+[getting-started-user-setup]: {{< relref "../getting-started/users#setup" >}}
+[getting-started-user-deploy-via-cr]: {{< relref "../getting-started/users#deploy-cr-instance" >}}
+[concept-peer-deploy-via-cr]: {{< relref "peers#deploy-clusterlink-via-the-operator-and-clusterlink-cr" >}}
+[tutorial-iperf]: {{< relref "../tutorials/iperf" >}}

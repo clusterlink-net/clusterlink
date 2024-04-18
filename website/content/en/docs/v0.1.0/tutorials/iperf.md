@@ -302,5 +302,5 @@ iperf Done.
     unset KUBECONFIG IPERF3_FILES
     ```
 
-[concepts]: ../concepts/_index.md
-[concept-policy]: ../concepts/policies.md
+[concepts]: ../concepts/
+[concept-policy]: {{< relref "../concepts/policies" >}}

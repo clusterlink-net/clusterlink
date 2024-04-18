@@ -47,7 +47,7 @@ Once a `Fabric` has been created and initialized, you can proceed with configuri
  [peers][concept-peer]. For a complete, end to end, use case please refer to the
  [iperf tutorial][tutorial-iperf].
 
-[concept-peer]: peers.md
-[concept-service]: services.md
-[concept-policy]: policies.md
-[tutorial-iperf]: ../tutorials/iperf.md
+[concept-peer]: {{< relref "peers" >}}
+[concept-service]: {{< relref "services" >}}
+[concept-policy]: {{< relref "policies" >}}
+[tutorial-iperf]: {{< relref "../tutorials/iperf" >}}

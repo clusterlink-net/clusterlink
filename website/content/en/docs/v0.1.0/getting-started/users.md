@@ -98,12 +98,12 @@ To deploy ClusterLink on another cluster, please repeat steps 2-3 in a console w
     apiVersion: clusterlink.net/v1alpha1
     kind: ClusterLink
     metadata:
-    namespace: clusterlink-operator
-    name: <peer_name>
+        namespace: clusterlink-operator
+        name: <peer_name>
     spec:
-    ingress:
-        type: <ingress_type>
-    namespace: clusterlink-system
+        ingress:
+            type: <ingress_type>
+        namespace: clusterlink-system
     EOF
     ```
 
@@ -117,4 +117,4 @@ To deploy ClusterLink on another cluster, please repeat steps 2-3 in a console w
 Check out the [ClusterLink Tutorials][tutorials] for setting up
  multi-cluster connectivity for applications using two or more clusters.
 
-[tutorials]: ../tutorials/_index.md
+[tutorials]: ../tutorials/

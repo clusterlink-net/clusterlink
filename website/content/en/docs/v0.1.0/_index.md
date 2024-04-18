@@ -7,5 +7,5 @@ cascade:
   exclude_search: false
 linkTitle: *name
 simple_list: true
-weight: -10 # Weight for doc version vX.Y should be -XY0
+weight: -10 # Weight for doc version vX.Y should be -(100*X + Y)0
 ---

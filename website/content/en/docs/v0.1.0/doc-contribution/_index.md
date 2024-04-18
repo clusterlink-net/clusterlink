@@ -83,5 +83,5 @@ If you've found a problem in the docs, but you're not sure how to fix it yoursel
 * [Github Hello World!](https://guides.github.com/activities/hello-world/): A basic
  introduction to GitHub concepts and workflow.
 
-[getting-started-documentation]: ../getting-started/_index.md
+[getting-started-documentation]: ../getting-started/
 <!-- a documentation specific getting started guide is missing. Tracked in issue #526 -->
