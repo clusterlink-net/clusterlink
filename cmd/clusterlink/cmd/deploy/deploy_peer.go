@@ -53,6 +53,8 @@ type PeerOptions struct {
 	Ingress string
 	// IngressPort, represents the port number of the service used to expose the ClusterLink deployment.
 	IngressPort uint16
+	// IngressAnnotations represents the annotations that will be added to the ingress service.
+	IngressAnnotations map[string]string
 	// ContainerRegistry is the container registry to pull the project images.
 	ContainerRegistry string
 	// Tag represents the tag of the project images.
@@ -103,6 +105,9 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.Uint16Var(&o.IngressPort, "ingress-port", apis.DefaultExternalPort,
 		"Represents the ingress port. By default it is set to 443 for LoadBalancer"+
 			" and a random port in range (30000 to 32767) for NodePort.\nThis option is only valid if --autostart is set.")
+	fs.StringToStringVar(&o.IngressAnnotations, "ingress-annotations", nil, "Represents the annotations that"+
+		"will be added to ingress services.\nThe flag can be repeated to add several annotations.\n"+
+		"For example: --ingress-annotations <key1>=<value1> --ingress-annotations <key2>=<value2>.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -169,14 +174,15 @@ func (o *PeerOptions) Run() error {
 	// Create ClusterLink instance
 	if o.StartInstance {
 		cfg := &platform.Config{
-			Peer:              o.Name,
-			Dataplanes:        1,
-			DataplaneType:     platform.DataplaneTypeEnvoy,
-			LogLevel:          "info",
-			ContainerRegistry: o.ContainerRegistry,
-			Namespace:         o.Namespace,
-			IngressType:       o.Ingress,
-			Tag:               o.Tag,
+			Peer:               o.Name,
+			Dataplanes:         1,
+			DataplaneType:      platform.DataplaneTypeEnvoy,
+			LogLevel:           "info",
+			ContainerRegistry:  o.ContainerRegistry,
+			Namespace:          o.Namespace,
+			IngressType:        o.Ingress,
+			IngressAnnotations: o.IngressAnnotations,
+			Tag:                o.Tag,
 		}
 		if o.IngressPort != apis.DefaultExternalPort {
 			cfg.IngressPort = o.IngressPort

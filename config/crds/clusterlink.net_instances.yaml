@@ -68,6 +68,12 @@ spec:
                 description: IngressSpec defines the type of the ingress component
                   in ClusterLink.
                 properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations represents the annotations that will
+                      add to ingress service.
+                    type: object
                   port:
                     description: |-
                       Port represents the port number of the external service.

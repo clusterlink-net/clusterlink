@@ -50,6 +50,8 @@ type Config struct {
 	IngressType string
 	// IngressPort is the ingress port number to create.
 	IngressPort uint16
+	// IngressAnnotations is the annotations added to the ingress service.
+	IngressAnnotations map[string]string
 	// CRDMode indicates a CRD-based controlplane.
 	CRDMode bool
 }
