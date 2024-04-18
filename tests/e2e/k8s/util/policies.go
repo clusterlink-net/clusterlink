@@ -19,17 +19,46 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 )
 
-var PolicyAllowAll = &v1alpha1.AccessPolicy{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: "allow-all",
-	},
-	Spec: v1alpha1.AccessPolicySpec{
-		Action: v1alpha1.AccessPolicyActionAllow,
-		From: v1alpha1.WorkloadSetOrSelectorList{{
-			WorkloadSelector: &metav1.LabelSelector{},
-		}},
-		To: v1alpha1.WorkloadSetOrSelectorList{{
-			WorkloadSelector: &metav1.LabelSelector{},
-		}},
-	},
+var PolicyAllowAll = NewPolicy("allow-all", v1alpha1.AccessPolicyActionAllow, nil, nil)
+
+func NewPolicy(
+	name string,
+	action v1alpha1.AccessPolicyAction,
+	from, to map[string]string,
+) *v1alpha1.AccessPolicy {
+	return &v1alpha1.AccessPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: v1alpha1.AccessPolicySpec{
+			Action: action,
+			From: v1alpha1.WorkloadSetOrSelectorList{{
+				WorkloadSelector: &metav1.LabelSelector{MatchLabels: from},
+			}},
+			To: v1alpha1.WorkloadSetOrSelectorList{{
+				WorkloadSelector: &metav1.LabelSelector{MatchLabels: to},
+			}},
+		},
+	}
+}
+
+func NewPrivilegedPolicy(
+	name string,
+	action v1alpha1.AccessPolicyAction,
+	from, to map[string]string,
+) *v1alpha1.PrivilegedAccessPolicy {
+	return &v1alpha1.PrivilegedAccessPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: v1alpha1.AccessPolicySpec{
+			Action: action,
+			From: v1alpha1.WorkloadSetOrSelectorList{{
+				WorkloadSelector: &metav1.LabelSelector{MatchLabels: from},
+			}},
+			To: v1alpha1.WorkloadSetOrSelectorList{{
+				WorkloadSelector: &metav1.LabelSelector{MatchLabels: to},
+			}},
+		},
+	}
 }
