@@ -103,6 +103,9 @@ type IngressSpec struct {
 	// If not set, the default values will be 443 for all types,
 	// except for NodePort, where the port number will be allocated by Kubernetes.
 	Port int32 `json:"port,omitempty"`
+
+	// Annotations represents the annotations that will add to ingress service.
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // InstanceSpec defines the desired state of a ClusterLink instance.

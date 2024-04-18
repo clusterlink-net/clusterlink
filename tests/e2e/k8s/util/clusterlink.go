@@ -400,7 +400,37 @@ func (c *ClusterLink) GetAllPolicies() (*[]v1alpha1.AccessPolicy, error) {
 }
 
 func (c *ClusterLink) DeletePolicy(name string) error {
+	if c.crdMode {
+		return c.cluster.Resources().Delete(
+			context.Background(),
+			&v1alpha1.AccessPolicy{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: c.namespace,
+				},
+			})
+	}
 	return c.client.AccessPolicies.Delete(name)
+}
+
+func (c *ClusterLink) CreatePrivilegedPolicy(policy *v1alpha1.PrivilegedAccessPolicy) error {
+	if !c.crdMode {
+		return errors.New("privileged access policies are only supported in CRD mode")
+	}
+
+	return c.cluster.Resources().Create(context.Background(), policy)
+}
+
+func (c *ClusterLink) DeletePrivilegedPolicy(name string) error {
+	if !c.crdMode {
+		return errors.New("privileged access policies are only supported in CRD mode")
+	}
+
+	return c.cluster.Resources().Delete(
+		context.Background(),
+		&v1alpha1.PrivilegedAccessPolicy{
+			ObjectMeta: metav1.ObjectMeta{Name: name},
+		})
 }
 
 func (c *ClusterLink) WaitForImportCondition(

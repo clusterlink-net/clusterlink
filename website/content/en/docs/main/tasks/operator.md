@@ -97,7 +97,7 @@ The `deploy peer` {{< anchor commandline-flags >}} command has the following fla
 - **dataplane-replicas:** This field determines the number of ClusterLink dataplane replicas. By default, it uses 1.
 - **ingress:** This field determines the type of ingress service to expose ClusterLink deployment,
   with supported values: `LoadBalancer`, `NodePort`, or `None`. By default, it uses `LoadBalancer`.
-- **ingress-port:** This field determines the port number of the external service.
+- **ingress-port:** This field determines the port number used to expose ClusterLink for external access..
   By default, it uses port `443` for the `LoadBalancer` ingress type.
   For the `NodePort` ingress type, the port number will be allocated by Kubernetes.
   In case the user changes the default value, it is the user's responsibility to ensure the port number is valid and available for use.

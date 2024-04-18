@@ -320,9 +320,10 @@ spec:
     replicas: {{.dataplanes}}
   ingress:
     type: {{.ingressType}}
-{{- if .ingressPort }}
+{{ if .ingressPort }}
     port: {{.ingressPort }}
 {{ end }}
+    annotations: {{.ingressAnnotations}}
   logLevel: {{.logLevel}}
   containerRegistry: {{.containerRegistry}}
   namespace: {{.namespace}}
@@ -412,15 +413,22 @@ func K8SClusterLinkInstanceConfig(config *Config, name string) ([]byte, error) {
 		containerRegistry = config.ContainerRegistry + "/"
 	}
 
+	// Convert ingress annotations map to string.
+	ingressAnnotationsStr := "\n"
+	for key, value := range config.IngressAnnotations {
+		ingressAnnotationsStr += fmt.Sprintf("      %s: %s\n", key, value)
+	}
+
 	args := map[string]interface{}{
-		"name":              name,
-		"dataplanes":        config.Dataplanes,
-		"dataplaneType":     config.DataplaneType,
-		"logLevel":          config.LogLevel,
-		"containerRegistry": containerRegistry,
-		"namespace":         config.Namespace,
-		"ingressType":       config.IngressType,
-		"tag":               config.Tag,
+		"name":               name,
+		"dataplanes":         config.Dataplanes,
+		"dataplaneType":      config.DataplaneType,
+		"logLevel":           config.LogLevel,
+		"containerRegistry":  containerRegistry,
+		"namespace":          config.Namespace,
+		"ingressType":        config.IngressType,
+		"ingressAnnotations": ingressAnnotationsStr,
+		"tag":                config.Tag,
 	}
 
 	if config.IngressPort != 0 {
