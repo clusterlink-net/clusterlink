@@ -121,7 +121,7 @@ After the operator is installed, you can deploy ClusterLink by applying
  Configurations affecting the entire peer, such as the list of known peers, are also maintained
  in the same namespace.
 
-Refer to the [getting started guide][getting-started-user-setup] for a description
+Refer to the [getting started guide][getting-started-user-deploy-via-cr] for a description
  of the ClusterLink CR fields.
 
 <!-- TODO expand the sample CRD file? -->
@@ -169,7 +169,6 @@ Once a peer has been created and initialized with the ClusterLink control and da
 [concept-fabric-new]: {{< relref "fabric#create-a-new-fabric-ca" >}}
 [concept-service]: {{< relref "services" >}}
 [concept-policy]: {{< relref "policies" >}}
-[getting-started-user-setup]: {{< relref "../getting-started/users#setup" >}}
 [getting-started-user-deploy-via-cr]: {{< relref "../getting-started/users#deploy-cr-instance" >}}
 [concept-peer-deploy-via-cr]: {{< relref "peers#deploy-clusterlink-via-the-operator-and-clusterlink-cr" >}}
 [tutorial-iperf]: {{< relref "../tutorials/iperf" >}}
