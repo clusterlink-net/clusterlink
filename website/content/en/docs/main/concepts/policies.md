@@ -147,6 +147,6 @@ spec:
 
 More examples are available [here](https://github.com/clusterlink-net/clusterlink/tree/main/pkg/policyengine/examples)
 
-[concept-peer]: peers.md
-[concept-service]: services.md
-[getting-started-user-setup]: ../getting-started/users.md#setup
+[concept-peer]: {{< relref "peers" >}}
+[concept-service]: {{< relref "services" >}}
+[getting-started-user-setup]: {{< relref "../getting-started/users#setup" >}}

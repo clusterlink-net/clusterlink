@@ -104,5 +104,5 @@ This command  using the current `kubectl` context.
    rm `which clusterlink`
    ```
 
-[operator]: ../tasks/operator.md
-[tutorials]: ../tutorials/_index.md
+[operator]: {{< relref "../tasks/operator" >}}
+[tutorials]: ../tutorials/

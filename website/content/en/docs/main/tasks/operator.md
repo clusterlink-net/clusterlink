@@ -154,6 +154,6 @@ To deploy the ClusterLink without using the CLI, follow the instructions below:
     EOF
     ```
 
-[getting-started-user-setup]: ../getting-started/users.md#setup
-[tutorials]: ../tutorials/_index.md
+[getting-started-user-setup]: {{< relref "../getting-started/users#setup" >}}
+[tutorials]: ../tutorials/
 [cloud-install]: #the-common-use-case

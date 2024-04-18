@@ -227,9 +227,9 @@ Once a service is exported and imported by one or more clusters, you should
  accessible, and other ports are service internal (e.g., ports used for internal
  service coordination and replication).
 
-[concept-fabric]: fabric.md
-[concept-peer]: peers.md
-[concept-peer-management]: peers.md#add-or-remove-peers
-[concept-policy]: policies.md
-[tutorial-iperf]: ../tutorials/iperf.md
-[getting-started-user-setup]: ../getting-started/users.md#setup
+[concept-fabric]: {{< relref "fabric" >}}
+[concept-peer]: {{< relref "peers" >}}
+[concept-peer-management]: {{< relref "peers#add-or-remove-peers" >}}
+[concept-policy]: {{< relref "policies" >}}
+[tutorial-iperf]: {{< relref "../tutorials/iperf" >}}
+[getting-started-user-setup]: {{< relref "../getting-started/users#setup" >}}
