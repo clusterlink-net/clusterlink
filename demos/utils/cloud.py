@@ -67,8 +67,8 @@ class Cluster(ClusterLink):
         self.checkClusterIsReady()
         self.useCluster()
         super().set_kube_config()
-        self.create_peer_cert(self.name,testOutputFolder, logLevel, dataplane)
-        self.deploy_peer(self.name, testOutputFolder)
+        self.create_peer_cert(self.name,testOutputFolder)
+        self.deploy_peer(self.name, testOutputFolder, logLevel, dataplane)
         self.waitToLoadBalancer()
         self.nodeIP = getNodeIP(num=1)
 
