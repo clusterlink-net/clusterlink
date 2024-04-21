@@ -1,7 +1,7 @@
 ---
 title: "Introducing ClusterLink: Simplifying Multicluster Service Connectivity"
 linkTitle: Introducing ClusterLink
-date: 2024-04-29
+date: 2024-04-22
 author: Etai Lev Ran
 type: blog
 draft: true
@@ -26,7 +26,7 @@ When attempting to realize the benefits of multicluster applications, at least t
 In order to facilitate cross cluster communications, you could use Kubernetes
  native resources, including [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/)
  and [Gateway API](https://kubernetes.io/docs/concepts/services-networking/gateway/).
- Or, alternatively, chose from a number of existing open source projects, such
+ Or, alternatively, choose from a number of existing open source projects, such
  as [Istio](https://istio.io), [Skupper](https://skupper.io) and [Submariner](https://submariner.io/).
  By and large, these solutions attempt to conjoin the multiple clusters, flattening the
  isolated networks into a single flat "mesh" shared between the connected clusters.
@@ -38,8 +38,8 @@ The creation of a shared mesh is not always desirable and may place additional
  it might make assumptions on objects, such as Services, being the "same" based
  on the objects sharing a name (i.e., namespace sameness as defined
  [here](https://istio.io/latest/docs/ops/configuration/traffic-management/multicluster/)
- or [here](https://github.com/kubernetes/community/blob/master/sig-multicluster/namespace-sameness-position-statement.md)),
- or require planning in assignment of IP addresses across independent clusters, etc.
+ and [here](https://github.com/kubernetes/community/blob/master/sig-multicluster/namespace-sameness-position-statement.md)),
+ or require planning IP addresses assignment across independent clusters.
 
 This post introduces [ClusterLink](https://clusterlink.net), an
  [open source](https://github.com/clusterlink-net/clusterlink) project that
@@ -56,7 +56,7 @@ ClusterLink offers a secure and performant solution to interconnect services
 
 - **Fabric**: a set of collaborating clusters, all sharing the same root of trust.
  Clusters must be part of a fabric to enable multicluster networking.
-- **Peer**: a specific clusters in a fabric. Each peer is identified by a certificate,
+- **Peer**: a specific cluster in a fabric. Each peer is identified by a certificate,
  signed by the fabric's certificate authority. Each peer makes independent
  decisions on service sharing and access control.
 - **Export**/**Import**: services must be explicitly shared by clusters before
@@ -67,7 +67,7 @@ ClusterLink offers a secure and performant solution to interconnect services
  used to explicitly allow and deny communications. Affected workloads are defined
  in terms of their attributes (such as location, environment, namespace or even
  labels) and have two priorities, with privileged (i.e., administrator defined,
- cluster scoped) policies evaluated before user defined namespaced policies.
+ cluster scoped) policies evaluated before user-defined namespaced policies.
 
 ClusterLink consists of several main components that work together to securely
  connect workloads across multiple Kubernetes clusters, both on-premises and on
@@ -89,8 +89,8 @@ The local service endpoints refer to **data plane** Pods, responsible for
  [HTTP CONNECT](https://en.wikipedia.org/wiki/HTTP_tunnel) with [mutual
  TLS](https://en.wikipedia.org/wiki/Mutual_authentication#mTLS) for security.
  The use of HTTPS over tcp/443 removes the need for VPNs and special firewall
- configurations. Certificate based mTLS ensures guarantees in-transit data
- encryption and limits connection only other fabric peers. In addition,
+ configurations. Certificate based mTLS guarantees in-transit data
+ encryption and limits allowed connections to other fabric peers only. In addition,
  all data plane connections between clusters are explicitly approved by the
  control plane and must pass independent egress and ingress access policies
  before any workload data is carried across.
@@ -113,7 +113,7 @@ In addition to the typical multicluster networking use cases, such as
 - it is desirable to **increase scalability and limit information sharing** by
  minimizing information exchanged between clusters. With ClusterLink, each
  cluster manages its own naming and load balancing, requiring considerable
- less cross cluster metadata for its communication.
+ less cross-cluster metadata for its communication.
 - there is a need for **separation of concerns** between network administrators
  and application owners.
 
@@ -123,8 +123,9 @@ To get started with ClusterLink, we invite you to explore the rest of the
  documentation and familiarize yourself with its concepts and operation.
  When ready, try out the [getting started tutorial]({{% ref "iperf" %}}).
 
-We would love to hear feedback and explore how we can make ClusterLink
- better. We encourage contributions to the ClusterLink project, such as
+We would love to [hear feedback](https://groups.google.com/g/clusterlink-users)
+ and explore how we can make ClusterLink better. ClusterLink is an open source
+ project under the Apache license, and We encourage contributions such as
  [opening issues or enhancement requests](https://github.com/clusterlink-net/clusterlink/issues),
  submitting [pull requests](https://github.com/clusterlink-net/clusterlink/pulls),
  or contributing documentation.
