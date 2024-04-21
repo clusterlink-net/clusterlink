@@ -51,36 +51,36 @@ const (
 )
 
 // FabricDirectory returns the base path of the fabric.
-func FabricDirectory(name string) string {
-	return filepath.Join(".", name)
+func FabricDirectory(name, path string) string {
+	return filepath.Join(path, name)
 }
 
 // PeerDirectory returns the base path for a specific peer.
-func PeerDirectory(peer, fabric string) string {
-	return filepath.Join(FabricDirectory(fabric), peer)
+func PeerDirectory(peer, fabric, path string) string {
+	return filepath.Join(FabricDirectory(fabric, path), peer)
 }
 
 // ControlplaneDirectory returns the path for a controlplane server.
-func ControlplaneDirectory(peer, fabric string) string {
-	return filepath.Join(PeerDirectory(peer, fabric), ControlplaneDirectoryName)
+func ControlplaneDirectory(peer, fabric, path string) string {
+	return filepath.Join(PeerDirectory(peer, fabric, path), ControlplaneDirectoryName)
 }
 
 // DataplaneDirectory returns the path for a dataplane server.
-func DataplaneDirectory(peer, fabric string) string {
-	return filepath.Join(PeerDirectory(peer, fabric), DataplaneDirectoryName)
+func DataplaneDirectory(peer, fabric, path string) string {
+	return filepath.Join(PeerDirectory(peer, fabric, path), DataplaneDirectoryName)
 }
 
 // GWCTLDirectory returns the path for a gwctl instance.
-func GWCTLDirectory(peer, fabric string) string {
-	return filepath.Join(PeerDirectory(peer, fabric), GWCTLDirectoryName)
+func GWCTLDirectory(peer, fabric, path string) string {
+	return filepath.Join(PeerDirectory(peer, fabric, path), GWCTLDirectoryName)
 }
 
 // FabricCertificate returns the fabric certificate name.
-func FabricCertificate(name string) string {
-	return filepath.Join(FabricDirectory(name), CertificateFileName)
+func FabricCertificate(name, path string) string {
+	return filepath.Join(FabricDirectory(name, path), CertificateFileName)
 }
 
 // FabricKey returns the fabric key name.
-func FabricKey(name string) string {
-	return filepath.Join(FabricDirectory(name), PrivateKeyFileName)
+func FabricKey(name, path string) string {
+	return filepath.Join(FabricDirectory(name, path), PrivateKeyFileName)
 }
