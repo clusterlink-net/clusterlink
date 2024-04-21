@@ -76,7 +76,7 @@ Before proceeding, ensure that the CA certificate (the CA private key is not nee
 Install the ClusterLink operator by running the following command:
 
 ```sh
-clusterlink deploy peer --autostart --name <peer_name> --fabric <fabric_name>
+clusterlink deploy peer --name <peer_name> --fabric <fabric_name>
 ```
 
 The command assumes that kubectl is set to the correct context and credentials

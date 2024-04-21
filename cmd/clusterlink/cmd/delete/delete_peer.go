@@ -162,7 +162,7 @@ func (o *PeerOptions) Run() error {
 func (o *PeerOptions) deleteDir(dir string, resource *resources.Resources) error {
 	err := decoder.DecodeEachFile(context.Background(), configfiles.ConfigFiles, dir, decoder.DeleteIgnoreNotFound(resource))
 	if err != nil {
-		return fmt.Errorf("failed to delete directory %s - %w", dir, err)
+		return fmt.Errorf("failed to delete directory '%s': %w", dir, err)
 	}
 
 	return nil

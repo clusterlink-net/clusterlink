@@ -14,6 +14,10 @@
 package bootstrap
 
 import (
+	"os"
+	"path/filepath"
+
+	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 )
@@ -119,4 +123,26 @@ func CertificateFromRaw(rawCert, rawKey []byte) (*Certificate, error) {
 	}
 
 	return &Certificate{cert: cert}, nil
+}
+
+// ReadCertificates read certificate and key from folder.
+func ReadCertificates(dir string) (*Certificate, error) {
+	// Read certificate
+	rawCert, err := os.ReadFile(filepath.Join(dir, config.CertificateFileName))
+	if err != nil {
+		return nil, err
+	}
+
+	// Read key
+	rawFabricKey, err := os.ReadFile(filepath.Join(dir, config.PrivateKeyFileName))
+	if err != nil {
+		return nil, err
+	}
+
+	cert, err := CertificateFromRaw(rawCert, rawFabricKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return cert, nil
 }

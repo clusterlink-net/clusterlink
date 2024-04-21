@@ -54,8 +54,8 @@ class Cluster(ClusterLink):
         runcmd(f"kind load docker-image cl-dataplane    --name={self.name}")
         runcmd(f"kind load docker-image cl-go-dataplane --name={self.name}")
         runcmd(f"kind load docker-image cl-operator --name={self.name}")
-        self.create_peer_cert(self.name, testOutputFolder, logLevel, dataplane, container_reg="docker.io/library")
-        self.deploy_peer(self.name, testOutputFolder, container_reg="docker.io/library", ingress_type="NodePort", ingress_port=30443)
+        self.create_peer_cert(self.name, testOutputFolder)
+        self.deploy_peer(self.name, testOutputFolder, logLevel, dataplane, container_reg="docker.io/library", ingress_type="NodePort", ingress_port=30443)
         self.setKindIp()
 
     # useCluster sets the context for the input kind cluster.
