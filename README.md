@@ -1,18 +1,11 @@
-# ClusterLink Project
+# ClusterLink
 
-## Disclaimers and Warnings
-
-This is an incomplete work in progress, provided in the interest of sharing experience
- and gathering feedback.
- The code is pre-alpha quality right now. This means that it shouldn't be used in
- production at all.
-
-## What Is ClusterLink?
-
-The ClusterLink project simplifies the connection between application services that are
+ClusterLink simplifies the connection between application services that are
  located in different domains, networks, and cloud infrastructures.
 
-For more details, see the document: [ClusterLink extended abstract](docs/ClusteLink.pdf).
+For more details, see our website: [clusterlink.net](https://clusterlink.net/).
+
+## ClusterLink in a nutshell
 
 ClusterLink deploys a gateway into each location, facilitating the configuration and
  access to multi-cloud services.
@@ -21,7 +14,7 @@ The ClusterLink gateway contains the following components:
 
 1. ```Control Plane``` is responsible for maintaining the internal state of the gateway,
  for all the communications with the remote peer gateways by means of the ClusterLink CP
- Protocol (REST APIs), and for commanding the local DP to forward user traffic according
+ Protocol, and for commanding the local DP to forward user traffic according
  to policies.
  Part of the control plane is the policy engine that can also apply network policies
  (ACL, load-balancing, etc.)
@@ -31,12 +24,11 @@ The ClusterLink gateway contains the following components:
  presenting itself as a K8s service inside the cluster and as a regular HTTP endpoint
  from outside the cluster, requiring only a single open port (HTTP/443) and leveraging
  HTTP endpoints for connection multiplexing.
-1. ```gwctl``` is CLI implementation that uses REST APIs to send control messages to the
- ClusterLink Gateway.
 
-![alt text](./docs/clusterlink.png)
+![alt text](./docs/figures/clusterlink.png)
 
-The ClusterLink APIs use the following entities for configuring cross cluster communication:
+ClusterLink leverages Kubernetes CRDs and the kubectl API to configure cross-cluster communication.
+ClusterLink utilizes the following key concepts:
 
 - Peer. Represent remote ClusterLink gateways and contain the metadata necessary for
  creating protected connections to these remote peers.
@@ -47,47 +39,17 @@ The ClusterLink APIs use the following entities for configuring cross cluster co
 - Policy. Represent communication rules that must be enforced for all cross-cluster
  communications at each ClusterLink gateway.
 
+For further information, please refer to the [concepts section](https://clusterlink.net/docs/main/concepts/)) on the ClusterLink website.
+
 ## Getting Started
 
-### Building ClusteLink
-
-<!-- We have a [tutorial](TODO missing link) that walks you through setting up your developer
- environment, making a change and testing it.-->
-
-Here are the key steps for setting up your developer environment, making a change and testing it:
-
-1. Install Go version 1.22 or higher.
-1. Clone our repository with `git clone git@github.com:clusterlink-net/clusterlink.git`.
-1. Run `make test-prereqs` and manually install any missing required development tools.
-1. Run `make build` to ensure the code builds fine. This will pull in all needed
- dependencies.
-1. If you are planning on contributing back to the project, please see our
- [contribution guide](CONTRIBUTING.md).
-
-### How to setup and run ClusterLink
-
 ClusterLink can be set up and run on different environments: local environment (Kind),
- Bare-metal environment, or cloud environment. For more details, refer to the [Installation Guide for ClusterLink](docs/installation.md).
+ Bare-metal environment, or cloud environment. For more details, refer to the [Getting Started Guide]([docs/installation.md](https://clusterlink.net/docs/main/getting-started/users/)).
 
-#### Run ClusterLink in local environment (Kind)
+Additionally, here are some other documents you may find helpful:
 
-ClusterLink can run in any K8s environment, such as Kind.
- To run the ClusterLink in a Kind environment, follow one of the examples:
-
-1. Performance example - Run iPerf3 test between iPerf3 client and server using ClusterLink
- components. This example is used for performance measuring. Instructions can be found
- [Here](./website/content/en/docs/tutorials/iperf.md).
-1. Application example - Run the BookInfo application in different clusters using ClusterLink
- components. This example demonstrates communication distributed applications (in different
- clusters) with different policies.Instructions can be found [Here](demos/bookinfo/kind/README.md).
-
-#### Run ClusterLink in Bare-metal environment with 2 hosts
-
-TBD
-
-#### Run ClusterLink in cloud environment
-
-TBD
+- [Cluster Tutorials](https://clusterlink.net/docs/main/tutorials/) - These tutorials describe how to establish multi-cluster connectivity for applications using two or more clusters.
+- [ClusterLink Developer's Guide](https://clusterlink.net/docs/main/getting-started/developers/) -This guide explains how to configure a development environment and contribute code to ClusterLink.
 
 ## Contributing
 
