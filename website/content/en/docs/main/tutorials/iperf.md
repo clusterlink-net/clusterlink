@@ -428,7 +428,7 @@ iperf Done.
 
 ## Cleanup
 
-1. Delete kind clusters:
+1. Delete the kind clusters:
     *Client cluster*:
 
     ```sh
@@ -441,13 +441,13 @@ iperf Done.
     kind delete cluster --name=server
     ```
 
-1. Remove tutorial directory:
+1. Remove the tutorial directory:
 
     ```sh
     cd .. && rm -rf iperf3-tutorial
     ```
 
-1. Unset environment variables:
+1. Unset the environment variables:
     *Client cluster*:
 
     ```sh

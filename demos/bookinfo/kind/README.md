@@ -1,8 +1,10 @@
 
 # BookInfo application Test
+
 This demo set [Istio BookInfo application](https://istio.io/latest/docs/examples/bookinfo/) in different clusters.
 This demo shows different load-balancing policies like: random, round-robin or static destination more details [policy-engine description](../../../docs/Policy.md).
 This test create three kind clusters:
+
 * Two Product-Page microservice (application frontend) and details microservice run on the first cluster.
 * The Reviews-V2 (display rating with black stars) and Rating microservices run on the second cluster.
 * The Reviews-V3 (display rating with black stars) and Rating microservices run on the third cluster.
@@ -21,7 +23,6 @@ To run a Kind test, check all pre-requires are installed (Go, docker, Kubectl, K
 Use a single script to build the kind clusters and BookInfo application.
 
     python3 ./test.py
-
 
 To run the BookInfo application use a Firefox web browser to connect the ProductPage microservice:
 

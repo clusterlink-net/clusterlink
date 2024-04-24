@@ -1,0 +1,15 @@
+apiVersion: clusterlink.net/v1alpha1
+kind: Import
+metadata:
+  name: reviews
+  namespace: default
+spec:
+  port:       9080
+  sources:
+    - exportName:       reviews
+      exportNamespace:  default
+      peer:             server1
+    - exportName:       reviews
+      exportNamespace:  default
+      peer:             server2
+  lbScheme: static
