@@ -70,6 +70,14 @@ copr-fix: ; $(info adding copyright header...)
 	docker run -it --rm -v $(shell pwd):/github/workspace apache/skywalking-eyes header fix
 
 #------------------------------------------------------
+# docs targets
+# Note: most are in website/Makefile
+#------------------------------------------------------
+.PHONY: docs-version
+docs-version:
+	./hack/gen-doc-version.sh
+
+#------------------------------------------------------
 # Build targets
 #------------------------------------------------------
 GO ?= CGO_ENABLED=0 go
