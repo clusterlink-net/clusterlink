@@ -9,6 +9,7 @@ defaultContentLanguageInSubdir = false
 enableMissingTranslationPlaceholders = true
 
 enableRobotsTXT = true
+disableAliases = true
 
 # Will give values to .Lastmod etc.
 enableGitInfo = false
@@ -83,9 +84,19 @@ description = "ClusterLink documentation"
 
 # Everything below this are Site Params
 
-# Comment out if you don't want the "print entire section" link enabled.
+# output HTML and netlify redirects
 [outputs]
-section = ["HTML"]
+home = ["HTML", "REDIRECTS"]
+
+# rules for generating _redirects from layouts/index.redirects 
+[outputFormats.REDIRECTS]
+mediaType = "text/netlify"
+baseName = "_redirects"
+isPlainText = true
+notAlternative = true
+
+[mediaTypes."text/netlify"]
+delimiter = ""
 
 [params]
 copyright = "The ClusterLink Authors"
