@@ -49,7 +49,7 @@ header:
     - "**/*.scss"
     - "**/*.svg"
     - "**/*.lock"
-    
+    - "website/layouts/**"
 
   comment: on-failure
 
