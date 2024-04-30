@@ -202,15 +202,6 @@ weight = 10
 url = "/docs/v0.1.0"
 pre = "<i class='fa-solid fa-book'></i>"
 
-# Add your release versions here
-[[params.versions]]
-version = "main-DRAFT"
-url = "/docs/main"
-
-[[params.versions]]
-version = "v0.1.0"
-url = "/docs/v0.1.0/"
-
 # hugo module configuration
 [module]
 [module.hugoVersion]
@@ -222,3 +213,13 @@ path = "github.com/google/docsy"
 path = "github.com/google/docsy/dependencies"
 [[module.imports]]
 path = "github.com/martignoni/hugo-notice"
+
+# Add your release versions here.
+# NOTE: Please keep this section last as ./hack/gen-doc-version.sh depends on it
+[[params.versions]]
+version = "main-DRAFT"
+url = "/docs/main"
+
+[[params.versions]]
+version = "v0.1.0"
+url = "/docs/v0.1.0/"
