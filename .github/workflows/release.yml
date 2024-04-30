@@ -32,7 +32,7 @@ jobs:
       run: make push-image IMAGE_VERSION=${{ github.ref_name }}
     - name: Build and compress binaries
       run: |
-        for pair in "linux:amd64" "darwin:amd64" "darwin:arm64"; do
+        for pair in "linux:amd64" "linux:arm64" "darwin:amd64" "darwin:arm64"; do
           IFS=':' read -r os arch <<< "$pair"
           GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 make cli-build BIN_DIR="$os"
           tar -czvf "clusterlink-$os-$arch.tar.gz" --transform "s/$os/clusterlink/" ./"$os"
