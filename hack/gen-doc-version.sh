@@ -80,19 +80,13 @@ rm -rf $DOCS_DIRECTORY/${NEW_DOCS_VERSION}/ && cp -r $DOCS_DIRECTORY/$MAIN_BRANC
 echo "Updating config file"
 sed -i'' "s/latest_stable_version = ${PREVIOUS_DOCS_VERSION}/latest_stable_version = ${NEW_DOCS_VERSION}/" $CONFIG_FILE
     
-echo "Adding latest version to versions list in $CONFIG_FILE"
-cat <<PARAMS.VERSION >> $CONFIG_FILE
-
-[[params.versions]]
-version = "${NEW_DOCS_VERSION}"
-url = "/docs/${NEW_DOCS_VERSION}/"
-PARAMS.VERSION
-
+# TODO: automate some of the below
 echo "Done - $DOCS_DIRECTORY/$NEW_DOCS_VERSION has been created"
 echo ""
 echo "1. Run a 'git status' / 'git diff' to review all changes made to the docs since the previous version."
 echo "2. Make any manual changes/corrections necessary. For example:"
 echo "   - Remove docs directories of deprecated/EOL versions, if any."
 echo "   - Revert latest_stable_version in $CONFIG_FILE for non-GA releases."
+echo "   - Add version ${NEW_DOCS_VERSION} to [params.versions] list in ${CONFIG_FILE} (after main, above ${PREVIOUS_DOCS_VERSION})."
 echo "   - Fix frontmatter in $DOCS_DIRECTORY/${NEW_DOCS_VERSION}/${INDEX_MD}."
 echo "3. Run 'git add' to stage all unstaged changes, then 'git commit'."
