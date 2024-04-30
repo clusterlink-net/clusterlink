@@ -50,6 +50,8 @@ jobs:
       run:  go install github.com/mfridman/tparse@latest
     - name: checkout
       uses: actions/checkout@v4
+      with:
+        fetch-tags: true
     - name: run build
       run: make build
     - name: run unit tests
