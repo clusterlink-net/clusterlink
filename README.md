@@ -3,7 +3,14 @@
 ClusterLink simplifies the connection between application services that are
  located in different domains, networks, and cloud infrastructures.
 
-For more details, see our website: [clusterlink.net](https://clusterlink.net/).
+## Disclaimers and warnings
+
+This is an incomplete work in progress, provided in the interest of sharing experience
+ and gathering feedback.
+ The code is pre-alpha quality right now. This means that it shouldn't be used in
+ production at all.
+
+For more details, visit our [website][clusterlink].
 
 ## ClusterLink in a nutshell
 
@@ -14,7 +21,7 @@ The ClusterLink gateway contains the following components:
 
 1. ```Control Plane``` is responsible for maintaining the internal state of the gateway,
  for all the communications with the remote peer gateways by means of the ClusterLink CP
- Protocol, and for commanding the local DP to forward user traffic according
+ Protocol, and for configuring the local data plane to forward user traffic according
  to policies.
  Part of the control plane is the policy engine that can also apply network policies
  (ACL, load-balancing, etc.)
@@ -27,8 +34,8 @@ The ClusterLink gateway contains the following components:
 
 ![alt text](./docs/figures/clusterlink.png)
 
-ClusterLink leverages Kubernetes CRDs and the kubectl API to configure cross-cluster communication.
-ClusterLink utilizes the following key concepts:
+ClusterLink leverages the Kubernetes API using CRDs to configure cross-cluster communication.
+ClusterLink management is based on the following key concepts:
 
 - Peer. Represent remote ClusterLink gateways and contain the metadata necessary for
  creating protected connections to these remote peers.
@@ -39,17 +46,17 @@ ClusterLink utilizes the following key concepts:
 - Policy. Represent communication rules that must be enforced for all cross-cluster
  communications at each ClusterLink gateway.
 
-For further information, please refer to the [concepts section](https://clusterlink.net/docs/main/concepts/)) on the ClusterLink website.
+For further information, please refer to the [concepts section][concepts] on the ClusterLink website.
 
-## Getting Started
+## Getting started
 
 ClusterLink can be set up and run on different environments: local environment (Kind),
- Bare-metal environment, or cloud environment. For more details, refer to the [Getting Started Guide]([docs/installation.md](https://clusterlink.net/docs/main/getting-started/users/)).
+ Bare-metal environment, or cloud environment. For more details, refer to the [Getting Started Guide][user-guide].
 
 Additionally, here are some other documents you may find helpful:
 
-- [Cluster Tutorials](https://clusterlink.net/docs/main/tutorials/) - These tutorials describe how to establish multi-cluster connectivity for applications using two or more clusters.
-- [ClusterLink Developer's Guide](https://clusterlink.net/docs/main/getting-started/developers/) -This guide explains how to configure a development environment and contribute code to ClusterLink.
+- [ClusterLink Tutorials][tutorials] - These tutorials describe how to establish multi-cluster connectivity for applications using two or more clusters.
+- [ClusterLink Developer's Guide][developer-guide] -This guide explains how to configure a development environment and contribute code to ClusterLink.
 
 ## Contributing
 
@@ -108,3 +115,11 @@ This project is licensed under [Apache License, v2.0](LICENSE).
 ## Code of Conduct
 
 We follow the [CNCF Code of Conduct](CODE_OF_CONDUCT.md).
+
+<!-- Links list -->
+
+[clusterlink]: https://clusterlink.net/
+[concepts]: https://clusterlink.net/docs/latest/concepts/
+[user-guide]: https://clusterlink.net/docs/latest/getting-started/users/
+[developer-guide]: https://clusterlink.net/docs/latest/getting-started/developers/
+[tutorials]: https://clusterlink.net/docs/latest/tutorials/
