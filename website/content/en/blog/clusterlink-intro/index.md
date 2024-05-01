@@ -1,10 +1,9 @@
 ---
 title: "Introducing ClusterLink: Simplifying Multicluster Service Connectivity"
 linkTitle: Introducing ClusterLink
-date: 2024-04-22
+date: 2024-04-30
 author: Etai Lev Ran
 type: blog
-draft: true
 ---
 
 {{% imgproc "field" Fill "800x250" /%}}
@@ -144,7 +143,4 @@ If you think there's a use case where ClusterLink can help in simplifying
 [hear feedback]: https://groups.google.com/g/clusterlink-users
 [opening issues or enhancement requests]: https://github.com/clusterlink-net/clusterlink/issues
 [pull requests]: https://github.com/clusterlink-net/clusterlink/pulls
-<<<<<<< HEAD
 [getting started tutorial]: /docs/{{< param latest_stable_version >}}/tutorials/iperf
-=======
->>>>>>> 38dec9c2d5b20fdea785026df930f9e706c12060
