@@ -13,6 +13,7 @@ This test create three kind clusters:
 * Two Product-Page microservice (application frontend) and details microservice run on the first cluster.
 * The Reviews-V2 (display rating with black stars) and Rating microservices run on the second cluster.
 * The Reviews-V3 (display rating with black stars) and Rating microservices run on the third cluster.
+
 System illustration:
 
 <img src="bookinfo.png" alt="drawing" width="700" >
