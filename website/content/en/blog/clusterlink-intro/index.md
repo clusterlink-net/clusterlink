@@ -1,10 +1,9 @@
 ---
 title: "Introducing ClusterLink: Simplifying Multicluster Service Connectivity"
 linkTitle: Introducing ClusterLink
-date: 2024-04-22
+date: 2024-04-30
 author: Etai Lev Ran
 type: blog
-draft: true
 ---
 
 {{% imgproc "field" Fill "800x250" /%}}
