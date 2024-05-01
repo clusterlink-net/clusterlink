@@ -1,0 +1,9 @@
+apiVersion: clusterlink.net/v1alpha1
+kind: Peer
+metadata:
+  name: server1
+  namespace: clusterlink-system
+spec:
+  gateways:
+    - host: "${SERVER1_IP}"
+      port: 30443
