@@ -5,14 +5,14 @@ description: Running BookInfo application with different policies.
 
 
 The tutorial sets up [Istio BookInfo application][Istio-BookInfo] in different clusters.
-The tutorial demonstrate the use of AccessPolicy and PrivilegedAccessPolicy custom resources.
+The tutorial demonstrates the use of AccessPolicy and PrivilegedAccessPolicy custom resources.
 The tutorial shows different load-balancing policies like: random, round-robin or static destination.
 For more details, see the [policies documentation][concept-policy].
-This test create three kind clusters:
+This test creates three kind clusters:
 
 * Two Product-Page microservice (application frontend) and details microservice run on the first cluster.
 * The Reviews-V2 (display rating with black stars) and Rating microservices run on the second cluster.
-* The Reviews-V3 (display rating with black stars) and Rating microservices run on the third cluster.
+* The Reviews-V3 (display rating with red stars) and Rating microservices run on the third cluster.
 
 System illustration:
 
@@ -221,7 +221,7 @@ spec:
 {{% /tab %}}
 {{< /tabpane >}}
 
-To remove the privileged access policy use he following command:
+To remove the privileged access policy use the following command:
 
 {{< tabpane text=true >}}
 {{% tab header="File" %}}
