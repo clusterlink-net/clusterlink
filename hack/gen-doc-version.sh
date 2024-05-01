@@ -42,6 +42,8 @@ DOCS_DIRECTORY=website/content/en/docs
 CONFIG_FILE=website/config.toml
 MAIN_BRANCH=main
 INDEX_MD=_index.md
+RELEASES_LATEST=releases/latest
+DOWNLOADS_LATEST=releases/latest/download
 
 # NEW_DOCS_VERSION must be defined
 if [[ -z "${NEW_DOCS_VERSION:-}" ]]; then
@@ -50,7 +52,7 @@ if [[ -z "${NEW_DOCS_VERSION:-}" ]]; then
 fi 
 
 # don't run if there's already a directory for the target docs version
-if [[ -d $DOCS_DIRECTORY/$NEW_DOCS_VERSION ]]; then
+if [[ -d ${DOCS_DIRECTORY}/${NEW_DOCS_VERSION} ]]; then
     echo "ERROR: $DOCS_DIRECTORY/$NEW_DOCS_VERSION already exists"
     exit 1
 fi
@@ -64,22 +66,34 @@ fi
 
 # make a copy of the previous versioned docs dir
 git checkout -b ${NEW_DOCS_VERSION}
-echo "Creating copy of docs directory $DOCS_DIRECTORY/$PREVIOUS_DOCS_VERSION in $DOCS_DIRECTORY/$NEW_DOCS_VERSION"
-cp -r $DOCS_DIRECTORY/${PREVIOUS_DOCS_VERSION}/ $DOCS_DIRECTORY/${NEW_DOCS_VERSION}/
+echo "Creating copy of docs directory ${DOCS_DIRECTORY}/${PREVIOUS_DOCS_VERSION} in ${DOCS_DIRECTORY}/${NEW_DOCS_VERSION}"
+cp -r ${DOCS_DIRECTORY}/${PREVIOUS_DOCS_VERSION}/ ${DOCS_DIRECTORY}/${NEW_DOCS_VERSION}/
 
 # Copy the previous version's docs as-is so we get a useful diff when we copy the $MAIN_BRANCH docs in
 echo "Running 'git add' for previous version's doc contents to use as a base for diff"
-git add -f $DOCS_DIRECTORY/${NEW_DOCS_VERSION}
+git add -f ${DOCS_DIRECTORY}/${NEW_DOCS_VERSION}
 
 # Delete all and then copy the contents of $DOCS_DIRECTORY/$MAIN_BRANCH into
 # the same directory so we can get git diff of what changed since previous version
-echo "Copying $DOCS_DIRECTORY/$MAIN_BRANCH/ to $DOCS_DIRECTORY/${NEW_DOCS_VERSION}/"
-rm -rf $DOCS_DIRECTORY/${NEW_DOCS_VERSION}/ && cp -r $DOCS_DIRECTORY/$MAIN_BRANCH/ $DOCS_DIRECTORY/${NEW_DOCS_VERSION}/
+echo "Copying ${DOCS_DIRECTORY}/${MAIN_BRANCH}/ to ${DOCS_DIRECTORY}/${NEW_DOCS_VERSION}/"
+rm -rf ${DOCS_DIRECTORY}/${NEW_DOCS_VERSION}/ && cp -r ${DOCS_DIRECTORY}/${MAIN_BRANCH}/ ${DOCS_DIRECTORY}/${NEW_DOCS_VERSION}/
 
 # replace known version-specific links
 echo "Updating config file"
 sed -i'' "s/latest_stable_version = ${PREVIOUS_DOCS_VERSION}/latest_stable_version = ${NEW_DOCS_VERSION}/" $CONFIG_FILE
-    
+echo "Updating release to use git_version_tag"
+# note that order of pattern replacements matters: 
+# 1. releases/latest/downlad to releases/download/$GIT_TAG (so it no longer matches /releases/latest in next match)
+# 2. releases/latest to releases/tag/$GIT_TAG
+for f in $(grep -rl ${DOWNLOADS_LATEST} ${DOCS_DIRECTORY}/${NEW_DOCS_VERSION})
+do
+    sed -i'' "s|latest/download|download/{{% param git_version_tag %}}|g" ${f}
+done
+for f in $(grep -rl ${RELEASES_LATEST} ${DOCS_DIRECTORY}/${NEW_DOCS_VERSION})
+do
+    sed -i'' "s|latest|tag/{{% param git_version_tag %}}|g" ${f}
+done
+
 # TODO: automate some of the below
 echo "Done - $DOCS_DIRECTORY/$NEW_DOCS_VERSION has been created"
 echo ""
