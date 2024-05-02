@@ -117,4 +117,4 @@ To deploy ClusterLink on another cluster, please repeat steps 2-3 in a console w
 Check out the [ClusterLink Tutorials][tutorials] for setting up
  multi-cluster connectivity for applications using two or more clusters.
 
-[tutorials]: ../tutorials/
+[tutorials]: {{< relref "../tutorials/" >}}
