@@ -4,10 +4,10 @@ description: Running BookInfo application with different policies.
 ---
 
 
-The tutorial sets up [Istio BookInfo application][Istio-BookInfo] in different clusters.
+The tutorial sets up [Istio BookInfo application][] in different clusters.
 The tutorial demonstrates the use of AccessPolicy and PrivilegedAccessPolicy custom resources.
 The tutorial shows different load-balancing policies like: random, round-robin or static destination.
-For more details, see the [policies documentation][concept-policy].
+For more details, see the [policies documentation][].
 This test creates three kind clusters:
 
 * Two Product-Page microservice (application frontend) and details microservice run on the first cluster.
@@ -38,7 +38,7 @@ In this tutorial we set up a local environment using [kind][].
 
 To setup three kind clusters:
 
-1. Install kind using [kind installation guide][kind-installation-guide].
+1. Install kind using [kind installation guide][].
 2. Create a directory for all the tutorial files:
 
     ```sh
@@ -255,7 +255,7 @@ spec:
 {{% /tab %}}
 {{< /tabpane >}}
 
-For more details regarding policy configuration, see [policies documentation][concept-policy].
+For more details regarding policy configuration, see [policies documentation][].
 
 ## Apply random load-balancing policy
 
@@ -397,7 +397,7 @@ spec:
     ```
 
 <!-- Links list -->
-[Istio-BookInfo]: https://istio.io/latest/docs/examples/bookinfo/
-[concept-policy]: ../../concepts/policies
-[kind-installation-guide]: https://kind.sigs.k8s.io/docs/user/quick-start
+[Istio BookInfo application]: https://istio.io/latest/docs/examples/bookinfo/
+[policies documentation]: ../../concepts/policies
+[kind installation guide]: https://kind.sigs.k8s.io/docs/user/quick-start
 [kind]: https://kind.sigs.k8s.io/

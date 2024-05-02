@@ -6,14 +6,13 @@ weight: 30
 
 ClusterLink uses services as the unit of sharing between peers.
  One or more peers can expose an (internal) K8s Service to
- be consumed by other [peers][concept-peer] in the [fabric][concept-fabric].
+ be consumed by other [peers][] in the [fabric][].
  A service is exposed by creating an *Export* CR referencing it in the
  source cluster. Similarly, the exported service can be made accessible to workloads
  in a peer by defining an *Import* CR in the destination cluster[^KEP-1645].
  Thus, service sharing is an explicit operation. Services are not automatically
  shared by peers in the fabric. Note that the exporting cluster must be
- [configured as a peer][concept-peer-management] of the importing
- cluster.
+ [configured as a peer][] of the importing cluster.
 
 {{< notice info >}}
 Services sharing is done on a per namespace basis and does not require cluster wide privileges.
@@ -46,7 +45,7 @@ Orchestration of service sharing is the responsibility of users wishing to
 ## Prerequisites
 
 The following assume that you have `kubectl` access to two or more clusters where ClusterLink
- has already been [deployed and configured][getting-started-user-setup].
+ has already been [deployed and configured][].
 
 ### Exporting a service
 
@@ -96,8 +95,7 @@ Note that exporting a Service does not automatically make is accessible to other
  define at least one [access control policy][concept-policy] that allows
  access in the exporting cluster.
  In addition, users in consuming clusters must still explicitly configure
- [service imports](#importing-a-service) and [policies][concept-policy]
- in their respective namespaces.
+ [service imports][] and [policies][] in their respective namespaces.
 
 {{% expand summary="Example YAML for `kubectl apply -f <export_file>`" %}}
 
@@ -170,8 +168,7 @@ The ImportSpec defines the following fields:
  it to select a random and non-conflicting port, but there may be cases where
  you wish to assume responsibility for port selection (e.g., a-priori define
  local cluster Kubernetes NetworkPolicy object instances). This may result in
- [port conflicts](https://kubernetes.io/docs/concepts/services-networking/service/#avoid-nodeport-collisions)
- as is done for NodePort services.
+ [port conflicts][] as is done for NodePort services.
 - **Sources** (source array, required): references to remote exports providing backends
  for the Import. Each reference names a different export through the combination of:
   - *Peer* (string, required): name of ClusterLink peer where the export is defined.
@@ -188,7 +185,7 @@ The ImportSpec defines the following fields:
 
 As with exports, importing a service does not automatically make it accessible by
  workloads, but only enables *potential* access. To complete service sharing,
- you must define at least one [access control policy][concept-policy] that
+ you must define at least one [access control policy][] that
  allows access in the importing cluster. To grant access, a connection must be
  evaluated to "allow" by both egress (importing cluster) and ingress (exporting
  cluster) policies.
@@ -214,22 +211,26 @@ spec:
 ## Related tasks
 
 Once a service is exported and imported by one or more clusters, you should
- configure [polices][concept-policy] governing its access.
- For a complete end to end use case, refer to [iperf tutorial][tutorial-iperf].
+ configure [polices][] governing its access.
+ For a complete end to end use case, refer to [iperf tutorial][].
 
 [^KEP-1645]: While using similar terminology as the Kubernetes Multicluster Service
- enhancement proposal ([MCS KEP](https://github.com/kubernetes/enhancements/tree/master/keps/sig-multicluster/1645-multi-cluster-services-api)),
- the ClusterLink implementation intentionally differs from and is not compliant with the
- KEP (e.g., there is no `ClusterSet` and "name sameness" assumption).
+ enhancement proposal ([MCS KEP][]), the ClusterLink implementation intentionally
+ differs from and is not compliant with the KEP (e.g., there is no `ClusterSet`
+ and "name sameness" assumption).
 
 [^multiport]: ClusterLink intentionally does not expose all service ports, as
  typically only a small subset in a multi-port service is meant to be user
  accessible, and other ports are service internal (e.g., ports used for internal
  service coordination and replication).
 
-[concept-fabric]: {{< relref "fabric" >}}
-[concept-peer]: {{< relref "peers" >}}
-[concept-peer-management]: {{< relref "peers#add-or-remove-peers" >}}
-[concept-policy]: {{< relref "policies" >}}
-[tutorial-iperf]: {{< relref "../tutorials/iperf" >}}
-[getting-started-user-setup]: {{< relref "../getting-started/users#setup" >}}
+[fabric]: {{< relref "fabric" >}}
+[peers]: {{< relref "peers" >}}
+[configured as a peer]: {{< relref "peers#add-or-remove-peers" >}}
+[policies]: {{< relref "policies" >}}
+[service imports]: #importing-a-service
+[port conflicts]: https://kubernetes.io/docs/concepts/services-networking/service/#avoid-nodeport-collisions
+[access control policy]: {{< relref "policies" >}}
+[iperf tutorial]: {{< relref "../tutorials/iperf" >}}
+[deployed and configured]: {{< relref "../getting-started/users#setup" >}}
+[MCS KEP]: https://github.com/kubernetes/enhancements/tree/master/keps/sig-multicluster/1645-multi-cluster-services-api

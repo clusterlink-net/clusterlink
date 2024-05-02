@@ -14,7 +14,7 @@ I’m ClusterLink, and as the new kid on the block, I’d like to
  say hello and introduce myself. I’m just starting out as an open-source
  project trying to find my place in the big, wide world of multicluster
  Kubernetes connectivity. This is my first venture away from
- my [home on GitHub](https://github.com/clusterlink-net/clusterlink).
+ my [home on GitHub][].
 
 My core is centered around three key principles: **Seamlessness**, **Simplicity**,
  and **Security**. I focus on applying these principles to service access across
@@ -71,11 +71,9 @@ First things first, though – I want to make it clear that I’m "work in progr
 
 So, what do you say? Want to give me a try? I promise I won’t disappoint.
  And if you find me useful (which I’m sure you will), there are plenty of
- ways you can help me grow and improve: join the [users' mailing list](https://groups.google.com/g/clusterlink-users),
- [issues or enhancement requests](https://github.com/clusterlink-net/clusterlink/issues),
- provide additional [documentation](https://github.com/clusterlink-net/clusterlink/tree/main/website)
- and [code](https://github.com/clusterlink-net/clusterlink), or make a suggestion.
- The possibilities are endless!
+ ways you can help me grow and improve: join the [users' mailing list][],
+ [issues or enhancement requests][], provide additional [documentation][]
+ and [code][], or make a suggestion. The possibilities are endless!
 
 I can't wait to start on this journey with all of you. Together, we'll make
  the world of Kubernetes a better, safer, and more connected place.
@@ -83,3 +81,9 @@ I can't wait to start on this journey with all of you. Together, we'll make
 
 [^1]: While normal access policies work, the implementation of privileged policy tier
 was ongoing and enabled shortly after the 0.1.0 release - it is currently part of `main` branch.
+
+[home on GitHub]: https://github.com/clusterlink-net/clusterlink
+[users' mailing list]: https://groups.google.com/g/clusterlink-users
+[issues or enhancement requests]: https://github.com/clusterlink-net/clusterlink/issues
+[documentation]: https://github.com/clusterlink-net/clusterlink/tree/main/website
+[code]: https://github.com/clusterlink-net/clusterlink
