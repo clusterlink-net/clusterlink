@@ -11,13 +11,13 @@ This guide provides a quick start for developers wishing to contribute to Cluste
 Here are the key steps for setting up your developer environment, making a change and testing it:
 
 1. Install required tools (you can either do this manually or use the project's
- [devcontainer specification](https://github.com/clusterlink-net/clusterlink/tree/main/.devcontainer/dev))
-    - [Go](https://go.dev/doc/install) version 1.20 or higher.
-    - [Git](https://git-scm.com/downloads) command line.
-    - We recommend using a [local development environment](https://kubernetes.io/docs/tasks/tools/)
-      such as kind/kubectl for local development and integration testing.
+ [devcontainer specification][])
+    - [Go][] version 1.20 or higher.
+    - [Git][] command line.
+    - We recommend using a [local development environment][]  such as kind/kubectl for
+      local development and integration testing.
     - Additional development packages, such as `goimports` and `golangci-lint`. See the full list in
-      [post-create.sh](https://github.com/clusterlink-net/clusterlink/blob/main/.devcontainer/dev/post-create.sh).
+      [post-create.sh][].
 1. Clone our repository with `git clone git@github.com:clusterlink-net/clusterlink.git`.
 1. Run `make test-prereqs` and install any missing required development tools.
 1. Run `make build` to ensure the code builds as expected. This will pull in all needed
@@ -26,8 +26,8 @@ Here are the key steps for setting up your developer environment, making a chang
 ## Making code changes
 
 - If you are planning on contributing back to the project, please carefully read the
- [contribution guide](https://github.com/clusterlink-net/clusterlink/blob/main/CONTRIBUTING.md).
-- We follow [GitHub's Standard Fork & Pull Request Workflow](https://gist.github.com/Chaser324/ce0505fbed06b947d962)
+ [contribution guide][].
+- We follow [GitHub's Standard Fork & Pull Request Workflow][].
 
 All contributed code should should pass precommit checks such as linting and tests. These
  are run automatically as part of the CI process on every pull request. You may wish to
@@ -57,7 +57,7 @@ All pull requests undergo automated testing before being merged. This includes, 
 
 ClusterLink releases, including container images and binaries, are built based
  on version tags in github. Applying a tag that's prefixed by `-v` will automatically
- trigger a new release through the github [release](https://github.com/clusterlink-net/clusterlink/blob/main/.github/workflows/release.yml) action.
+ trigger a new release through the github [release][] action.
 
 To aid in auto-generation of changelog from commits, please kindly mark all PR's
  with one or more of the following labels:
@@ -70,3 +70,12 @@ To aid in auto-generation of changelog from commits, please kindly mark all PR's
 - `breaking-change`: PR introduces a breaking change in user facing aspects
  (e.g., API or CLI). This label may be used in addition to other labels (e.g.,
  `bugfix` or `enhancement`).
+
+[devcontainer specification]: https://github.com/clusterlink-net/clusterlink/tree/main/.devcontainer/dev
+[Go]: https://go.dev/doc/install
+[Git]: https://git-scm.com/downloads
+[local development environment]: https://kubernetes.io/docs/tasks/tools/
+[post-create.sh]: https://github.com/clusterlink-net/clusterlink/blob/main/.devcontainer/dev/post-create.sh
+[contribution guide]: https://github.com/clusterlink-net/clusterlink/blob/main/CONTRIBUTING.md
+[GitHub's Standard Fork & Pull Request Workflow]: https://gist.github.com/Chaser324/ce0505fbed06b947d962
+[release]: https://github.com/clusterlink-net/clusterlink/blob/main/.github/workflows/release.yml

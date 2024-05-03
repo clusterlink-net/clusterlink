@@ -4,9 +4,8 @@ weight: 60
 description: How to contribute to the website
 ---
 
-We use [Hugo](https://gohugo.io/) to format and generate our [website](https://clusterlink.net),
- the [Docsy](https://github.com/google/docsy) theme for styling and site structure,
- and [Netlify](https://www.netlify.com/) to manage the deployment of the site.
+We use [Hugo][] to format and generate our [website][], the [Docsy][] theme
+ for styling and site structure, and [Netlify][] to manage the deployment of the site.
  Hugo is an open-source static site generator that provides us with templates,
  content organization in a standard directory structure, and a website generation
  engine. You write the pages in Markdown (or HTML if you want), and Hugo wraps
@@ -14,8 +13,7 @@ We use [Hugo](https://gohugo.io/) to format and generate our [website](https://c
 
 All submissions, including submissions by project members, require review. We
  use GitHub pull requests for this purpose. Consult
- [GitHub Help](https://help.github.com/articles/about-pull-requests/) for more
- information on using pull requests.
+ [GitHub Help][] for more information on using pull requests.
 
 ## Quick start with Netlify
 
@@ -23,7 +21,7 @@ Here's a quick guide to updating the docs. It assumes you're familiar with the
  GitHub workflow and you're happy to use the automated preview of your website
  updates:
 
-1. Fork the [ClusterLink repo](https://github.com/clusterlink-net/clusterlink) on GitHub.
+1. Fork the [ClusterLink repo][] on GitHub.
 1. The documentation site is under the `website` directory.
 1. Make your changes and send a pull request (PR).
 1. If you're not yet ready for a review, add "WIP" to the PR name to indicate
@@ -49,8 +47,8 @@ If you've just spotted something you'd like to change while using the docs, Docs
  get one - click **Fork this repository and propose changes** or **Update your Fork** to
  get an up-to-date version of the project to edit. The appropriate page in your fork is
  displayed in edit mode.
-1. Follow the rest of the [Quick start with Netlify](#quick-start-with-netlify) process
- above to make, preview, and propose your changes.
+1. Follow the rest of the [Quick start with Netlify][] process above to make, preview,
+ and propose your changes.
 
 ## Previewing your changes locally
 
@@ -58,7 +56,7 @@ If you want to run your own local Hugo server to preview your changes as you wor
 
 <!-- TODO should add a dedicated getting-started for website authoring -->
 
-1. Follow the instructions in [Getting started][getting-started-documentation] to install Hugo
+1. Follow the instructions in [Getting started][] to install Hugo
  and any other tools you need. You'll need at least **Hugo version 0.110** (we recommend
  using the most recent available version), and it must be the **extended** version,
  which supports SCSS.
@@ -71,17 +69,28 @@ If you want to run your own local Hugo server to preview your changes as you wor
 ## Creating an issue
 
 If you've found a problem in the docs, but you're not sure how to fix it yourself,
- please create an issue in the [ClusterLink repo](https://github.com/clusterlink-net/clusterlink/issues).
+ please create an [issue][] in the ClusterLink repo.
  You can also create an issue about a specific page by clicking the **Create Issue**
  button in the top right hand corner of the page.
 
 ## Useful resources
 
-* [Docsy user guide](https://www.docsy.dev/docs/): All about Docsy, including how it
- manages navigation, look and feel, and multi-language support.
-* [Hugo documentation](https://gohugo.io/documentation/): Comprehensive reference for Hugo.
-* [Github Hello World!](https://guides.github.com/activities/hello-world/): A basic
- introduction to GitHub concepts and workflow.
+* [Docsy user guide][]: All about Docsy, including how it manages navigation,
+ look and feel, and multi-language support.
+* [Hugo documentation][]: Comprehensive reference for Hugo.
+* [Github Hello World!][]: A basic introduction to GitHub concepts and workflow.
 
-[getting-started-documentation]: ../getting-started/
 <!-- a documentation specific getting started guide is missing. Tracked in issue #526 -->
+
+[Hugo]: https://gohugo.io/
+[website]: https://clusterlink.net
+[Docsy]: https://github.com/google/docsy
+[Netlify]: https://www.netlify.com/
+[GitHub Help]: https://help.github.com/articles/about-pull-requests/
+[Quick start with Netlify]: #quick-start-with-netlify
+[Getting started]: ../getting-started/
+[ClusterLink repo]: https://github.com/clusterlink-net/clusterlink
+[issue]: https://github.com/clusterlink-net/clusterlink/issues
+[Docsy user guide]: https://www.docsy.dev/docs/
+[Hugo documentation]: https://gohugo.io/documentation/
+[Github Hello World!]: https://guides.github.com/activities/hello-world/

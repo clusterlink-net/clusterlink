@@ -9,7 +9,7 @@ This guide will give you a quick start on installing and setting up the ClusterL
 ## Prerequisites
 
 Before you start, you must have access to a Kubernetes cluster.
-For example, you can set up a local environment using the [kind](https://kind.sigs.k8s.io/) project.
+For example, you can set up a local environment using [kind][].
 
 ## Installation
 
@@ -67,15 +67,15 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
     If they were not, use the flag `--path <path>` for pointing to the working directory
     that was used in the previous command.
     The `--fabric` option is optional, and by default, "default_fabric" will be used.
-    For more details and deployment configuration see [ClusterLink deployment operator][operator].
+    For more details and deployment configuration see [ClusterLink deployment operator][].
 {{< notice note >}}
 To deploy ClusterLink on another cluster, repeat steps 2-3 in a console with access to the cluster.
 {{< /notice >}}
 
 ## Try it out
 
-Check out the [ClusterLink Tutorials][tutorials] for setting up
-multi-cluster connectivity for applications using two or more clusters.
+Check out the [ClusterLink Tutorials][] for setting up multi-cluster connectivity
+ for applications using two or more clusters.
 
 ## Uninstall ClusterLink
 
@@ -103,5 +103,6 @@ This command  using the current `kubectl` context.
    rm `which clusterlink`
    ```
 
-[operator]: {{< relref "../tasks/operator" >}}
-[tutorials]: {{< relref "../tutorials/" >}}
+[kind]: https://kind.sigs.k8s.io/)
+[ClusterLink deployment operator]: {{< relref "../tasks/operator" >}}
+[ClusterLink tutorials]: {{< relref "../tutorials/" >}}

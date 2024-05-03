@@ -4,9 +4,9 @@ description: Defining a ClusterLink fabric
 weight: 10
 ---
 
-The concept of a *Fabric* encapsulates a set of cooperating [peers][concept-peer].
- All peers in a fabric can communicate and may share [services][concept-service]
- between them, with access governed by [policies][concept-policy].
+The concept of a *Fabric* encapsulates a set of cooperating [peers][].
+ All peers in a fabric can communicate and may share [services][]
+ between them, with access governed by [policies][].
  The Fabric acts as a root of trust for peer to peer communications (i.e.,
  it functions as the certificate authority enabling mutual authentication between
  peers).
@@ -26,7 +26,7 @@ Currently, the concept of a Fabric is just that - a concept. It is not represent
 
 The following assume that you have access to the `clusterlink` CLI and one or more
  peers (i.e., clusters) where you'll deploy ClusterLink. The CLI can be downloaded
- from the ClusterLink [releases page on GitHub](https://github.com/clusterlink-net/clusterlink/releases/latest).
+ from the ClusterLink [releases page on GitHub][].
 
 ### Create a new fabric CA
 
@@ -44,10 +44,11 @@ This command will create the CA files `cert.pem` and `key.pem` in a directory na
 ## Related tasks
 
 Once a Fabric has been created and initialized, you can proceed with configuring
- [peers][concept-peer]. For a complete, end to end, use case please refer to the
- [iperf tutorial][tutorial-iperf].
+ [peers][]. For a complete, end to end, use case please refer to the
+ [iperf tutorial][].
 
-[concept-peer]: {{< relref "peers" >}}
-[concept-service]: {{< relref "services" >}}
-[concept-policy]: {{< relref "policies" >}}
-[tutorial-iperf]: {{< relref "../tutorials/iperf" >}}
+[peers]: {{< relref "peers" >}}
+[services]: {{< relref "services" >}}
+[policies]: {{< relref "policies" >}}
+[releases page on GitHub]: https://github.com/clusterlink-net/clusterlink/releases/latest
+[iperf tutorial]: {{< relref "../tutorials/iperf" >}}
