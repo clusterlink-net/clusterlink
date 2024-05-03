@@ -105,4 +105,4 @@ This command  using the current `kubectl` context.
 
 [kind]: https://kind.sigs.k8s.io/)
 [ClusterLink deployment operator]: {{< relref "../tasks/operator" >}}
-[ClusterLink tutorials]: ../tutorials/
+[ClusterLink tutorials]: {{< relref "../tutorials/" >}}
