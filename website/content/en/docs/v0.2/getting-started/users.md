@@ -104,4 +104,4 @@ This command  using the current `kubectl` context.
    ```
 
 [operator]: {{< relref "../tasks/operator" >}}
-[tutorials]: ../tutorials/
+[tutorials]: {{< relref "../tutorials/" >}}

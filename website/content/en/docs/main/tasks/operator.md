@@ -8,7 +8,7 @@ The ClusterLink deployment operator allows easy deployment of ClusterLink to a K
 The preferred deployment approach involves utilizing the ClusterLink CLI,
 which automatically deploys both the ClusterLink operator and ClusterLink components.
 However, it's important to note that ClusterLink deployment necessitates peer certificates for proper functioning.
-Detailed instructions for creating these peer certificates can be found in the [user guide][getting-started-user-setup].
+Detailed instructions for creating these peer certificates can be found in the [user guide][].
 
 ## The common use-case
 
@@ -39,10 +39,10 @@ clusterlink deploy peer --name <peer_name> --fabric <fabric_name> --ingress=Node
 The Kind environment doesn't allocate an external IP to the `LoadBalancer` service by default.
 In this case, we will use a `NodePort` service to establish multi-cluster connectivity using ClusterLink.
 Alternatively, you can install MetalLB to add a Load Balancer implementation to the Kind cluster. See instructions
-[here](https://kind.sigs.k8s.io/docs/user/loadbalancer/).
+[here][].
 The port flag is optional, and by default, ClusterLink will use any allocated NodePort that the Kind cluster provides.
 However, it is more convenient to use a fixed setting NodePort for peer configuration, as demonstrated in the
-[ClusterLink Tutorials][tutorials].
+[ClusterLink Tutorials][].
 
 ## Deployment of specific version
 
@@ -64,7 +64,7 @@ The deployment process can be split into two steps:
     clusterlink deploy peer ---name <peer_name> --fabric <fabric_name> --start operator
     ```
 
-    The `start` flag will deploy only the ClusterLink operator and the certificate's secrets as described in the [common use case][cloud-install] above.
+    The `start` flag will deploy only the ClusterLink operator and the certificate's secrets as described in the [common use case][] above.
 
 2. {{< anchor deploy-cr-instance >}} Deploy a ClusterLink instance custom resource object:
 
@@ -165,6 +165,7 @@ To deploy the ClusterLink without using the CLI, follow the instructions below:
     EOF
     ```
 
-[getting-started-user-setup]: {{< relref "../getting-started/users#setup" >}}
-[tutorials]: ../tutorials/
-[cloud-install]: #the-common-use-case
+[user guide]: {{< relref "../getting-started/users#setup" >}}
+[ClusterLink tutorials]: ../tutorials/
+[here]: https://kind.sigs.k8s.io/docs/user/loadbalancer/
+[common use case]: #the-common-use-case

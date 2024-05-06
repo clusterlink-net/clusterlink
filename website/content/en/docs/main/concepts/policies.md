@@ -6,17 +6,15 @@ weight: 40
 
 Access policies allow users and administrators fine-grained control over
  which client workloads may access which service. This is an important security
- mechanism for applying [micro-segmentation](https://en.wikipedia.org/wiki/Microsegmentation_(network_security)),
- which is a basic requirement of [zero-trust](https://en.wikipedia.org/wiki/Zero_trust_security_model)
+ mechanism for applying [micro-segmentation][], which is a basic requirement of [zero-trust][]
  systems. Another zero-trust principle, "Deny by default / Allow by exception", is also
  addressed by ClusterLink's access policies: a connection without an explicit policy allowing it,
  will be dropped. Access policies can also be used for enforcing corporate security rules,
  as well as segmenting the fabric into trust zones.
 
 ClusterLink's access policies are based on attributes that are attached to
- [peers][concept-peer], [services][concept-service] and client workloads.
- Each attribute is a key:value pair, similar to how
- [labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
+ [peers][], [services][] and client workloads.
+ Each attribute is a key:value pair, similar to how [labels][]
  are used in Kubernetes. This approach, called ABAC (Attribute Based Access Control),
  allows referring to a set of entities in a single policy, rather than listing individual
  entity names. Using attributes is safer, more resilient to changes, and easier to
@@ -59,7 +57,7 @@ For a connection to be established, both the ClusterLink gateway on the client
 ## Prerequisites
 
 The following assumes that you have `kubectl` access to two or more clusters where ClusterLink
- has already been [deployed and configured][getting-started-user-setup].
+ has already been [deployed and configured][].
 
 ### Creating access policies
 
@@ -124,8 +122,7 @@ A `WorkloadSetOrSelector` object has two fields; exactly one of them must be spe
 
 - **WorkloadSets** (string array, optional) - an array of predefined sets of workload.
  Currently not supported.
-- **WorkloadSelector** (LabelSelector, optional) - a Kubernetes
- [label selector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#labelselector-v1-meta)
+- **WorkloadSelector** (LabelSelector, optional) - a [Kubernetes label selector][]
  defining a set of client workloads or a set of services, based on their
  attributes. An empty selector matches all workloads/services.
 
@@ -145,8 +142,13 @@ spec:
     - workloadSelector: {}
 ```
 
-More examples are available [here](https://github.com/clusterlink-net/clusterlink/tree/main/pkg/policyengine/examples)
+More examples are available on our repo under [policyengine/examples][].
 
-[concept-peer]: {{< relref "peers" >}}
-[concept-service]: {{< relref "services" >}}
-[getting-started-user-setup]: {{< relref "../getting-started/users#setup" >}}
+[peers]: {{< relref "peers" >}}
+[services]: {{< relref "services" >}}
+[micro-segmentation]: https://en.wikipedia.org/wiki/Microsegmentation_(network_security)
+[zero-trust]: https://en.wikipedia.org/wiki/Zero_trust_security_model
+[labels]: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+[deployed and configured]: {{< relref "../getting-started/users#setup" >}}
+[Kuberenetes label selector]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#labelselector-v1-meta
+[policyengine/examples]: https://github.com/clusterlink-net/clusterlink/tree/main/pkg/policyengine/examples

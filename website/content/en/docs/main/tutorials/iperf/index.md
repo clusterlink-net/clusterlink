@@ -25,13 +25,13 @@ The tutorial uses two kind clusters:
 
 ## Initialize clusters
 
-In this tutorial we set up a local environment using [kind](https://kind.sigs.k8s.io/).
+In this tutorial we set up a local environment using [kind][].
  You can skip this step if you already have access to existing clusters, just be sure to
  set KUBECONFIG accordingly.
 
 To setup two kind clusters:
 
-1. Install kind using [kind installation guide](https://kind.sigs.k8s.io/docs/user/quick-start).
+1. Install kind using [kind installation guide][].
 1. Create a directory for all the tutorial files:
 
     ```sh
@@ -116,7 +116,7 @@ kubectl apply -f $IPERF3_FILES/iperf3-server/iperf3.yaml
     clusterlink create peer-cert --name server
     ```
 
-    For more details regarding fabric and peer see [core concepts][concepts].
+    For more details regarding fabric and peer see [core concepts][].
 
 1. Deploy ClusterLink on each cluster:
 
@@ -387,7 +387,7 @@ spec:
 {{% /tab %}}
 {{< /tabpane >}}
 
-For more details regarding policy configuration, see [here][concept-policy].
+For more details regarding policy configuration, see [policies][] documentation.
 
 ## Test service connectivity
 
@@ -428,7 +428,7 @@ iperf Done.
 
 ## Cleanup
 
-1. Delete kind clusters:
+1. Delete the kind clusters:
     *Client cluster*:
 
     ```sh
@@ -441,13 +441,13 @@ iperf Done.
     kind delete cluster --name=server
     ```
 
-1. Remove tutorial directory:
+1. Remove the tutorial directory:
 
     ```sh
     cd .. && rm -rf iperf3-tutorial
     ```
 
-1. Unset environment variables:
+1. Unset the environment variables:
     *Client cluster*:
 
     ```sh
@@ -460,5 +460,7 @@ iperf Done.
     unset KUBECONFIG IPERF3_FILES
     ```
 
-[concepts]: ../concepts/
-[concept-policy]: {{< relref "../concepts/policies" >}}
+[kind]: https://kind.sigs.k8s.io/
+[kind installation guide]: https://kind.sigs.k8s.io/docs/user/quick-start
+[core concepts]: ../../concepts/
+[policies]: ../../concepts/policies
