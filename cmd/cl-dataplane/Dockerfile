@@ -1,8 +1,11 @@
 FROM envoyproxy/envoy:v1.30.1
 
+# Populated during the build process, for example, with 'arm64' or 'amd64'.
+ARG TARGETARCH
+
 # Copy binary
 RUN mkdir -p /usr/local/bin
-COPY ./bin/cl-dataplane /usr/local/bin/cl-dataplane
+COPY ./bin/$TARGETARCH/cl-dataplane /usr/local/bin/cl-dataplane
 
 # Create directory for private keys
 RUN mkdir -p /etc/ssl/private
