@@ -1,5 +1,5 @@
 ################################################################
-#Name:  iperf3 
+#Name:  iperf3
 #Desc: YAML file for creating iperf3 server for testing.
 ################################################################
 apiVersion: apps/v1
@@ -44,7 +44,7 @@ spec:
       containers:
       - name: iperf3-server
         #image: networkstatic/iperf3
-        image: mlabbe/iperf3
+        image: taoyou/iperf3-alpine
         imagePullPolicy: IfNotPresent
         args: ['-s', '-p', '5000']
         # ports:
