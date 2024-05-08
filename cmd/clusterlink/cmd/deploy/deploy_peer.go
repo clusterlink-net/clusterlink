@@ -157,27 +157,32 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 	// Read certificates
-	fabricCert, err := bootstrap.ReadCertificates(config.FabricDirectory(o.Fabric, o.Path))
+	fabricCert, err := bootstrap.ReadCertificates(
+		config.FabricDirectory(o.Fabric, o.Path), false)
 	if err != nil {
 		return err
 	}
 
-	peerCertificate, err := bootstrap.ReadCertificates(config.PeerDirectory(o.Name, o.Fabric, o.Path))
+	peerCertificate, err := bootstrap.ReadCertificates(
+		config.PeerDirectory(o.Name, o.Fabric, o.Path), false)
 	if err != nil {
 		return err
 	}
 
-	controlplaneCert, err := bootstrap.ReadCertificates(config.ControlplaneDirectory(o.Name, o.Fabric, o.Path))
+	controlplaneCert, err := bootstrap.ReadCertificates(
+		config.ControlplaneDirectory(o.Name, o.Fabric, o.Path), true)
 	if err != nil {
 		return err
 	}
 
-	dataplaneCert, err := bootstrap.ReadCertificates(config.DataplaneDirectory(o.Name, o.Fabric, o.Path))
+	dataplaneCert, err := bootstrap.ReadCertificates(
+		config.DataplaneDirectory(o.Name, o.Fabric, o.Path), true)
 	if err != nil {
 		return err
 	}
 
-	gwctlCert, err := bootstrap.ReadCertificates(config.GWCTLDirectory(o.Name, o.Fabric, o.Path))
+	gwctlCert, err := bootstrap.ReadCertificates(
+		config.GWCTLDirectory(o.Name, o.Fabric, o.Path), true)
 	if err != nil {
 		return err
 	}
