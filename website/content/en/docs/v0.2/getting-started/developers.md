@@ -27,11 +27,11 @@ Here are the key steps for setting up your developer environment, making a chang
 
 - If you are planning on contributing back to the project, please carefully read the
  [contribution guide](https://github.com/clusterlink-net/clusterlink/blob/main/CONTRIBUTING.md).
-- We follow [GitHub's Standard Fork & Pull Request Workflow](https://gist.github.com/Chaser324/ce0505fbed06b947d962)
+- We follow [GitHub's Standard Fork & Pull Request Workflow](https://gist.github.com/Chaser324/ce0505fbed06b947d962).
 
-All contributed code should should pass precommit checks such as linting and tests. These
+All contributed code should should pass precommit checks such as linting and other tests. These
  are run automatically as part of the CI process on every pull request. You may wish to
- run these locally, before initiating a PR:
+ run these locally, before initiating a pull request (PR):
 
 ```sh
 $ make precommit
@@ -49,9 +49,9 @@ $ go test -v ./tests/e2e/k8s -testify.m TestConnectivity
 ### Tests in CICD
 
 All pull requests undergo automated testing before being merged. This includes, for example,
- linting, end-to-end tests and DCO validation. Logs in CICD default to `info` lavel, and
+ linting, end-to-end tests and DCO validation. Logs in CICD default to `info` level, and
  can be increased to `debug` by setting environment variable `DEBUG=1`. You can also enable
- debug logging from the UI when re-running a CICD job, by selecting "enable debug logging".
+ debug logging from the UI when re-running a CICD job, by selecting "enable debug logging."
 
 ## Release management
 
@@ -59,7 +59,7 @@ ClusterLink releases, including container images and binaries, are built based
  on version tags in github. Applying a tag that's prefixed by `-v` will automatically
  trigger a new release through the github [release](https://github.com/clusterlink-net/clusterlink/blob/main/.github/workflows/release.yml) action.
 
-To aid in auto-generation of changelog from commits, please kindly mark all PR's
+To aid in auto-generation of changelog from commits, please kindly mark all PRs
  with one or more of the following labels:
 
 - `ignore-for-release`: PR should not be included in the changelog report.
