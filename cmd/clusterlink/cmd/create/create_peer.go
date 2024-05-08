@@ -123,7 +123,7 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	fabricCert, err := bootstrap.ReadCertificates(config.FabricDirectory(o.Fabric, o.Path))
+	fabricCert, err := bootstrap.ReadCertificates(config.FabricDirectory(o.Fabric, o.Path), true)
 	if err != nil {
 		return err
 	}
