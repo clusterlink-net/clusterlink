@@ -157,14 +157,14 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 	// Read certificates
-	fabricCert, err := bootstrap.ReadCertificates(config.FabricDirectory(o.Fabric, o.Path))
+	fabricCert, err := bootstrap.ReadCACertificates(config.FabricDirectory(o.Fabric, o.Path))
 	if err != nil {
-		return err
+		return fmt.Errorf("fail to read fabric CA certificate %w", err)
 	}
 
 	peerCertificate, err := bootstrap.ReadCertificates(config.PeerDirectory(o.Name, o.Fabric, o.Path))
 	if err != nil {
-		return err
+		return fmt.Errorf("fail to read peer certificates %w", err)
 	}
 
 	controlplaneCert, err := bootstrap.ReadCertificates(config.ControlplaneDirectory(o.Name, o.Fabric, o.Path))

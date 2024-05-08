@@ -146,3 +146,19 @@ func ReadCertificates(dir string) (*Certificate, error) {
 
 	return cert, nil
 }
+
+// ReadCACertificates read CA certificate from folder.
+func ReadCACertificates(dir string) (*Certificate, error) {
+	// Read certificate
+	rawCert, err := os.ReadFile(filepath.Join(dir, config.CertificateFileName))
+	if err != nil {
+		return nil, err
+	}
+
+	cert, err := CertificateFromRaw(rawCert, EmptyCertificate)
+	if err != nil {
+		return nil, err
+	}
+
+	return cert, nil
+}

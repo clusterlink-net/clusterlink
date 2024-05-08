@@ -26,6 +26,8 @@ import (
 	"time"
 )
 
+var EmptyCertificate = []byte{0}
+
 type certificate struct {
 	parent *certificate
 
@@ -146,17 +148,21 @@ func createCertificate(config *certificateConfig) (*certificate, error) {
 
 // certificateFromRaw initializes a certificate from raw data.
 func certificateFromRaw(certPEM, keyPEM []byte) (*certificate, error) {
-	block, _ := pem.Decode(keyPEM)
-	if block == nil {
-		return nil, fmt.Errorf("key is not in PEM format")
+	var key *rsa.PrivateKey
+	var err error
+	if !bytes.Equal(keyPEM, EmptyCertificate) {
+		block, _ := pem.Decode(keyPEM)
+		if block == nil {
+			return nil, fmt.Errorf("key is not in PEM format")
+		}
+
+		key, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	block, _ = pem.Decode(certPEM)
+	block, _ := pem.Decode(certPEM)
 	if block == nil {
 		return nil, fmt.Errorf("certificate is not in PEM format")
 	}
