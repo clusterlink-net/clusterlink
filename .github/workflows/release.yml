@@ -25,7 +25,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build binaries for amd64
-      run: make build
+      run: GOARCH=amd64 make build
     - name: Build binaries for arm64
       run: GOARCH=arm64 make build
     - name: Tag and push ClusterLink images with tag 'latest' and ${{ github.ref_name }}
