@@ -23,11 +23,11 @@ from demos.utils.k8s import  getPodNameIp
 from demos.utils.cloud import Cluster
 from demos.iperf3.test import iperf3Test
 
-cl1gcp = Cluster(name="peer1", zone = "us-west1-b", platform = "gcp")
+cl1gcp = Cluster(name="peer1", zone = "us-central1-b", platform = "gcp")
 cl1aws = Cluster(name="peer1", zone = "us-west-2",  platform = "aws")
 cl1ibm = Cluster(name="peer1", zone = "dal10",      platform = "ibm")
 
-cl2gcp = Cluster(name="peer2", zone = "us-west1-b", platform = "gcp")
+cl2gcp = Cluster(name="peer2", zone = "us-central1-b", platform = "gcp")
 cl2aws = Cluster(name="peer2", zone = "us-west-1",  platform = "aws")
 cl2ibm = Cluster(name="peer2", zone = "dal10",      platform = "ibm")
 

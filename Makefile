@@ -3,7 +3,8 @@ SHELL=/bin/bash
 IMAGE_VERSION ?= latest
 IMAGE_ORG ?= clusterlink-net
 IMAGE_BASE ?= ghcr.io/$(IMAGE_ORG)
-
+PLATFORMS ?= linux/amd64
+GOARCH ?=amd64
 #-----------------------------------------------------------------------------
 # Target: clean
 #-----------------------------------------------------------------------------
@@ -87,6 +88,7 @@ BIN_DIR := ./bin
 VERSION_FLAG := -X 'github.com/clusterlink-net/clusterlink/pkg/versioninfo.GitTag=$(shell git describe --tags --abbrev=0)'
 REVISION_FLAG := -X 'github.com/clusterlink-net/clusterlink/pkg/versioninfo.Revision=$(shell git rev-parse --short HEAD)'
 LD_FLAGS := -ldflags "$(VERSION_FLAG) $(REVISION_FLAG)"
+export BUILDX_NO_DEFAULT_ATTESTATIONS := 1# Disable default attestations during Docker builds to prevent "unknown/unknown" image in ghcr.
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -118,29 +120,24 @@ cli-build:
 	$(GO) build -o $(BIN_DIR)/clusterlink $(LD_FLAGS) ./cmd/clusterlink
 
 build: cli-build
-	$(GO) build -o $(BIN_DIR)/cl-controlplane $(LD_FLAGS) ./cmd/cl-controlplane
-	$(GO) build -o $(BIN_DIR)/cl-dataplane ./cmd/cl-dataplane
-	$(GO) build -o $(BIN_DIR)/cl-go-dataplane ./cmd/cl-go-dataplane
-	$(GO) build -o $(BIN_DIR)/cl-operator $(LD_FLAGS) ./cmd/cl-operator/main.go
+	GOARCH=$(GOARCH) $(GO) build -o $(BIN_DIR)/$(GOARCH)/cl-controlplane $(LD_FLAGS) ./cmd/cl-controlplane
+	GOARCH=$(GOARCH) $(GO) build -o $(BIN_DIR)/$(GOARCH)/cl-dataplane ./cmd/cl-dataplane
+	GOARCH=$(GOARCH) $(GO) build -o $(BIN_DIR)/$(GOARCH)/cl-go-dataplane ./cmd/cl-go-dataplane
+	GOARCH=$(GOARCH) $(GO) build -o $(BIN_DIR)/$(GOARCH)/cl-operator $(LD_FLAGS) ./cmd/cl-operator/main.go
 
 docker-build: build
-	docker build --progress=plain --rm --tag cl-controlplane -f ./cmd/cl-controlplane/Dockerfile .
-	docker build --progress=plain --rm --tag cl-dataplane -f ./cmd/cl-dataplane/Dockerfile .
-	docker build --progress=plain --rm --tag cl-go-dataplane -f ./cmd/cl-go-dataplane/Dockerfile .
-	docker build --progress=plain --rm --tag gwctl -f ./cmd/gwctl/Dockerfile .
-	docker build --progress=plain --rm --tag cl-operator -f ./cmd/cl-operator/Dockerfile .
+	docker build --platform $(PLATFORMS) --progress=plain --rm --tag cl-controlplane -f ./cmd/cl-controlplane/Dockerfile .
+	docker build --platform $(PLATFORMS) --progress=plain --rm --tag cl-dataplane -f ./cmd/cl-dataplane/Dockerfile .
+	docker build --platform $(PLATFORMS) --progress=plain --rm --tag cl-go-dataplane -f ./cmd/cl-go-dataplane/Dockerfile .
+	docker build --platform $(PLATFORMS) --progress=plain --rm --tag gwctl -f ./cmd/gwctl/Dockerfile .
+	docker build --platform $(PLATFORMS) --progress=plain --rm --tag cl-operator -f ./cmd/cl-operator/Dockerfile .
 
-push-image: docker-build
-	docker tag cl-dataplane:latest $(IMAGE_BASE)/cl-dataplane:$(IMAGE_VERSION)
-	docker push $(IMAGE_BASE)/cl-dataplane:$(IMAGE_VERSION)
-	docker tag cl-controlplane:latest $(IMAGE_BASE)/cl-controlplane:$(IMAGE_VERSION)
-	docker push $(IMAGE_BASE)/cl-controlplane:$(IMAGE_VERSION)
-	docker tag cl-go-dataplane:latest $(IMAGE_BASE)/cl-go-dataplane:$(IMAGE_VERSION)
-	docker push $(IMAGE_BASE)/cl-go-dataplane:$(IMAGE_VERSION)
-	docker tag gwctl:latest $(IMAGE_BASE)/gwctl:$(IMAGE_VERSION)
-	docker push $(IMAGE_BASE)/gwctl:$(IMAGE_VERSION)
-	docker tag cl-operator:latest $(IMAGE_BASE)/cl-operator:$(IMAGE_VERSION)
-	docker push $(IMAGE_BASE)/cl-operator:$(IMAGE_VERSION)
+push-image: build
+	docker buildx build --platform $(PLATFORMS) --progress=plain --rm --tag $(IMAGE_BASE)/cl-controlplane:$(IMAGE_VERSION) --push -f ./cmd/cl-controlplane/Dockerfile .
+	docker buildx build --platform $(PLATFORMS) --progress=plain --rm --tag $(IMAGE_BASE)/cl-go-dataplane:$(IMAGE_VERSION) --push  -f ./cmd/cl-go-dataplane/Dockerfile .
+	docker buildx build --platform $(PLATFORMS) --progress=plain --rm --tag $(IMAGE_BASE)/cl-dataplane:$(IMAGE_VERSION) --push  -f ./cmd/cl-dataplane/Dockerfile .
+	docker buildx build --platform $(PLATFORMS) --progress=plain --rm --tag $(IMAGE_BASE)/cl-operator:$(IMAGE_VERSION) --push -f ./cmd/cl-operator/Dockerfile .
+	docker buildx build --platform $(PLATFORMS) --progress=plain --rm --tag $(IMAGE_BASE)/gwctl:$(IMAGE_VERSION) --push -f ./cmd/gwctl/Dockerfile .
 
 install:
 	mkdir -p ~/.local/bin

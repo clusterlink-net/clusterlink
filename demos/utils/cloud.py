@@ -36,7 +36,11 @@ class Cluster(ClusterLink):
         print(f"create {self.name} cluster , zone {self.zone} , platform {self.platform}")
         bgFlag = " &" if runBg else ""
         if self.platform == "gcp":
-            flags = "  --machine-type n2-standard-4" if self.machineType=="large" else "" #e2-medium
+            machine_map = {
+            "large": "--machine-type n2-standard-4",
+            "arm64": "--machine-type t2a-standard-1"
+            }
+            flags = machine_map.get(self.machineType, "") # default e2-medium
             cmd=f"gcloud container clusters create {self.name} --zone {self.zone} --num-nodes 1 --tags tcpall {flags} {bgFlag}"
             print(cmd)
             os.system(cmd)
@@ -68,6 +72,8 @@ class Cluster(ClusterLink):
         self.useCluster()
         super().set_kube_config()
         self.create_peer_cert(self.name,testOutputFolder)
+        if self.platform =="gcp" and self.machineType == "arm64": # Allow to schedule pods in arm64 on gcp
+            runcmd("kubectl taint nodes ` kubectl get nodes -o wide | awk '{if (NR>1) print $1}'` kubernetes.io/arch=arm64:NoSchedule-")
         self.deploy_peer(self.name, testOutputFolder, logLevel, dataplane)
         self.waitToLoadBalancer()
         self.nodeIP = getNodeIP(num=1)

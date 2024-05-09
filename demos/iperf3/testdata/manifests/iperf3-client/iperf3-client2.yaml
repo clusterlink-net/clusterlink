@@ -1,5 +1,5 @@
 ################################################################
-#Name:  iperf3_client 
+#Name:  iperf3_client
 #Desc: YAML file for creating iperf3 client to send test traffic.
 ################################################################
 apiVersion: apps/v1
@@ -24,7 +24,7 @@ spec:
       containers:
       - name: iperf3-client2
         #image: networkstatic/iperf3
-        image: mlabbe/iperf3
+        image: taoyou/iperf3-alpine
         imagePullPolicy: IfNotPresent
         command: ['/bin/sh', '-c', 'sleep infinity']
         # To benchmark manually: kubectl exec iperf3-client2-jlfxq -- /bin/sh -c 'iperf3 -c iperf3-server'
