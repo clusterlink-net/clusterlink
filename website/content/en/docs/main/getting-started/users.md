@@ -29,7 +29,7 @@ For example, you can set up a local environment using [kind][].
 
 To set up ClusterLink on a Kubernetes cluster, follow these steps:
 
-1. {{< anchor create-fabric-ca >}}Create the fabric's CA certificate and private key:
+1. {{< anchor create-fabric-ca >}}Create the fabric's certificate authority (CA) certificate and private key:
 
    ```sh
    clusterlink create fabric --name <fabric_name>
@@ -51,7 +51,11 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
     The `--path <path>` flag can be used to change the directory location.
     The `--name` option is optional, and by default, "default_fabric" will be used.
 
-1. {{< anchor install-cl-operator >}}Install ClusterLink deployment operator:
+{{< notice note >}}
+All the peer certificates in the fabric should be created from the same fabric CA files in step 1.
+{{< /notice >}}
+
+1. {{< anchor install-cl-operator >}}Install ClusterLink deployment:
 
    ```sh
    clusterlink deploy peer --name <peer_name> --fabric <fabric_name>
@@ -69,7 +73,8 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
     The `--fabric` option is optional, and by default, "default_fabric" will be used.
     For more details and deployment configuration see [ClusterLink deployment operator][].
 {{< notice note >}}
-To deploy ClusterLink on another cluster, repeat steps 2-3 in a console with access to the cluster.
+To set up ClusterLink on another cluster, create another set of peer certificates (step 2).
+Deploy ClusterLink in a console with access to the cluster (step 3).
 {{< /notice >}}
 
 ## Try it out
