@@ -45,7 +45,7 @@ func PolicyCreateCmd() *cobra.Command {
 		},
 	}
 	o.addFlags(cmd.Flags())
-	cmdutil.MarkFlagsRequired(cmd, []string{"type"})
+	cmdutil.MarkFlagsRequired(cmd, []string{"policyFile"})
 
 	return cmd
 }
@@ -62,7 +62,7 @@ func PolicyUpdateCmd() *cobra.Command {
 		},
 	}
 	o.addFlags(cmd.Flags())
-	cmdutil.MarkFlagsRequired(cmd, []string{"type"})
+	cmdutil.MarkFlagsRequired(cmd, []string{"policyFile"})
 
 	return cmd
 }
@@ -130,7 +130,7 @@ func PolicyDeleteCmd() *cobra.Command {
 		},
 	}
 	o.addFlags(cmd.Flags())
-	cmdutil.MarkFlagsRequired(cmd, []string{"type"})
+	cmdutil.MarkFlagsRequired(cmd, []string{"policyFile"})
 
 	return cmd
 }
