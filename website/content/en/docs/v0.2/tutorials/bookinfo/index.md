@@ -398,6 +398,6 @@ spec:
 
 <!-- Links list -->
 [Istio-BookInfo]: https://istio.io/latest/docs/examples/bookinfo/
-[concept-policy]: ../../concepts/policies
+[concept-policy]: {{< relref "../concepts/policies" >}}
 [kind-installation-guide]: https://kind.sigs.k8s.io/docs/user/quick-start
 [kind]: https://kind.sigs.k8s.io/

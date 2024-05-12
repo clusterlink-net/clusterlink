@@ -48,5 +48,5 @@ The distributed control plane and the fine grained connection establishment cont
 * [Getting Started][getting-started]: Get started with ClusterLink.
 * [Tutorials][tutorials]: Check out some examples and step-by-step instructions for different use cases.
 
-[getting-started]: ../getting-started/
-[tutorials]: ../tutorials/
+[getting-started]: {{< relref "../getting-started/" >}}
+[tutorials]: {{< relref "../tutorials/" >}}

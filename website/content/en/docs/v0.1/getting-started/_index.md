@@ -12,4 +12,4 @@ If you're a content author, wishing to contribute additional documentation or gu
 
 [user-getting-started]: {{< relref "users" >}}
 [dev-getting-started]: {{< relref "developers" >}}
-[doc-contribution]: ../doc-contribution/
+[doc-contribution]: {{< relref "../doc-contribution/" >}}
