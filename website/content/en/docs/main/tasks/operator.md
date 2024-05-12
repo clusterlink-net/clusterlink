@@ -166,6 +166,6 @@ To deploy the ClusterLink without using the CLI, follow the instructions below:
     ```
 
 [user guide]: {{< relref "../getting-started/users#setup" >}}
-[ClusterLink tutorials]: ../tutorials/
+[ClusterLink tutorials]: {{< relref "../tutorials/" >}} 
 [here]: https://kind.sigs.k8s.io/docs/user/loadbalancer/
 [common use case]: #the-common-use-case
