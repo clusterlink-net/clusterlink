@@ -127,45 +127,32 @@ func (pdp *PDP) DeletePolicy(policyName types.NamespacedName, privileged bool) e
 	return pdp.regularPolicies.deletePolicy(policyName)
 }
 
-// Decide makes allow/deny decisions for the queried connections between src and each of destinations in dests.
-// The decision, as well as the deciding policy, are recorded in the returned slice of DestinationDecision structs.
-// The order of destinations in dests is preserved in the returned slice.
-func (pdp *PDP) Decide(src WorkloadAttrs, dests []WorkloadAttrs, ns string) ([]DestinationDecision, error) {
-	decisions := make([]DestinationDecision, len(dests))
-	for i, dest := range dests {
-		decisions[i] = DestinationDecision{Destination: dest}
-	}
+// Decide makes allow/deny decisions for the queried connection between src and dest.
+// The decision, as well as the deciding policy, is recorded in the returned DestinationDecision struct.
+func (pdp *PDP) Decide(src, dest WorkloadAttrs, ns string) (*DestinationDecision, error) {
+	decision := DestinationDecision{Destination: dest}
 
-	allDestsDecided, err := pdp.privilegedPolicies.decide(src, decisions, ns)
+	decided, err := pdp.privilegedPolicies.decide(src, &decision, ns)
 	if err != nil {
 		return nil, err
 	}
-	if allDestsDecided {
-		return decisions, nil
+	if decided {
+		return &decision, nil
 	}
 
-	allDestsDecided, err = pdp.regularPolicies.decide(src, decisions, ns)
+	decided, err = pdp.regularPolicies.decide(src, &decision, ns)
 	if err != nil {
 		return nil, err
 	}
-	if allDestsDecided {
-		return decisions, nil
+	if decided {
+		return &decision, nil
 	}
 
-	// For all undecided destination (for which no policy matched) set the default deny action
-	denyUndecidedDestinations(decisions)
-	return decisions, nil
-}
-
-func denyUndecidedDestinations(dest []DestinationDecision) {
-	for i := range dest {
-		dd := &dest[i]
-		if dd.Decision == DecisionUndecided {
-			dd.Decision = DecisionDeny
-			dd.MatchedBy = DefaultDenyPolicyName
-			dd.PrivilegedMatch = false
-		}
-	}
+	// for an undecided destination (no policy matched) set the default deny action
+	decision.Decision = DecisionDeny
+	decision.MatchedBy = DefaultDenyPolicyName
+	decision.PrivilegedMatch = false
+	return &decision, nil
 }
 
 func newPolicyTier(privileged bool) policyTier {
@@ -223,62 +210,53 @@ func (pt *policyTier) unsafeDeletePolicy(policyName types.NamespacedName) error 
 	return nil
 }
 
-// decide first checks whether any of the tier's deny policies matches any of the not-yet-decided connections
-// between src and each of the destinations in dests. If one policy does, the relevant DestinationDecision will
+// decide first checks whether any of the tier's deny policies matches any of the not-yet-decided connection
+// between src and dest. If one policy does, the DestinationDecision will
 // be updated to reflect the connection been denied.
-// The function then checks whether any of the tier's allow policies matches any of the remaining undecided connections,
-// and will similarly update the relevant DestinationDecision of any matching connection.
-// returns whether all destinations were decided and an error (if occurred).
-func (pt *policyTier) decide(src WorkloadAttrs, dests []DestinationDecision, ns string) (bool, error) {
+// If the connection is not decided, the function then checks whether any of the tier's allow policies matches,
+// and will similarly update the DestinationDecision.
+// returns whether the destination was decided and an error (if occurred).
+func (pt *policyTier) decide(src WorkloadAttrs, dest *DestinationDecision, ns string) (bool, error) {
 	pt.lock.RLock() // allowing multiple simultaneous calls to decide() to be served
 	defer pt.lock.RUnlock()
-	allDecided, err := pt.denyPolicies.decide(src, dests, pt.privileged, ns)
+	decided, err := pt.denyPolicies.decide(src, dest, pt.privileged, ns)
 	if err != nil {
 		return false, err
 	}
-	if allDecided {
+	if decided {
 		return true, nil
 	}
 
-	allDecided, err = pt.allowPolicies.decide(src, dests, pt.privileged, ns)
+	decided, err = pt.allowPolicies.decide(src, dest, pt.privileged, ns)
 	if err != nil {
 		return false, err
 	}
-	return allDecided, nil
+	return decided, nil
 }
 
 // decide iterates over all policies in a connPolicyMap and checks if they make a connectivity decision (allow/deny)
-// on the not-yet-decided connections between src and each of the destinations in dests.
-// returns whether all destinations were decided and an error (if occurred).
-func (cpm connPolicyMap) decide(src WorkloadAttrs, dests []DestinationDecision, privileged bool, ns string) (bool, error) {
+// on the not-yet-decided connection between src and dest.
+// returns whether the destination was decided and an error (if occurred).
+func (cpm connPolicyMap) decide(src WorkloadAttrs, dest *DestinationDecision, privileged bool, ns string) (bool, error) {
 	// for when there are no policies in cpm (some destinations are undecided, otherwise we shouldn't be here)
-	allDecided := false
 	for policyName, policy := range cpm {
 		if !privileged && policyName.Namespace != ns { // Only consider non-privileged policies from the given namespace
 			continue
 		}
-		allDecided = true // assume all destinations were decided, unless we find a destination which is not
-		for i := range dests {
-			dest := &dests[i]
-			if dest.Decision == DecisionUndecided {
-				decision, err := accessPolicyDecide(policy, src, dest.Destination)
-				if err != nil {
-					return false, err
-				}
-				if decision == DecisionUndecided {
-					allDecided = false // policy didn't match dest - not all dests are decided
-				} else { // policy matched - we now have a decision for dest
-					dest.Decision = decision
-					dest.MatchedBy = policyName.String()
-					dest.PrivilegedMatch = privileged
-				}
-			}
+
+		decision, err := accessPolicyDecide(policy, src, dest.Destination)
+		if err != nil {
+			return false, err
 		}
-		if allDecided {
-			break
+		if decision != DecisionUndecided { // policy matched - we now have a decision for dest
+			dest.Decision = decision
+			dest.MatchedBy = policyName.String()
+			dest.PrivilegedMatch = privileged
+			return true, nil
 		}
 	}
-	return allDecided, nil
+
+	return false, nil
 }
 
 // accessPolicyDecide returns a policy's decision on a given connection.

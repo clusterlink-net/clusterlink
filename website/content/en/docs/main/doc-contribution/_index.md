@@ -88,7 +88,7 @@ If you've found a problem in the docs, but you're not sure how to fix it yoursel
 [Netlify]: https://www.netlify.com/
 [GitHub Help]: https://help.github.com/articles/about-pull-requests/
 [Quick start with Netlify]: #quick-start-with-netlify
-[Getting started]: ../getting-started/
+[Getting started]: {{< relref "../getting-started/" >}}
 [ClusterLink repo]: https://github.com/clusterlink-net/clusterlink
 [issue]: https://github.com/clusterlink-net/clusterlink/issues
 [Docsy user guide]: https://www.docsy.dev/docs/

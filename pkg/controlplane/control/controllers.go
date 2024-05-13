@@ -62,7 +62,7 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode boo
 			Name:   "control.export",
 			Object: &v1alpha1.Export{},
 			AddHandler: func(ctx context.Context, object any) error {
-				return mgr.addExport(ctx, object.(*v1alpha1.Export))
+				return mgr.AddExport(ctx, object.(*v1alpha1.Export))
 			},
 			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
 				return nil

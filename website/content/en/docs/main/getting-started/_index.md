@@ -11,4 +11,4 @@ If you're a content author, wishing to contribute additional documentation or gu
 
 [users]: {{< relref "users" >}}
 [developers]: {{< relref "developers" >}}
-[contribution guidelines]: ../doc-contribution/
+[contribution guidelines]: {{< relref "../doc-contribution/" >}}

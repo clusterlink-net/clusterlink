@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz/connectivitypdp"
 )
 
 const (
@@ -66,30 +66,27 @@ func TestPrivilegedVsRegular(t *testing.T) {
 	}
 
 	pdp := connectivitypdp.NewPDP()
-	dests := []connectivitypdp.WorkloadAttrs{trivialLabel}
-	decisions, err := pdp.Decide(trivialLabel, dests, defaultNS)
+	decision, err := pdp.Decide(trivialLabel, trivialLabel, defaultNS)
 	require.Nil(t, err)
-	require.Equal(t, connectivitypdp.DecisionDeny, decisions[0].Decision) // default deny
-	require.Equal(t, connectivitypdp.DefaultDenyPolicyName, decisions[0].MatchedBy)
-	require.Equal(t, false, decisions[0].PrivilegedMatch)
+	require.Equal(t, connectivitypdp.DecisionDeny, decision.Decision) // default deny
+	require.Equal(t, connectivitypdp.DefaultDenyPolicyName, decision.MatchedBy)
+	require.Equal(t, false, decision.PrivilegedMatch)
 
 	err = pdp.AddOrUpdatePolicy(connectivitypdp.PolicyFromCR(&trivialConnPol))
 	require.Nil(t, err)
-	dests = []connectivitypdp.WorkloadAttrs{trivialLabel}
-	decisions, err = pdp.Decide(trivialLabel, dests, defaultNS)
+	decision, err = pdp.Decide(trivialLabel, trivialLabel, defaultNS)
 	require.Nil(t, err)
-	require.Equal(t, connectivitypdp.DecisionAllow, decisions[0].Decision) // regular allow policy allows connection
-	require.Equal(t, types.NamespacedName{Name: "reg", Namespace: defaultNS}.String(), decisions[0].MatchedBy)
-	require.Equal(t, false, decisions[0].PrivilegedMatch)
+	require.Equal(t, connectivitypdp.DecisionAllow, decision.Decision) // regular allow policy allows connection
+	require.Equal(t, types.NamespacedName{Name: "reg", Namespace: defaultNS}.String(), decision.MatchedBy)
+	require.Equal(t, false, decision.PrivilegedMatch)
 
 	err = pdp.AddOrUpdatePolicy(connectivitypdp.PolicyFromPrivilegedCR(&trivialPrivConnPol))
 	require.Nil(t, err)
-	dests = []connectivitypdp.WorkloadAttrs{trivialLabel}
-	decisions, err = pdp.Decide(trivialLabel, dests, defaultNS)
+	decision, err = pdp.Decide(trivialLabel, trivialLabel, defaultNS)
 	require.Nil(t, err)
-	require.Equal(t, connectivitypdp.DecisionDeny, decisions[0].Decision) // privileged deny policy denies connection
-	require.Equal(t, types.NamespacedName{Name: "priv"}.String(), decisions[0].MatchedBy)
-	require.Equal(t, true, decisions[0].PrivilegedMatch)
+	require.Equal(t, connectivitypdp.DecisionDeny, decision.Decision) // privileged deny policy denies connection
+	require.Equal(t, types.NamespacedName{Name: "priv"}.String(), decision.MatchedBy)
+	require.Equal(t, true, decision.PrivilegedMatch)
 }
 
 // TestAllLayers starts with one policy per layer (allow/deny X privileged/non-privileged)
@@ -103,66 +100,69 @@ func TestAllLayers(t *testing.T) {
 	err := addPoliciesFromFile(pdp, fileInTestDir("all_layers.yaml"))
 	require.Nil(t, err)
 
-	nonMeteringLabel := connectivitypdp.WorkloadAttrs{"workloadName": "non-metering-service"}
-	meteringLabel := connectivitypdp.WorkloadAttrs{"workloadName": "global-metering-service"}
-	privateMeteringLabel := connectivitypdp.WorkloadAttrs{"workloadName": "global-metering-service", "environment": "prod"}
-	dests := []connectivitypdp.WorkloadAttrs{trivialLabel, nonMeteringLabel, meteringLabel, privateMeteringLabel}
-	decisions, err := pdp.Decide(trivialLabel, dests, defaultNS)
+	decision, err := pdp.Decide(trivialLabel, trivialLabel, defaultNS)
 	require.Nil(t, err)
-	require.Equal(t, connectivitypdp.DecisionDeny, decisions[0].Decision) // default deny
-	require.Equal(t, connectivitypdp.DefaultDenyPolicyName, decisions[0].MatchedBy)
-	require.Equal(t, false, decisions[0].PrivilegedMatch)
-	require.Equal(t, trivialLabel, decisions[0].Destination)
-	require.Equal(t, connectivitypdp.DecisionAllow, decisions[1].Decision) // regular allow
-	require.Equal(t, false, decisions[1].PrivilegedMatch)
-	require.Equal(t, connectivitypdp.DecisionDeny, decisions[2].Decision) // regular deny
-	require.Equal(t, false, decisions[2].PrivilegedMatch)
-	require.Equal(t, connectivitypdp.DecisionAllow, decisions[3].Decision) // privileged allow
-	require.Equal(t, true, decisions[3].PrivilegedMatch)
+	require.Equal(t, connectivitypdp.DecisionDeny, decision.Decision) // default deny
+	require.Equal(t, connectivitypdp.DefaultDenyPolicyName, decision.MatchedBy)
+	require.Equal(t, false, decision.PrivilegedMatch)
+	require.Equal(t, trivialLabel, decision.Destination)
+
+	nonMeteringLabel := connectivitypdp.WorkloadAttrs{"workloadName": "non-metering-service"}
+	decision, err = pdp.Decide(trivialLabel, nonMeteringLabel, defaultNS)
+	require.Nil(t, err)
+	require.Equal(t, connectivitypdp.DecisionAllow, decision.Decision) // regular allow
+	require.Equal(t, false, decision.PrivilegedMatch)
+
+	meteringLabel := connectivitypdp.WorkloadAttrs{"workloadName": "global-metering-service"}
+	decision, err = pdp.Decide(trivialLabel, meteringLabel, defaultNS)
+	require.Nil(t, err)
+	require.Equal(t, connectivitypdp.DecisionDeny, decision.Decision) // regular deny
+	require.Equal(t, false, decision.PrivilegedMatch)
+
+	privateMeteringLabel := connectivitypdp.WorkloadAttrs{"workloadName": "global-metering-service", "environment": "prod"}
+	decision, err = pdp.Decide(trivialLabel, privateMeteringLabel, defaultNS)
+	require.Nil(t, err)
+	require.Equal(t, connectivitypdp.DecisionAllow, decision.Decision) // privileged allow
+	require.Equal(t, true, decision.PrivilegedMatch)
 
 	privateLabel := map[string]string{"classification": "private", "environment": "prod"}
-	dests = []connectivitypdp.WorkloadAttrs{privateMeteringLabel}
-	decisions, err = pdp.Decide(privateLabel, dests, defaultNS)
+	decision, err = pdp.Decide(privateLabel, privateMeteringLabel, defaultNS)
 	require.Nil(t, err)
-	require.Equal(t, connectivitypdp.DecisionDeny, decisions[0].Decision) // privileged deny
-	require.Equal(t, true, decisions[0].PrivilegedMatch)
+	require.Equal(t, connectivitypdp.DecisionDeny, decision.Decision) // privileged deny
+	require.Equal(t, true, decision.PrivilegedMatch)
 
 	privDenyPolicy := getNameOfFirstPolicyInPDP(pdp, v1alpha1.AccessPolicyActionDeny, true)
 	require.NotEmpty(t, privDenyPolicy)
 	err = pdp.DeletePolicy(types.NamespacedName{Name: privDenyPolicy}, true)
 	require.Nil(t, err)
-	dests = []connectivitypdp.WorkloadAttrs{privateMeteringLabel}
-	decisions, err = pdp.Decide(privateLabel, dests, defaultNS)
+	decision, err = pdp.Decide(privateLabel, privateMeteringLabel, defaultNS)
 	require.Nil(t, err)
 	// no privileged deny, so privileged allow matches
-	require.Equal(t, connectivitypdp.DecisionAllow, decisions[0].Decision)
+	require.Equal(t, connectivitypdp.DecisionAllow, decision.Decision)
 
 	privAllowPolicy := getNameOfFirstPolicyInPDP(pdp, v1alpha1.AccessPolicyActionAllow, true)
 	require.NotEmpty(t, privAllowPolicy)
 	err = pdp.DeletePolicy(types.NamespacedName{Name: privAllowPolicy}, true)
 	require.Nil(t, err)
-	dests = []connectivitypdp.WorkloadAttrs{privateMeteringLabel}
-	decisions, err = pdp.Decide(privateLabel, dests, defaultNS)
+	decision, err = pdp.Decide(privateLabel, privateMeteringLabel, defaultNS)
 	require.Nil(t, err)
-	require.Equal(t, connectivitypdp.DecisionDeny, decisions[0].Decision) // no privileged allow, so regular deny matches
+	require.Equal(t, connectivitypdp.DecisionDeny, decision.Decision) // no privileged allow, so regular deny matches
 
 	regDenyPolicy := getNameOfFirstPolicyInPDP(pdp, v1alpha1.AccessPolicyActionDeny, false)
 	require.NotEmpty(t, regDenyPolicy)
 	err = pdp.DeletePolicy(types.NamespacedName{Name: regDenyPolicy, Namespace: defaultNS}, false)
 	require.Nil(t, err)
-	dests = []connectivitypdp.WorkloadAttrs{privateMeteringLabel}
-	decisions, err = pdp.Decide(privateLabel, dests, defaultNS)
+	decision, err = pdp.Decide(privateLabel, privateMeteringLabel, defaultNS)
 	require.Nil(t, err)
-	require.Equal(t, connectivitypdp.DecisionAllow, decisions[0].Decision) // no regular deny, so regular allow matches
+	require.Equal(t, connectivitypdp.DecisionAllow, decision.Decision) // no regular deny, so regular allow matches
 
 	regAllowPolicy := getNameOfFirstPolicyInPDP(pdp, v1alpha1.AccessPolicyActionAllow, false)
 	require.NotEmpty(t, regAllowPolicy)
 	err = pdp.DeletePolicy(types.NamespacedName{Name: regAllowPolicy, Namespace: defaultNS}, false)
 	require.Nil(t, err)
-	dests = []connectivitypdp.WorkloadAttrs{privateMeteringLabel}
-	decisions, err = pdp.Decide(privateLabel, dests, defaultNS)
+	decision, err = pdp.Decide(privateLabel, privateMeteringLabel, defaultNS)
 	require.Nil(t, err)
-	require.Equal(t, connectivitypdp.DecisionDeny, decisions[0].Decision) // no regular allow, so default deny matches
+	require.Equal(t, connectivitypdp.DecisionDeny, decision.Decision) // no regular allow, so default deny matches
 }
 
 func getNameOfFirstPolicyInPDP(pdp *connectivitypdp.PDP, action v1alpha1.AccessPolicyAction, privileged bool) string {

@@ -292,6 +292,16 @@ func (c *ClusterLink) GetAllExports() (*[]v1alpha1.Export, error) {
 }
 
 func (c *ClusterLink) DeleteExport(name string) error {
+	if c.crdMode {
+		return c.cluster.Resources().Delete(
+			context.Background(),
+			&v1alpha1.Export{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: c.namespace,
+				},
+			})
+	}
 	return c.client.Exports.Delete(name)
 }
 

@@ -462,5 +462,5 @@ iperf Done.
 
 [kind]: https://kind.sigs.k8s.io/
 [kind installation guide]: https://kind.sigs.k8s.io/docs/user/quick-start
-[core concepts]: ../../concepts/
-[policies]: ../../concepts/policies
+[core concepts]: {{< relref "../../concepts/_index.md" >}}
+[policies]: {{< relref "../../concepts/policies/_index.md" >}}

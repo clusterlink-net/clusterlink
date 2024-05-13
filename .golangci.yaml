@@ -33,7 +33,6 @@ linters:
     - godot
     - gofumpt
     - goimports
-    - gomoddirectives
     - gosec
     - gosimple
     - govet

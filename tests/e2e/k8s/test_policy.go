@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/httpecho"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/util"
@@ -41,13 +41,13 @@ func (s *TestSuite) TestPolicyLabels() {
 	//    In addition, create a policy to only allow traffic from cl[1] - apply in cl[0] (on ingress)
 	allowEchoPolicyName := "allow-access-to-echo-svc"
 	dstLabels := map[string]string{
-		policyengine.ServiceNameLabel: httpEchoService.Name,
-		policyengine.GatewayNameLabel: cl[0].Name(),
+		authz.ServiceNameLabel: httpEchoService.Name,
+		authz.GatewayNameLabel: cl[0].Name(),
 	}
 	allowEchoPolicy := util.NewPolicy(allowEchoPolicyName, v1alpha1.AccessPolicyActionAllow, nil, dstLabels)
 	require.Nil(s.T(), cl[1].CreatePolicy(allowEchoPolicy))
 
-	srcLabels := map[string]string{policyengine.GatewayNameLabel: cl[1].Name()}
+	srcLabels := map[string]string{authz.GatewayNameLabel: cl[1].Name()}
 	specificSrcPeerPolicy := util.NewPolicy("specific-peer", v1alpha1.AccessPolicyActionAllow, srcLabels, nil)
 	require.Nil(s.T(), cl[0].CreatePolicy(specificSrcPeerPolicy))
 
@@ -57,7 +57,7 @@ func (s *TestSuite) TestPolicyLabels() {
 
 	// 2. Add a "deny echo service" policy in cl[1] - should have a higher priority and so block the connection
 	denyEchoPolicyName := "deny-access-to-echo"
-	dstLabels = map[string]string{policyengine.ServiceNameLabel: httpEchoService.Name}
+	dstLabels = map[string]string{authz.ServiceNameLabel: httpEchoService.Name}
 	denyEchoPolicy := util.NewPolicy(denyEchoPolicyName, v1alpha1.AccessPolicyActionDeny, nil, dstLabels)
 	require.Nil(s.T(), cl[1].CreatePolicy(denyEchoPolicy))
 
@@ -73,7 +73,7 @@ func (s *TestSuite) TestPolicyLabels() {
 
 	// 4. Add a "deny peer cl0" policy in cl[1] - should have a higher priority and so block the connection
 	denyCl0PolicyName := "deny-access-to-cl0"
-	dstLabels = map[string]string{policyengine.GatewayNameLabel: cl[0].Name()}
+	dstLabels = map[string]string{authz.GatewayNameLabel: cl[0].Name()}
 	denyCl0Policy := util.NewPolicy(denyCl0PolicyName, v1alpha1.AccessPolicyActionDeny, nil, dstLabels)
 	require.Nil(s.T(), cl[1].CreatePolicy(denyCl0Policy))
 
@@ -106,8 +106,8 @@ func (s *TestSuite) TestPolicyLabels() {
 	require.Nil(s.T(), cl[1].DeletePolicy(allowEchoPolicyName))
 
 	badSvcLabels := map[string]string{
-		policyengine.ServiceNameLabel: "bad-svc",
-		policyengine.GatewayNameLabel: cl[0].Name(),
+		authz.ServiceNameLabel: "bad-svc",
+		authz.GatewayNameLabel: cl[0].Name(),
 	}
 	badSvcPolicy := util.NewPolicy("bad-svc", v1alpha1.AccessPolicyActionAllow, nil, badSvcLabels)
 	require.Nil(s.T(), cl[1].CreatePolicy(badSvcPolicy))
@@ -132,8 +132,8 @@ func (s *TestSuite) TestPrivilegedPolicies() {
 	require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
 
 	dstLabels := map[string]string{
-		policyengine.ServiceNameLabel: httpEchoService.Name,
-		policyengine.GatewayNameLabel: cl[0].Name(),
+		authz.ServiceNameLabel: httpEchoService.Name,
+		authz.GatewayNameLabel: cl[0].Name(),
 	}
 
 	privDenyPolicyName := "priv-deny"
