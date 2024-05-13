@@ -14,10 +14,13 @@
 package rest
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
@@ -38,6 +41,7 @@ func toK8SExport(export *store.Export, namespace string) *v1alpha1.Export {
 			Host: export.ExportSpec.Host,
 			Port: export.ExportSpec.Port,
 		},
+		Status: export.Status,
 	}
 }
 
@@ -50,7 +54,8 @@ func exportToAPI(export *store.Export) *v1alpha1.Export {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: export.Name,
 		},
-		Spec: export.ExportSpec,
+		Spec:   export.ExportSpec,
+		Status: export.Status,
 	}
 }
 
@@ -65,8 +70,10 @@ func (m *Manager) CreateExport(export *store.Export) error {
 	}
 
 	k8sExport := toK8SExport(export, m.namespace)
-	m.authzManager.AddExport(k8sExport)
-	return m.xdsManager.AddExport(k8sExport)
+	if err := m.xdsManager.AddExport(k8sExport); err != nil {
+		return err
+	}
+	return m.controlManager.AddExport(context.Background(), k8sExport)
 }
 
 // UpdateExport updates a new route target for ingress dataplane connections.
@@ -81,8 +88,23 @@ func (m *Manager) UpdateExport(export *store.Export) error {
 	}
 
 	k8sExport := toK8SExport(export, m.namespace)
-	m.authzManager.AddExport(k8sExport)
-	return m.xdsManager.AddExport(k8sExport)
+	if err := m.xdsManager.AddExport(k8sExport); err != nil {
+		return err
+	}
+	return m.controlManager.AddExport(context.Background(), k8sExport)
+}
+
+// UpdateExportStatus updates the status of an existing export.
+func (m *Manager) UpdateExportStatus(name string, status *v1alpha1.ExportStatus) {
+	m.logger.Infof("Updating status of export '%s'.", name)
+
+	err := m.exports.Update(name, func(old *store.Export) *store.Export {
+		old.Status = *status
+		return old
+	})
+	if err != nil {
+		m.logger.Errorf("Error updating status of export '%s': %v", name, err)
+	}
 }
 
 // GetExport returns an existing export.
@@ -113,8 +135,6 @@ func (m *Manager) DeleteExport(name string) (*store.Export, error) {
 		return export, err
 	}
 
-	m.authzManager.DeleteExport(namespacedName)
-
 	return export, nil
 }
 
@@ -122,6 +142,16 @@ func (m *Manager) DeleteExport(name string) (*store.Export, error) {
 func (m *Manager) GetAllExports() []*store.Export {
 	m.logger.Info("Listing all exports.")
 	return m.exports.GetAll()
+}
+
+func (m *Manager) GetK8sExport(name string, export *v1alpha1.Export) error {
+	storeExport := m.exports.Get(name)
+	if storeExport == nil {
+		return errors.NewNotFound(schema.GroupResource{}, name)
+	}
+
+	*export = *toK8SExport(storeExport, m.namespace)
+	return nil
 }
 
 // Decode an export.

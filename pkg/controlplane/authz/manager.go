@@ -14,6 +14,7 @@
 package authz
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
@@ -24,29 +25,32 @@ import (
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz/connectivitypdp"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/peer"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 const (
 	// the number of seconds a JWT access token is valid before it expires.
 	jwtExpirySeconds = 5
+
+	ServiceNameLabel      = "clusterlink/metadata.serviceName"
+	ServiceNamespaceLabel = "clusterlink/metadata.serviceNamespace"
+	GatewayNameLabel      = "clusterlink/metadata.gatewayName"
 )
 
 // egressAuthorizationRequest (from local dataplane)
 // represents a request for accessing an imported service.
 type egressAuthorizationRequest struct {
 	// ImportName is the name of the requested imported service.
-	ImportName string
-	// ImportNamespace is the namespace of the requested imported service.
-	ImportNamespace string
+	ImportName types.NamespacedName
 	// IP address of the client connecting to the service.
 	IP string
 }
@@ -66,9 +70,7 @@ type egressAuthorizationResponse struct {
 // ingressAuthorizationRequest (to remote peer controlplane) represents a request for accessing an exported service.
 type ingressAuthorizationRequest struct {
 	// Service is the name of the requested exported service.
-	ServiceName string
-	// ServiceNamespace is the namespace of the requested exported service.
-	ServiceNamespace string
+	ServiceName types.NamespacedName
 }
 
 // ingressAuthorizationResponse (from remote peer controlplane) represents a response for an ingressAuthorizationRequest.
@@ -89,7 +91,11 @@ type podInfo struct {
 
 // Manager manages the authorization dataplane connections.
 type Manager struct {
-	policyDecider policyengine.PolicyDecider
+	client    client.Client
+	namespace string
+
+	loadBalancer    *LoadBalancer
+	connectivityPDP *connectivitypdp.PDP
 
 	peerTLS    *tls.ParsedCertData
 	peerLock   sync.RWMutex
@@ -102,7 +108,26 @@ type Manager struct {
 	jwkSignKey   jwk.Key
 	jwkVerifyKey jwk.Key
 
+	// callback for getting an import (for non-CRD mode)
+	getImportCallback func(name string, imp *v1alpha1.Import) error
+	// callback for getting an export (for non-CRD mode)
+	getExportCallback func(name string, imp *v1alpha1.Export) error
+	// callback for getting a peer (for non-CRD mode)
+	getPeerCallback func(name string, pr *v1alpha1.Peer) error
+
 	logger *logrus.Entry
+}
+
+func (m *Manager) SetGetImportCallback(callback func(name string, imp *v1alpha1.Import) error) {
+	m.getImportCallback = callback
+}
+
+func (m *Manager) SetGetExportCallback(callback func(name string, imp *v1alpha1.Export) error) {
+	m.getExportCallback = callback
+}
+
+func (m *Manager) SetGetPeerCallback(callback func(name string, pr *v1alpha1.Peer) error) {
+	m.getPeerCallback = callback
 }
 
 // AddPeer defines a new route target for egress dataplane connections.
@@ -110,17 +135,11 @@ func (m *Manager) AddPeer(pr *v1alpha1.Peer) {
 	m.logger.Infof("Adding peer '%s'.", pr.Name)
 
 	// initialize peer client
-	client := peer.NewClient(pr, m.peerTLS.ClientConfig(pr.Name))
+	cl := peer.NewClient(pr, m.peerTLS.ClientConfig(pr.Name))
 
 	m.peerLock.Lock()
-	m.peerClient[pr.Name] = client
+	m.peerClient[pr.Name] = cl
 	m.peerLock.Unlock()
-
-	if meta.IsStatusConditionTrue(pr.Status.Conditions, v1alpha1.PeerReachable) {
-		m.policyDecider.AddPeer(pr.Name)
-	} else {
-		m.policyDecider.DeletePeer(pr.Name)
-	}
 }
 
 // DeletePeer removes the possibility for egress dataplane connections to be routed to a given peer.
@@ -130,46 +149,16 @@ func (m *Manager) DeletePeer(name string) {
 	m.peerLock.Lock()
 	delete(m.peerClient, name)
 	m.peerLock.Unlock()
-
-	m.policyDecider.DeletePeer(name)
-}
-
-// AddImport adds a listening socket for an imported remote service.
-func (m *Manager) AddImport(imp *v1alpha1.Import) {
-	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
-	m.policyDecider.AddImport(imp)
-}
-
-// DeleteImport removes the listening socket of a previously imported service.
-func (m *Manager) DeleteImport(name types.NamespacedName) error {
-	m.logger.Infof("Deleting import '%v'.", name)
-	m.policyDecider.DeleteImport(name)
-	return nil
-}
-
-// AddExport defines a new route target for ingress dataplane connections.
-func (m *Manager) AddExport(export *v1alpha1.Export) {
-	m.logger.Infof("Adding export '%s/%s'.", export.Namespace, export.Name)
-
-	// TODO: m.policyDecider.AddExport()
-}
-
-// DeleteExport removes the possibility for ingress dataplane connections to access a given service.
-func (m *Manager) DeleteExport(name types.NamespacedName) {
-	m.logger.Infof("Deleting export '%v'.", name)
-
-	// TODO: pass on namespace
-	m.policyDecider.DeleteExport(name.Name)
 }
 
 // AddAccessPolicy adds an access policy to allow/deny specific connections.
 func (m *Manager) AddAccessPolicy(policy *connectivitypdp.AccessPolicy) error {
-	return m.policyDecider.AddAccessPolicy(policy)
+	return m.connectivityPDP.AddOrUpdatePolicy(policy)
 }
 
 // DeleteAccessPolicy removes an access policy to allow/deny specific connections.
 func (m *Manager) DeleteAccessPolicy(name types.NamespacedName, privileged bool) error {
-	return m.policyDecider.DeleteAccessPolicy(name, privileged)
+	return m.connectivityPDP.DeletePolicy(name, privileged)
 }
 
 // deletePod deletes pod to ipToPod list.
@@ -200,82 +189,121 @@ func (m *Manager) addPod(pod *v1.Pod) {
 	}
 }
 
-// getLabelsFromIP returns the labels associated with Pod with the specified IP address.
-func (m *Manager) getLabelsFromIP(ip string) map[string]string {
+// getPodInfoByIP returns the information about the Pod with the specified IP address.
+func (m *Manager) getPodInfoByIP(ip string) *podInfo {
 	m.podLock.RLock()
 	defer m.podLock.RUnlock()
 
 	if p, ipExsit := m.ipToPod[ip]; ipExsit {
 		if pInfo, podExist := m.podList[p]; podExist {
-			return pInfo.labels
+			return &pInfo
 		}
 	}
 	return nil
 }
 
 // authorizeEgress authorizes a request for accessing an imported service.
-func (m *Manager) authorizeEgress(req *egressAuthorizationRequest) (*egressAuthorizationResponse, error) {
+func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationRequest) (*egressAuthorizationResponse, error) {
 	m.logger.Infof("Received egress authorization request: %v.", req)
 
-	connReq := connectivitypdp.ConnectionRequest{
-		DstSvcName:      req.ImportName,
-		DstSvcNamespace: req.ImportNamespace,
-		Direction:       connectivitypdp.Outgoing,
-	}
-	srcLabels := m.getLabelsFromIP(req.IP)
-	if src, ok := srcLabels["app"]; ok { // TODO: Add support for labels other than just the "app" key.
-		m.logger.Infof("Received egress authorization srcLabels[app]: %v.", srcLabels["app"])
-		connReq.SrcWorkloadAttrs = connectivitypdp.WorkloadAttrs{policyengine.ServiceNameLabel: src}
-	}
+	srcAttributes := connectivitypdp.WorkloadAttrs{}
+	podInfo := m.getPodInfoByIP(req.IP)
+	if podInfo != nil {
+		srcAttributes[ServiceNamespaceLabel] = podInfo.namespace
 
-	authResp, err := m.policyDecider.AuthorizeAndRouteConnection(&connReq)
-	if err != nil {
-		return nil, err
+		if src, ok := podInfo.labels["app"]; ok { // TODO: Add support for labels other than just the "app" key.
+			m.logger.Infof("Received egress authorization srcLabels[app]: %v.", podInfo.labels["app"])
+			srcAttributes[ServiceNameLabel] = src
+		}
 	}
 
-	if authResp.Action != v1alpha1.AccessPolicyActionAllow {
-		return &egressAuthorizationResponse{Allowed: false}, nil
+	var imp v1alpha1.Import
+	if err := m.getImport(ctx, req.ImportName, &imp); err != nil {
+		return nil, fmt.Errorf("cannot get import %v: %w", req.ImportName, err)
 	}
 
-	target := authResp.DstPeer
+	lbResult := NewLoadBalancingResult(&imp)
+	for {
+		if err := m.loadBalancer.Select(lbResult); err != nil {
+			return nil, fmt.Errorf("cannot select import source: %w", err)
+		}
 
-	m.peerLock.RLock()
-	client, ok := m.peerClient[target]
-	m.peerLock.RUnlock()
+		importSource := lbResult.Get()
 
-	if !ok {
-		return nil, fmt.Errorf("missing client for peer: %s", target)
+		var pr v1alpha1.Peer
+		if err := m.getPeer(ctx, importSource.Peer, &pr); err != nil {
+			return nil, fmt.Errorf("cannot get peer '%s': %w", importSource.Peer, err)
+		}
+
+		if !meta.IsStatusConditionTrue(pr.Status.Conditions, v1alpha1.PeerReachable) {
+			if !lbResult.IsDelayed() {
+				lbResult.Delay()
+				continue
+			}
+		}
+
+		dstAttributes := connectivitypdp.WorkloadAttrs{
+			ServiceNameLabel:      imp.Name,
+			ServiceNamespaceLabel: imp.Namespace,
+			GatewayNameLabel:      importSource.Peer,
+		}
+		decision, err := m.connectivityPDP.Decide(srcAttributes, dstAttributes, req.ImportName.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error deciding on an egress connection: %w", err)
+		}
+
+		if decision.Decision != connectivitypdp.DecisionAllow {
+			continue
+		}
+
+		m.peerLock.RLock()
+		cl, ok := m.peerClient[importSource.Peer]
+		m.peerLock.RUnlock()
+
+		if !ok {
+			return nil, fmt.Errorf("missing client for peer: %s", importSource.Peer)
+		}
+
+		DstName := importSource.ExportName
+		DstNamespace := importSource.ExportNamespace
+		if DstName == "" { // TODO- remove when controlplane will support only CRD mode.
+			DstName = req.ImportName.Name
+		}
+
+		if DstNamespace == "" { // TODO- remove when controlplane will support only CRD mode.
+			DstNamespace = req.ImportName.Namespace
+		}
+
+		peerResp, err := cl.Authorize(&cpapi.AuthorizationRequest{
+			ServiceName:      DstName,
+			ServiceNamespace: DstNamespace,
+		})
+		if err != nil {
+			m.logger.Infof("Unable to get access token from peer: %v", err)
+			continue
+		}
+
+		if !peerResp.ServiceExists {
+			m.logger.Infof(
+				"Peer %s does not have an import source for %v",
+				importSource.Peer, req.ImportName)
+			continue
+		}
+
+		if !peerResp.Allowed {
+			m.logger.Infof(
+				"Peer %s did not allow connection to import %v: %v",
+				importSource.Peer, req.ImportName, err)
+			continue
+		}
+
+		return &egressAuthorizationResponse{
+			ServiceExists:     true,
+			Allowed:           true,
+			RemotePeerCluster: cpapi.RemotePeerClusterName(importSource.Peer),
+			AccessToken:       peerResp.AccessToken,
+		}, nil
 	}
-
-	DstName := authResp.DstName
-	DstNamespace := authResp.DstNamespace
-	if DstName == "" { // TODO- remove when controlplane will support only CRD mode.
-		DstName = req.ImportName
-	}
-
-	if DstNamespace == "" { // TODO- remove when controlplane will support only CRD mode.
-		DstNamespace = req.ImportNamespace
-	}
-
-	serverResp, err := client.Authorize(&cpapi.AuthorizationRequest{
-		ServiceName:      DstName,
-		ServiceNamespace: DstNamespace,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("unable to get access token from peer: %w", err)
-	}
-
-	resp := &egressAuthorizationResponse{
-		ServiceExists: serverResp.ServiceExists,
-		Allowed:       serverResp.Allowed,
-	}
-
-	if serverResp.Allowed {
-		resp.RemotePeerCluster = cpapi.RemotePeerClusterName(target)
-		resp.AccessToken = serverResp.AccessToken
-	}
-
-	return resp, nil
 }
 
 // parseAuthorizationHeader verifies an access token for an ingress dataplane connection.
@@ -305,25 +333,42 @@ func (m *Manager) parseAuthorizationHeader(token string) (string, error) {
 }
 
 // authorizeIngress authorizes a request for accessing an exported service.
-func (m *Manager) authorizeIngress(req *ingressAuthorizationRequest, pr string) (*ingressAuthorizationResponse, error) {
+func (m *Manager) authorizeIngress(
+	ctx context.Context,
+	req *ingressAuthorizationRequest,
+	pr string,
+) (*ingressAuthorizationResponse, error) {
 	m.logger.Infof("Received ingress authorization request: %v.", req)
 
 	resp := &ingressAuthorizationResponse{}
 
-	// TODO: set this from autoResp below
+	// check that a corresponding export exists
+	exportName := types.NamespacedName{
+		Namespace: req.ServiceName.Namespace,
+		Name:      req.ServiceName.Name,
+	}
+	var export v1alpha1.Export
+	if err := m.getExport(ctx, exportName, &export); err != nil {
+		if errors.IsNotFound(err) || !meta.IsStatusConditionTrue(export.Status.Conditions, v1alpha1.ExportValid) {
+			return resp, nil
+		}
+
+		return nil, fmt.Errorf("cannot get export %v: %w", exportName, err)
+	}
+
 	resp.ServiceExists = true
 
-	connReq := connectivitypdp.ConnectionRequest{
-		DstSvcName:       req.ServiceName,
-		DstSvcNamespace:  req.ServiceNamespace,
-		Direction:        connectivitypdp.Incoming,
-		SrcWorkloadAttrs: connectivitypdp.WorkloadAttrs{policyengine.GatewayNameLabel: pr},
+	srcAttributes := connectivitypdp.WorkloadAttrs{GatewayNameLabel: pr}
+	dstAttributes := connectivitypdp.WorkloadAttrs{
+		ServiceNameLabel:      req.ServiceName.Name,
+		ServiceNamespaceLabel: req.ServiceName.Namespace,
 	}
-	authResp, err := m.policyDecider.AuthorizeAndRouteConnection(&connReq)
+	decision, err := m.connectivityPDP.Decide(srcAttributes, dstAttributes, req.ServiceName.Namespace)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error deciding on an ingress connection: %w", err)
 	}
-	if authResp.Action != v1alpha1.AccessPolicyActionAllow {
+
+	if decision.Decision != connectivitypdp.DecisionAllow {
 		resp.Allowed = false
 		return resp, nil
 	}
@@ -333,8 +378,8 @@ func (m *Manager) authorizeIngress(req *ingressAuthorizationRequest, pr string) 
 	// TODO: include client name as a claim
 	token, err := jwt.NewBuilder().
 		Expiration(time.Now().Add(time.Second*jwtExpirySeconds)).
-		Claim(cpapi.ExportNameJWTClaim, req.ServiceName).
-		Claim(cpapi.ExportNamespaceJWTClaim, req.ServiceNamespace).
+		Claim(cpapi.ExportNameJWTClaim, req.ServiceName.Name).
+		Claim(cpapi.ExportNamespaceJWTClaim, req.ServiceName.Namespace).
 		Build()
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate access token: %w", err)
@@ -350,8 +395,36 @@ func (m *Manager) authorizeIngress(req *ingressAuthorizationRequest, pr string) 
 	return resp, nil
 }
 
+func (m *Manager) getImport(ctx context.Context, name types.NamespacedName, imp *v1alpha1.Import) error {
+	if m.getImportCallback != nil {
+		return m.getImportCallback(name.Name, imp)
+	}
+
+	return m.client.Get(ctx, name, imp)
+}
+
+func (m *Manager) getExport(ctx context.Context, name types.NamespacedName, export *v1alpha1.Export) error {
+	if m.getExportCallback != nil {
+		return m.getExportCallback(name.Name, export)
+	}
+
+	return m.client.Get(ctx, name, export)
+}
+
+func (m *Manager) getPeer(ctx context.Context, name string, pr *v1alpha1.Peer) error {
+	if m.getPeerCallback != nil {
+		return m.getPeerCallback(name, pr)
+	}
+
+	peerName := types.NamespacedName{
+		Name:      name,
+		Namespace: m.namespace,
+	}
+	return m.client.Get(ctx, peerName, pr)
+}
+
 // NewManager returns a new authorization manager.
-func NewManager(peerTLS *tls.ParsedCertData) (*Manager, error) {
+func NewManager(peerTLS *tls.ParsedCertData, cl client.Client, namespace string) (*Manager, error) {
 	// generate RSA key-pair for JWT signing
 	// TODO: instead of generating, read from k8s secret
 	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -370,13 +443,16 @@ func NewManager(peerTLS *tls.ParsedCertData) (*Manager, error) {
 	}
 
 	return &Manager{
-		policyDecider: policyengine.NewPolicyHandler(),
-		peerTLS:       peerTLS,
-		peerClient:    make(map[string]*peer.Client),
-		jwkSignKey:    jwkSignKey,
-		jwkVerifyKey:  jwkVerifyKey,
-		ipToPod:       make(map[string]types.NamespacedName),
-		podList:       make(map[types.NamespacedName]podInfo),
-		logger:        logrus.WithField("component", "controlplane.authz.manager"),
+		client:          cl,
+		namespace:       namespace,
+		connectivityPDP: connectivitypdp.NewPDP(),
+		loadBalancer:    NewLoadBalancer(),
+		peerTLS:         peerTLS,
+		peerClient:      make(map[string]*peer.Client),
+		jwkSignKey:      jwkSignKey,
+		jwkVerifyKey:    jwkVerifyKey,
+		ipToPod:         make(map[string]types.NamespacedName),
+		podList:         make(map[types.NamespacedName]podInfo),
+		logger:          logrus.WithField("component", "controlplane.authz.manager"),
 	}, nil
 }

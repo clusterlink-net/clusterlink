@@ -21,8 +21,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz/connectivitypdp"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/store"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
 )
 
 type accessPolicyHandler struct {

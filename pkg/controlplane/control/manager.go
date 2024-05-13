@@ -147,6 +147,8 @@ type Manager struct {
 	getMergeImportListCallback func() *v1alpha1.ImportList
 	// callback for getting an import (for non-CRD mode)
 	getImportCallback func(name string, imp *v1alpha1.Import) error
+	// callback for setting the status of an export (for non-CRD mode)
+	exportStatusCallback func(*v1alpha1.Export)
 
 	logger *logrus.Entry
 }
@@ -306,8 +308,12 @@ func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) e
 	return errors.Join(errs...)
 }
 
-// addExport defines a new route target for ingress dataplane connections.
-func (m *Manager) addExport(ctx context.Context, export *v1alpha1.Export) (err error) {
+func (m *Manager) SetExportStatusCallback(callback func(*v1alpha1.Export)) {
+	m.exportStatusCallback = callback
+}
+
+// AddExport defines a new route target for ingress dataplane connections.
+func (m *Manager) AddExport(ctx context.Context, export *v1alpha1.Export) (err error) {
 	m.logger.Infof("Adding export '%s/%s'.", export.Namespace, export.Name)
 
 	defer func() {
@@ -330,15 +336,20 @@ func (m *Manager) addExport(ctx context.Context, export *v1alpha1.Export) (err e
 			m.logger.Infof(
 				"Updating export '%s/%s' status: %v.",
 				export.Namespace, export.Name, *conditions)
-			statusError := m.client.Status().Update(ctx, export)
-			if statusError != nil {
-				if err == nil {
-					err = statusError
+			if m.exportStatusCallback != nil {
+				m.exportStatusCallback(export)
+			} else {
+				// CRD-mode
+				statusError := m.client.Status().Update(ctx, export)
+				if statusError != nil {
+					if err == nil {
+						err = statusError
+						return
+					}
+
+					m.logger.Warnf("Error updating export status: %v.", statusError)
 					return
 				}
-
-				m.logger.Warnf("Error updating export status: %v.", statusError)
-				return
 			}
 		}
 
@@ -467,7 +478,7 @@ func (m *Manager) checkExportService(ctx context.Context, name types.NamespacedN
 		return nil
 	}
 
-	return m.addExport(ctx, &export)
+	return m.AddExport(ctx, &export)
 }
 
 func (m *Manager) checkImportService(ctx context.Context, name types.NamespacedName) error {

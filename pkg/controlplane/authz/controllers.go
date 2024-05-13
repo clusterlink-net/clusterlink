@@ -21,7 +21,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
-	"github.com/clusterlink-net/clusterlink/pkg/policyengine/connectivitypdp"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz/connectivitypdp"
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
 )
 
@@ -78,11 +78,10 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode boo
 			Name:   "authz.import",
 			Object: &v1alpha1.Import{},
 			AddHandler: func(ctx context.Context, object any) error {
-				mgr.AddImport(object.(*v1alpha1.Import))
 				return nil
 			},
 			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-				return mgr.DeleteImport(name)
+				return nil
 			},
 		})
 		if err != nil {
@@ -93,11 +92,9 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode boo
 			Name:   "authz.export",
 			Object: &v1alpha1.Export{},
 			AddHandler: func(ctx context.Context, object any) error {
-				mgr.AddExport(object.(*v1alpha1.Export))
 				return nil
 			},
 			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-				mgr.DeleteExport(name)
 				return nil
 			},
 		})

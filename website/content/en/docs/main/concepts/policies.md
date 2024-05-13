@@ -142,7 +142,7 @@ spec:
     - workloadSelector: {}
 ```
 
-More examples are available on our repo under [policyengine/examples][].
+More examples are available on our repo under [examples/policies][].
 
 [peers]: {{< relref "peers" >}}
 [services]: {{< relref "services" >}}
@@ -151,4 +151,4 @@ More examples are available on our repo under [policyengine/examples][].
 [labels]: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 [deployed and configured]: {{< relref "../getting-started/users#setup" >}}
 [Kuberenetes label selector]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#labelselector-v1-meta
-[policyengine/examples]: https://github.com/clusterlink-net/clusterlink/tree/main/pkg/policyengine/examples
+[examples/policies]: https://github.com/clusterlink-net/clusterlink/tree/main/examples/policies

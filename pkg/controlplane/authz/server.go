@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	utilhttp "github.com/clusterlink-net/clusterlink/pkg/util/http"
@@ -71,10 +72,12 @@ func (s *server) DataplaneEgressAuthorize(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	resp, err := s.manager.authorizeEgress(&egressAuthorizationRequest{
-		ImportName:      importName,
-		ImportNamespace: importNamespace,
-		IP:              ip,
+	resp, err := s.manager.authorizeEgress(r.Context(), &egressAuthorizationRequest{
+		ImportName: types.NamespacedName{
+			Namespace: importNamespace,
+			Name:      importName,
+		},
+		IP: ip,
 	})
 
 	switch {
@@ -140,9 +143,12 @@ func (s *server) PeerAuthorize(w http.ResponseWriter, r *http.Request) {
 
 	peerName := r.TLS.PeerCertificates[0].DNSNames[0]
 	resp, err := s.manager.authorizeIngress(
+		r.Context(),
 		&ingressAuthorizationRequest{
-			ServiceName:      req.ServiceName,
-			ServiceNamespace: req.ServiceNamespace,
+			ServiceName: types.NamespacedName{
+				Namespace: req.ServiceNamespace,
+				Name:      req.ServiceName,
+			},
 		},
 		peerName)
 	switch {

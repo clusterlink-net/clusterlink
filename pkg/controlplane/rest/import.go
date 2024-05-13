@@ -87,8 +87,6 @@ func (m *Manager) CreateImport(imp *store.Import) error {
 		return err
 	}
 
-	m.authzManager.AddImport(k8sImp)
-
 	return nil
 }
 
@@ -123,8 +121,6 @@ func (m *Manager) UpdateImport(imp *store.Import) error {
 		return err
 	}
 
-	m.authzManager.AddImport(k8sImp)
-
 	return nil
 }
 
@@ -156,11 +152,6 @@ func (m *Manager) DeleteImport(name string) (*store.Import, error) {
 	}
 
 	err = m.controlManager.DeleteImport(context.Background(), namespacedName)
-	if err != nil {
-		return nil, err
-	}
-
-	err = m.authzManager.DeleteImport(namespacedName)
 	if err != nil {
 		return nil, err
 	}

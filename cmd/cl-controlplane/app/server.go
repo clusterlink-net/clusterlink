@@ -189,7 +189,7 @@ func (o *Options) Run() error {
 	httpServer := utilrest.NewServer("controlplane-http", parsedCertData.ServerConfig())
 	grpcServer := grpc.NewServer("controlplane-grpc", parsedCertData.ServerConfig())
 
-	authzManager, err := authz.NewManager(parsedCertData)
+	authzManager, err := authz.NewManager(parsedCertData, mgr.GetClient(), namespace)
 	if err != nil {
 		return fmt.Errorf("cannot create authorization manager: %w", err)
 	}
@@ -240,10 +240,16 @@ func (o *Options) Run() error {
 
 		cprest.RegisterHandlers(restManager, httpServer)
 
-		controlManager.SetGetMergeImportListCallback(restManager.GetMergeImportList)
+		authzManager.SetGetImportCallback(restManager.GetK8sImport)
+		authzManager.SetGetExportCallback(restManager.GetK8sExport)
+		authzManager.SetGetPeerCallback(restManager.GetK8sPeer)
 		controlManager.SetGetImportCallback(restManager.GetK8sImport)
-		controlManager.SetStatusCallback(func(pr *v1alpha1.Peer) {
-			authzManager.AddPeer(pr)
+		controlManager.SetGetMergeImportListCallback(restManager.GetMergeImportList)
+		controlManager.SetPeerStatusCallback(func(pr *v1alpha1.Peer) {
+			restManager.UpdatePeerStatus(pr.Name, &pr.Status)
+		})
+		controlManager.SetExportStatusCallback(func(export *v1alpha1.Export) {
+			restManager.UpdateExportStatus(export.Name, &export.Status)
 		})
 	}
 
