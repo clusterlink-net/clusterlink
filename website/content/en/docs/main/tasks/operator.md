@@ -117,8 +117,8 @@ The `deploy peer` {{< anchor commandline-flags >}} command has the following fla
         and deploys the operator ClusterLink custom resource to create the ClusterLink components.
         `operator` deploys only the `ClusterLink` operator and convert the peer certificates to secrets.
         `none` doesn't deploy anything but creates the ClusterLink custom resource YAML.
-   - **path**: represents the path where the peer and fabric certificates are stored,
-        By default is the working current working directory.
+   - **path**: Represents the path where the peer and fabric certificates are stored,
+        by default is the working current working directory.
 
 ## Manual Deployment without CLI
 
