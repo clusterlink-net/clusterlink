@@ -45,7 +45,7 @@ To setup three kind clusters:
     mkdir bookinfo-tutorial && cd bookinfo-tutorial
     ```
 
-3. create three kind clusters:
+3. Create three kind clusters:
 
     ```sh
     kind create cluster --name=client
