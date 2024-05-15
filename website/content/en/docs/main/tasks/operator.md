@@ -10,16 +10,16 @@ which automatically deploys both the ClusterLink operator and ClusterLink compon
 However, it's important to note that ClusterLink deployment necessitates peer certificates for proper functioning.
 Detailed instructions for creating these peer certificates can be found in the [user guide][].
 
-## The common use-case
+## The common use case
 
-The common use case for deploying ClusterLink on a cloud based K8s cluster (i.e., EKS, GKE, IKS, etc.) is using the CLI command:
+The common use case for deploying ClusterLink on a cloud-based K8s cluster (i.e., EKS, GKE, IKS, etc.) is using the CLI command:
 
 ```sh
 clusterlink deploy peer --name <peer_name> --fabric <fabric_name>
 ```
 
 The command assumes that `kubectl` is configured to access the correct peer (K8s cluster)
-and that certificates files are placed in the current working directory.
+and that certificate files are placed in the current working directory.
 If they are not, use the flag `--path <path>` to reference the directory where certificate files are stored.
 The command deploys the ClusterLink operator in the `clusterlink-operator` namespace and converts
 the peer certificates to secrets in the `clusterlink-system` namespace, where ClusterLink components will be installed.
