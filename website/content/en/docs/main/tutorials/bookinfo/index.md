@@ -38,7 +38,7 @@ In this tutorial we set up a local environment using [kind][].
 
 To setup three kind clusters:
 
-1. Install kind using [kind installation guide][].
+1. Install kind using the [kind installation guide][].
 2. Create a directory for all the tutorial files:
 
     ```sh
