@@ -106,6 +106,6 @@ This command  using the current `kubectl` context.
    rm `which clusterlink`
    ```
 
-[kind]: https://kind.sigs.k8s.io/)
-[ClusterLink deployment operator]: {{< relref "../tasks/operator" >}}
-[ClusterLink tutorials]: {{< relref "../tutorials/" >}}
+[kind](https://kind.sigs.k8s.io/)
+[ClusterLink deployment operator]({{< relref "../tasks/operator" >}})
+[ClusterLink tutorials]({{< relref "../tutorials/" >}})
