@@ -1,6 +1,6 @@
 ---
 title: Deployment Operator
-description: Usage and configuration of the ClusterLink deployment operator.
+description: Usage and configuration of the ClusterLink deployment operator
 weight: 50
 ---
 
