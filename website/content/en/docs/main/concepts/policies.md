@@ -7,7 +7,7 @@ weight: 40
 Access policies allow users and administrators fine-grained control over
  which client workloads may access which service. This is an important security
  mechanism for applying [micro-segmentation][], which is a basic requirement of [zero-trust][]
- systems. Another zero-trust principle, "Deny by default / Allow by exception", is also
+ systems. Another zero-trust principle, "Deny by default / Allow by exception," is also
  addressed by ClusterLink's access policies: a connection without an explicit policy allowing it,
  will be dropped. Access policies can also be used for enforcing corporate security rules,
  as well as segmenting the fabric into trust zones.
