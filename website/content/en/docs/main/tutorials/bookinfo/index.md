@@ -127,8 +127,8 @@ kubectl apply -f $BOOKINFO_FILES/review/rating.yaml
 ## Enable cross-cluster access
 
 In this step, we enable connectivity access for the BookInfo application
- by connecting the Product Page service (client) to the Reviews-v2 service (server1)
- and Reviews-v3 (server2). We establish connections between the peers, export the reviews service on the server side,
+ by connecting the Product Page service (client) to the Reviews-V2 service (server1)
+ and Reviews-V3 (server2). We establish connections between the peers, export the reviews service on the server side,
  import the reviews service on the client side, and create a policy to allow the connection.
 
 Note that the provided YAML configuration files refer to environment variables
@@ -185,7 +185,7 @@ By default, a round-robin policy is set.
 
 In the previous steps, an unprivileged access policy was set to allow connectivity.
 To enforce high-priority policy use the `PrivilegedAccessPolicy` CRD.
-In this example, we enforce that the ProductPage service can access only reviews-v3 from server2,
+In this example, we enforce that the ProductPage service can access only Reviews-V3 from server2,
 and deny all services from server1:
 
 {{< tabpane text=true >}}
