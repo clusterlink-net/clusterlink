@@ -178,7 +178,7 @@ To run the BookInfo application use a Firefox web browser to connect the Product
   ```
 
 {{< notice note >}}
-By default, a round-robin policy is set.
+By default, a round robin policy is set.
 {{< /notice >}}
 
 ## Apply privileged access policy
@@ -335,9 +335,9 @@ spec:
 {{% /tab %}}
 {{< /tabpane >}}
 
-## Apply round-robin load-balancing policy
+## Apply round robin load-balancing policy
 
-To apply a round-robin load-balancing policy (which is used by default) to the connection to reviews import:
+To apply a round robin load-balancing policy (which is used by default) to the connection to reviews import:
 
 {{< tabpane text=true >}}
 {{% tab header="File" %}}
