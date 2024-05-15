@@ -197,7 +197,7 @@ Gateway endpoint would typically be a implemented via a `NodePort` or `LoadBalan
 Once a peer has been created and initialized with the ClusterLink control and data
  planes as well as one or more remote peers, you can proceed with configuring
  [services][] and [policies][].
- For a complete end to end use case, refer to the [iperf tutorial][].
+ For a complete end-to-end use case, refer to the [iperf tutorial][].
 
 [fabric]: {{< relref "fabric" >}}
 [previously created fabric]: {{< relref "fabric#create-a-new-fabric-ca" >}}
