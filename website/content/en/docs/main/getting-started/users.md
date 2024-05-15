@@ -49,7 +49,7 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
    This command will create the certificate files `cert.pem` and `key.pem`
     in a directory named `<fabric_name>`/`<peer_name>`.
     The `--path <path>` flag can be used to change the directory location.
-    The `--name` option is optional, and by default, "default_fabric" will be used.
+    Here too, the `--name` option is optional, and by default, "default_fabric" will be used.
 
 {{< notice note >}}
 All the peer certificates in the fabric should be created from the same fabric CA files in step 1.
