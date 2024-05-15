@@ -10,7 +10,7 @@ The tutorial shows different load-balancing policies like: random, round robin o
 For more details, see the [policies documentation][].
 This test creates three kind clusters:
 
-* Two Product-Page microservice (application frontend) and details microservice run on the first cluster.
+* Two Product Page microservices (application frontend) and a details microservice run on the first cluster.
 * The Reviews-V2 (display rating with black stars) and Rating microservices run on the second cluster.
 * The Reviews-V3 (display rating with red stars) and Rating microservices run on the third cluster.
 
