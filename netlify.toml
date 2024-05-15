@@ -1,8 +1,7 @@
+# Netlify expects the configuration file in the repo's top level.
+# In our case, we use it only to redirect to the `website` directory which 
+# holds the site and configuration.
+# See https://docs.netlify.com/configure-builds/file-based-configuration/
 [build]
   base = "website/"
   publish = "public"
-  command = "hugo --gc --minify"
-
-  [build.environment]
-    HUGO_VERSION = "0.120.4"
-    HUGO_ENABLEGITINFO = "true"
