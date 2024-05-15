@@ -113,10 +113,10 @@ The `deploy peer` {{< anchor commandline-flags >}} command has the following fla
 
 2. General deployment flags:
    - **start:** Determines which components to deploy and start in the cluster.
-        `all` (defualt) starts the clusterlink operator, converts the peer certificates to secrets,
+        `all` (default) starts the clusterlink operator, converts the peer certificates to secrets,
         and deploys the operator ClusterLink custom resource to create the ClusterLink components.
-        `operator`, deploys only the `ClusterLink` operator and convert the peer certificates to secrets.
-        `none`, doesn't deploy anything but creates ClusterLink custom resource YAML.
+        `operator` deploys only the `ClusterLink` operator and convert the peer certificates to secrets.
+        `none` doesn't deploy anything but creates the ClusterLink custom resource YAML.
    - **path**: represents the path where the peer and fabric certificates are stored,
         By default is the working current working directory.
 
