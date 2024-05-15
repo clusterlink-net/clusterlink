@@ -6,7 +6,7 @@ description: Running BookInfo application with different policies
 
 The tutorial sets up the [Istio BookInfo application][] in different clusters.
 The tutorial demonstrates the use of AccessPolicy and PrivilegedAccessPolicy custom resources.
-The tutorial shows different load-balancing policies like: random, round-robin or static destination.
+The tutorial shows different load-balancing policies like: random, round robin or static destination.
 For more details, see the [policies documentation][].
 This test creates three kind clusters:
 
