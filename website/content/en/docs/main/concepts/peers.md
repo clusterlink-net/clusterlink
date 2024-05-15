@@ -6,10 +6,10 @@ weight: 20
 
 A *Peer* represents a location, such as a Kubernetes cluster, participating in a
  [fabric][]. Each peer may host one or more [services][]
- it wishes to share with other peers. A peer is managed by a peer administrator,
+ that it wishes to share with other peers. A peer is managed by a peer administrator,
  which is responsible for running the ClusterLink control and data planes. The
  administrator will typically deploy the ClusterLink components by configuring
- the [deployment CR][]. They may also wish to provide
+ the [deployment CR][operator-cr]. They may also wish to provide
  (often) coarse-grained access policies in accordance with high level corporate
  policies (e.g., "production peers should only communicate with other production peers").
 
@@ -17,12 +17,12 @@ Once a peer has been added to a fabric, it can communicate with any other peer
  belonging to it. All configuration relating to service sharing (e.g., the exporting
  and importing of services, and the setting of fine grained application policies) can be
  done with lowered privileges (e.g., by users, such as application owners). Remote peers are
- represented by the Peer Custom Resource Definition (CRD). Each Peer CR instance
+ represented by the peer Custom Resource Definition (CRD). Each peer CRD instance
  defines a remote cluster and the network endpoints of its ClusterLink gateways.
 
 ## Prerequisites
 
-The following assume that you have access to the `clusterlink` CLI and one or more
+The following assume that you have access to the ClusterLink CLI and one or more
  peers (i.e., clusters) where you'll deploy ClusterLink. The CLI can be downloaded
  from the ClusterLink [releases page on GitHub][].
  It also assumes that you have access to the [previously created fabric][]
