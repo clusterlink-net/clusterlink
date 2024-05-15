@@ -10,7 +10,7 @@ which automatically deploys both the ClusterLink operator and ClusterLink compon
 However, it's important to note that ClusterLink deployment necessitates peer certificates for proper functioning.
 Detailed instructions for creating these peer certificates can be found in the [user guide][].
 
-## The common use-case
+## The common use case
 
 The common use case for deploying ClusterLink on a cloud based K8s cluster (i.e., EKS, GKE, IKS, etc.) is using the CLI command:
 
