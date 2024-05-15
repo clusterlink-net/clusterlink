@@ -183,7 +183,7 @@ There are two fundamental attributes in the peer CRD: the peer name and the list
 Gateway endpoint would typically be a implemented via a `NodePort` or `LoadBalancer`
  K8s service. A `NodePort` service would typically be used in local deployments
  (e.g., when running in kind clusters during development) and a `LoadBalancer` service
- would be used in cloud based deployments. These can be automatically configured and
+ would be used in cloud-based deployments. These can be automatically configured and
  created via the [ClusterLink CR][].
  The peer's status section includes a `Reachable` condition indicating whether the peer is currently reachable,
  and in case it is not reachable, the last time it was.
