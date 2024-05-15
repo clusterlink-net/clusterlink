@@ -77,7 +77,7 @@ Deploy ClusterLink in a console with access to the cluster (step 3).
 
 ## Try it out
 
-Check out the [ClusterLink Tutorials][] for setting up multi-cluster connectivity
+Check out the [ClusterLink Tutorials](tutorials) for setting up multi-cluster connectivity
  for applications using two or more clusters.
 
 ## Uninstall ClusterLink
