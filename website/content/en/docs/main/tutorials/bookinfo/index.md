@@ -106,7 +106,7 @@ kubectl apply -f $BOOKINFO_FILES/review/rating.yaml
     which is more suitable for Kubernetes clusters running in the cloud.
    {{< /notice >}}
 
-2. Verify that ClusterLink control and data plane components are running:
+2. Verify that the ClusterLink control and data plane components are running:
 
    It may take a few seconds for the deployments to be successfully created.
 
