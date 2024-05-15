@@ -103,7 +103,7 @@ The `deploy peer` {{< anchor commandline-flags >}} command has the following fla
      By default, it uses port `443` for the `LoadBalancer` ingress type.
      For the `NodePort` ingress type, the port number will be allocated by Kubernetes.
      In case the user changes the default value, it is the user's responsibility to ensure the port number is valid and available for use.
-   - **ingress-annotations:** This field add annotations to the ingress service.
+   - **ingress-annotations:** This field adds annotations to the ingress service.
    The flag can be repeated to add several annotations. For example: `--ingress-annotations load-balancer-type=nlb --ingress-annotations load-balancer-name=cl-nlb`.
    - **log-level:** This field determines the severity log level for all the components (controlplane and dataplane).
      By default, it uses `info` log level.
