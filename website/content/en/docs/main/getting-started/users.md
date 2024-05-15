@@ -9,7 +9,7 @@ This guide will give you a quick start on installing and setting up ClusterLink 
 ## Prerequisites
 
 Before you start, you must have access to a Kubernetes cluster.
-For example, you can set up a local environment using [kind][].
+For example, you can set up a local environment using [kind](https://kind.sigs.k8s.io/docs/user/quick-start/).
 
 ## Installation
 
