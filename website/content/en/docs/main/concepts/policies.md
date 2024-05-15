@@ -28,16 +28,16 @@ Destinations are defined in terms of the attributes attached to the target servi
 Both client workloads and target services may inherit some attributes from their hosting peer.
 
 There are two tiers of access policies in ClusterLink. The high-priority tier
- is intended for cluster/Peer administrators to set access rules which cannot be
+ is intended for cluster/peer administrators to set access rules which cannot be
  overridden by cluster users. High-priority policies are controlled by the
- `PrivilegedAccessPolicy` CRD, and are cluster-scoped (i.e., have no namespace).
+ `PrivilegedAccessPolicy` CRD, and are cluster scoped (i.e., have no namespace).
  Regular policies are intended for cluster users, such as application developers
  and owners, and are controlled by the `AccessPolicy` CRD. Regular policies are
  namespaced, and have an effect in their namespace only. That is, they do not
  affect connections to/from other namespaces.
 
 For a connection to be established, both the ClusterLink gateway on the client
- side and the ClusterLink gateway on the Service side must allow the connection.
+ side and the ClusterLink gateway on the service side must allow the connection.
  Each gateway (independently) follows these steps to decide if the connection is allowed:
 
 1. All instances of `PrivilegedAccessPolicy` in the cluster with `deny` action are considered.
