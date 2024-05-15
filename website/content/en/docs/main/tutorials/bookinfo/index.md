@@ -127,8 +127,8 @@ kubectl apply -f $BOOKINFO_FILES/review/rating.yaml
 ## Enable cross-cluster access
 
 In this step, we enable connectivity access for the BookInfo application
- by connecting the ProductPage service (client) to the reviews-v2 service (server1)
- and reviews-v3 (server2). We establish connections between the peers, export the reviews service on the server side,
+ by connecting the Product Page service (client) to the Reviews-v2 service (server1)
+ and Reviews-v3 (server2). We establish connections between the peers, export the reviews service on the server side,
  import the reviews service on the client side, and create a policy to allow the connection.
 
 Note that the provided YAML configuration files refer to environment variables
