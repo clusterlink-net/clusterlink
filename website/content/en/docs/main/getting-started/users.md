@@ -110,6 +110,6 @@ This command  using the current `kubectl` context.
 
 [kind](https://kind.sigs.k8s.io/)
 
-[ClusterLink deployment operator](../tasks/operator)
+[ClusterLink deployment operator](../tasks/operator/)
 
 [ClusterLink tutorials](../tutorials/)
