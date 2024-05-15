@@ -51,9 +51,7 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
     The `--path <path>` flag can be used to change the directory location.
     Here too, the `--name` option is optional, and by default, "default_fabric" will be used.
 
-{{< notice note >}}
-All the peer certificates in the fabric should be created from the same fabric CA files in step 1.
-{{< /notice >}}
+**All the peer certificates in the fabric should be created from the same fabric CA files in step 1.**
 
 1. {{< anchor install-cl-operator >}}Install ClusterLink deployment:
 
