@@ -3,7 +3,7 @@ title: iPerf3
 description: Running basic connectivity between iPerf3 applications across two sites using ClusterLink
 ---
 
-In this tutorial we'll establish iPerf3 connectivity between two kind cluster using ClusterLink.
+In this tutorial we'll establish iPerf3 connectivity between two kind clusters using ClusterLink.
 The tutorial uses two kind clusters:
 
 1) Client cluster - runs ClusterLink along with an iPerf3 client.
