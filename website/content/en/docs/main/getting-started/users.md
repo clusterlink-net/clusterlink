@@ -4,7 +4,7 @@ description: Installing and configuring a basic ClusterLink deployment
 weight: 22
 ---
 
-This guide will give you a quick start on installing and setting up the ClusterLink on a Kubernetes cluster.
+This guide will give you a quick start on installing and setting up ClusterLink on a Kubernetes cluster.
 
 ## Prerequisites
 
