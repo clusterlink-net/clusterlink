@@ -1,6 +1,6 @@
 ---
 title: BookInfo
-description: Running BookInfo application with different policies.
+description: Running BookInfo application with different policies
 ---
 
 
