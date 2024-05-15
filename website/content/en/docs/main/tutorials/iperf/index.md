@@ -1,6 +1,6 @@
 ---
 title: iPerf3
-description: Running basic connectivity between iPerf3 applications across two sites using ClusterLink.
+description: Running basic connectivity between iPerf3 applications across two sites using ClusterLink
 ---
 
 In this tutorial we'll establish iPerf3 connectivity between two kind cluster using ClusterLink.
