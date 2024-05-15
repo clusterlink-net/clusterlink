@@ -65,7 +65,7 @@ Recall that a connection is dropped if it does not match any access policy.
  Hence, for a connection to be allowed, an access policy with an `allow` action
  must be created on both sides of the connection.
  Creating an access policy is accomplished by creating an `AccessPolicy` CR in
- the relevant namespace (see Note above).
+ the relevant namespace (see note above).
  Creating a high-priority access policy is accomplished by creating a `PrivilegedAccessPolicy` CR.
  Instances of `PrivilegedAccessPolicy` have no namespace and affect the entire cluster.
 
