@@ -114,9 +114,9 @@ The `AccessPolicySpec` defines the following fields:
 - **Action** (string, required): whether the policy allows or denies the
  specified connection. Value must be either `allow` or `deny`.
 - **From** (WorkloadSetOrSelector array, required): specifies connection sources.
- A connection's source must match one of the specified sources to be matched by the policy
+ A connection's source must match one of the specified sources to be matched by the policy.
 - **To** (WorkloadSetOrSelectorList array, required): specifies connection destinations.
- A connection's destination must match one of the specified destinations to be matched by the policy
+ A connection's destination must match one of the specified destinations to be matched by the policy.
 
 A `WorkloadSetOrSelector` object has two fields; exactly one of them must be specified.
 
