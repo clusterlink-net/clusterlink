@@ -57,7 +57,7 @@ ClusterLink offers a secure and performant solution to interconnect services
 - **Export**/**Import**: services must be explicitly shared by clusters before
  they can be used. A service can be imported by any number of peers. To increase
  availability or performance, a service can be exported by more than one peer.
-- **Access policies**: ClusterLink supports fine grained segmentation with a
+- **Access policies**: ClusterLink supports fine-grained segmentation with a
  "default deny" policy, adhering to "zero trust" principles. Access policies are
  used to explicitly allow and deny communications. Affected workloads are defined
  in terms of their attributes (such as location, environment, namespace or even
