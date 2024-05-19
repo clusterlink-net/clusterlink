@@ -7,6 +7,7 @@ on:
 
 jobs:
   broken-link-checker:
+    if: github.repository_owner == 'clusterlink-net' # do not run on forks
     name: Check broken links
     runs-on: ubuntu-latest
     steps:
@@ -14,4 +15,4 @@ jobs:
       uses: ruzickap/action-my-broken-link-checker@v2
       with:
         url: https://clusterlink.net
-        cmd_params: '--buffer-size=65536 --max-connections=16 --rate-limit=16 --timeout=20'  # muffet parameters
+        cmd_params: '--buffer-size=65536 --max-connections=2 --rate-limit=4 --timeout=20'  # muffet parameters
