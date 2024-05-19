@@ -29,7 +29,7 @@ Here are the key steps for setting up your developer environment, making a chang
  [contribution guide][].
 - We follow [GitHub's Standard Fork & Pull Request Workflow][].
 
-All contributed code should should pass precommit checks such as linting and tests. These
+All contributed code should pass precommit checks such as linting and other tests. These
  are run automatically as part of the CI process on every pull request. You may wish to
  run these locally, before initiating a PR:
 

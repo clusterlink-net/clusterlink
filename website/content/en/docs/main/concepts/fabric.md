@@ -7,7 +7,7 @@ weight: 10
 The concept of a *Fabric* encapsulates a set of cooperating [peers][].
  All peers in a fabric can communicate and may share [services][]
  between them, with access governed by [policies][].
- The Fabric acts as a root of trust for peer to peer communications (i.e.,
+ The Fabric acts as a root of trust for peer-to-peer communications (i.e.,
  it functions as the certificate authority enabling mutual authentication between
  peers).
 
@@ -24,7 +24,7 @@ Currently, the concept of a Fabric is just that - a concept. It is not represent
 
 ### Prerequisites
 
-The following assume that you have access to the `clusterlink` CLI and one or more
+The following sections assume that you have access to the `clusterlink` CLI and one or more
  peers (i.e., clusters) where you'll deploy ClusterLink. The CLI can be downloaded
  from the ClusterLink [releases page on GitHub][].
 
