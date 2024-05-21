@@ -33,8 +33,8 @@ In order to facilitate cross cluster communications, you could use Kubernetes
 
 The creation of a shared mesh is not always desirable and may place additional
  constraints on administrators, developers and the workloads they manage. For example,
- it might make assumptions that objects, such as services, are the "same" based
- on the objects sharing a name (i.e., namespace sameness as defined [by Istio][]
+ it might make assumptions that Kubernetes objects, such as Services, are the "same" based
+ on the objects sharing a name (i.e., "namespace sameness" as defined [by Istio][]
  and [by SIG-MC][]), or require planning IP addresses assignment across independent clusters.
 
 This post introduces [ClusterLink][], an [open source][] project that
@@ -71,14 +71,14 @@ ClusterLink consists of several main components that work together to securely
 
 ClusterLink uses the Kubernetes API servers for its configuration store. The
  **control plane** is responsible for watching for changes in relevant built-in
- and custom resources and configuring the data plane pod using [Envoy's xDS][] protocol.
+ and custom resources and configuring the data plane Pods using [Envoy's xDS][] protocol.
  The control plane is also responsible for managing local Kubernetes
  services and endpoints corresponding to imported remote services. By using
  standard Kubernetes services, ClusterLink integrates seamlessly with the Kubernetes
  network model, and can work with any Kubernetes distribution, CNI and IP address
  management scheme.
 
-The local service endpoints refer to **data plane** pods, responsible for
+The local service endpoints refer to **data plane** Pods, responsible for
  workload-to-service secure tunnels to other clusters. The data plane uses
  [HTTP CONNECT][] with [mutual TLS][] for security.
  The use of HTTPS over tcp/443 removes the need for VPNs and special firewall
