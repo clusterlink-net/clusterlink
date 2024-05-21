@@ -9,15 +9,15 @@ A *Peer* represents a location, such as a Kubernetes cluster, participating in a
  that it may wish to share with other peers. A peer is managed by a peer administrator,
  which is responsible for running the ClusterLink control and data planes. The
  administrator will typically deploy the ClusterLink components by configuring
- the [deployment Custom Resource (CR)][operator-cr]. The administrator may also wish
- to provide coarse-grained access policies (and often do) in accordance with high level corporate
+ the [Deployment Custom Resource (CR)][operator-cr]. They may also wish to define
+ coarse-grained access policies, in accordance with high level corporate
  policies (e.g., "production peers should only communicate with other production peers").
 
 Once a peer has been added to a fabric, it can communicate with any other peer
  belonging to it. All configuration relating to service sharing (e.g., the exporting
  and importing of services, and the setting of fine grained application policies) can be
  done with lowered privileges (e.g., by users, such as application owners). Remote peers are
- represented by peer Custom Resources (CRs). Each Peer CR instance
+ represented by the Peer Custom Resources (CRs). Each peer CR instance
  defines a remote cluster and the network endpoints of its ClusterLink gateways.
 
 ## Prerequisites
@@ -187,7 +187,7 @@ There are two fundamental attributes in the peer CRD: the peer name and the list
 Gateway endpoint would typically be implemented via a `NodePort` or `LoadBalancer`
  K8s service. A `NodePort` service would typically be used in local deployments
  (e.g., when running in kind clusters during development) and a `LoadBalancer` service
- would be used in cloud based deployments. These can be automatically configured and
+ would be used in cloud-based deployments. These can be automatically configured and
  created via the [ClusterLink CR][].
  The peer's status section includes a `Reachable` condition indicating whether the peer is currently reachable,
  and in case it is not reachable, the last time it was.

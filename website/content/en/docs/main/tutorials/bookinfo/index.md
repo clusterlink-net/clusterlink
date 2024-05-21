@@ -1,18 +1,18 @@
 ---
 title: BookInfo
-description: Running BookInfo application with different policies.
+description: Running BookInfo application with different policies
 ---
 
 
-The tutorial sets up [Istio BookInfo application][] in different clusters.
+The tutorial sets up the [Istio BookInfo application][] in different clusters.
 The tutorial demonstrates the use of AccessPolicy and PrivilegedAccessPolicy custom resources.
-The tutorial shows different load-balancing policies like: random, round-robin or static destination.
+The tutorial shows different load-balancing policies like: random, round robin or static destination.
 For more details, see the [policies documentation][].
 This test creates three kind clusters:
 
-* Two Product-Page microservice (application frontend) and details microservice run on the first cluster.
-* The Reviews-V2 (display rating with black stars) and Rating microservices run on the second cluster.
-* The Reviews-V3 (display rating with red stars) and Rating microservices run on the third cluster.
+* Two productpage microservices (application frontend) and a details microservice run on the first cluster.
+* The reviews-v2 (display rating with black stars) and rating microservices run on the second cluster.
+* The reviews-v3 (display rating with red stars) and rating microservices run on the third cluster.
 
 System illustration:
 
@@ -38,14 +38,14 @@ In this tutorial we set up a local environment using [kind][].
 
 To setup three kind clusters:
 
-1. Install kind using [kind installation guide][].
+1. Install kind using the [kind installation guide][].
 2. Create a directory for all the tutorial files:
 
     ```sh
     mkdir bookinfo-tutorial && cd bookinfo-tutorial
     ```
 
-3. create three kind clusters:
+3. Create three kind clusters:
 
     ```sh
     kind create cluster --name=client
@@ -75,7 +75,6 @@ kubectl apply -f $BOOKINFO_FILES/review/rating.yaml
 kubectl config use-context kind-server2
 kubectl apply -f $BOOKINFO_FILES/review/review-v3.yaml
 kubectl apply -f $BOOKINFO_FILES/review/rating.yaml
-
 ```
 
 ## Deploy ClusterLink
@@ -106,7 +105,7 @@ kubectl apply -f $BOOKINFO_FILES/review/rating.yaml
     which is more suitable for Kubernetes clusters running in the cloud.
    {{< /notice >}}
 
-2. Verify that ClusterLink control and data plane components are running:
+2. Verify that the ClusterLink control and data plane components are running.
 
    It may take a few seconds for the deployments to be successfully created.
 
@@ -127,7 +126,7 @@ kubectl apply -f $BOOKINFO_FILES/review/rating.yaml
 ## Enable cross-cluster access
 
 In this step, we enable connectivity access for the BookInfo application
- by connecting the ProductPage service (client) to the reviews-v2 service (server1)
+ by connecting the productpage service (client) to the reviews-v2 service (server1)
  and reviews-v3 (server2). We establish connections between the peers, export the reviews service on the server side,
  import the reviews service on the client side, and create a policy to allow the connection.
 
@@ -169,7 +168,7 @@ brew link --force gettext
 
 ## BookInfo test
 
-To run the BookInfo application use a Firefox web browser to connect the ProductPage microservice:
+To run the BookInfo application use a Firefox web browser to connect the productpage microservice:
 
   ```sh
   kubectl config use-context kind-client
@@ -178,14 +177,14 @@ To run the BookInfo application use a Firefox web browser to connect the Product
   ```
 
 {{< notice note >}}
-By default, a round-robin policy is set.
+By default, a round robin policy is set.
 {{< /notice >}}
 
 ## Apply privileged access policy
 
 In the previous steps, an unprivileged access policy was set to allow connectivity.
-To enforce high-priority policy use the `PrivilegedAccessPolicy` CRD.
-In this example, we enforce that the ProductPage service can access only reviews-v3 from server2,
+To enforce high-priority policy use the `PrivilegedAccessPolicy` CR.
+In this example, we enforce that the productpage service can access only reviews-v3 from server2,
 and deny all services from server1:
 
 {{< tabpane text=true >}}
@@ -335,9 +334,9 @@ spec:
 {{% /tab %}}
 {{< /tabpane >}}
 
-## Apply round-robin load-balancing policy
+## Apply round robin load-balancing policy
 
-To apply a round-robin load-balancing policy (which is used by default) to the connection to reviews import:
+To apply a round robin load-balancing policy (which is used by default) to the connection to reviews import:
 
 {{< tabpane text=true >}}
 {{% tab header="File" %}}

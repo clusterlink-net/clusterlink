@@ -1,6 +1,6 @@
 ---
 title: Deployment Operator
-description: Usage and configuration of the ClusterLink deployment operator.
+description: Usage and configuration of the ClusterLink deployment operator
 weight: 50
 ---
 
@@ -12,14 +12,14 @@ Detailed instructions for creating these peer certificates can be found in the [
 
 ## The common use case
 
-The common use case for deploying ClusterLink on a cloud based K8s cluster (i.e., EKS, GKE, IKS, etc.) is using the CLI command:
+The common use case for deploying ClusterLink on a cloud-based K8s cluster (i.e., EKS, GKE, IKS, etc.) is using the CLI command:
 
 ```sh
 clusterlink deploy peer --name <peer_name> --fabric <fabric_name>
 ```
 
 The command assumes that `kubectl` is configured to access the correct peer (K8s cluster)
-and that certificates files are placed in the current working directory.
+and that certificate files are placed in the current working directory.
 If they are not, use the flag `--path <path>` to reference the directory where certificate files are stored.
 The command deploys the ClusterLink operator in the `clusterlink-operator` namespace and converts
 the peer certificates to secrets in the `clusterlink-system` namespace, where ClusterLink components will be installed.
@@ -103,7 +103,7 @@ The `deploy peer` {{< anchor commandline-flags >}} command has the following fla
      By default, it uses port `443` for the `LoadBalancer` ingress type.
      For the `NodePort` ingress type, the port number will be allocated by Kubernetes.
      In case the user changes the default value, it is the user's responsibility to ensure the port number is valid and available for use.
-   - **ingress-annotations:** This field add annotations to the ingress service.
+   - **ingress-annotations:** This field adds annotations to the ingress service.
    The flag can be repeated to add several annotations. For example: `--ingress-annotations load-balancer-type=nlb --ingress-annotations load-balancer-name=cl-nlb`.
    - **log-level:** This field determines the severity log level for all the components (controlplane and dataplane).
      By default, it uses `info` log level.
@@ -113,12 +113,12 @@ The `deploy peer` {{< anchor commandline-flags >}} command has the following fla
 
 2. General deployment flags:
    - **start:** Determines which components to deploy and start in the cluster.
-        `all` (defualt) starts the clusterlink operator, converts the peer certificates to secrets,
+        `all` (default) starts the clusterlink operator, converts the peer certificates to secrets,
         and deploys the operator ClusterLink custom resource to create the ClusterLink components.
-        `operator`, deploys only the `ClusterLink` operator and convert the peer certificates to secrets.
-        `none`, doesn't deploy anything but creates ClusterLink custom resource YAML.
-   - **path**: represents the path where the peer and fabric certificates are stored,
-        By default is the working current working directory.
+        `operator` deploys only the `ClusterLink` operator and convert the peer certificates to secrets.
+        `none` doesn't deploy anything but creates the ClusterLink custom resource YAML.
+   - **path**: Represents the path where the peer and fabric certificates are stored,
+        by default is the working current working directory.
 
 ## Manual Deployment without CLI
 

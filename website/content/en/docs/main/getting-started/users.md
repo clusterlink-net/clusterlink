@@ -4,7 +4,7 @@ description: Installing and configuring a basic ClusterLink deployment
 weight: 22
 ---
 
-This guide will give you a quick start on installing and setting up the ClusterLink on a Kubernetes cluster.
+This guide will give you a quick start on installing and setting up ClusterLink on a Kubernetes cluster.
 
 ## Prerequisites
 
@@ -49,11 +49,9 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
    This command will create the certificate files `cert.pem` and `key.pem`
     in a directory named `<fabric_name>`/`<peer_name>`.
     The `--path <path>` flag can be used to change the directory location.
-    The `--name` option is optional, and by default, "default_fabric" will be used.
+    Here too, the `--name` option is optional, and by default, "default_fabric" will be used.
 
-{{< notice note >}}
-All the peer certificates in the fabric should be created from the same fabric CA files in step 1.
-{{< /notice >}}
+**All the peer certificates in the fabric should be created from the same fabric CA files in step 1.**
 
 1. {{< anchor install-cl-operator >}}Install ClusterLink deployment:
 
@@ -79,7 +77,7 @@ Deploy ClusterLink in a console with access to the cluster (step 3).
 
 ## Try it out
 
-Check out the [ClusterLink Tutorials][] for setting up multi-cluster connectivity
+Check out the [ClusterLink tutorials][] for setting up multi-cluster connectivity
  for applications using two or more clusters.
 
 ## Uninstall ClusterLink
@@ -108,6 +106,12 @@ This command  using the current `kubectl` context.
    rm `which clusterlink`
    ```
 
-[kind]: https://kind.sigs.k8s.io/)
-[ClusterLink deployment operator]: {{< relref "../tasks/operator" >}}
+## Links for further information
+
+* [Kind](https://kind.sigs.k8s.io/)
+* [ClusterLink deployment operator][]
+* [ClusterLink tutorials][]
+
+[Kind]: https://kind.sigs.k8s.io/docs/user/quick-start/
+[ClusterLink deployment operator]: {{< relref "../tasks/operator/" >}}
 [ClusterLink tutorials]: {{< relref "../tutorials/" >}}

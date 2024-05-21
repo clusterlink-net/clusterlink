@@ -44,7 +44,7 @@ This command will create the CA files `cert.pem` and `key.pem` in a directory na
 ## Related tasks
 
 Once a Fabric has been created and initialized, you can proceed with configuring
- [peers][]. For a complete, end to end, use case please refer to the
+ [peers][]. For a complete, end-to-end use case, please refer to the
  [iperf tutorial][].
 
 [peers]: {{< relref "peers" >}}

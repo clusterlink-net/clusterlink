@@ -37,10 +37,10 @@ ClusterLink uses a set of unprivileged gateways serving connections to and from 
 
 ## Why is it unique?
 
-The distributed control plane and the fine grained connection establishment control are the main
+The distributed control plane and the fine-grained connection establishment control are the main
  advantages of ClusterLink over some of its competitors. Performance evaluation on clusters deployed in the same
  Google Cloud zone shows that ClusterLink can outperform some existing solutions by almost 2× while providing
- fine grained authorization on a per connection basis.
+ fine-grained authorization on a per connection basis.
 
 ## Where should I go next?
 

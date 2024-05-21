@@ -8,7 +8,7 @@ We use [Hugo][] to format and generate our [website][], the [Docsy][] theme
  for styling and site structure, and [Netlify][] to manage the deployment of the site.
  Hugo is an open-source static site generator that provides us with templates,
  content organization in a standard directory structure, and a website generation
- engine. You write the pages in Markdown (or HTML if you want), and Hugo wraps
+ engine. We write the pages in Markdown (or HTML if you want), and Hugo wraps
  them up into a website.
 
 All submissions, including submissions by project members, require review. We
