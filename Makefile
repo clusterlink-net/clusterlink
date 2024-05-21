@@ -116,7 +116,6 @@ codegen: controller-gen  ## Generate ClusterRole, CRDs and DeepCopyObject.
 
 cli-build:
 	@echo "Start go build phase"
-	$(GO) build -o $(BIN_DIR)/gwctl $(LD_FLAGS) ./cmd/gwctl
 	$(GO) build -o $(BIN_DIR)/clusterlink $(LD_FLAGS) ./cmd/clusterlink
 
 build: cli-build
@@ -129,7 +128,6 @@ docker-build: build
 	docker build --platform $(PLATFORMS) --progress=plain --rm --tag cl-controlplane -f ./cmd/cl-controlplane/Dockerfile .
 	docker build --platform $(PLATFORMS) --progress=plain --rm --tag cl-dataplane -f ./cmd/cl-dataplane/Dockerfile .
 	docker build --platform $(PLATFORMS) --progress=plain --rm --tag cl-go-dataplane -f ./cmd/cl-go-dataplane/Dockerfile .
-	docker build --platform $(PLATFORMS) --progress=plain --rm --tag gwctl -f ./cmd/gwctl/Dockerfile .
 	docker build --platform $(PLATFORMS) --progress=plain --rm --tag cl-operator -f ./cmd/cl-operator/Dockerfile .
 
 push-image: build
@@ -137,11 +135,9 @@ push-image: build
 	docker buildx build --platform $(PLATFORMS) --progress=plain --rm --tag $(IMAGE_BASE)/cl-go-dataplane:$(IMAGE_VERSION) --push  -f ./cmd/cl-go-dataplane/Dockerfile .
 	docker buildx build --platform $(PLATFORMS) --progress=plain --rm --tag $(IMAGE_BASE)/cl-dataplane:$(IMAGE_VERSION) --push  -f ./cmd/cl-dataplane/Dockerfile .
 	docker buildx build --platform $(PLATFORMS) --progress=plain --rm --tag $(IMAGE_BASE)/cl-operator:$(IMAGE_VERSION) --push -f ./cmd/cl-operator/Dockerfile .
-	docker buildx build --platform $(PLATFORMS) --progress=plain --rm --tag $(IMAGE_BASE)/gwctl:$(IMAGE_VERSION) --push -f ./cmd/gwctl/Dockerfile .
 
 install:
 	mkdir -p ~/.local/bin
-	cp ./bin/gwctl ~/.local/bin/
 	cp ./bin/clusterlink ~/.local/bin/
 
 clean-tests:

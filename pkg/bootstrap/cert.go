@@ -101,20 +101,6 @@ func CreateDataplaneCertificate(peer string, peerCert *Certificate) (*Certificat
 	return &Certificate{cert: cert}, nil
 }
 
-// CreatePeerCertificate creates a gwctl certificate.
-func CreateGWCTLCertificate(peerCert *Certificate) (*Certificate, error) {
-	cert, err := createCertificate(&certificateConfig{
-		Parent:   peerCert.cert,
-		Name:     "gwctl",
-		IsClient: true,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &Certificate{cert: cert}, nil
-}
-
 // CertificateFromRaw initializes a certificate from raw data.
 func CertificateFromRaw(rawCert, rawKey []byte) (*Certificate, error) {
 	cert, err := certificateFromRaw(rawCert, rawKey)

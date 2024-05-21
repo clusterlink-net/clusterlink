@@ -137,28 +137,12 @@ type Manager struct {
 
 	client    client.Client
 	namespace string
-	crdMode   bool
 	ports     *portManager
 
 	lock            sync.Mutex
 	serviceToImport map[string]types.NamespacedName
 
-	// callback for getting all merge imports (for non-CRD mode)
-	getMergeImportListCallback func() *v1alpha1.ImportList
-	// callback for getting an import (for non-CRD mode)
-	getImportCallback func(name string, imp *v1alpha1.Import) error
-	// callback for setting the status of an export (for non-CRD mode)
-	exportStatusCallback func(*v1alpha1.Export)
-
 	logger *logrus.Entry
-}
-
-func (m *Manager) SetGetMergeImportListCallback(callback func() *v1alpha1.ImportList) {
-	m.getMergeImportListCallback = callback
-}
-
-func (m *Manager) SetGetImportCallback(callback func(name string, imp *v1alpha1.Import) error) {
-	m.getImportCallback = callback
 }
 
 // AddImport adds a listening socket for an imported remote service.
@@ -171,10 +155,6 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 	}
 
 	defer func() {
-		if !m.crdMode {
-			return
-		}
-
 		serviceValidCond := &metav1.Condition{
 			Type:   v1alpha1.ImportServiceValid,
 			Status: metav1.ConditionTrue,
@@ -308,10 +288,6 @@ func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) e
 	return errors.Join(errs...)
 }
 
-func (m *Manager) SetExportStatusCallback(callback func(*v1alpha1.Export)) {
-	m.exportStatusCallback = callback
-}
-
 // AddExport defines a new route target for ingress dataplane connections.
 func (m *Manager) AddExport(ctx context.Context, export *v1alpha1.Export) (err error) {
 	m.logger.Infof("Adding export '%s/%s'.", export.Namespace, export.Name)
@@ -336,20 +312,15 @@ func (m *Manager) AddExport(ctx context.Context, export *v1alpha1.Export) (err e
 			m.logger.Infof(
 				"Updating export '%s/%s' status: %v.",
 				export.Namespace, export.Name, *conditions)
-			if m.exportStatusCallback != nil {
-				m.exportStatusCallback(export)
-			} else {
-				// CRD-mode
-				statusError := m.client.Status().Update(ctx, export)
-				if statusError != nil {
-					if err == nil {
-						err = statusError
-						return
-					}
-
-					m.logger.Warnf("Error updating export status: %v.", statusError)
+			statusError := m.client.Status().Update(ctx, export)
+			if statusError != nil {
+				if err == nil {
+					err = statusError
 					return
 				}
+
+				m.logger.Warnf("Error updating export status: %v.", statusError)
+				return
 			}
 		}
 
@@ -407,8 +378,9 @@ func (m *Manager) addEndpointSlice(ctx context.Context, endpointSlice *discv1.En
 	if endpointSlice.Labels[discv1.LabelServiceName] == dpapp.Name && endpointSlice.Namespace == m.namespace {
 		m.logger.Infof("Adding a dataplane endpoint slice: %s", endpointSlice.Name)
 
-		mergeImportList, err := m.getMergeImportList(ctx)
-		if err != nil {
+		mergeImportList := v1alpha1.ImportList{}
+		labelSelector := client.MatchingLabels{v1alpha1.LabelImportMerge: "true"}
+		if err := m.client.List(ctx, &mergeImportList, labelSelector); err != nil {
 			return err
 		}
 
@@ -465,10 +437,6 @@ func (m *Manager) deleteEndpointSlice(ctx context.Context, name types.Namespaced
 }
 
 func (m *Manager) checkExportService(ctx context.Context, name types.NamespacedName) error {
-	if !m.crdMode {
-		return nil
-	}
-
 	var export v1alpha1.Export
 	if err := m.client.Get(ctx, name, &export); err != nil {
 		if !k8serrors.IsNotFound(err) {
@@ -483,7 +451,7 @@ func (m *Manager) checkExportService(ctx context.Context, name types.NamespacedN
 
 func (m *Manager) checkImportService(ctx context.Context, name types.NamespacedName) error {
 	var imp v1alpha1.Import
-	if err := m.getImport(ctx, name, &imp); err != nil {
+	if err := m.client.Get(ctx, name, &imp); err != nil {
 		if !k8serrors.IsNotFound(err) {
 			return err
 		}
@@ -505,7 +473,7 @@ func (m *Manager) checkImportService(ctx context.Context, name types.NamespacedN
 		return nil
 	}
 
-	if err := m.getImport(ctx, name, &imp); err != nil {
+	if err := m.client.Get(ctx, name, &imp); err != nil {
 		if !k8serrors.IsNotFound(err) {
 			return err
 		}
@@ -530,12 +498,10 @@ func (m *Manager) allocateTargetPort(ctx context.Context, imp *v1alpha1.Import) 
 	if imp.Spec.TargetPort == 0 {
 		imp.Spec.TargetPort = leasedPort
 
-		if m.crdMode {
-			m.logger.Infof("Updating target port for import %v.", name)
-			if err := m.client.Update(ctx, imp); err != nil {
-				m.ports.Release(name)
-				return err
-			}
+		m.logger.Infof("Updating target port for import %v.", name)
+		if err := m.client.Update(ctx, imp); err != nil {
+			m.ports.Release(name)
+			return err
 		}
 	}
 
@@ -638,7 +604,7 @@ func (m *Manager) checkEndpointSlice(ctx context.Context, namespace, endpointSli
 	var imp v1alpha1.Import
 	var dataplaneEndpointSlice discv1.EndpointSlice
 	shouldDelete := false
-	if err := m.getImport(ctx, types.NamespacedName{
+	if err := m.client.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
 		Name:      parsed.importName,
 	}, &imp); err != nil {
@@ -756,7 +722,7 @@ func (m *Manager) addImportEndpointSlices(ctx context.Context, imp *v1alpha1.Imp
 	}
 
 	if err := m.client.Get(ctx, importName, &v1.Service{}); err != nil {
-		if k8serrors.IsNotFound(err) && m.crdMode {
+		if k8serrors.IsNotFound(err) {
 			return &importServiceNotExistError{name: importName}
 		}
 
@@ -806,28 +772,6 @@ func (m *Manager) deleteImportEndpointSlices(ctx context.Context, imp types.Name
 	}
 
 	return nil
-}
-
-func (m *Manager) getImport(ctx context.Context, name types.NamespacedName, imp *v1alpha1.Import) error {
-	if m.getImportCallback != nil {
-		return m.getImportCallback(name.Name, imp)
-	}
-
-	return m.client.Get(ctx, name, imp)
-}
-
-func (m *Manager) getMergeImportList(ctx context.Context) (*v1alpha1.ImportList, error) {
-	if m.getMergeImportListCallback != nil {
-		return m.getMergeImportListCallback(), nil
-	}
-
-	mergeImportList := v1alpha1.ImportList{}
-	labelSelector := client.MatchingLabels{v1alpha1.LabelImportMerge: "true"}
-	if err := m.client.List(ctx, &mergeImportList, labelSelector); err != nil {
-		return nil, err
-	}
-
-	return &mergeImportList, nil
 }
 
 func checkServiceLabels(service *v1.Service, importName types.NamespacedName) bool {
@@ -945,14 +889,13 @@ func endpointSliceChanged(endpointSlice1, endpointSlice2 *discv1.EndpointSlice) 
 }
 
 // NewManager returns a new control manager.
-func NewManager(cl client.Client, peerTLS *tls.ParsedCertData, namespace string, crdMode bool) *Manager {
+func NewManager(cl client.Client, peerTLS *tls.ParsedCertData, namespace string) *Manager {
 	logger := logrus.WithField("component", "controlplane.control.manager")
 
 	return &Manager{
 		peerManager:     newPeerManager(cl, peerTLS),
 		client:          cl,
 		namespace:       namespace,
-		crdMode:         crdMode,
 		ports:           newPortManager(),
 		serviceToImport: make(map[string]types.NamespacedName),
 		logger:          logger,

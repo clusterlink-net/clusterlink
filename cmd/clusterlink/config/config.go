@@ -24,25 +24,15 @@ const (
 	CertificateFileName = "cert.pem"
 	// DefaultFabric is the default fabric name.
 	DefaultFabric = "default_fabric"
-	// DockerRunFile is the filename of the docker-run script.
-	DockerRunFile = "docker-run.sh"
-	// GWCTLInitFile is the filename of the gwctl-init script.
-	GWCTLInitFile = "gwctl-init.sh"
 	// K8SYAMLFile is the filename of the kubernetes deployment yaml file.
 	K8SYAMLFile = "k8s.yaml"
-	// K8SSecretYAMLFile is the filename of the kubernetes secrets yaml file.
-	K8SSecretYAMLFile = "cl-secret.yaml" //nolint:gosec // G101(Potential hardcoded credentials): Enable secret usage in filenames.
 	// K8SClusterLinkInstanceYAMLFile is the filename of the ClusterLink instance CRD file that will use by the operator.
 	K8SClusterLinkInstanceYAMLFile = "cl-instance.yaml"
-	// PersistencyDirectoryName is the directory name containing container persisted files.
-	PersistencyDirectoryName = "persist"
 
 	// ControlplaneDirectoryName is the directory name containing controlplane server configuration.
 	ControlplaneDirectoryName = "controlplane"
 	// DataplaneDirectoryName is the directory name containing dataplane server configuration.
 	DataplaneDirectoryName = "dataplane"
-	// GWCTLDirectoryName is the directory name containing gwctl certificates.
-	GWCTLDirectoryName = "gwctl"
 
 	// GHCR is the path to the GitHub container registry.
 	GHCR = "ghcr.io/clusterlink-net"
@@ -68,11 +58,6 @@ func ControlplaneDirectory(peer, fabric, path string) string {
 // DataplaneDirectory returns the path for a dataplane server.
 func DataplaneDirectory(peer, fabric, path string) string {
 	return filepath.Join(PeerDirectory(peer, fabric, path), DataplaneDirectoryName)
-}
-
-// GWCTLDirectory returns the path for a gwctl instance.
-func GWCTLDirectory(peer, fabric, path string) string {
-	return filepath.Join(PeerDirectory(peer, fabric, path), GWCTLDirectoryName)
 }
 
 // FabricCertificate returns the fabric certificate name.

@@ -242,11 +242,10 @@ class ClusterLink:
         runcmdDir(f"{CL_CLI} create peer-cert --name {name}",dir)
 
     # deploy_peer deploys clusterlink to the cluster using ClusterLink CLI.
-    def deploy_peer(self, name, dir, logLevel="info", dataplane="envoy", container_reg="", CRDMode=True, ingress_type="", ingress_port=0):
+    def deploy_peer(self, name, dir, logLevel="info", dataplane="envoy", container_reg="", ingress_type="", ingress_port=0):
         flag = f"--container-registry={container_reg} " if container_reg != "" else ""
         flag += f"--ingress={ingress_type} " if ingress_type != "" else ""
         flag += f"--ingress-port={ingress_port} " if ingress_port != 0 else ""
-        flag += "--crd-mode=true " if CRDMode else ""
         runcmdDir(f"{CL_CLI} deploy peer --name {name} --log-level {logLevel} --dataplane {dataplane} {flag}",dir)
         waitPod("cl-controlplane", CLUSTELINK_NS)
         waitPod("cl-dataplane", CLUSTELINK_NS)

@@ -150,7 +150,6 @@ To deploy the ClusterLink without using the CLI, follow the instructions below:
     kubectl create secret generic cl-peer -n clusterlink-system --from-file=ca=$CERTS /peer1/cert.pem
     kubectl create secret generic cl-controlplane -n clusterlink-system --from-file=cert=$CERTS /peer1/controlplane/cert.pem --from-file=key=$CERTS /peer1/controlplane/key.pem
     kubectl create secret generic cl-dataplane -n clusterlink-system --from-file=cert=$CERTS /peer1/dataplane/cert.pem --from-file=key=$CERTS /peer1/dataplane/key.pem
-    kubectl create secret generic gwctl -n clusterlink-system --from-file=cert=$CERTS /peer1/gwctl/cert.pem --from-file=key=$CERTS /peer1/gwctl/key.pem
     ```
 
 5. Deploy a ClusterLink K8s custom resource object:
