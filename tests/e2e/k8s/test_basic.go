@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -16,6 +16,7 @@ package k8s
 import (
 	"fmt"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -161,6 +162,11 @@ func (s *TestSuite) TestControlplaneCRUD() {
 		// list peers
 		objects, err = client0.Peers.List()
 		require.Nil(s.T(), err)
+		if !assert.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Peer), []v1alpha1.Peer{peerFromServer}) {
+			objects, err = client0.Peers.Get(peer.Name)
+			require.Nil(s.T(), err)
+			peerFromServer = *objects.(*v1alpha1.Peer)
+		}
 		require.ElementsMatch(s.T(), *objects.(*[]v1alpha1.Peer), []v1alpha1.Peer{peerFromServer})
 
 		// add another peer (for upcoming load-balancing test)

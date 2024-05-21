@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -97,6 +97,7 @@ type Manager struct {
 	loadBalancer    *LoadBalancer
 	connectivityPDP *connectivitypdp.PDP
 
+	peerName   string
 	peerTLS    *tls.ParsedCertData
 	peerLock   sync.RWMutex
 	peerClient map[string]*peer.Client
@@ -206,7 +207,7 @@ func (m *Manager) getPodInfoByIP(ip string) *podInfo {
 func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationRequest) (*egressAuthorizationResponse, error) {
 	m.logger.Infof("Received egress authorization request: %v.", req)
 
-	srcAttributes := connectivitypdp.WorkloadAttrs{}
+	srcAttributes := connectivitypdp.WorkloadAttrs{GatewayNameLabel: m.peerName}
 	podInfo := m.getPodInfoByIP(req.IP)
 	if podInfo != nil {
 		srcAttributes[ServiceNamespaceLabel] = podInfo.namespace
@@ -362,6 +363,7 @@ func (m *Manager) authorizeIngress(
 	dstAttributes := connectivitypdp.WorkloadAttrs{
 		ServiceNameLabel:      req.ServiceName.Name,
 		ServiceNamespaceLabel: req.ServiceName.Namespace,
+		GatewayNameLabel:      m.peerName,
 	}
 	decision, err := m.connectivityPDP.Decide(srcAttributes, dstAttributes, req.ServiceName.Namespace)
 	if err != nil {
@@ -442,11 +444,17 @@ func NewManager(peerTLS *tls.ParsedCertData, cl client.Client, namespace string)
 		return nil, fmt.Errorf("unable to create JWK verifing key: %w", err)
 	}
 
+	dnsNames := peerTLS.DNSNames()
+	if len(dnsNames) == 0 {
+		return nil, fmt.Errorf("expected peer certificate to contain at least one DNS name")
+	}
+
 	return &Manager{
 		client:          cl,
 		namespace:       namespace,
 		connectivityPDP: connectivitypdp.NewPDP(),
 		loadBalancer:    NewLoadBalancer(),
+		peerName:        dnsNames[0],
 		peerTLS:         peerTLS,
 		peerClient:      make(map[string]*peer.Client),
 		jwkSignKey:      jwkSignKey,

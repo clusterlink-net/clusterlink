@@ -6,23 +6,23 @@ weight: 20
 
 A *Peer* represents a location, such as a Kubernetes cluster, participating in a
  [fabric][]. Each peer may host one or more [services][]
- that it wishes to share with other peers. A peer is managed by a peer administrator,
+ that it may wish to share with other peers. A peer is managed by a peer administrator,
  which is responsible for running the ClusterLink control and data planes. The
  administrator will typically deploy the ClusterLink components by configuring
- the [deployment CR][operator-cr]. They may also wish to provide
- (often) coarse-grained access policies in accordance with high level corporate
+ the [Deployment Custom Resource (CR)][operator-cr]. They may also wish to provide
+ (often) coarse-grained access policies (and often do) in accordance with high level corporate
  policies (e.g., "production peers should only communicate with other production peers").
 
 Once a peer has been added to a fabric, it can communicate with any other peer
  belonging to it. All configuration relating to service sharing (e.g., the exporting
  and importing of services, and the setting of fine grained application policies) can be
  done with lowered privileges (e.g., by users, such as application owners). Remote peers are
- represented by the peer Custom Resource Definition (CRD). Each peer CRD instance
+ represented by the Peer Custom Resources (CRs). Each peer CR instance
  defines a remote cluster and the network endpoints of its ClusterLink gateways.
 
 ## Prerequisites
 
-The following assume that you have access to the ClusterLink CLI and one or more
+The following sections assume that you have access to the `clusterlink` CLI and one or more
  peers (i.e., clusters) where you'll deploy ClusterLink. The CLI can be downloaded
  from the ClusterLink [releases page on GitHub][].
  It also assumes that you have access to the [previously created fabric][]
@@ -37,8 +37,9 @@ Creating a new peer is a **fabric administrator** level operation and should be 
 
 ### Create a new peer certificate
 
-To create a new peer certificate belonging to a fabric, confirm that the fabric CA files
- are available in the current working directory, and then execute the following CLI command:
+To create a new peer certificate belonging to a fabric, confirm that the fabric
+ Certificate Authority (CA) files are available in the current working directory,
+ and then execute the following CLI command:
 
 ```sh
 clusterlink create peer-cert --name <peer_name> --fabric <fabric_name>
@@ -55,9 +56,9 @@ This will create the certificate and private key files (`cert.pem` and
  You can override the default by setting the `--output <path>` option.
 
 {{< notice info >}}
-You will need the CA certificate (but **not** the CA private key) and the peer certificate
- and private in the next step. They can be provided out of band (e.g., over email) to the
- peer administrator.
+You will need the CA certificate (but **not** the CA private key) and the peer's certificate
+ and private key pair in the next step. They can be provided out of band (e.g., over email) to the
+ peer administrator or by any other means for secure transfer of sensitive data.
 {{< /notice >}}
 
 ## Deploy ClusterLink to a new peer
@@ -67,9 +68,12 @@ This operation is typically done by a local **peer administrator**, usually diff
  than the **fabric administrator**.
 {{< /notice >}}
 
-Before proceeding, ensure that the CA certificate (the CA private key is not needed),
- and the peer certificate and key files which were created in the previous step are
- in the current working directory.
+Before proceeding, ensure that the following files (created in the previous step) are
+ available in the current working directory:
+
+ 1. CA certificate;
+ 1. peer certificate; and
+ 1. peer private key.
 
 ### Install the ClusterLink deployment operator
 
@@ -180,7 +184,7 @@ There are two fundamental attributes in the peer CRD: the peer name and the list
  during connection establishment. The name is used by importers in referencing an export
  (see [services][] for details).
 
-Gateway endpoint would typically be a implemented via a `NodePort` or `LoadBalancer`
+Gateway endpoint would typically be implemented via a `NodePort` or `LoadBalancer`
  K8s service. A `NodePort` service would typically be used in local deployments
  (e.g., when running in kind clusters during development) and a `LoadBalancer` service
  would be used in cloud-based deployments. These can be automatically configured and

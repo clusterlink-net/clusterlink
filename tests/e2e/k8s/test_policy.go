@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -40,15 +40,19 @@ func (s *TestSuite) TestPolicyLabels() {
 	// 1. Create a policy that allows traffic only to the echo service at cl[0] - apply in cl[1] (on egress)
 	//    In addition, create a policy to only allow traffic from cl[1] - apply in cl[0] (on ingress)
 	allowEchoPolicyName := "allow-access-to-echo-svc"
-	dstLabels := map[string]string{
+	srcLabels := map[string]string{ // allow traffic only from cl1
+		authz.GatewayNameLabel: cl[1].Name(),
+	}
+	dstLabels := map[string]string{ // allow traffic only to echo in cl1
 		authz.ServiceNameLabel: httpEchoService.Name,
 		authz.GatewayNameLabel: cl[0].Name(),
 	}
-	allowEchoPolicy := util.NewPolicy(allowEchoPolicyName, v1alpha1.AccessPolicyActionAllow, nil, dstLabels)
+	allowEchoPolicy := util.NewPolicy(allowEchoPolicyName, v1alpha1.AccessPolicyActionAllow, srcLabels, dstLabels)
 	require.Nil(s.T(), cl[1].CreatePolicy(allowEchoPolicy))
 
-	srcLabels := map[string]string{authz.GatewayNameLabel: cl[1].Name()}
-	specificSrcPeerPolicy := util.NewPolicy("specific-peer", v1alpha1.AccessPolicyActionAllow, srcLabels, nil)
+	srcLabels = map[string]string{authz.GatewayNameLabel: cl[1].Name()} // allow traffic only from cl1
+	dstLabels = map[string]string{authz.GatewayNameLabel: cl[0].Name()} // allow traffic only to cl0
+	specificSrcPeerPolicy := util.NewPolicy("specific-peer", v1alpha1.AccessPolicyActionAllow, srcLabels, dstLabels)
 	require.Nil(s.T(), cl[0].CreatePolicy(specificSrcPeerPolicy))
 
 	data, err := cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
