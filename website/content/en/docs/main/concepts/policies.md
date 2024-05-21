@@ -14,7 +14,7 @@ Access policies allow users and administrators fine-grained control over
 
 ClusterLink's access policies are based on attributes that are attached to
  [peers][], [services][] and client workloads.
- Each attribute is a key-value pair, similar to how [labels][]
+ Each attribute is a key/value pair, similar to how [labels][]
  are used in Kubernetes. This approach, called ABAC (Attribute Based Access Control),
  allows referring to a set of entities in a single policy, rather than listing individual
  entity names. Using attributes is safer, more resilient to changes, and easier to

@@ -9,7 +9,7 @@ This guide will give you a quick start on installing and setting up ClusterLink 
 ## Prerequisites
 
 Before you start, you must have access to a Kubernetes cluster.
-For example, you can set up a local environment using [kind](https://kind.sigs.k8s.io/docs/user/quick-start/).
+For example, you can set up a local environment using [kind][].
 
 ## Installation
 
@@ -77,7 +77,7 @@ Deploy ClusterLink in a console with access to the cluster (step 3).
 
 ## Try it out
 
-Check out the [ClusterLink Tutorials][tutorials] for setting up multi-cluster connectivity
+Check out the [ClusterLink tutorials][] for setting up multi-cluster connectivity
  for applications using two or more clusters.
 
 ## Uninstall ClusterLink
@@ -112,5 +112,6 @@ This command  using the current `kubectl` context.
 * [ClusterLink deployment operator][]
 * [ClusterLink tutorials][]
 
+[Kind]: https://kind.sigs.k8s.io/docs/user/quick-start/
 [ClusterLink deployment operator]: {{< relref "../tasks/operator/" >}}
 [ClusterLink tutorials]: {{< relref "../tutorials/" >}}

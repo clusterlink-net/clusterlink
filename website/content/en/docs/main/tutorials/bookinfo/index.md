@@ -10,9 +10,9 @@ The tutorial shows different load-balancing policies like: random, round robin o
 For more details, see the [policies documentation][].
 This test creates three kind clusters:
 
-* Two Product Page microservices (application frontend) and a details microservice run on the first cluster.
-* The Reviews-V2 (display rating with black stars) and Rating microservices run on the second cluster.
-* The Reviews-V3 (display rating with red stars) and Rating microservices run on the third cluster.
+* Two productpage microservices (application frontend) and a details microservice run on the first cluster.
+* The reviews-v2 (display rating with black stars) and rating microservices run on the second cluster.
+* The reviews-v3 (display rating with red stars) and rating microservices run on the third cluster.
 
 System illustration:
 
@@ -75,7 +75,6 @@ kubectl apply -f $BOOKINFO_FILES/review/rating.yaml
 kubectl config use-context kind-server2
 kubectl apply -f $BOOKINFO_FILES/review/review-v3.yaml
 kubectl apply -f $BOOKINFO_FILES/review/rating.yaml
-
 ```
 
 ## Deploy ClusterLink
@@ -127,8 +126,8 @@ kubectl apply -f $BOOKINFO_FILES/review/rating.yaml
 ## Enable cross-cluster access
 
 In this step, we enable connectivity access for the BookInfo application
- by connecting the Product Page service (client) to the Reviews-V2 service (server1)
- and Reviews-V3 (server2). We establish connections between the peers, export the reviews service on the server side,
+ by connecting the productpage service (client) to the reviews-v2 service (server1)
+ and reviews-v3 (server2). We establish connections between the peers, export the reviews service on the server side,
  import the reviews service on the client side, and create a policy to allow the connection.
 
 Note that the provided YAML configuration files refer to environment variables
@@ -169,7 +168,7 @@ brew link --force gettext
 
 ## BookInfo test
 
-To run the BookInfo application use a Firefox web browser to connect the ProductPage microservice:
+To run the BookInfo application use a Firefox web browser to connect the productpage microservice:
 
   ```sh
   kubectl config use-context kind-client
@@ -184,8 +183,8 @@ By default, a round robin policy is set.
 ## Apply privileged access policy
 
 In the previous steps, an unprivileged access policy was set to allow connectivity.
-To enforce high-priority policy use the `PrivilegedAccessPolicy` CRD.
-In this example, we enforce that the ProductPage service can access only Reviews-V3 from server2,
+To enforce high-priority policy use the `PrivilegedAccessPolicy` CR.
+In this example, we enforce that the productpage service can access only reviews-v3 from server2,
 and deny all services from server1:
 
 {{< tabpane text=true >}}

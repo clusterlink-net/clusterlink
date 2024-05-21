@@ -51,7 +51,7 @@ $ go test -v ./tests/e2e/k8s -testify.m TestConnectivity
 All pull requests undergo automated testing before being merged. This includes, for example,
  linting, end-to-end tests and DCO validation. Logs in CICD default to `info` level, and
  can be increased to `debug` by setting environment variable `DEBUG=1`. You can also enable
- debug logging from the UI when re-running a CICD job, by selecting "enable debug logging."
+ debug logging from the UI when re-running a CICD job, by selecting "enable debug logging".
 
 ## Release management
 
