@@ -21,10 +21,6 @@ import (
 const (
 	// RemotePeerAuthorizationPath is the path remote peers use to send an authorization request.
 	RemotePeerAuthorizationPath = "/authz"
-	// DataplaneEgressAuthorizationPath is the path the dataplane uses to authorize an egress connection.
-	DataplaneEgressAuthorizationPath = "/authz/egress/"
-	// DataplaneIngressAuthorizationPath is the path the dataplane uses to authorize an ingress connection.
-	DataplaneIngressAuthorizationPath = "/authz/ingress/"
 
 	// ImportNameHeader holds the name of the imported service.
 	ImportNameHeader = "x-import-name"
@@ -38,6 +34,9 @@ const (
 
 	// TargetClusterHeader holds the name of the target cluster.
 	TargetClusterHeader = "host"
+
+	// AccessTokenHeader holds the access token for an exported service, sent back by the server.
+	AccessTokenHeader = "x-access-token"
 
 	// JWTSignatureAlgorithm defines the signing algorithm for JWT tokens.
 	JWTSignatureAlgorithm = jwa.RS256
@@ -55,10 +54,4 @@ type AuthorizationRequest struct {
 	ServiceNamespace string
 	// Attributes of the source workload, to be used by the PDP on the remote peer
 	SrcAttributes connectivitypdp.WorkloadAttrs
-}
-
-// AuthorizationResponse represents a response for a successful AuthorizationRequest.
-type AuthorizationResponse struct {
-	// AccessToken holds an access token which can be used to access the requested exported service.
-	AccessToken string
 }

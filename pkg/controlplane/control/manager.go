@@ -39,7 +39,6 @@ import (
 
 	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
-	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 const (
@@ -889,11 +888,11 @@ func endpointSliceChanged(endpointSlice1, endpointSlice2 *discv1.EndpointSlice) 
 }
 
 // NewManager returns a new control manager.
-func NewManager(cl client.Client, peerTLS *tls.ParsedCertData, namespace string) *Manager {
+func NewManager(cl client.Client, namespace string) *Manager {
 	logger := logrus.WithField("component", "controlplane.control.manager")
 
 	return &Manager{
-		peerManager:     newPeerManager(cl, peerTLS),
+		peerManager:     newPeerManager(cl),
 		client:          cl,
 		namespace:       namespace,
 		ports:           newPortManager(),

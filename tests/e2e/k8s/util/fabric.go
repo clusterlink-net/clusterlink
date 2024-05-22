@@ -49,15 +49,41 @@ type peer struct {
 	AsyncRunner
 
 	cluster          *KindCluster
+	fabricCert       *bootstrap.Certificate
 	peerCert         *bootstrap.Certificate
+	caCert           *bootstrap.Certificate
 	controlplaneCert *bootstrap.Certificate
 	dataplaneCert    *bootstrap.Certificate
+}
+
+// CreatePeerCertificate creates the peer certificate.
+func (p *peer) CreatePeerCertificate() {
+	p.Run(func() error {
+		cert, err := bootstrap.CreatePeerCertificate(p.cluster.Name(), p.fabricCert)
+		if err != nil {
+			return fmt.Errorf("cannot create peer certificate: %w", err)
+		}
+
+		p.peerCert = cert
+		return nil
+	})
+}
+
+// CreateCACertificate creates the site CA certificate.
+func (p *peer) CreateCACertificate() error {
+	cert, err := bootstrap.CreateCACertificate()
+	if err != nil {
+		return fmt.Errorf("cannot create site CA certificate: %w", err)
+	}
+
+	p.caCert = cert
+	return nil
 }
 
 // CreateControlplaneCertificate creates the controlplane certificate.
 func (p *peer) CreateControlplaneCertificate() {
 	p.Run(func() error {
-		cert, err := bootstrap.CreateControlplaneCertificate(p.cluster.Name(), p.peerCert)
+		cert, err := bootstrap.CreateControlplaneCertificate(p.caCert)
 		if err != nil {
 			return fmt.Errorf("cannot create controlplane certificate: %w", err)
 		}
@@ -70,7 +96,7 @@ func (p *peer) CreateControlplaneCertificate() {
 // CreateDataplaneCertificate creates the dataplane certificate.
 func (p *peer) CreateDataplaneCertificate() {
 	p.Run(func() error {
-		cert, err := bootstrap.CreateDataplaneCertificate(p.cluster.Name(), p.peerCert)
+		cert, err := bootstrap.CreateDataplaneCertificate(p.caCert)
 		if err != nil {
 			return fmt.Errorf("cannot create dataplane certificate: %w", err)
 		}
@@ -95,12 +121,11 @@ func (f *Fabric) CreatePeer(cluster *KindCluster) {
 	p := &peer{cluster: cluster}
 	f.peers = append(f.peers, p)
 	f.Run(func() error {
-		cert, err := bootstrap.CreatePeerCertificate(p.cluster.Name(), f.cert)
-		if err != nil {
-			return fmt.Errorf("cannot create peer certificate: %w", err)
+		p.fabricCert = f.cert
+		p.CreatePeerCertificate()
+		if err := p.CreateCACertificate(); err != nil {
+			return err
 		}
-
-		p.peerCert = cert
 		p.CreateControlplaneCertificate()
 		p.CreateDataplaneCertificate()
 

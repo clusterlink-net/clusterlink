@@ -21,42 +21,65 @@ import (
 )
 
 // ParseFiles parses the given TLS-related files.
-func ParseFiles(ca, cert, key string) (*ParsedCertData, error) {
+func ParseFiles(ca, cert, key string) (*ParsedCertData, *RawCertData, error) {
 	rawCA, err := os.ReadFile(ca)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read CA file '%s': %w", ca, err)
+		return nil, nil, fmt.Errorf("unable to read CA file '%s': %w", ca, err)
 	}
 
 	rawCertificate, err := os.ReadFile(cert)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read certificate file: %w", err)
+		return nil, nil, fmt.Errorf("unable to read certificate file: %w", err)
 	}
 
 	rawPrivateKey, err := os.ReadFile(key)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read private key file: %w", err)
+		return nil, nil, fmt.Errorf("unable to read private key file: %w", err)
 	}
 
 	certificate, err := tls.X509KeyPair(rawCertificate, rawPrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse certificate keypair: %w", err)
+		return nil, nil, fmt.Errorf("unable to parse certificate keypair: %w", err)
 	}
 
 	caCertPool := x509.NewCertPool()
 	if !caCertPool.AppendCertsFromPEM(rawCA) {
-		return nil, fmt.Errorf("unable to parse CA file")
+		return nil, nil, fmt.Errorf("unable to parse CA file")
 	}
 
 	x509cert, err := x509.ParseCertificate(certificate.Certificate[0])
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse x509 certificate: %w", err)
+		return nil, nil, fmt.Errorf("unable to parse x509 certificate: %w", err)
 	}
 
 	return &ParsedCertData{
-		certificate: certificate,
-		ca:          caCertPool,
-		x509cert:    x509cert,
-	}, nil
+			certificate: certificate,
+			ca:          caCertPool,
+			x509cert:    x509cert,
+		}, &RawCertData{
+			certificate: rawCertificate,
+			key:         rawPrivateKey,
+			ca:          rawCA,
+		}, nil
+}
+
+// RawCertData contains a raw TLS certificate, private key, and CA.
+type RawCertData struct {
+	certificate []byte
+	key         []byte
+	ca          []byte
+}
+
+func (c *RawCertData) Certificate() []byte {
+	return c.certificate
+}
+
+func (c *RawCertData) Key() []byte {
+	return c.key
+}
+
+func (c *RawCertData) CA() []byte {
+	return c.ca
 }
 
 // ParsedCertData contains a parsed CA and TLS certificate.

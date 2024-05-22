@@ -35,7 +35,7 @@ import (
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
+	utiltls "github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 // Manager manages the core routing components of the dataplane.
@@ -47,6 +47,7 @@ import (
 type Manager struct {
 	clusters  *cache.LinearCache
 	listeners *cache.LinearCache
+	secrets   *cache.LinearCache
 
 	logger *logrus.Entry
 }
@@ -56,21 +57,30 @@ func (m *Manager) AddPeer(peer *v1alpha1.Peer) error {
 	m.logger.Infof("Adding peer '%s'.", peer.Name)
 
 	clusterName := cpapi.RemotePeerClusterName(peer.Name)
-	dataplaneSNI := dpapi.DataplaneSNI(peer.Name)
-	epc, err := makeEndpointsCluster(clusterName, peer.Spec.Gateways, dataplaneSNI)
+	epc, err := makeEndpointsCluster(clusterName, peer.Spec.Gateways, peer.Name+":443")
 	if err != nil {
 		return err
 	}
 
+	sdsConfig := &core.ConfigSource{
+		ConfigSourceSpecifier: &core.ConfigSource_Ads{
+			Ads: &core.AggregatedConfigSource{},
+		},
+		InitialFetchTimeout: durationpb.New(time.Second),
+		ResourceApiVersion:  core.ApiVersion_V3,
+	}
+
 	tlsConfig := &tls.UpstreamTlsContext{
-		Sni: dataplaneSNI,
+		Sni: peer.Name,
 		CommonTlsContext: &tls.CommonTlsContext{
 			TlsCertificateSdsSecretConfigs: []*tls.SdsSecretConfig{{
-				Name: cpapi.CertificateSecret,
+				Name:      cpapi.CertificateSecret,
+				SdsConfig: sdsConfig,
 			}},
 			ValidationContextType: &tls.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &tls.SdsSecretConfig{
-					Name: cpapi.ValidationSecret,
+					Name:      cpapi.ValidationSecret,
+					SdsConfig: sdsConfig,
 				},
 			},
 		},
@@ -141,7 +151,6 @@ func (m *Manager) AddImport(imp *v1alpha1.Import) error {
 
 	tunnelingConfig := &tcpproxy.TcpProxy_TunnelingConfig{
 		Hostname: egressRouterHostname,
-		UsePost:  true,
 		HeadersToAdd: []*core.HeaderValueOption{
 			{
 				Header: &core.HeaderValue{
@@ -200,6 +209,52 @@ func (m *Manager) DeleteImport(name types.NamespacedName) error {
 
 	listenerName := cpapi.ImportListenerName(name.Name, name.Namespace)
 	return m.listeners.DeleteResource(listenerName)
+}
+
+// SetPeerCertificates sets the TLS certificates used for peer-to-peer communication.
+func (m *Manager) SetPeerCertificates(rawCertData *utiltls.RawCertData) error {
+	m.logger.Info("Setting peer certificates.")
+
+	certificateSecret := &tls.Secret{
+		Name: cpapi.CertificateSecret,
+		Type: &tls.Secret_TlsCertificate{
+			TlsCertificate: &tls.TlsCertificate{
+				CertificateChain: &core.DataSource{
+					Specifier: &core.DataSource_InlineBytes{
+						InlineBytes: rawCertData.Certificate(),
+					},
+				},
+				PrivateKey: &core.DataSource{
+					Specifier: &core.DataSource_InlineBytes{
+						InlineBytes: rawCertData.Key(),
+					},
+				},
+			},
+		},
+	}
+
+	if err := m.secrets.UpdateResource(certificateSecret.Name, certificateSecret); err != nil {
+		return fmt.Errorf("error setting certificate secret: %w", err)
+	}
+
+	validationSecret := &tls.Secret{
+		Name: cpapi.ValidationSecret,
+		Type: &tls.Secret_ValidationContext{
+			ValidationContext: &tls.CertificateValidationContext{
+				TrustedCa: &core.DataSource{
+					Specifier: &core.DataSource_InlineBytes{
+						InlineBytes: rawCertData.CA(),
+					},
+				},
+			},
+		},
+	}
+
+	if err := m.secrets.UpdateResource(validationSecret.Name, validationSecret); err != nil {
+		return fmt.Errorf("error setting validation secret: %w", err)
+	}
+
+	return nil
 }
 
 func makeAddressCluster(name, addr string, port uint16, hostname string) (*cluster.Cluster, error) {
@@ -287,6 +342,7 @@ func NewManager() *Manager {
 	return &Manager{
 		clusters:  cache.NewLinearCache(resource.ClusterType, cache.WithLogger(logger)),
 		listeners: cache.NewLinearCache(resource.ListenerType, cache.WithLogger(logger)),
+		secrets:   cache.NewLinearCache(resource.SecretType, cache.WithLogger(logger)),
 		logger:    logger,
 	}
 }
