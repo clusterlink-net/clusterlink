@@ -1,6 +1,6 @@
 # Installation guide for ClusterLink
 
-The ClusterLink gateway contains three main components: the control-plane, data-plane, and gwctl (more details can be found [here](../README.md#what-is-clusterlink)).
+The ClusterLink gateway contains two main components: the control-plane and the data-plane (more details can be found [here](../README.md#what-is-clusterlink)).
 
 ClusterLink can be deployed in any K8s based cluster (e.g., google GKE, amazon EKS, IBM IKS, KIND etc.).
 
@@ -8,7 +8,6 @@ To deploy the ClusterLink gateway in a K8s cluster, follow these steps:
 
 1. Create and deploy certificates and the ClusterLink deployment YAML file.
 2. Expose the ClusterLink deployment to a public IP.
-3. Optionally, create a central gwctl component to control one or more gateways.
 
 Before you begin, please build the project according to the [instructions](../README.md#building-clustelink).
 
@@ -39,17 +38,15 @@ In this step, we generate the ClusterLink certificates and deployment files.
 
         kubectl apply -f $DEPLOY_DIR/peer1/k8s.yaml
 
-5) Verify that all components (cl-controlplane, cl-dataplane, gwctl) are set up and ready.
+5) Verify that all components (cl-controlplane, cl-dataplane) are set up and ready.
 
         kubectl rollout status deployment cl-controlplane
         kubectl rollout status deployment cl-dataplane
-        kubectl wait --for=condition=ready pod -l app=gwctl
 
     Expected output:
 
         deployment "cl-controlplane" successfully rolled out
         deployment "cl-dataplane" successfully rolled out
-        pod/gwctl condition met
 
 ## 2. Expose the ClusterLink deployment to a public IP
 
@@ -88,26 +85,6 @@ export PEER1_PORT=30443
         export PEER1_PORT=443
 
 Now, the ClusterLink gateway can be accessed through `$PEER1_IP` at port `$PEER1_PORT`.
-
-## 3. Create a central gwctl (optional)
-By default for each K8s cluster a gwctl pod is created that use REST APIs to send control messages to the
-ClusterLink gateway, using the command:
-
-    kubectl exec -i <gwctl_pod> -- gwctl <command>
-
-To create a single gwctl that controls one or more ClusterLink gateways, follow these steps:
-
-1. Install the local control (gwctl):
-
-        sudo make install
-
-2. Initialize the gwctl CLI for the cluster (e.g., peer1):
-
-        gwctl init --id peer1 --gwIP $PEER1_IP --gwPort $PEER1_PORT --certca $DEPLOY_DIR/cert.pem --cert $DEPLOY_DIR/peer1/gwctl/cert.pem --key $DEPLOY_DIR/peer1/gwctl/key.pem
-
-3. To run gwctl command:
-
-        gwctl --myid peer1 <command>
 
 ## Additional setup modes
 

@@ -32,8 +32,6 @@ type Config struct {
 	ControlplaneCertificate *bootstrap.Certificate
 	// DataplaneCertificate is the dataplane certificate.
 	DataplaneCertificate *bootstrap.Certificate
-	// GWCTLCertificate is the gwctl certificate.
-	GWCTLCertificate *bootstrap.Certificate
 
 	// Dataplanes is the number of dataplane servers to run.
 	Dataplanes uint16
@@ -52,8 +50,6 @@ type Config struct {
 	IngressPort uint16
 	// IngressAnnotations is the annotations added to the ingress service.
 	IngressAnnotations map[string]string
-	// CRDMode indicates a CRD-based controlplane.
-	CRDMode bool
 }
 
 const (

@@ -34,14 +34,11 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/control"
-	cprest "github.com/clusterlink-net/clusterlink/pkg/controlplane/rest"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/xds"
-	"github.com/clusterlink-net/clusterlink/pkg/store/kv"
-	"github.com/clusterlink-net/clusterlink/pkg/store/kv/bolt"
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
 	"github.com/clusterlink-net/clusterlink/pkg/util/grpc"
+	"github.com/clusterlink-net/clusterlink/pkg/util/http"
 	"github.com/clusterlink-net/clusterlink/pkg/util/log"
-	utilrest "github.com/clusterlink-net/clusterlink/pkg/util/rest"
 	"github.com/clusterlink-net/clusterlink/pkg/util/runnable"
 	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
@@ -80,9 +77,6 @@ type Options struct {
 	LogFile string
 	// LogLevel is the log level.
 	LogLevel string
-	// CRDMode indicates a k8s CRD-based controlplane.
-	// This flag will be removed once the CRD-based controlplane feature is complete and stable.
-	CRDMode bool
 }
 
 // AddFlags adds flags to fs and binds them to options.
@@ -91,7 +85,6 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 		"Path to a file where logs will be written. If not specified, logs will be printed to stderr.")
 	fs.StringVar(&o.LogLevel, "log-level", logLevel,
 		"The log level. One of fatal, error, warn, info, debug.")
-	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }
 
 // Run the various controlplane servers.
@@ -160,18 +153,15 @@ func (o *Options) Run() error {
 
 	managerOptions := manager.Options{
 		Cache: cache.Options{
-			ByObject: make(map[client.Object]cache.ByObject),
+			ByObject: map[client.Object]cache.ByObject{
+				&v1alpha1.Peer{}: {
+					Namespaces: map[string]cache.Config{
+						namespace: {},
+					},
+				},
+			},
 		},
 		Scheme: scheme,
-	}
-
-	// limit watch for v1alpha1.Peer and EndpointSlice to the namespace given by 'namespace'
-	if o.CRDMode {
-		managerOptions.Cache.ByObject[&v1alpha1.Peer{}] = cache.ByObject{
-			Namespaces: map[string]cache.Config{
-				namespace: {},
-			},
-		}
 	}
 
 	mgr, err := manager.New(config, managerOptions)
@@ -186,7 +176,7 @@ func (o *Options) Run() error {
 		grpcServerName: grpcServerAddress,
 	})
 
-	httpServer := utilrest.NewServer("controlplane-http", parsedCertData.ServerConfig())
+	httpServer := http.NewServer("controlplane-http", parsedCertData.ServerConfig())
 	grpcServer := grpc.NewServer("controlplane-grpc", parsedCertData.ServerConfig())
 
 	authzManager, err := authz.NewManager(parsedCertData, mgr.GetClient(), namespace)
@@ -194,63 +184,26 @@ func (o *Options) Run() error {
 		return fmt.Errorf("cannot create authorization manager: %w", err)
 	}
 
-	err = authz.CreateControllers(authzManager, mgr, o.CRDMode)
+	err = authz.CreateControllers(authzManager, mgr)
 	if err != nil {
 		return fmt.Errorf("cannot create authz controllers: %w", err)
 	}
 
-	authz.RegisterHandlers(authzManager, &httpServer.Server)
+	authz.RegisterHandlers(authzManager, httpServer)
 
-	controlManager := control.NewManager(mgr.GetClient(), parsedCertData, namespace, o.CRDMode)
+	controlManager := control.NewManager(mgr.GetClient(), parsedCertData, namespace)
 
-	err = control.CreateControllers(controlManager, mgr, o.CRDMode)
+	err = control.CreateControllers(controlManager, mgr)
 	if err != nil {
 		return fmt.Errorf("cannot create control controllers: %w", err)
 	}
 
-	xdsManager := xds.NewManager(o.CRDMode)
+	xdsManager := xds.NewManager()
 	xds.RegisterService(
 		context.Background(), xdsManager, grpcServer.GetGRPCServer())
 
-	if o.CRDMode {
-		err := xds.CreateControllers(xdsManager, mgr)
-		if err != nil {
-			return fmt.Errorf("cannot create xDS controllers: %w", err)
-		}
-	} else {
-		// open store
-		kvStore, err := bolt.Open(StoreFile)
-		if err != nil {
-			return err
-		}
-
-		defer func() {
-			if err := kvStore.Close(); err != nil {
-				logrus.Warnf("Cannot close store: %v.", err)
-			}
-		}()
-
-		storeManager := kv.NewManager(kvStore)
-
-		restManager, err := cprest.NewManager(
-			namespace, storeManager, xdsManager, authzManager, controlManager)
-		if err != nil {
-			return err
-		}
-
-		cprest.RegisterHandlers(restManager, httpServer)
-
-		authzManager.SetGetImportCallback(restManager.GetK8sImport)
-		authzManager.SetGetExportCallback(restManager.GetK8sExport)
-		authzManager.SetGetPeerCallback(restManager.GetK8sPeer)
-		controlManager.SetGetImportCallback(restManager.GetK8sImport)
-		controlManager.SetGetMergeImportListCallback(restManager.GetMergeImportList)
-		controlManager.SetPeerStatusCallback(func(pr *v1alpha1.Peer) {
-			restManager.UpdatePeerStatus(pr.Name, &pr.Status)
-		})
-		controlManager.SetExportStatusCallback(func(export *v1alpha1.Export) {
-			restManager.UpdateExportStatus(export.Name, &export.Status)
-		})
+	if err := xds.CreateControllers(xdsManager, mgr); err != nil {
+		return fmt.Errorf("cannot create xDS controllers: %w", err)
 	}
 
 	runnableManager := runnable.NewManager()

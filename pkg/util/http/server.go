@@ -73,7 +73,7 @@ func (s *Server) GracefulStop() error {
 }
 
 // NewServer returns a new server.
-func NewServer(name string, tlsConfig *tls.Config) Server {
+func NewServer(name string, tlsConfig *tls.Config) *Server {
 	logger := logrus.WithFields(logrus.Fields{
 		"component": "http-server",
 		"name":      name,
@@ -89,7 +89,7 @@ func NewServer(name string, tlsConfig *tls.Config) Server {
 	}
 	router.Use(middleware.Recoverer)
 
-	return Server{
+	return &Server{
 		Listener: tcp.NewListener(name),
 		name:     name,
 		router:   router,

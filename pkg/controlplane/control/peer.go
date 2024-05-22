@@ -54,9 +54,8 @@ type peerMonitor struct {
 
 // peerManager manages peers status.
 type peerManager struct {
-	client             client.Client
-	peerTLS            *tls.ParsedCertData
-	peerStatusCallback func(*v1alpha1.Peer)
+	client  client.Client
+	peerTLS *tls.ParsedCertData
 
 	lock     sync.Mutex
 	monitors map[string]*peerMonitor
@@ -190,10 +189,6 @@ func (m *peerManager) Name() string {
 	return "peerManager"
 }
 
-func (m *peerManager) SetPeerStatusCallback(callback func(*v1alpha1.Peer)) {
-	m.peerStatusCallback = callback
-}
-
 // Start the peer manager.
 func (m *peerManager) Start() error {
 	m.updaterWG.Add(1)
@@ -216,15 +211,10 @@ func (m *peerManager) Start() error {
 
 				currPeer := monitor.Peer()
 
-				if m.peerStatusCallback != nil {
-					m.peerStatusCallback(&currPeer)
-				} else {
-					// CRD-mode
-					err := m.client.Status().Update(context.Background(), &currPeer)
-					if err != nil {
-						m.logger.Warnf("Cannot update peer '%s' status: %v", pr.Name, err)
-						continue
-					}
+				err := m.client.Status().Update(context.Background(), &currPeer)
+				if err != nil {
+					m.logger.Warnf("Cannot update peer '%s' status: %v", pr.Name, err)
+					continue
 				}
 
 				break

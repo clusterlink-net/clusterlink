@@ -73,7 +73,7 @@ printf "\n\n"
 
 printf "%s has been successfully downloaded.\n" "$filename"
 printf "\n"
-printf "ClusterLink CLI (gwctl and clusterlink) has been installed in the following directory:\n"
+printf "ClusterLink CLI (clusterlink) has been installed in the following directory:\n"
 printf "\n"
 printf "\t\e[1;33m%s\n\e[0m" "$install_path"
 printf "\n"

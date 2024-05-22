@@ -33,10 +33,6 @@ updates:
     schedule:
       interval: "monthly"
   - package-ecosystem: "docker"
-    directory: "cmd/gwctl"
-    schedule:
-      interval: "monthly"
-  - package-ecosystem: "docker"
     directory: "cmd/cl-dataplane"
     schedule:
       interval: "monthly"

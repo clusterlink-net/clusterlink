@@ -15,8 +15,6 @@ package util
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"time"
 
@@ -30,14 +28,11 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
-	"github.com/clusterlink-net/clusterlink/pkg/client"
 	"github.com/clusterlink-net/clusterlink/pkg/operator/controller"
 )
 
 // PeerConfig is a peer configuration.
 type PeerConfig struct {
-	// CRUDMode indicates a CRUD-based controlplane (i.e. not CRD mode).
-	CRUDMode bool
 	// DataplaneType is the dataplane type (envoy / go).
 	DataplaneType string
 	// Dataplanes is the number of dataplane instances.
@@ -57,7 +52,6 @@ type peer struct {
 	peerCert         *bootstrap.Certificate
 	controlplaneCert *bootstrap.Certificate
 	dataplaneCert    *bootstrap.Certificate
-	gwctlCert        *bootstrap.Certificate
 }
 
 // CreateControlplaneCertificate creates the controlplane certificate.
@@ -86,19 +80,6 @@ func (p *peer) CreateDataplaneCertificate() {
 	})
 }
 
-// CreateGWCTLCertificate creates the gwctl certificate.
-func (p *peer) CreateGWCTLCertificate() {
-	p.Run(func() error {
-		cert, err := bootstrap.CreateGWCTLCertificate(p.peerCert)
-		if err != nil {
-			return fmt.Errorf("cannot create controlplane certificate: %w", err)
-		}
-
-		p.gwctlCert = cert
-		return nil
-	})
-}
-
 // Fabric represents a collection of clusterlinks.
 type Fabric struct {
 	AsyncRunner
@@ -122,7 +103,6 @@ func (f *Fabric) CreatePeer(cluster *KindCluster) {
 		p.peerCert = cert
 		p.CreateControlplaneCertificate()
 		p.CreateDataplaneCertificate()
-		p.CreateGWCTLCertificate()
 
 		return p.Wait()
 	})
@@ -282,30 +262,10 @@ func (f *Fabric) deployClusterLink(target *peer, cfg *PeerConfig) (*ClusterLink,
 
 	port := uint16(service.Spec.Ports[0].NodePort)
 
-	cert := target.gwctlCert
-	certificate, err := tls.X509KeyPair(cert.RawCert(), cert.RawKey())
-	if err != nil {
-		return nil, fmt.Errorf("cannot parse gwctl certificate: %w", err)
-	}
-
-	caCertPool := x509.NewCertPool()
-	if !caCertPool.AppendCertsFromPEM(target.peerCert.RawCert()) {
-		return nil, fmt.Errorf("unable to parse peer certificate")
-	}
-
-	c := client.New(target.cluster.IP(), port, &tls.Config{
-		MinVersion:   tls.VersionTLS12,
-		Certificates: []tls.Certificate{certificate},
-		RootCAs:      caCertPool,
-		ServerName:   target.cluster.Name(),
-	})
-
 	clink := &ClusterLink{
 		cluster:   target.cluster,
 		namespace: f.namespace,
-		client:    c,
 		port:      port,
-		crdMode:   !cfg.CRUDMode,
 	}
 
 	// wait for default service account to be created
@@ -319,11 +279,6 @@ func (f *Fabric) deployClusterLink(target *peer, cfg *PeerConfig) (*ClusterLink,
 		return nil, fmt.Errorf("error getting default service account: %w", err)
 	}
 
-	if cfg.CRUDMode {
-		if err := clink.WaitForControlplaneAPI(); err != nil {
-			return nil, fmt.Errorf("error waiting for controlplane API server: %w", err)
-		}
-	}
 	return clink, nil
 }
 

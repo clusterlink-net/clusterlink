@@ -109,26 +109,7 @@ type Manager struct {
 	jwkSignKey   jwk.Key
 	jwkVerifyKey jwk.Key
 
-	// callback for getting an import (for non-CRD mode)
-	getImportCallback func(name string, imp *v1alpha1.Import) error
-	// callback for getting an export (for non-CRD mode)
-	getExportCallback func(name string, imp *v1alpha1.Export) error
-	// callback for getting a peer (for non-CRD mode)
-	getPeerCallback func(name string, pr *v1alpha1.Peer) error
-
 	logger *logrus.Entry
-}
-
-func (m *Manager) SetGetImportCallback(callback func(name string, imp *v1alpha1.Import) error) {
-	m.getImportCallback = callback
-}
-
-func (m *Manager) SetGetExportCallback(callback func(name string, imp *v1alpha1.Export) error) {
-	m.getExportCallback = callback
-}
-
-func (m *Manager) SetGetPeerCallback(callback func(name string, pr *v1alpha1.Peer) error) {
-	m.getPeerCallback = callback
 }
 
 // AddPeer defines a new route target for egress dataplane connections.
@@ -219,7 +200,7 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 	}
 
 	var imp v1alpha1.Import
-	if err := m.getImport(ctx, req.ImportName, &imp); err != nil {
+	if err := m.client.Get(ctx, req.ImportName, &imp); err != nil {
 		return nil, fmt.Errorf("cannot get import %v: %w", req.ImportName, err)
 	}
 
@@ -230,9 +211,13 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 		}
 
 		importSource := lbResult.Get()
+		peerName := types.NamespacedName{
+			Name:      importSource.Peer,
+			Namespace: m.namespace,
+		}
 
 		var pr v1alpha1.Peer
-		if err := m.getPeer(ctx, importSource.Peer, &pr); err != nil {
+		if err := m.client.Get(ctx, peerName, &pr); err != nil {
 			return nil, fmt.Errorf("cannot get peer '%s': %w", importSource.Peer, err)
 		}
 
@@ -349,7 +334,7 @@ func (m *Manager) authorizeIngress(
 		Name:      req.ServiceName.Name,
 	}
 	var export v1alpha1.Export
-	if err := m.getExport(ctx, exportName, &export); err != nil {
+	if err := m.client.Get(ctx, exportName, &export); err != nil {
 		if errors.IsNotFound(err) || !meta.IsStatusConditionTrue(export.Status.Conditions, v1alpha1.ExportValid) {
 			return resp, nil
 		}
@@ -395,34 +380,6 @@ func (m *Manager) authorizeIngress(
 	resp.AccessToken = string(signed)
 
 	return resp, nil
-}
-
-func (m *Manager) getImport(ctx context.Context, name types.NamespacedName, imp *v1alpha1.Import) error {
-	if m.getImportCallback != nil {
-		return m.getImportCallback(name.Name, imp)
-	}
-
-	return m.client.Get(ctx, name, imp)
-}
-
-func (m *Manager) getExport(ctx context.Context, name types.NamespacedName, export *v1alpha1.Export) error {
-	if m.getExportCallback != nil {
-		return m.getExportCallback(name.Name, export)
-	}
-
-	return m.client.Get(ctx, name, export)
-}
-
-func (m *Manager) getPeer(ctx context.Context, name string, pr *v1alpha1.Peer) error {
-	if m.getPeerCallback != nil {
-		return m.getPeerCallback(name, pr)
-	}
-
-	peerName := types.NamespacedName{
-		Name:      name,
-		Namespace: m.namespace,
-	}
-	return m.client.Get(ctx, peerName, pr)
 }
 
 // NewManager returns a new authorization manager.

@@ -55,13 +55,11 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 	}
 
 	k8sYAMLBytes, err := platform.K8SConfig(&platform.Config{
-		CRDMode:                 !cfg.CRUDMode,
 		Peer:                    p.cluster.Name(),
 		FabricCertificate:       f.cert,
 		PeerCertificate:         p.peerCert,
 		ControlplaneCertificate: p.controlplaneCert,
 		DataplaneCertificate:    p.dataplaneCert,
-		GWCTLCertificate:        p.gwctlCert,
 		Dataplanes:              cfg.Dataplanes,
 		DataplaneType:           cfg.DataplaneType,
 		LogLevel:                logLevel,
@@ -88,30 +86,6 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 	k8sYAML, err = switchClusterRoleBindingName(k8sYAML, f.namespace)
 	if err != nil {
 		return "", fmt.Errorf("cannot switch ClusterRoleBinding name: %w", err)
-	}
-
-	if cfg.CRUDMode {
-		k8sYAML, err = removeGWCTLPod(k8sYAML)
-		if err != nil {
-			return "", fmt.Errorf("cannot remove gwctl pod: %w", err)
-		}
-
-		k8sYAML, err = removeGWCTLSecret(k8sYAML)
-		if err != nil {
-			return "", fmt.Errorf("cannot remove gwctl secret: %w", err)
-		}
-
-		k8sYAML, err = removePeerSecret(k8sYAML)
-		if err != nil {
-			return "", fmt.Errorf("cannot remove peer secret: %w", err)
-		}
-
-		if !cfg.ControlplanePersistency {
-			k8sYAML, err = removeControlplanePVC(k8sYAML, f.namespace)
-			if err != nil {
-				return "", fmt.Errorf("cannot remove controlplane PVC: %w", err)
-			}
-		}
 	}
 
 	if (os.Getenv("DEBUG")) == "1" {
@@ -179,71 +153,6 @@ metadata:
 	return replaceOnce(yaml, search, replace)
 }
 
-func removeGWCTLPod(yaml string) (string, error) {
-	search := `
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: gwctl`
-	return remove(yaml, search, "\n---")
-}
-
-func removeGWCTLSecret(yaml string) (string, error) {
-	search := `
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: gwctl`
-	return remove(yaml, search, "\n---")
-}
-
-func removePeerSecret(yaml string) (string, error) {
-	search := `
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: cl-peer`
-	return remove(yaml, search, "\n---")
-}
-
-func removeControlplanePVC(yaml, namespace string) (string, error) {
-	var err error
-	search := `---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: cl-controlplane
-  namespace: ` + namespace + `
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 100Mi
-`
-	yaml, err = replaceOnce(yaml, search, "")
-	if err != nil {
-		return "", err
-	}
-
-	search = `
-        - name: cl-controlplane
-          persistentVolumeClaim:
-            claimName: cl-controlplane`
-	yaml, err = replaceOnce(yaml, search, "")
-	if err != nil {
-		return "", err
-	}
-
-	search = `
-            - name: cl-controlplane
-              mountPath: /var/lib/clink`
-	return replaceOnce(yaml, search, "")
-}
-
 func changeDataplaneDebugLevel(yaml, logLevel string) (string, error) {
 	search := `args: ["--log-level", "debug", "--controlplane-host"`
 	replace := `args: ["--log-level", "` + logLevel + `", "--controlplane-host"`
@@ -258,7 +167,6 @@ func (f *Fabric) generateClusterlinkSecrets(p *peer) (string, error) {
 		PeerCertificate:         p.peerCert,
 		ControlplaneCertificate: p.controlplaneCert,
 		DataplaneCertificate:    p.dataplaneCert,
-		GWCTLCertificate:        p.gwctlCert,
 		Namespace:               f.namespace,
 	})
 	if err != nil {

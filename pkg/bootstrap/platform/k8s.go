@@ -54,41 +54,9 @@ metadata:
 data:
   cert: {{.dataplaneCert}}
   key: {{.dataplaneKey}}
-{{ if not .crdMode }}
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: cl-peer
-  namespace: {{.namespace}}
-data:
-  ca: {{.peerCA}}
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: gwctl
-  namespace: {{.namespace}}
-data:
-  cert: {{.gwctlCert}}
-  key: {{.gwctlKey}}
-{{ end }}
 `
 
-	k8sTemplate = `{{ if not .crdMode }}---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: cl-controlplane
-  namespace: {{.namespace}}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 100Mi
-{{ end }}
----
+	k8sTemplate = `---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -113,15 +81,10 @@ spec:
         - name: tls
           secret:
             secretName: cl-controlplane
-{{ if not .crdMode }}
-        - name: cl-controlplane
-          persistentVolumeClaim:
-            claimName: cl-controlplane
-{{ end }}
       containers:
         - name: cl-controlplane
           image: {{.containerRegistry}}cl-controlplane:{{.tag}}
-          args: ["--log-level", "{{.logLevel}}"{{if .crdMode }}, "--crd-mode"{{ end }}]
+          args: ["--log-level", "{{.logLevel}}"]
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: {{.controlplanePort}}
@@ -138,10 +101,6 @@ spec:
               mountPath: {{.controlplaneKeyMountPath}}
               subPath: "key"
               readOnly: true
-{{ if not .crdMode }}
-            - name: cl-controlplane
-              mountPath: {{.persistencyDirectoryMountPath}}
-{{ end }}
           env:
             - name: {{ .namespaceEnvVariable }}
               valueFrom:
@@ -194,53 +153,6 @@ spec:
               mountPath: {{.dataplaneKeyMountPath}}
               subPath: "key"
               readOnly: true
-{{ if not .crdMode }}
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: gwctl
-  namespace: {{.namespace}}
-  labels:
-    app: gwctl
-spec:
-  volumes:
-    - name: ca
-      secret:
-        secretName: cl-peer
-    - name: tls
-      secret:
-        secretName: gwctl
-  containers:
-    - name: gwctl
-      image: {{.containerRegistry}}gwctl:{{.tag}}
-      imagePullPolicy: IfNotPresent
-      command: ["/bin/sh"]
-      args:
-        - -c
-        - >-
-            gwctl init --id {{.peer}} \
-                       --gwIP cl-dataplane \
-                       --gwPort {{.dataplanePort}} \
-                       --certca /root/ca.pem \
-                       --cert /root/cert.pem \
-                       --key /root/key.pem &&
-            gwctl config use-context --myid {{.peer}} &&
-            sleep infinity
-      volumeMounts:
-        - name: ca
-          mountPath: /root/ca.pem
-          subPath: "ca"
-          readOnly: true
-        - name: tls
-          mountPath: /root/cert.pem
-          subPath: "cert"
-          readOnly: true
-        - name: tls
-          mountPath: /root/key.pem
-          subPath: "key"
-          readOnly: true
-{{ end }}
 ---
 apiVersion: v1
 kind: Service
@@ -280,7 +192,6 @@ rules:
 - apiGroups: [""]
   resources: ["pods"]
   verbs: ["get", "list", "watch"]
-{{ if .crdMode }}
 - apiGroups: ["clusterlink.net"]
   resources: ["exports", "peers", "accesspolicies", "privilegedaccesspolicies"]
   verbs: ["get", "list", "watch"]
@@ -290,7 +201,6 @@ rules:
 - apiGroups: ["clusterlink.net"]
   resources: ["imports/status", "exports/status", "peers/status"]
   verbs: ["update"]
-{{ end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -363,8 +273,6 @@ func K8SConfig(config *Config) ([]byte, error) {
 
 		"controlplanePort": cpapi.ListenPort,
 		"dataplanePort":    dpapi.ListenPort,
-
-		"crdMode": config.CRDMode,
 	}
 
 	var k8sConfig bytes.Buffer
@@ -392,8 +300,6 @@ func K8SCertificateConfig(config *Config) ([]byte, error) {
 		"controlplaneKey":  base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawKey()),
 		"dataplaneCert":    base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawCert()),
 		"dataplaneKey":     base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawKey()),
-		"gwctlCert":        base64.StdEncoding.EncodeToString(config.GWCTLCertificate.RawCert()),
-		"gwctlKey":         base64.StdEncoding.EncodeToString(config.GWCTLCertificate.RawKey()),
 		"namespace":        config.Namespace,
 	}
 
@@ -456,8 +362,6 @@ func K8SEmptyCertificateConfig(config *Config) ([]byte, error) {
 		"controlplaneKey":  "",
 		"dataplaneCert":    "",
 		"dataplaneKey":     "",
-		"gwctlCert":        "",
-		"gwctlKey":         "",
 		"namespace":        config.Namespace,
 	}
 

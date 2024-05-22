@@ -95,24 +95,6 @@ func (o *PeerOptions) createDataplane(peerCert *bootstrap.Certificate) (*bootstr
 	return cert, nil
 }
 
-func (o *PeerOptions) createGWCTL(peerCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
-	cert, err := bootstrap.CreateGWCTLCertificate(peerCert)
-	if err != nil {
-		return nil, err
-	}
-
-	outDirectory := config.GWCTLDirectory(o.Name, o.Fabric, o.Path)
-	if err := os.Mkdir(outDirectory, 0o755); err != nil {
-		return nil, err
-	}
-
-	if err := o.saveCertificate(cert, outDirectory); err != nil {
-		return nil, err
-	}
-
-	return cert, nil
-}
-
 // Run the 'create peer-cert' subcommand.
 func (o *PeerOptions) Run() error {
 	if _, err := idna.Lookup.ToASCII(o.Name); err != nil {
@@ -148,10 +130,6 @@ func (o *PeerOptions) Run() error {
 	}
 
 	if _, err := o.createDataplane(peerCertificate); err != nil {
-		return err
-	}
-
-	if _, err := o.createGWCTL(peerCertificate); err != nil {
 		return err
 	}
 

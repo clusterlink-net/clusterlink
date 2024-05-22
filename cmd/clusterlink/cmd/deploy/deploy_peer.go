@@ -78,9 +78,6 @@ type PeerOptions struct {
 	DataplaneType string
 	// LogLevel is the log level.
 	LogLevel string
-	// CRDMode indicates whether to run a k8s CRD-based controlplane.
-	// This flag will be removed once the CRD-based controlplane feature is complete and stable.
-	CRDMode bool
 }
 
 // NewCmdDeployPeer returns a cobra.Command to run the 'deploy peer' subcommand.
@@ -135,7 +132,6 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.Uint16Var(&o.DataplaneReplicas, "dataplane-replicas", 1, "Number of dataplanes.")
 	fs.StringVar(&o.LogLevel, "log-level", "info",
 		"The log level. One of fatal, error, warn, info, debug.")
-	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -181,12 +177,6 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	gwctlCert, err := bootstrap.ReadCertificates(
-		config.GWCTLDirectory(o.Name, o.Fabric, o.Path), true)
-	if err != nil {
-		return err
-	}
-
 	// Create k8s deployment YAML
 	platformCfg := &platform.Config{
 		Peer:                    o.Name,
@@ -194,12 +184,10 @@ func (o *PeerOptions) Run() error {
 		PeerCertificate:         peerCertificate,
 		ControlplaneCertificate: controlplaneCert,
 		DataplaneCertificate:    dataplaneCert,
-		GWCTLCertificate:        gwctlCert,
 		Dataplanes:              o.DataplaneReplicas,
 		DataplaneType:           o.DataplaneType,
 		LogLevel:                o.LogLevel,
 		ContainerRegistry:       o.ContainerRegistry,
-		CRDMode:                 o.CRDMode,
 		Namespace:               o.Namespace,
 		IngressType:             o.Ingress,
 		IngressAnnotations:      o.IngressAnnotations,
