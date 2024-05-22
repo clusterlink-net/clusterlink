@@ -15,7 +15,7 @@
 
 ################################################################
 #Name: Service node test
-#Desc: create 1 proxy that send data to target ip
+#Desc: create 1 proxy that sends data to target ip
 ###############################################################
 import os
 import sys
