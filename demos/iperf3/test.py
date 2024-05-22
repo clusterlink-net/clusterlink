@@ -55,7 +55,7 @@ def iperf3Test(cl1:Cluster, cl2:Cluster, testOutputFolder,logLevel="info" ,datap
     cl1.startCluster(testOutputFolder,logLevel, dataplane)
     cl2.startCluster(testOutputFolder,logLevel, dataplane)
 
-    # Create iPerf3 micto-services
+    # Create iPerf3 micro-services
     cl1.loadService(srcSvc, "mlabbe/iperf3",f"{folCl}/iperf3-client.yaml" )
     cl2.loadService(destSvc, "mlabbe/iperf3",f"{folSv}/iperf3.yaml" )
 
