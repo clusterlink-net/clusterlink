@@ -21,9 +21,9 @@
 #   2. Copy and git commit the contents of the last released docs directory
 #      (`$PREVIOUS_DOCS_VERSION``) into the new directory, to establish a baseline
 #      for documentation comparison.
-#   3. Delete and replaces the contents of the new docs directory with the
+#   3. Delete and replace the contents of the new docs directory with the
 #      contents of the 'main' docs directory. 
-#   4. Update and version and/or revision specific value in the documentation.
+#   4. Update the version and/or revision specific value in the documentation.
 #
 # The unstaged changes in the working directory can now easily be diff'ed 
 # using 'git diff' to review all docs changes made since the previous
