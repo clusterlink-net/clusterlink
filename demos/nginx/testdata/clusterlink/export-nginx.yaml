@@ -1,0 +1,7 @@
+apiVersion: clusterlink.net/v1alpha1
+kind: Export
+metadata:
+  name: nginx
+  namespace: default
+spec:
+  port:  80
