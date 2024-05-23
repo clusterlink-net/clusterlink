@@ -52,7 +52,7 @@ class CRDObject:
         except Exception as e:
             print(f"Error deleting {kind} '{name}': {e}")
 
-# Imports Peers contains all the commands for managing peer CRD.
+# Peers class contains all the commands for managing peer CRD.
 class Peers(CRDObject):
     def __init__(self, namespace):
         self.namespace=namespace
