@@ -17,7 +17,7 @@ case "${OS_ARCH}" in
     CL_ARCH=amd64
     ;;
   armv8*|aarch64*|arm64)
-    ARCH=arm64
+    CL_ARCH=arm64
     ;;
   *)
     echo "This ${OS_ARCH} architecture isn't supported"
