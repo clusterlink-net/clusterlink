@@ -71,6 +71,8 @@ type egressAuthorizationResponse struct {
 type ingressAuthorizationRequest struct {
 	// Service is the name of the requested exported service.
 	ServiceName types.NamespacedName
+	// Attributes of the source workload, to be used by the PDP on the remote peer
+	SrcAttributes connectivitypdp.WorkloadAttrs
 }
 
 // ingressAuthorizationResponse (from remote peer controlplane) represents a response for an ingressAuthorizationRequest.
@@ -263,6 +265,7 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 		peerResp, err := cl.Authorize(&cpapi.AuthorizationRequest{
 			ServiceName:      DstName,
 			ServiceNamespace: DstNamespace,
+			SrcAttributes:    srcAttributes,
 		})
 		if err != nil {
 			m.logger.Infof("Unable to get access token from peer: %v", err)
@@ -322,7 +325,6 @@ func (m *Manager) parseAuthorizationHeader(token string) (string, error) {
 func (m *Manager) authorizeIngress(
 	ctx context.Context,
 	req *ingressAuthorizationRequest,
-	pr string,
 ) (*ingressAuthorizationResponse, error) {
 	m.logger.Infof("Received ingress authorization request: %v.", req)
 
@@ -344,13 +346,12 @@ func (m *Manager) authorizeIngress(
 
 	resp.ServiceExists = true
 
-	srcAttributes := connectivitypdp.WorkloadAttrs{GatewayNameLabel: pr}
 	dstAttributes := connectivitypdp.WorkloadAttrs{
 		ServiceNameLabel:      req.ServiceName.Name,
 		ServiceNamespaceLabel: req.ServiceName.Namespace,
 		GatewayNameLabel:      m.peerName,
 	}
-	decision, err := m.connectivityPDP.Decide(srcAttributes, dstAttributes, req.ServiceName.Namespace)
+	decision, err := m.connectivityPDP.Decide(req.SrcAttributes, dstAttributes, req.ServiceName.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error deciding on an ingress connection: %w", err)
 	}
