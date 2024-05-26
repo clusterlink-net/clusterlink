@@ -3,7 +3,7 @@ set -e
 
 #-- docker/Python
 # Docker and python can be quite involved to get right (e.g., require sudo,
-# setting up permissions, etc.), so we ask the user to install them manully.
+# setting up permissions, etc.), so we ask the user to install them manually.
 # The devcontainer will install using apt-get, so that's probably ok for now.
 if [ -z "$(which docker)" ] || [ "$1" = "--force" ]; then
   echo "please install docker manually (https://docs.docker.com/engine/install/)"
