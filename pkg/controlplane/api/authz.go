@@ -13,7 +13,10 @@
 
 package api
 
-import "github.com/lestrrat-go/jwx/jwa"
+import (
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz/connectivitypdp"
+	"github.com/lestrrat-go/jwx/jwa"
+)
 
 const (
 	// RemotePeerAuthorizationPath is the path remote peers use to send an authorization request.
@@ -50,6 +53,8 @@ type AuthorizationRequest struct {
 	ServiceName string
 	// ServiceNamespace is the namespace of the requested exported service.
 	ServiceNamespace string
+	// Attributes of the source workload, to be used by the PDP on the remote peer
+	SrcAttributes connectivitypdp.WorkloadAttrs
 }
 
 // AuthorizationResponse represents a response for a successful AuthorizationRequest.
