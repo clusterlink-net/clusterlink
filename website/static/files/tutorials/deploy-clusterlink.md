@@ -36,27 +36,27 @@
 
 3. Verify that ClusterLink control and data plane components are running:
 
-   It may take a few seconds for the deployments to be successfully created.
+    It may take a few seconds for the deployments to be successfully created.
 
-   *Client cluster*:
+    *Client cluster*:
 
-   ```sh
-   kubectl rollout status deployment cl-controlplane -n clusterlink-system
-   kubectl rollout status deployment cl-dataplane -n clusterlink-system
-   ```
+    ```sh
+    kubectl rollout status deployment cl-controlplane -n clusterlink-system
+    kubectl rollout status deployment cl-dataplane -n clusterlink-system
+    ```
 
-   *Server cluster*:
+    *Server cluster*:
 
-   ```sh
-   kubectl rollout status deployment cl-controlplane -n clusterlink-system
-   kubectl rollout status deployment cl-dataplane -n clusterlink-system
-   ```
+    ```sh
+    kubectl rollout status deployment cl-controlplane -n clusterlink-system
+    kubectl rollout status deployment cl-dataplane -n clusterlink-system
+    ```
 
     {{% expand summary="Sample output" %}}
 
-    ```sh
     deployment "cl-controlplane" successfully rolled out
     deployment "cl-dataplane" successfully rolled out
-    ```
 
     {{% /expand %}}
+
+[core concepts]: {{< relref "../../concepts/_index.md" >}}

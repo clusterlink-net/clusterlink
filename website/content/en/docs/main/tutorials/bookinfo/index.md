@@ -120,7 +120,7 @@ In this step, we enable connectivity access for the BookInfo application
  and reviews-v3 (server2). We establish connections between the peers, export the reviews service on the server side,
  import the reviews service on the client side, and create a policy to allow the connection.
 
-{{% include "../../../../static/files/tutorials/envsubst.md" %}}
+{{% readfile file="/static/files/tutorials/envsubst.md" %}}
 
   ```sh
   kubectl config use-context kind-client

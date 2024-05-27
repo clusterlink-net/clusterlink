@@ -91,7 +91,7 @@ kubectl apply -f $TEST_FILES/iperf3-server/iperf3.yaml
 
 ## Deploy ClusterLink
 
-{{% include "../../../../static/files/tutorials/deploy-clusterlink.md" %}}
+{{% readfile file="/static/files/tutorials/deploy-clusterlink.md" %}}
 
 ## Enable cross-cluster access
 
@@ -99,11 +99,11 @@ In this step, we enable connectivity access between the iPerf3 client and server
  For each step, you have an example demonstrating how to apply the command from a
  file or providing the complete custom resource (CR) associated with the command.
 
-{{% include "../../../../static/files/tutorials/envsubst.md" %}}
+{{% readfile file="/static/files/tutorials/envsubst.md" %}}
 
 ### Set-up peers
 
-{{% include "../../../../static/files/tutorials/peer.md" %}}
+{{% readfile file="/static/files/tutorials/peer.md" %}}
 
 {{< notice note >}}
 The `CLIENT_IP` and `SERVER_IP` refers to the node IP of the peer kind cluster, which assigns the peer YAML file.
@@ -177,7 +177,7 @@ spec:
 
 ### Set-up access policies
 
-{{% include "../../../../static/files/tutorials/policy.md" %}}
+{{% readfile file="/static/files/tutorials/allow-all-policy.md" %}}
 
 ## Test service connectivity
 
@@ -253,4 +253,3 @@ iperf Done.
 
 [kind]: https://kind.sigs.k8s.io/
 [kind installation guide]: https://kind.sigs.k8s.io/docs/user/quick-start
-[core concepts]: {{< relref "../../concepts/_index.md" >}}
