@@ -13,9 +13,9 @@ menu: {main: {weight: 30, pre: "<i class='fa-solid fa-info-circle'></i>" }}
 ClusterLink is in **alpha** status and not ready for production use.
 {{% /pageinfo %}}
 
-ClusterLink is an [open source][] project, providing a performant and secure
- solution to interconnect application services that are located in different
- domains, networks, and cloud infrastructures.
+ClusterLink is an [open source][] project that offers a secure and performant
+ solution for interconnecting services across multiple clusters in
+ different domains, networks, and cloud infrastructures.
 
  Compared with other solutions in this space, ClusterLink control plane is simpler
  to configure and operate at scale, and its data plane is more secure, scalable and
