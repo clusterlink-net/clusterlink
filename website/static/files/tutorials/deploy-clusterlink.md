@@ -1,8 +1,3 @@
----
-title: Deploy ClusterLink
-description: Instruction for deploying ClusterLink.
-draft: true
----
 
 1. Create the fabric and peer certificates for the clusters:
 
@@ -21,7 +16,7 @@ draft: true
 
     For more details regarding fabric and peer see [core concepts][].
 
-1. Deploy ClusterLink on each cluster:
+2. Deploy ClusterLink on each cluster:
 
     *Client cluster*:
 
@@ -39,7 +34,7 @@ draft: true
     By default `deploy peer` creates an ingress of type **LoadBalancer**,
     which is more suitable for Kubernetes clusters running in the cloud.
 
-2. Verify that ClusterLink control and data plane components are running:
+3. Verify that ClusterLink control and data plane components are running:
 
    It may take a few seconds for the deployments to be successfully created.
 

@@ -1,8 +1,4 @@
----
-title: ClusterLink CLI installation
-description: CLI instruction installation
-draft: true
----
+
 1. Install ClusterLink CLI on Linux or Mac using the installation script:
 
     ```sh

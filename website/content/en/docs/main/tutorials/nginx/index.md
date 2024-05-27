@@ -11,7 +11,7 @@ The tutorial uses two kind clusters:
 
 ## Install ClusterLink CLI
 
-{{% include "../shared/cli-installation.md" %}}
+{{% readfile file="/static/files/tutorials/cli-installation.md" %}}
 
 ## Initialize clusters
 
@@ -90,31 +90,19 @@ kubectl apply -f $TEST_FILES/nginx-server.yaml
 
 ## Deploy ClusterLink
 
-{{% include "../shared/deploy-clusterlink.md" %}}
+{{% include "../../../../static/files/tutorials/deploy-clusterlink.md" %}}
 
 ## Enable cross-cluster access
 
-In this step, we enable connectivity access between the client and server.
+In this step, we enable access between the client and server.
  For each step, you have an example demonstrating how to apply the command from a
  file or providing the complete custom resource (CR) associated with the command.
 
-Note that the provided YAML configuration files refer to environment variables
- (defined below) that should be set when running the tutorial. The values are
- replaced in the YAMLs using `envsubst` utility.
-
-{{% expand summary="Installing `envsubst` on macOS" %}}
-In case `envsubst` does not exist, you can install it with:
-
-```sh
-brew install gettext
-brew link --force gettext
-```
-
-{{% /expand %}}
+{{% include "../../../../static/files/tutorials/envsubst.md" %}}
 
 ### Set-up peers
 
-{{% include "../shared/peer.md" %}}
+{{% include "../../../../static/files/tutorials/peer.md" %}}
 
 {{< notice note >}}
 The `CLIENT_IP` and `SERVER_IP` refers to the node IP of the peer kind cluster, which assigns the peer YAML file.
@@ -188,71 +176,7 @@ spec:
 
 ### Set-up access policies
 
-Create access policies on both clusters to allow connectivity:
-
-*Client cluster*:
-
-{{< tabpane text=true >}}
-{{% tab header="File" %}}
-
-```sh
-kubectl apply -f $TEST_FILES/clusterlink/allow-policy.yaml
-```
-
-{{% /tab %}}
-{{% tab header="Full CR" %}}
-
-```sh
-echo "
-apiVersion: clusterlink.net/v1alpha1
-kind: AccessPolicy
-metadata:
-  name: allow-policy
-  namespace: default
-spec:
-  action: allow
-  from:
-    - workloadSelector: {}
-  to:
-    - workloadSelector: {}
-" | kubectl apply -f -
-```
-
-{{% /tab %}}
-{{< /tabpane >}}
-
-*Server cluster*:
-
-{{< tabpane text=true >}}
-{{% tab header="File" %}}
-
-```sh
-kubectl apply -f $TEST_FILES/clusterlink/allow-policy.yaml
-```
-
-{{% /tab %}}
-{{% tab header="Full CR" %}}
-
-```sh
-echo "
-apiVersion: clusterlink.net/v1alpha1
-kind: AccessPolicy
-metadata:
-  name: allow-policy
-  namespace: default
-spec:
-  action: allow
-  from:
-    - workloadSelector: {}
-  to:
-    - workloadSelector: {}
-" | kubectl apply -f -
-```
-
-{{% /tab %}}
-{{< /tabpane >}}
-
-For more details regarding policy configuration, see [policies][] documentation.
+{{% include "../../../../static/files/tutorials/policy.md" %}}
 
 ## Test service connectivity
 

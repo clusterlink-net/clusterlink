@@ -1,8 +1,3 @@
----
-title: Peer
-description: Instruction for setting up peers.
-draft: true
----
 
 Add the remote peer to each cluster:
 
@@ -67,4 +62,3 @@ spec:
 
 {{% /tab %}}
 {{< /tabpane >}}
-

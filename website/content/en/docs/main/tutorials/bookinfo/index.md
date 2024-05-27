@@ -20,7 +20,7 @@ System illustration:
 
 ## Install ClusterLink CLI
 
-{{% include "../shared/cli-installation.md" %}}
+{{% readfile file="/static/files/tutorials/cli-installation.md" %}}
 
 ## Initialize clusters
 
@@ -120,19 +120,7 @@ In this step, we enable connectivity access for the BookInfo application
  and reviews-v3 (server2). We establish connections between the peers, export the reviews service on the server side,
  import the reviews service on the client side, and create a policy to allow the connection.
 
-Note that the provided YAML configuration files refer to environment variables
- (defined below) that should be set when running the tutorial. The values are
- replaced in the YAMLs using `envsubst` utility.
-
-{{% expand summary="Installing `envsubst` on macOS" %}}
-In case `envsubst` does not exist, you can install it with:
-
-```sh
-brew install gettext
-brew link --force gettext
-```
-
-{{% /expand %}}
+{{% include "../../../../static/files/tutorials/envsubst.md" %}}
 
   ```sh
   kubectl config use-context kind-client

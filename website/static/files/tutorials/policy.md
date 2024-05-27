@@ -1,8 +1,4 @@
----
-title: Policy
-description: Instruction for setting up policies.
-draft: true
----
+
 Create access policies on both clusters to allow connectivity:
 
 *Client cluster*:
