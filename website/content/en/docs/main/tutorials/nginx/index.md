@@ -1,13 +1,13 @@
 ---
-title: Nginx
-description: Running basic connectivity between Nginx server and client across two clusters using ClusterLink.
+title: nginx
+description: Running basic connectivity between nginx server and client across two clusters using ClusterLink.
 ---
 
-In this tutorial, we'll establish connectivity across clusters using ClusterLink to access a remote Nginx server.
+In this tutorial, we'll establish connectivity across clusters using ClusterLink to access a remote nginx server.
 The tutorial uses two kind clusters:
 
 1) Client cluster - runs ClusterLink along with a client.
-2) Server cluster - runs ClusterLink along with a Nginx server.
+2) Server cluster - runs ClusterLink along with a nginx server.
 
 ## Install ClusterLink CLI
 
@@ -15,7 +15,7 @@ The tutorial uses two kind clusters:
 
 ## Initialize clusters
 
-In this tutorial we set up a local environment using [kind][].
+This tutorial uses [kind][] as a local Kubernetes environment.
  You can skip this step if you already have access to existing clusters, just be sure to
  set KUBECONFIG accordingly.
 
@@ -120,9 +120,9 @@ brew link --force gettext
 The `CLIENT_IP` and `SERVER_IP` refers to the node IP of the peer kind cluster, which assigns the peer YAML file.
 {{< /notice >}}
 
-### Export the Nginx server endpoint
+### Export the nginx server endpoint
 
-In the server cluster, export the Nginx server service:
+In the server cluster, export the nginx server service:
 
 *Server cluster*:
 
@@ -153,7 +153,7 @@ spec:
 
 ### Set-up import
 
-In the client cluster, import the Nginx service from the server cluster:
+In the client cluster, import the nginx service from the server cluster:
 
 *Client cluster*:
 
