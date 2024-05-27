@@ -47,6 +47,7 @@ var httpEchoService = util.Service{
 	Name:      "http-echo",
 	Namespace: v1.NamespaceDefault,
 	Port:      8080,
+	Labels:    map[string]string{"env": "test"},
 }
 
 // TestSuite is a suite for e2e testing on k8s clusters.

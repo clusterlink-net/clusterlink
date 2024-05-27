@@ -61,6 +61,8 @@ type Service struct {
 	Namespace string
 	// Port is the service external listening port.
 	Port uint16
+	// A key-value map to organize and categorize (scope and select) services.
+	Labels map[string]string
 }
 
 // PodAndService represents a kubernetes service and a backing pod.

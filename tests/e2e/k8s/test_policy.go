@@ -32,8 +32,9 @@ func (s *TestSuite) TestPolicyLabels() {
 	require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
 
 	importedService := &util.Service{
-		Name: httpEchoService.Name,
-		Port: 80,
+		Name:   httpEchoService.Name,
+		Port:   80,
+		Labels: httpEchoService.Labels,
 	}
 	require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
 
@@ -44,8 +45,9 @@ func (s *TestSuite) TestPolicyLabels() {
 		authz.GatewayNameLabel: cl[1].Name(),
 	}
 	dstLabels := map[string]string{ // allow traffic only to echo in cl1
-		authz.ServiceNameLabel: httpEchoService.Name,
-		authz.GatewayNameLabel: cl[0].Name(),
+		authz.ServiceNameLabel:            httpEchoService.Name,
+		authz.GatewayNameLabel:            cl[0].Name(),
+		authz.ServiceLabelsPrefix + "env": "test",
 	}
 	allowEchoPolicy := util.NewPolicy(allowEchoPolicyName, v1alpha1.AccessPolicyActionAllow, srcLabels, dstLabels)
 	require.Nil(s.T(), cl[1].CreatePolicy(allowEchoPolicy))
@@ -109,15 +111,36 @@ func (s *TestSuite) TestPolicyLabels() {
 	// 8. Replace the policy in cl[1] with a policy having a wrong service name - connection should be denied
 	require.Nil(s.T(), cl[1].DeletePolicy(allowEchoPolicyName))
 
-	badSvcLabels := map[string]string{
+	attrsWithBadSvcName := map[string]string{
 		authz.ServiceNameLabel: "bad-svc",
 		authz.GatewayNameLabel: cl[0].Name(),
 	}
-	badSvcPolicy := util.NewPolicy("bad-svc", v1alpha1.AccessPolicyActionAllow, nil, badSvcLabels)
+	badSvcPolicy := util.NewPolicy("bad-svc", v1alpha1.AccessPolicyActionAllow, nil, attrsWithBadSvcName)
 	require.Nil(s.T(), cl[1].CreatePolicy(badSvcPolicy))
 
 	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
 	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+
+	// 9. Add an allow policy in cl[1], but with a wrong service label - connection should still be denied
+	attrsWithBadSvcLabels := map[string]string{
+		authz.ServiceLabelsPrefix + "env": "prod",
+	}
+	badLabelPolicy := util.NewPolicy("bad-label", v1alpha1.AccessPolicyActionAllow, nil, attrsWithBadSvcLabels)
+	require.Nil(s.T(), cl[1].CreatePolicy(badLabelPolicy))
+
+	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
+	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+
+	// 10. Add an allow policy in cl[1], now with the right service label - connection should be allowed
+	attrsWithGoodSvcLabels := map[string]string{
+		authz.ServiceLabelsPrefix + "env": "test",
+	}
+	GoodLabelPolicy := util.NewPolicy("good-label", v1alpha1.AccessPolicyActionAllow, nil, attrsWithGoodSvcLabels)
+	require.Nil(s.T(), cl[1].CreatePolicy(GoodLabelPolicy))
+
+	data, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
+	require.Nil(s.T(), err)
+	require.Equal(s.T(), cl[0].Name(), data)
 }
 
 func (s *TestSuite) TestPrivilegedPolicies() {

@@ -43,6 +43,7 @@ const (
 
 	ServiceNameLabel      = "clusterlink/metadata.serviceName"
 	ServiceNamespaceLabel = "clusterlink/metadata.serviceNamespace"
+	ServiceLabelsPrefix   = "service/metadata."
 	GatewayNameLabel      = "clusterlink/metadata.gatewayName"
 )
 
@@ -206,6 +207,11 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 		return nil, fmt.Errorf("cannot get import %v: %w", req.ImportName, err)
 	}
 
+	dstAttributes := connectivitypdp.WorkloadAttrs{ServiceNameLabel: imp.Name}
+	for k, v := range imp.Labels { // add import labels to destination attributes
+		dstAttributes[ServiceLabelsPrefix+k] = v
+	}
+
 	lbResult := NewLoadBalancingResult(&imp)
 	for {
 		if err := m.loadBalancer.Select(lbResult); err != nil {
@@ -230,11 +236,9 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 			}
 		}
 
-		dstAttributes := connectivitypdp.WorkloadAttrs{
-			ServiceNameLabel:      imp.Name,
-			ServiceNamespaceLabel: imp.Namespace,
-			GatewayNameLabel:      importSource.Peer,
-		}
+		dstAttributes[ServiceNamespaceLabel] = importSource.ExportNamespace
+		dstAttributes[GatewayNameLabel] = importSource.Peer
+
 		decision, err := m.connectivityPDP.Decide(srcAttributes, dstAttributes, req.ImportName.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error deciding on an egress connection: %w", err)
@@ -347,10 +351,14 @@ func (m *Manager) authorizeIngress(
 	resp.ServiceExists = true
 
 	dstAttributes := connectivitypdp.WorkloadAttrs{
-		ServiceNameLabel:      req.ServiceName.Name,
-		ServiceNamespaceLabel: req.ServiceName.Namespace,
+		ServiceNameLabel:      export.Name,
+		ServiceNamespaceLabel: export.Namespace,
 		GatewayNameLabel:      m.peerName,
 	}
+	for k, v := range export.Labels { // add export labels to destination attributes
+		dstAttributes[ServiceLabelsPrefix+k] = v
+	}
+
 	decision, err := m.connectivityPDP.Decide(req.SrcAttributes, dstAttributes, req.ServiceName.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error deciding on an ingress connection: %w", err)
