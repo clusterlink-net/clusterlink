@@ -207,7 +207,7 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 		return nil, fmt.Errorf("cannot get import %v: %w", req.ImportName, err)
 	}
 
-	dstAttributes := connectivitypdp.WorkloadAttrs{ServiceNameLabel: imp.Name}
+	dstAttributes := connectivitypdp.WorkloadAttrs{}
 	for k, v := range imp.Labels { // add import labels to destination attributes
 		dstAttributes[ServiceLabelsPrefix+k] = v
 	}
@@ -236,6 +236,7 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 			}
 		}
 
+		dstAttributes[ServiceNameLabel] = importSource.ExportName
 		dstAttributes[ServiceNamespaceLabel] = importSource.ExportNamespace
 		dstAttributes[GatewayNameLabel] = importSource.Peer
 
