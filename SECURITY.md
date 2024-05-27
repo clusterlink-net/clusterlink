@@ -26,8 +26,8 @@ We use [GitHub private vulnerability reporting][] for ClusterLink. Private vulne
  security risks to repository maintainers, within GitHub, and in a way that immediately
  notifies the repository maintainers of the issue.
 
-You will receive a reply from one of the maintainers within acknowledging receipt
- of the vulnerability report. You may be further contacted to discuss the reported item.
+You will receive a reply from one of the maintainers within a week, acknowledging receipt
+ of the vulnerability report. You may be contacted to discuss the reported item further.
  Please bear with us as we seek to understand the breadth and scope of the reported
  problem, recreate it, and confirm if there is a vulnerability present.
 
