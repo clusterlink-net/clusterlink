@@ -168,6 +168,7 @@ func (c *ClusterLink) CreateExport(service *Service) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      service.Name,
 			Namespace: c.namespace,
+			Labels:    service.Labels,
 		},
 		Spec: v1alpha1.ExportSpec{
 			Port: service.Port,
@@ -193,6 +194,7 @@ func (c *ClusterLink) CreateImport(service *Service, peer *ClusterLink, exportNa
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      service.Name,
 			Namespace: c.namespace,
+			Labels:    service.Labels,
 		},
 		Spec: v1alpha1.ImportSpec{
 			Port: service.Port,
