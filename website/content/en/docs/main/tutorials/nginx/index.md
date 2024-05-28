@@ -1,13 +1,13 @@
 ---
-title: iPerf3
-description: Running basic connectivity between iPerf3 applications across two sites using ClusterLink
+title: nginx
+description: Running basic connectivity between nginx server and client across two clusters using ClusterLink.
 ---
 
-In this tutorial we'll establish iPerf3 connectivity between two kind clusters using ClusterLink.
+In this tutorial, we'll establish connectivity across clusters using ClusterLink to access a remote nginx server.
 The tutorial uses two kind clusters:
 
-1) Client cluster - runs ClusterLink along with an iPerf3 client.
-2) Server cluster - runs ClusterLink along with an iPerf3 server.
+1) Client cluster - runs ClusterLink along with a client.
+2) Server cluster - runs ClusterLink along with a nginx server.
 
 ## Install ClusterLink CLI
 
@@ -15,7 +15,7 @@ The tutorial uses two kind clusters:
 
 ## Initialize clusters
 
-In this tutorial we set up a local environment using [kind][].
+This tutorial uses [kind][] as a local Kubernetes environment.
  You can skip this step if you already have access to existing clusters, just be sure to
  set KUBECONFIG accordingly.
 
@@ -25,7 +25,7 @@ To setup two kind clusters:
 1. Create a directory for all the tutorial files:
 
     ```sh
-    mkdir iperf3-tutorial
+    mkdir nginx-tutorial
     ```
 
 1. Open two terminals in the tutorial directory and create a kind cluster in each terminal:
@@ -33,14 +33,14 @@ To setup two kind clusters:
     *Client cluster*:
 
     ```sh
-    cd iperf3-tutorial
+    cd nginx-tutorial
     kind create cluster --name=client
     ```
 
     *Server cluster*:
 
     ```sh
-    cd iperf3-tutorial
+    cd nginx-tutorial
     kind create cluster --name=server
     ```
 
@@ -71,22 +71,21 @@ You can run the tutorial in a single terminal and switch access between the clus
 using `kubectl config use-context kind-client` and `kubectl config use-context kind-server`.
 {{< /notice >}}
 
-## Deploy iPerf3 client and server
+## Deploy nginx client and server
 
-Install iPerf3 (client and server) on the clusters:
+Setup the ```TEST_FILES``` variable, and install nginx on the server cluster.
 
 *Client cluster*:
 
 ```sh
-export TEST_FILES=https://raw.githubusercontent.com/clusterlink-net/clusterlink/main/demos/iperf3/testdata/manifests
-kubectl apply -f $TEST_FILES/iperf3-client/iperf3-client.yaml
+export TEST_FILES=https://raw.githubusercontent.com/clusterlink-net/clusterlink/main/demos/nginx/testdata
 ```
 
 *Server cluster*:
 
 ```sh
-export TEST_FILES=https://raw.githubusercontent.com/clusterlink-net/clusterlink/main/demos/iperf3/testdata/manifests
-kubectl apply -f $TEST_FILES/iperf3-server/iperf3.yaml
+export TEST_FILES=https://raw.githubusercontent.com/clusterlink-net/clusterlink/main/demos/nginx/testdata
+kubectl apply -f $TEST_FILES/nginx-server.yaml
 ```
 
 ## Deploy ClusterLink
@@ -95,7 +94,7 @@ kubectl apply -f $TEST_FILES/iperf3-server/iperf3.yaml
 
 ## Enable cross-cluster access
 
-In this step, we enable connectivity access between the iPerf3 client and server.
+In this step, we enable access between the client and server.
  For each step, you have an example demonstrating how to apply the command from a
  file or providing the complete custom resource (CR) associated with the command.
 
@@ -109,9 +108,9 @@ In this step, we enable connectivity access between the iPerf3 client and server
 The `CLIENT_IP` and `SERVER_IP` refers to the node IP of the peer kind cluster, which assigns the peer YAML file.
 {{< /notice >}}
 
-### Export the iPerf server endpoint
+### Export the nginx server endpoint
 
-In the server cluster, export the iperf3-server service:
+In the server cluster, export the nginx server service:
 
 *Server cluster*:
 
@@ -119,7 +118,7 @@ In the server cluster, export the iperf3-server service:
 {{% tab header="File" %}}
 
 ```sh
-kubectl apply -f $TEST_FILES/clusterlink/export-iperf3.yaml
+kubectl apply -f $TEST_FILES/clusterlink/export-nginx.yaml
 ```
 
 {{% /tab %}}
@@ -130,10 +129,10 @@ echo "
 apiVersion: clusterlink.net/v1alpha1
 kind: Export
 metadata:
-  name: iperf3-server
+  name: nginx
   namespace: default
 spec:
-  port:  5000
+  port:  80
 " | kubectl apply -f -
 ```
 
@@ -142,7 +141,7 @@ spec:
 
 ### Set-up import
 
-In the client cluster, import the iperf3-server service from the server cluster:
+In the client cluster, import the nginx service from the server cluster:
 
 *Client cluster*:
 
@@ -150,7 +149,7 @@ In the client cluster, import the iperf3-server service from the server cluster:
 {{% tab header="File" %}}
 
 ```sh
-kubectl apply -f $TEST_FILES/clusterlink/import-iperf3.yaml
+kubectl apply -f $TEST_FILES/clusterlink/import-nginx.yaml
 ```
 
 {{% /tab %}}
@@ -161,12 +160,12 @@ echo "
 apiVersion: clusterlink.net/v1alpha1
 kind: Import
 metadata:
-  name: iperf3-server
+  name: nginx
   namespace: default
 spec:
-  port:       5000
+  port:       80
   sources:
-    - exportName:       iperf3-server
+    - exportName:       nginx
       exportNamespace:  default
       peer:             server
 " | kubectl apply -f -
@@ -181,37 +180,48 @@ spec:
 
 ## Test service connectivity
 
-Test the iperf3 connectivity between the clusters:
+Test the connectivity between the clusters with a batch job of the ```curl``` command:
 
 *Client cluster*:
 
 ```sh
-export IPERF3CLIENT=`kubectl get pods -l app=iperf3-client -o custom-columns=:metadata.name --no-headers`
-kubectl exec -i $IPERF3CLIENT -- iperf3 -c iperf3-server --port 5000
+kubectl apply -f $TEST_FILES/nginx-job.yaml
+```
+
+Verify the job succeeded:
+
+```sh
+kubectl logs jobs/curl-nginx-homepage
 ```
 
 {{% expand summary="Sample output" %}}
 
 ```sh
-Connecting to host iperf3-server, port 5000
-[  5] local 10.244.0.5 port 51666 connected to 10.96.46.198 port 5000
-[ ID] Interval           Transfer     Bitrate         Retr  Cwnd
-[  5]   0.00-1.00   sec   639 MBytes  5.36 Gbits/sec    0    938 KBytes
-[  5]   1.00-2.00   sec   627 MBytes  5.26 Gbits/sec    0    938 KBytes
-[  5]   2.00-3.00   sec   628 MBytes  5.26 Gbits/sec    0    938 KBytes
-[  5]   3.00-4.00   sec   635 MBytes  5.33 Gbits/sec    0    938 KBytes
-[  5]   4.00-5.00   sec   630 MBytes  5.29 Gbits/sec    0    938 KBytes
-[  5]   5.00-6.00   sec   636 MBytes  5.33 Gbits/sec    0    938 KBytes
-[  5]   6.00-7.00   sec   639 MBytes  5.36 Gbits/sec    0    938 KBytes
-[  5]   7.00-8.00   sec   634 MBytes  5.32 Gbits/sec    0    938 KBytes
-[  5]   8.00-9.00   sec   641 MBytes  5.39 Gbits/sec    0    938 KBytes
-[  5]   9.00-10.00  sec   633 MBytes  5.30 Gbits/sec    0    938 KBytes
-- - - - - - - - - - - - - - - - - - - - - - - - -
-[ ID] Interval           Transfer     Bitrate         Retr
-[  5]   0.00-10.00  sec  6.19 GBytes  5.32 Gbits/sec    0             sender
-[  5]   0.00-10.00  sec  6.18 GBytes  5.31 Gbits/sec                  receiver
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
 
-iperf Done.
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
 ```
 
 {{% /expand %}}
@@ -234,15 +244,14 @@ iperf Done.
 1. Remove the tutorial directory:
 
     ```sh
-    cd .. && rm -rf iperf3-tutorial
+    cd .. && rm -rf nginx-tutorial
     ```
 
 1. Unset the environment variables:
-
     *Client cluster*:
 
     ```sh
-    unset KUBECONFIG TEST_FILES IPERF3CLIENT
+    unset KUBECONFIG TEST_FILES
     ```
 
     *Server cluster*:
