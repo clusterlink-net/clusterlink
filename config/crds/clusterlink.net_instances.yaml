@@ -115,11 +115,12 @@ spec:
                 type: string
             type: object
           status:
-            description: InstanceStatus defines the observed state of ClusterlLink
+            description: InstanceStatus defines the observed state of a ClusterlLink
               Instance.
             properties:
               controlplane:
-                description: ComponentStatus defines the status of component in ClusterLink.
+                description: ComponentStatus defines the status of a component in
+                  ClusterLink.
                 properties:
                   conditions:
                     additionalProperties:
@@ -195,7 +196,8 @@ spec:
                     type: object
                 type: object
               dataplane:
-                description: ComponentStatus defines the status of component in ClusterLink.
+                description: ComponentStatus defines the status of a component in
+                  ClusterLink.
                 properties:
                   conditions:
                     additionalProperties:

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-# Detrmine the OS.
+# Determine the OS.
 OS=$(uname)
 if [ "${OS}" = "Darwin" ] ; then
   CL_OS="darwin"
@@ -10,14 +10,14 @@ else
 fi
 
 
-# Detrmine the OS architecture.
+# Determine the OS architecture.
 OS_ARCH=$(uname -m)
 case "${OS_ARCH}" in
   x86_64|amd64)
     CL_ARCH=amd64
     ;;
   armv8*|aarch64*|arm64)
-    ARCH=arm64
+    CL_ARCH=arm64
     ;;
   *)
     echo "This ${OS_ARCH} architecture isn't supported"

@@ -141,7 +141,6 @@ func (s *server) PeerAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	peerName := r.TLS.PeerCertificates[0].DNSNames[0]
 	resp, err := s.manager.authorizeIngress(
 		r.Context(),
 		&ingressAuthorizationRequest{
@@ -149,8 +148,8 @@ func (s *server) PeerAuthorize(w http.ResponseWriter, r *http.Request) {
 				Namespace: req.ServiceNamespace,
 				Name:      req.ServiceName,
 			},
-		},
-		peerName)
+			SrcAttributes: req.SrcAttributes,
+		})
 	switch {
 	case err != nil:
 		http.Error(w, err.Error(), http.StatusInternalServerError)

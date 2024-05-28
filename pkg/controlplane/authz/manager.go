@@ -43,6 +43,7 @@ const (
 
 	ServiceNameLabel      = "clusterlink/metadata.serviceName"
 	ServiceNamespaceLabel = "clusterlink/metadata.serviceNamespace"
+	ServiceLabelsPrefix   = "service/metadata."
 	GatewayNameLabel      = "clusterlink/metadata.gatewayName"
 )
 
@@ -71,6 +72,8 @@ type egressAuthorizationResponse struct {
 type ingressAuthorizationRequest struct {
 	// Service is the name of the requested exported service.
 	ServiceName types.NamespacedName
+	// Attributes of the source workload, to be used by the PDP on the remote peer
+	SrcAttributes connectivitypdp.WorkloadAttrs
 }
 
 // ingressAuthorizationResponse (from remote peer controlplane) represents a response for an ingressAuthorizationRequest.
@@ -204,6 +207,11 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 		return nil, fmt.Errorf("cannot get import %v: %w", req.ImportName, err)
 	}
 
+	dstAttributes := connectivitypdp.WorkloadAttrs{}
+	for k, v := range imp.Labels { // add import labels to destination attributes
+		dstAttributes[ServiceLabelsPrefix+k] = v
+	}
+
 	lbResult := NewLoadBalancingResult(&imp)
 	for {
 		if err := m.loadBalancer.Select(lbResult); err != nil {
@@ -228,11 +236,10 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 			}
 		}
 
-		dstAttributes := connectivitypdp.WorkloadAttrs{
-			ServiceNameLabel:      imp.Name,
-			ServiceNamespaceLabel: imp.Namespace,
-			GatewayNameLabel:      importSource.Peer,
-		}
+		dstAttributes[ServiceNameLabel] = importSource.ExportName
+		dstAttributes[ServiceNamespaceLabel] = importSource.ExportNamespace
+		dstAttributes[GatewayNameLabel] = importSource.Peer
+
 		decision, err := m.connectivityPDP.Decide(srcAttributes, dstAttributes, req.ImportName.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error deciding on an egress connection: %w", err)
@@ -263,6 +270,7 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 		peerResp, err := cl.Authorize(&cpapi.AuthorizationRequest{
 			ServiceName:      DstName,
 			ServiceNamespace: DstNamespace,
+			SrcAttributes:    srcAttributes,
 		})
 		if err != nil {
 			m.logger.Infof("Unable to get access token from peer: %v", err)
@@ -322,7 +330,6 @@ func (m *Manager) parseAuthorizationHeader(token string) (string, error) {
 func (m *Manager) authorizeIngress(
 	ctx context.Context,
 	req *ingressAuthorizationRequest,
-	pr string,
 ) (*ingressAuthorizationResponse, error) {
 	m.logger.Infof("Received ingress authorization request: %v.", req)
 
@@ -344,13 +351,16 @@ func (m *Manager) authorizeIngress(
 
 	resp.ServiceExists = true
 
-	srcAttributes := connectivitypdp.WorkloadAttrs{GatewayNameLabel: pr}
 	dstAttributes := connectivitypdp.WorkloadAttrs{
-		ServiceNameLabel:      req.ServiceName.Name,
-		ServiceNamespaceLabel: req.ServiceName.Namespace,
+		ServiceNameLabel:      export.Name,
+		ServiceNamespaceLabel: export.Namespace,
 		GatewayNameLabel:      m.peerName,
 	}
-	decision, err := m.connectivityPDP.Decide(srcAttributes, dstAttributes, req.ServiceName.Namespace)
+	for k, v := range export.Labels { // add export labels to destination attributes
+		dstAttributes[ServiceLabelsPrefix+k] = v
+	}
+
+	decision, err := m.connectivityPDP.Decide(req.SrcAttributes, dstAttributes, req.ServiceName.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error deciding on an ingress connection: %w", err)
 	}
