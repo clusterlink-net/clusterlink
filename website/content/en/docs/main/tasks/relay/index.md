@@ -2,9 +2,17 @@
 title: Relay Cluster
 description: Running basic connectivity between nginx server and client through a relay cluster using ClusterLink.
 ---
-In this tutorial, we'll establish multi-hop connectivity across clusters using ClusterLink to access a remote nginx server.
+
+This task involves creating multi-hop connectivity between a client and a server using relay clusters.
+Multi-hop connectivity using a relay may be necessary for several reasons, such as:
+
+1. When the client needs to use an indirect connection due to network path limitations.
+2. Using multiple relays allows for explicit selection between multiple network paths without impacting or changing the underlying routing information.
+3. Using multiple relays provides failover for the network paths.
+
+In this task, we'll establish multi-hop connectivity across clusters using ClusterLink to access a remote nginx server.
 In this case, the client will not access the service directly in the server cluster but will pass through a relay cluster.
-The tutorial uses three clusters:
+The example uses three clusters:
 
 1) Client cluster - runs ClusterLink along with a client.
 2) Relay cluster  - runs ClusterLink and connects the services between the client and the server.
@@ -16,7 +24,7 @@ System illustration:
 
 ## Run basic nginx Tutorial
 
-This tutorial is an extension of the basic [nginx toturial][]. Please run it first and set up the nginx server and client cluster.
+This is an extension of the basic [nginx toturial][]. Please run it first and set up the nginx server and client cluster.
 
 ## Create relay Cluster with ClusterLink
 
@@ -94,7 +102,7 @@ This tutorial is an extension of the basic [nginx toturial][]. Please run it fir
 
 ## Test service connectivity
 
-Test the connectivity between the clusters with a batch job of the ```curl``` command:
+Test the connectivity between the clusters (through the relay) with a batch job of the ```curl``` command:
 
 *Client cluster*:
 
@@ -108,37 +116,7 @@ Verify the job succeeded:
 kubectl logs jobs/curl-nginx-relay-homepage
 ```
 
-{{% expand summary="Sample output" %}}
-
-```sh
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-<!DOCTYPE html>
-<html>
-<head>
-<title>Welcome to nginx!</title>
-<style>
-html { color-scheme: light dark; }
-body { width: 35em; margin: 0 auto;
-font-family: Tahoma, Verdana, Arial, sans-serif; }
-</style>
-</head>
-<body>
-<h1>Welcome to nginx!</h1>
-<p>If you see this page, the nginx web server is successfully installed and
-working. Further configuration is required.</p>
-
-<p>For online documentation and support please refer to
-<a href="http://nginx.org/">nginx.org</a>.<br/>
-Commercial support is available at
-<a href="http://nginx.com/">nginx.com</a>.</p>
-
-<p><em>Thank you for using nginx.</em></p>
-</body>
-</html>
-```
-
-{{% /expand %}}
+{{% readfile file="/static/files/tutorials/nginx/nginx-output.md" %}}
 
 ## Cleanup
 
