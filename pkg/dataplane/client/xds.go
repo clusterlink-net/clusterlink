@@ -15,29 +15,24 @@ package client
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/backoff"
-	"google.golang.org/grpc/credentials"
 
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/server"
 )
 
 // resources indicate the xDS resources that would be fetched.
-var resources = [...]string{resource.ClusterType, resource.ListenerType}
+var resources = [...]string{resource.ClusterType, resource.ListenerType, resource.SecretType}
 
 // XDSClient implements the client which fetches clusters and listeners.
 type XDSClient struct {
 	dataplane          *server.Dataplane
-	controlplaneTarget string
-	tlsConfig          *tls.Config
+	controlplaneClient grpc.ClientConnInterface
 	lock               sync.Mutex
 	errors             map[string]error
 	logger             *logrus.Entry
@@ -46,20 +41,7 @@ type XDSClient struct {
 
 func (x *XDSClient) runFetcher(resourceType string) error {
 	for {
-		conn, err := grpc.Dial(
-			x.controlplaneTarget,
-			grpc.WithTransportCredentials(credentials.NewTLS(x.tlsConfig)),
-			grpc.WithConnectParams(grpc.ConnectParams{
-				Backoff:           backoff.DefaultConfig,
-				MinConnectTimeout: time.Second,
-			}))
-		if err != nil {
-			x.logger.Errorf("Failed to dial controlplane xDS server: %v.", err)
-			time.Sleep(1 * time.Second)
-			continue
-		}
-
-		fetcher, err := newFetcher(context.Background(), conn, resourceType, x.dataplane)
+		fetcher, err := newFetcher(context.Background(), x.controlplaneClient, resourceType, x.dataplane)
 		if err != nil {
 			x.logger.Errorf("Failed to initialize %s fetcher: %v.", resourceType, err)
 			continue
@@ -110,11 +92,10 @@ func (x *XDSClient) Run() error {
 }
 
 // NewXDSClient returns am xDS client which can fetch clusters and listeners from the controlplane.
-func NewXDSClient(dataplane *server.Dataplane, controlplaneTarget string, tlsConfig *tls.Config) *XDSClient {
+func NewXDSClient(dataplane *server.Dataplane, controlplaneClient grpc.ClientConnInterface) *XDSClient {
 	return &XDSClient{
 		dataplane:          dataplane,
-		controlplaneTarget: controlplaneTarget,
-		tlsConfig:          tlsConfig,
+		controlplaneClient: controlplaneClient,
 		errors:             make(map[string]error),
 		logger:             logrus.WithField("component", "xds.client"),
 		clustersReady:      make(chan bool, 1),

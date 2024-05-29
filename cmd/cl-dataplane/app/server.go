@@ -22,9 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/util/log"
-	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 const (
@@ -81,27 +79,11 @@ func (o *Options) Run() error {
 		}()
 	}
 
-	// parse TLS files
-	parsedCertData, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
-	if err != nil {
-		return err
-	}
-
-	dnsNames := parsedCertData.DNSNames()
-	if len(dnsNames) != 1 {
-		return fmt.Errorf("expected peer certificate to contain a single DNS name, but got %d", len(dnsNames))
-	}
-
-	peerName, err := api.StripServerPrefix(dnsNames[0])
-	if err != nil {
-		return err
-	}
-
 	// generate random dataplane ID
 	dataplaneID := uuid.New().String()
 	logrus.Infof("Dataplane ID: %s.", dataplaneID)
 
-	return o.runEnvoy(peerName, dataplaneID)
+	return o.runEnvoy(dataplaneID)
 }
 
 // NewCLDataplaneCommand creates a *cobra.Command object with default parameters.

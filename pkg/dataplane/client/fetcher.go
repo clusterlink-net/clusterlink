@@ -22,6 +22,7 @@ import (
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	tlsv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	client "github.com/envoyproxy/go-control-plane/pkg/client/sotw/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/sirupsen/logrus"
@@ -98,6 +99,22 @@ func (f *fetcher) handleListeners(resources []*anypb.Any) error {
 	return nil
 }
 
+func (f *fetcher) handleSecrets(resources []*anypb.Any) error {
+	for _, res := range resources {
+		secret := &tlsv3.Secret{}
+		err := anypb.UnmarshalTo(res, secret, proto.UnmarshalOptions{})
+		if err != nil {
+			return err
+		}
+		f.logger.Debugf("Secret: %s.", secret.Name)
+		if err := f.dataplane.AddSecret(secret); err != nil {
+			return fmt.Errorf("error adding secret %s: %w", secret.Name, err)
+		}
+	}
+
+	return nil
+}
+
 func (f *fetcher) Run() error {
 	for {
 		resp, err := f.client.Fetch()
@@ -118,6 +135,11 @@ func (f *fetcher) Run() error {
 			if err != nil {
 				f.logger.Errorf("Failed to handle listeners: %v.", err)
 			}
+		case resource.SecretType:
+			err := f.handleSecrets(resp.Resources)
+			if err != nil {
+				f.logger.Errorf("Failed to handle secrets: %v.", err)
+			}
 		default:
 			return fmt.Errorf("unknown resource type")
 		}
@@ -129,9 +151,14 @@ func (f *fetcher) Run() error {
 	}
 }
 
-func newFetcher(ctx context.Context, conn *grpc.ClientConn, resourceType string, dp *server.Dataplane) (*fetcher, error) {
+func newFetcher(
+	ctx context.Context,
+	controlplaneClient grpc.ClientConnInterface,
+	resourceType string,
+	dp *server.Dataplane,
+) (*fetcher, error) {
 	cl := client.NewADSClient(ctx, &core.Node{Id: dp.ID}, resourceType)
-	err := cl.InitConnect(conn)
+	err := cl.InitConnect(controlplaneClient)
 	if err != nil {
 		return nil, err
 	}

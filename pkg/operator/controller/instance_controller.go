@@ -223,7 +223,7 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 				Name: "ca",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: "cl-fabric",
+						SecretName: "cl-ca",
 					},
 				},
 			},
@@ -232,6 +232,14 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
 						SecretName: ControlPlaneName,
+					},
+				},
+			},
+			{
+				Name: "peer-tls",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: "cl-peer",
 					},
 				},
 			},
@@ -266,6 +274,11 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 						SubPath:   "key",
 						ReadOnly:  true,
 					},
+					{
+						Name:      "peer-tls",
+						MountPath: cpapp.PeerTLSDirectory,
+						ReadOnly:  true,
+					},
 				},
 				Env: []corev1.EnvVar{
 					{
@@ -297,7 +310,7 @@ func (r *InstanceReconciler) applyDataplane(ctx context.Context, instance *clust
 				Name: "ca",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: "cl-fabric",
+						SecretName: "cl-ca",
 					},
 				},
 			},

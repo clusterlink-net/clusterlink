@@ -149,6 +149,7 @@ func convertCaseCamelToKebab(s string) string {
 
 // BeforeTest creates the test namespace before each test, and removes the previous test namespace.
 func (s *TestSuite) BeforeTest(_, testName string) {
+	s.fabric.ClearErrors()
 	testName = convertCaseCamelToKebab(testName)
 	if err := s.fabric.SwitchToNewNamespace(testName, false); err != nil {
 		s.T().Fatal(err)

@@ -33,6 +33,8 @@ const (
 	ControlplaneDirectoryName = "controlplane"
 	// DataplaneDirectoryName is the directory name containing dataplane server configuration.
 	DataplaneDirectoryName = "dataplane"
+	// CADirectoryName is the directory name containing site CA configuration.
+	CADirectoryName = "ca"
 
 	// GHCR is the path to the GitHub container registry.
 	GHCR = "ghcr.io/clusterlink-net"
@@ -58,6 +60,11 @@ func ControlplaneDirectory(peer, fabric, path string) string {
 // DataplaneDirectory returns the path for a dataplane server.
 func DataplaneDirectory(peer, fabric, path string) string {
 	return filepath.Join(PeerDirectory(peer, fabric, path), DataplaneDirectoryName)
+}
+
+// CADirectory returns the path for a site CA.
+func CADirectory(peer, fabric, path string) string {
+	return filepath.Join(PeerDirectory(peer, fabric, path), CADirectoryName)
 }
 
 // FabricCertificate returns the fabric certificate name.

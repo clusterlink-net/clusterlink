@@ -79,7 +79,6 @@ func createCertificate(config *certificateConfig) (*certificate, error) {
 
 	if config.IsCA {
 		cert.BasicConstraintsValid = true
-		cert.PermittedDNSDomains = config.DNSNames
 		cert.KeyUsage = x509.KeyUsageCertSign | x509.KeyUsageCRLSign
 	} else {
 		cert.DNSNames = config.DNSNames
