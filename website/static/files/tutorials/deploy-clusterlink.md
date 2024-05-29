@@ -14,6 +14,11 @@
     clusterlink create peer-cert --name server
     ```
 
+    All peer certificates (i.e., for the `client` and `server` clusters, in this tutorial) should be created from the same fabric CA files.
+    In this tutorial, we assume the server has access to the Fabric certificate created in the `default_fabric` folder.
+    In this tutorial, we assume the `server` cluster creation has access to the fabric certificate stored in the
+    `default_fabric` folder. If it doesn't, the fabric certificate should be copied from the `client` to the `server`.
+
     For more details regarding fabric and peer see [core concepts][].
 
 2. Deploy ClusterLink on each cluster:

@@ -105,10 +105,6 @@ In this step, we enable connectivity access between the iPerf3 client and server
 
 {{% readfile file="/static/files/tutorials/peer.md" %}}
 
-{{< notice note >}}
-The `CLIENT_IP` and `SERVER_IP` refers to the node IP of the peer kind cluster, which assigns the peer YAML file.
-{{< /notice >}}
-
 ### Export the iPerf server endpoint
 
 In the server cluster, export the iperf3-server service:

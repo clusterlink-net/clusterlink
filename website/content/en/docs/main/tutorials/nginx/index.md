@@ -104,9 +104,6 @@ In this step, we enable access between the client and server.
 
 {{% readfile file="/static/files/tutorials/peer.md" %}}
 
-{{< notice note >}}
-The `CLIENT_IP` and `SERVER_IP` refers to the node IP of the peer kind cluster, which assigns the peer YAML file.
-{{< /notice >}}
 
 ### Export the nginx server endpoint
 
