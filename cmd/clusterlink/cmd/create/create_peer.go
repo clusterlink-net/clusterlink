@@ -59,24 +59,6 @@ func (o *PeerOptions) saveCertificate(cert *bootstrap.Certificate, outDirectory 
 	return os.WriteFile(filepath.Join(outDirectory, config.PrivateKeyFileName), cert.RawKey(), 0o600)
 }
 
-func (o *PeerOptions) createCA() (*bootstrap.Certificate, error) {
-	cert, err := bootstrap.CreateCACertificate()
-	if err != nil {
-		return nil, err
-	}
-
-	outDirectory := config.CADirectory(o.Name, o.Fabric, o.Path)
-	if err := os.Mkdir(outDirectory, 0o755); err != nil {
-		return nil, err
-	}
-
-	if err := o.saveCertificate(cert, outDirectory); err != nil {
-		return nil, err
-	}
-
-	return cert, nil
-}
-
 func (o *PeerOptions) createPeerCert(fabricCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
 	cert, err := bootstrap.CreatePeerCertificate(o.Name, fabricCert)
 	if err != nil {
@@ -84,42 +66,6 @@ func (o *PeerOptions) createPeerCert(fabricCert *bootstrap.Certificate) (*bootst
 	}
 
 	outDirectory := config.PeerDirectory(o.Name, o.Fabric, o.Path)
-	if err := os.Mkdir(outDirectory, 0o755); err != nil {
-		return nil, err
-	}
-
-	if err := o.saveCertificate(cert, outDirectory); err != nil {
-		return nil, err
-	}
-
-	return cert, nil
-}
-
-func (o *PeerOptions) createControlplane(caCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
-	cert, err := bootstrap.CreateControlplaneCertificate(caCert)
-	if err != nil {
-		return nil, err
-	}
-
-	outDirectory := config.ControlplaneDirectory(o.Name, o.Fabric, o.Path)
-	if err := os.Mkdir(outDirectory, 0o755); err != nil {
-		return nil, err
-	}
-
-	if err := o.saveCertificate(cert, outDirectory); err != nil {
-		return nil, err
-	}
-
-	return cert, nil
-}
-
-func (o *PeerOptions) createDataplane(caCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
-	cert, err := bootstrap.CreateDataplaneCertificate(caCert)
-	if err != nil {
-		return nil, err
-	}
-
-	outDirectory := config.DataplaneDirectory(o.Name, o.Fabric, o.Path)
 	if err := os.Mkdir(outDirectory, 0o755); err != nil {
 		return nil, err
 	}
@@ -147,19 +93,6 @@ func (o *PeerOptions) Run() error {
 	}
 
 	if _, err := o.createPeerCert(fabricCert); err != nil {
-		return err
-	}
-
-	caCert, err := o.createCA()
-	if err != nil {
-		return err
-	}
-
-	if _, err := o.createControlplane(caCert); err != nil {
-		return err
-	}
-
-	if _, err := o.createDataplane(caCert); err != nil {
 		return err
 	}
 
