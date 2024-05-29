@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/bombsimon/logrusr/v4"
 	"github.com/sirupsen/logrus"
@@ -37,10 +38,8 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/xds"
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
 	"github.com/clusterlink-net/clusterlink/pkg/util/grpc"
-	"github.com/clusterlink-net/clusterlink/pkg/util/http"
 	"github.com/clusterlink-net/clusterlink/pkg/util/log"
 	"github.com/clusterlink-net/clusterlink/pkg/util/runnable"
-	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 	"github.com/clusterlink-net/clusterlink/pkg/versioninfo"
 )
@@ -49,9 +48,6 @@ const (
 	// logLevel is the default log level.
 	logLevel = "warn"
 
-	// StoreFile is the path to the file holding the persisted state.
-	StoreFile = "/var/lib/clink/controlplane.db"
-
 	// CAFile is the path to the certificate authority file.
 	CAFile = "/etc/ssl/certs/clink_ca.pem"
 	// CertificateFile is the path to the certificate file.
@@ -59,10 +55,14 @@ const (
 	// KeyFile is the path to the private-key file.
 	KeyFile = "/etc/ssl/private/clink-controlplane.pem"
 
-	// httpServerAddress is the address of the localhost HTTP server.
-	httpServerAddress = "127.0.0.1:1100"
-	// grpcServerAddress is the address of the localhost gRPC server.
-	grpcServerAddress = "127.0.0.1:1101"
+	// PeerTLSDirectory is the path to the directory holding the peer TLS certificates.
+	PeerTLSDirectory = "/etc/ssl/certs/clink"
+	// PeerCertificateFile is the name to the peer certificate file.
+	PeerCertificateFile = "cert.pem"
+	// PeerKeyFile is the name of the peer private-key file.
+	PeerKeyFile = "key.pem"
+	// FabricCertificateFile is the name of the fabric CA file.
+	FabricCertificateFile = "ca.pem"
 
 	// NamespaceEnvVariable is the environment variable
 	// which should hold the clusterlink system namespace name.
@@ -70,6 +70,21 @@ const (
 	// SystemNamespace represents the default clusterlink system namespace.
 	SystemNamespace = "clusterlink-system"
 )
+
+// PeerCertificateFilePath returns the path to the peer certificate file.
+func PeerCertificateFilePath() string {
+	return path.Join(PeerTLSDirectory, PeerCertificateFile)
+}
+
+// PeerKeyFilePath returns the path to the peer private key file.
+func PeerKeyFilePath() string {
+	return path.Join(PeerTLSDirectory, PeerKeyFile)
+}
+
+// FabricCertificateFilePath returns the path to the fabric CA file.
+func FabricCertificateFilePath() string {
+	return path.Join(PeerTLSDirectory, FabricCertificateFile)
+}
 
 // Options contains everything necessary to create and run a controlplane.
 type Options struct {
@@ -111,23 +126,15 @@ func (o *Options) Run() error {
 	}
 	logrus.Infof("ClusterLink namespace: %s", namespace)
 
-	parsedCertData, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
+	controlplaneCertData, _, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
 	if err != nil {
 		return err
 	}
 
-	dnsNames := parsedCertData.DNSNames()
-	if len(dnsNames) != 2 {
-		return fmt.Errorf("expected peer certificate to contain 2 DNS names, but got %d", len(dnsNames))
-	}
-
-	serverName := dnsNames[0]
-	grpcServerName := dnsNames[1]
-
-	expectedGRPCServerName := api.GRPCServerName(serverName)
-	if grpcServerName != expectedGRPCServerName {
-		return fmt.Errorf("expected second DNS name to be '%s', but got: '%s'",
-			expectedGRPCServerName, grpcServerName)
+	peerCertData, rawPeerCertData, err := tls.ParseFiles(
+		FabricCertificateFilePath(), PeerCertificateFilePath(), PeerKeyFilePath())
+	if err != nil {
+		return err
 	}
 
 	config, err := rest.InClusterConfig()
@@ -171,17 +178,15 @@ func (o *Options) Run() error {
 	}
 
 	controlplaneServerListenAddress := fmt.Sprintf("0.0.0.0:%d", api.ListenPort)
-	sniProxy := sniproxy.NewServer(map[string]string{
-		serverName:     httpServerAddress,
-		grpcServerName: grpcServerAddress,
-	})
+	grpcServer := grpc.NewServer("controlplane-grpc", controlplaneCertData.ServerConfig())
 
-	httpServer := http.NewServer("controlplane-http", parsedCertData.ServerConfig())
-	grpcServer := grpc.NewServer("controlplane-grpc", parsedCertData.ServerConfig())
-
-	authzManager, err := authz.NewManager(parsedCertData, mgr.GetClient(), namespace)
+	authzManager, err := authz.NewManager(mgr.GetClient(), namespace)
 	if err != nil {
 		return fmt.Errorf("cannot create authorization manager: %w", err)
+	}
+
+	if err := authzManager.SetPeerCertificates(peerCertData); err != nil {
+		return fmt.Errorf("authorization manager cannot set peer certificates: %w", err)
 	}
 
 	err = authz.CreateControllers(authzManager, mgr)
@@ -189,9 +194,10 @@ func (o *Options) Run() error {
 		return fmt.Errorf("cannot create authz controllers: %w", err)
 	}
 
-	authz.RegisterHandlers(authzManager, httpServer)
+	authz.RegisterService(authzManager, grpcServer.GetGRPCServer())
 
-	controlManager := control.NewManager(mgr.GetClient(), parsedCertData, namespace)
+	controlManager := control.NewManager(mgr.GetClient(), namespace)
+	controlManager.SetPeerCertificates(peerCertData)
 
 	err = control.CreateControllers(controlManager, mgr)
 	if err != nil {
@@ -201,6 +207,9 @@ func (o *Options) Run() error {
 	xdsManager := xds.NewManager()
 	xds.RegisterService(
 		context.Background(), xdsManager, grpcServer.GetGRPCServer())
+	if err := xdsManager.SetPeerCertificates(rawPeerCertData); err != nil {
+		return err
+	}
 
 	if err := xds.CreateControllers(xdsManager, mgr); err != nil {
 		return fmt.Errorf("cannot create xDS controllers: %w", err)
@@ -209,9 +218,7 @@ func (o *Options) Run() error {
 	runnableManager := runnable.NewManager()
 	runnableManager.Add(controller.NewManager(mgr))
 	runnableManager.Add(controlManager)
-	runnableManager.AddServer(httpServerAddress, httpServer)
-	runnableManager.AddServer(grpcServerAddress, grpcServer)
-	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
+	runnableManager.AddServer(controlplaneServerListenAddress, grpcServer)
 
 	return runnableManager.Run()
 }

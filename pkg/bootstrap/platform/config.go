@@ -24,14 +24,17 @@ type Config struct {
 	// Namespace is the namespace the components deployed.
 	Namespace string
 
-	// FabricCertificate is the fabric certificate.
-	FabricCertificate *bootstrap.Certificate
-	// PeerCertificate is the peer certificate.
-	PeerCertificate *bootstrap.Certificate
+	// CACertificate is the CA certificate.
+	CACertificate *bootstrap.Certificate
 	// ControlplaneCertificate is the controlplane certificate.
 	ControlplaneCertificate *bootstrap.Certificate
 	// DataplaneCertificate is the dataplane certificate.
 	DataplaneCertificate *bootstrap.Certificate
+
+	// FabricCertificate is the fabric CA certificate.
+	FabricCertificate *bootstrap.Certificate
+	// PeerCertificate is the peer certificate.
+	PeerCertificate *bootstrap.Certificate
 
 	// Dataplanes is the number of dataplane servers to run.
 	Dataplanes uint16

@@ -36,6 +36,7 @@ func RegisterService(ctx context.Context, manager *Manager, grpcServer *grpc.Ser
 		Caches: map[string]cache.Cache{
 			resource.ClusterType:  manager.clusters,
 			resource.ListenerType: manager.listeners,
+			resource.SecretType:   manager.secrets,
 		},
 	}
 

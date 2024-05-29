@@ -119,6 +119,16 @@ func (s *TestSuite) TestLoadBalancingStatic() {
 
 	require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp))
 
+	// wait for all peers to be reachable
+	for i := 0; i < 3; i++ {
+		require.Nil(s.T(), cl[0].WaitForPeerCondition(&v1alpha1.Peer{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      cl[i].Name(),
+				Namespace: cl[i].Namespace(),
+			},
+		}, v1alpha1.PeerReachable, true))
+	}
+
 	// test static lb scheme
 	for i := 0; i < 30; i++ {
 		data, err := cl[0].AccessService(httpecho.GetEchoValue, importedService, true, nil)

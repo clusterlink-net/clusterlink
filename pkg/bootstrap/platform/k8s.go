@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"path/filepath"
 	"text/template"
 
 	cpapp "github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
@@ -32,10 +31,10 @@ const (
 apiVersion: v1
 kind: Secret
 metadata:
-  name: cl-fabric
+  name: cl-ca
   namespace: {{.namespace}}
 data:
-  ca: {{.fabricCA}}
+  ca: {{.ca}}
 ---
 apiVersion: v1
 kind: Secret
@@ -54,6 +53,16 @@ metadata:
 data:
   cert: {{.dataplaneCert}}
   key: {{.dataplaneKey}}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cl-peer
+  namespace: {{.namespace}}
+data:
+  {{.peerCertificateFile}}: {{.peerCert}}
+  {{.peerKeyFile}}: {{.peerKey}}
+  {{.fabricCertFile}}: {{.fabricCert}}
 `
 
 	k8sTemplate = `---
@@ -77,10 +86,13 @@ spec:
       volumes:
         - name: ca
           secret:
-            secretName: cl-fabric
+            secretName: cl-ca
         - name: tls
           secret:
             secretName: cl-controlplane
+        - name: peer-tls
+          secret:
+            secretName: cl-peer
       containers:
         - name: cl-controlplane
           image: {{.containerRegistry}}cl-controlplane:{{.tag}}
@@ -100,6 +112,9 @@ spec:
             - name: tls
               mountPath: {{.controlplaneKeyMountPath}}
               subPath: "key"
+              readOnly: true
+            - name: peer-tls
+              mountPath: {{.peerTLSMountPath}}
               readOnly: true
           env:
             - name: {{ .namespaceEnvVariable }}
@@ -127,7 +142,7 @@ spec:
       volumes:
         - name: ca
           secret:
-            secretName: cl-fabric
+            secretName: cl-ca
         - name: tls
           secret:
             secretName: cl-dataplane
@@ -261,11 +276,11 @@ func K8SConfig(config *Config) ([]byte, error) {
 		"namespaceEnvVariable": cpapp.NamespaceEnvVariable,
 		"dataplaneAppName":     dpapp.Name,
 
-		"persistencyDirectoryMountPath": filepath.Dir(cpapp.StoreFile),
-
 		"controlplaneCAMountPath":   cpapp.CAFile,
 		"controlplaneCertMountPath": cpapp.CertificateFile,
 		"controlplaneKeyMountPath":  cpapp.KeyFile,
+
+		"peerTLSMountPath": cpapp.PeerTLSDirectory,
 
 		"dataplaneCAMountPath":   dpapp.CAFile,
 		"dataplaneCertMountPath": dpapp.CertificateFile,
@@ -294,13 +309,18 @@ func K8SConfig(config *Config) ([]byte, error) {
 // K8SCertificateConfig returns a kubernetes secrets that contains all the certificates.
 func K8SCertificateConfig(config *Config) ([]byte, error) {
 	args := map[string]interface{}{
-		"fabricCA":         base64.StdEncoding.EncodeToString(config.FabricCertificate.RawCert()),
-		"peerCA":           base64.StdEncoding.EncodeToString(config.PeerCertificate.RawCert()),
-		"controlplaneCert": base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawCert()),
-		"controlplaneKey":  base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawKey()),
-		"dataplaneCert":    base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawCert()),
-		"dataplaneKey":     base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawKey()),
-		"namespace":        config.Namespace,
+		"ca":                  base64.StdEncoding.EncodeToString(config.CACertificate.RawCert()),
+		"controlplaneCert":    base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawCert()),
+		"controlplaneKey":     base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawKey()),
+		"dataplaneCert":       base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawCert()),
+		"dataplaneKey":        base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawKey()),
+		"peerCertificateFile": cpapp.PeerCertificateFile,
+		"peerKeyFile":         cpapp.PeerKeyFile,
+		"fabricCertFile":      cpapp.FabricCertificateFile,
+		"peerCert":            base64.StdEncoding.EncodeToString(config.PeerCertificate.RawCert()),
+		"peerKey":             base64.StdEncoding.EncodeToString(config.PeerCertificate.RawKey()),
+		"fabricCert":          base64.StdEncoding.EncodeToString(config.FabricCertificate.RawCert()),
+		"namespace":           config.Namespace,
 	}
 
 	var certConfig bytes.Buffer
@@ -356,13 +376,7 @@ func K8SClusterLinkInstanceConfig(config *Config, name string) ([]byte, error) {
 // used for deleting the secrets.
 func K8SEmptyCertificateConfig(config *Config) ([]byte, error) {
 	args := map[string]interface{}{
-		"fabricCA":         "",
-		"peerCA":           "",
-		"controlplaneCert": "",
-		"controlplaneKey":  "",
-		"dataplaneCert":    "",
-		"dataplaneKey":     "",
-		"namespace":        config.Namespace,
+		"namespace": config.Namespace,
 	}
 
 	var certConfig bytes.Buffer

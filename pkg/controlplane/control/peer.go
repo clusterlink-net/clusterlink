@@ -54,8 +54,10 @@ type peerMonitor struct {
 
 // peerManager manages peers status.
 type peerManager struct {
-	client  client.Client
-	peerTLS *tls.ParsedCertData
+	client client.Client
+
+	peerTLSLock sync.RWMutex
+	peerTLS     *tls.ParsedCertData
 
 	lock     sync.Mutex
 	monitors map[string]*peerMonitor
@@ -83,6 +85,20 @@ func (m *peerMonitor) SetPeer(pr *v1alpha1.Peer) {
 	m.pr = pr
 }
 
+func (m *peerMonitor) SetClientCertificates(peerTLS *tls.ParsedCertData) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	m.client = peer.NewClient(m.pr, peerTLS.ClientConfig(m.pr.Name))
+}
+
+func (m *peerMonitor) getClient() *peer.Client {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	return m.client
+}
+
 func (m *peerMonitor) Start() {
 	defer m.wg.Done()
 
@@ -105,7 +121,7 @@ func (m *peerMonitor) Start() {
 			break
 		}
 
-		heartbeatOK := m.client.GetHeartbeat() == nil
+		heartbeatOK := m.getClient().GetHeartbeat() == nil
 		if healthy == heartbeatOK {
 			if !healthy {
 				ticker.Reset(unhealthyInterval)
@@ -296,13 +312,26 @@ func newPeerMonitor(pr *v1alpha1.Peer, manager *peerManager) *peerMonitor {
 	return monitor
 }
 
+func (m *peerManager) SetPeerCertificates(peerTLS *tls.ParsedCertData) {
+	m.peerTLSLock.Lock()
+	defer m.peerTLSLock.Unlock()
+
+	m.peerTLS = peerTLS
+
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	for _, mon := range m.monitors {
+		mon.SetClientCertificates(peerTLS)
+	}
+}
+
 // newPeerManager returns a new empty peerManager.
-func newPeerManager(cl client.Client, peerTLS *tls.ParsedCertData) peerManager {
+func newPeerManager(cl client.Client) peerManager {
 	logger := logrus.WithField("component", "controlplane.control.peerManager")
 
 	return peerManager{
 		client:          cl,
-		peerTLS:         peerTLS,
 		monitors:        make(map[string]*peerMonitor),
 		stopCh:          make(chan struct{}),
 		statusUpdatesCh: make(chan *v1alpha1.Peer),

@@ -63,3 +63,10 @@ func (r *AsyncRunner) Wait() error {
 	r.wg.Wait()
 	return r.Error()
 }
+
+// ClearErrors clears all errors.
+func (r *AsyncRunner) ClearErrors() {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.err = nil
+}

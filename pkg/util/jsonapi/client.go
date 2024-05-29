@@ -38,8 +38,9 @@ type Client struct {
 
 // Response for a request.
 type Response struct {
-	Status int
-	Body   []byte
+	Status  int
+	Headers *http.Header
+	Body    []byte
 }
 
 // Get sends an HTTP GET request.
@@ -114,8 +115,9 @@ func (c *Client) do(method, path string, body []byte) (*Response, error) {
 	requestLogger.Debugf("Response body: %v.", body)
 
 	return &Response{
-		Status: resp.StatusCode,
-		Body:   body,
+		Status:  resp.StatusCode,
+		Headers: &resp.Header,
+		Body:    body,
 	}, nil
 }
 

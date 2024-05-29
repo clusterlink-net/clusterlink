@@ -118,7 +118,7 @@ $ kubectl get secret --namespace clusterlink-system
 NAME              TYPE     DATA   AGE
 cl-controlplane   Opaque   2      19h
 cl-dataplane      Opaque   2      19h
-cl-fabric         Opaque   1      19h
+cl-ca             Opaque   1      19h
 cl-peer           Opaque   1      19h
 ```
 

@@ -159,8 +159,14 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	peerCertificate, err := bootstrap.ReadCertificates(
-		config.PeerDirectory(o.Name, o.Fabric, o.Path), false)
+	peerCert, err := bootstrap.ReadCertificates(
+		config.PeerDirectory(o.Name, o.Fabric, o.Path), true)
+	if err != nil {
+		return err
+	}
+
+	caCert, err := bootstrap.ReadCertificates(
+		config.CADirectory(o.Name, o.Fabric, o.Path), false)
 	if err != nil {
 		return err
 	}
@@ -181,7 +187,8 @@ func (o *PeerOptions) Run() error {
 	platformCfg := &platform.Config{
 		Peer:                    o.Name,
 		FabricCertificate:       fabricCert,
-		PeerCertificate:         peerCertificate,
+		PeerCertificate:         peerCert,
+		CACertificate:           caCert,
 		ControlplaneCertificate: controlplaneCert,
 		DataplaneCertificate:    dataplaneCert,
 		Dataplanes:              o.DataplaneReplicas,

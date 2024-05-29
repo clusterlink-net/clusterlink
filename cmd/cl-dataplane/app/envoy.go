@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"text/template"
 
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
@@ -29,9 +28,8 @@ const (
 	envoyPath = "/usr/local/bin/envoy"
 )
 
-func (o *Options) runEnvoy(peerName, dataplaneID string) error {
+func (o *Options) runEnvoy(dataplaneID string) error {
 	envoyConfArgs := map[string]interface{}{
-		"peerName":    peerName,
 		"dataplaneID": dataplaneID,
 
 		"controlplaneHost": o.ControlplaneHost,
@@ -43,10 +41,8 @@ func (o *Options) runEnvoy(peerName, dataplaneID string) error {
 		"keyFile":         KeyFile,
 		"caFile":          CAFile,
 
-		"controlplaneInternalHTTPCluster": cpapi.ControlplaneInternalHTTPCluster,
-		"controlplaneExternalHTTPCluster": cpapi.ControlplaneExternalHTTPCluster,
-		"controlplaneGRPCCluster":         cpapi.ControlplaneGRPCCluster,
-		"egressRouterCluster":             cpapi.EgressRouterCluster,
+		"controlplaneCluster": cpapi.ControlplaneCluster,
+		"egressRouterCluster": cpapi.EgressRouterCluster,
 
 		"egressRouterListener":  cpapi.EgressRouterListener,
 		"ingressRouterListener": cpapi.IngressRouterListener,
@@ -54,17 +50,8 @@ func (o *Options) runEnvoy(peerName, dataplaneID string) error {
 		"certificateSecret": cpapi.CertificateSecret,
 		"validationSecret":  cpapi.ValidationSecret,
 
-		"controlplaneGRPCSNI": cpapi.GRPCServerName(peerName),
-		"dataplaneSNI":        api.DataplaneSNI(peerName),
-
-		"dataplaneEgressAuthorizationPrefix":  strings.TrimSuffix(cpapi.DataplaneEgressAuthorizationPath, "/"),
-		"dataplaneIngressAuthorizationPrefix": strings.TrimSuffix(cpapi.DataplaneIngressAuthorizationPath, "/"),
-
-		"importNameHeader":      cpapi.ImportNameHeader,
-		"importNamespaceHeader": cpapi.ImportNamespaceHeader,
-		"clientIPHeader":        cpapi.ClientIPHeader,
-		"authorizationHeader":   cpapi.AuthorizationHeader,
-		"targetClusterHeader":   cpapi.TargetClusterHeader,
+		"authorizationHeader": cpapi.AuthorizationHeader,
+		"targetClusterHeader": cpapi.TargetClusterHeader,
 	}
 
 	var envoyConf bytes.Buffer

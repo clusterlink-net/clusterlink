@@ -146,8 +146,8 @@ To deploy the ClusterLink without using the CLI, follow the instructions below:
 
     ```sh
     export CERTS =<path to fabric certificates folder>
-    kubectl create secret generic cl-fabric -n clusterlink-system --from-file=ca=$CERTS /cert.pem
-    kubectl create secret generic cl-peer -n clusterlink-system --from-file=ca=$CERTS /peer1/cert.pem
+    kubectl create secret generic cl-ca -n clusterlink-system --from-file=ca=$CERTS /cert.pem
+    kubectl create secret generic cl-peer -n clusterlink-system --from-file=ca.pem=$CERTS /cert.pem --from-file=cert.pem=$CERTS /peer1/cert.pem --from-file=key.pem=$CERTS /peer1/key.pem
     kubectl create secret generic cl-controlplane -n clusterlink-system --from-file=cert=$CERTS /peer1/controlplane/cert.pem --from-file=key=$CERTS /peer1/controlplane/key.pem
     kubectl create secret generic cl-dataplane -n clusterlink-system --from-file=cert=$CERTS /peer1/dataplane/cert.pem --from-file=key=$CERTS /peer1/dataplane/key.pem
     ```
