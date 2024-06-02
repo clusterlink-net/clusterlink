@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/sirupsen/logrus"
@@ -44,6 +45,7 @@ func (x *XDSClient) runFetcher(resourceType string) error {
 		fetcher, err := newFetcher(context.Background(), x.controlplaneClient, resourceType, x.dataplane)
 		if err != nil {
 			x.logger.Errorf("Failed to initialize %s fetcher: %v.", resourceType, err)
+			time.Sleep(time.Second)
 			continue
 		}
 		x.logger.Infof("Successfully initialized client for %s type.", resourceType)
