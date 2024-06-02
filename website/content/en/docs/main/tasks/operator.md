@@ -116,7 +116,8 @@ The `deploy peer` {{< anchor commandline-flags >}} command has the following fla
         `all` (default) starts the clusterlink operator, converts the peer certificates to secrets,
         and deploys the operator ClusterLink custom resource to create the ClusterLink components.
         `operator` deploys only the `ClusterLink` operator and convert the peer certificates to secrets.
-        `none` doesn't deploy anything but creates the ClusterLink custom resource YAML.
+        Creates a custom resource example file that can be deployed to the operator.
+        `none` doesn't deploy the operator and creates a `k8s.yaml` file that allows deploying ClusterLink without the operator.
    - **path**: Represents the path where the peer and fabric certificates are stored,
         by default is the working current working directory.
 
@@ -165,6 +166,6 @@ To deploy the ClusterLink without using the CLI, follow the instructions below:
     ```
 
 [user guide]: {{< relref "../getting-started/users#setup" >}}
-[ClusterLink tutorials]: {{< relref "../tutorials/" >}} 
+[ClusterLink tutorials]: {{< relref "../tutorials/" >}}
 [here]: https://kind.sigs.k8s.io/docs/user/loadbalancer/
 [common use case]: #the-common-use-case
