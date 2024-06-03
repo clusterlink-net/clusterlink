@@ -145,7 +145,7 @@ spec:
     - workloadSelector: {}
 ```
 
-More examples are available [here](https://github.com/clusterlink-net/clusterlink/tree/main/pkg/policyengine/examples)
+More examples are available [here](https://github.com/clusterlink-net/clusterlink/tree/v0.2.0/pkg/policyengine/examples)
 
 [concept-peer]: {{< relref "peers" >}}
 [concept-service]: {{< relref "services" >}}
