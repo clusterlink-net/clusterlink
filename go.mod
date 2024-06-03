@@ -1,9 +1,6 @@
 module github.com/clusterlink-net/clusterlink
 
 go 1.22.0
-
-toolchain go1.22.2
-
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/envoyproxy/go-control-plane v0.12.0
@@ -23,7 +20,7 @@ require (
 	k8s.io/client-go v0.30.1
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	sigs.k8s.io/controller-runtime v0.18.3
-	sigs.k8s.io/e2e-framework v0.3.0
+	sigs.k8s.io/e2e-framework v0.4.0
 )
 
 require (
