@@ -1,6 +1,7 @@
 module github.com/clusterlink-net/clusterlink
 
-go 1.22.0
+go 1.22.3
+
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/envoyproxy/go-control-plane v0.12.0
