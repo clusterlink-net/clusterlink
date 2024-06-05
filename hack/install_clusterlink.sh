@@ -1,4 +1,9 @@
 #!/bin/sh
+# This script installs the latest ClusterLink CLI using the command:
+# curl -L https://github.com/clusterlink-net/clusterlink/releases/latest/download/clusterlink.sh | sh -
+# To fetch a specific version, add the VERSION variable to the script:
+# curl -L https://github.com/clusterlink-net/clusterlink/releases/latest/download/clusterlink.sh | VERSION=v0.2.1 sh -
+
 set -e
 
 # Determine the OS.
@@ -42,14 +47,12 @@ if ! curl -o /dev/null -sIf "$url"; then
 fi
 
 # Open the tar file.
+download_path=$(mktemp -d "$(pwd)/clusterlink.XXXXXX")
 curl -fsLO ${url}
-tar -xzf "${filename}"
+tar -xzf "${filename}" -C "${download_path}"
 rm "${filename}"
 
-current_path=$(pwd)/clusterlink
-
 install_path=${HOME}/.local/bin
-
 # If the install script is running in superuser context, change the install path
 if [ "$(id -u)" -eq 0 ]; then
 install_path=/usr/local/bin
@@ -60,8 +63,8 @@ if [ ! -d "$install_path" ]; then
     mkdir -p "$install_path" || { echo "Error: Failed to create directory $install_path"; exit 1; }
 fi
 
-mv $current_path/* $install_path
-rm -rf $current_path
+mv $download_path/clusterlink/* $install_path
+rm -rf $download_path
 
 # Installation summary.
 printf "\n"
