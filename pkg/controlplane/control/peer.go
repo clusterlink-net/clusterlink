@@ -312,7 +312,9 @@ func newPeerMonitor(pr *v1alpha1.Peer, manager *peerManager) *peerMonitor {
 	return monitor
 }
 
-func (m *peerManager) SetPeerCertificates(peerTLS *tls.ParsedCertData) {
+func (m *peerManager) SetPeerCertificates(peerTLS *tls.ParsedCertData, _ *tls.RawCertData) error {
+	m.logger.Info("Setting peer certificates.")
+
 	m.peerTLSLock.Lock()
 	defer m.peerTLSLock.Unlock()
 
@@ -324,6 +326,8 @@ func (m *peerManager) SetPeerCertificates(peerTLS *tls.ParsedCertData) {
 	for _, mon := range m.monitors {
 		mon.SetClientCertificates(peerTLS)
 	}
+
+	return nil
 }
 
 // newPeerManager returns a new empty peerManager.

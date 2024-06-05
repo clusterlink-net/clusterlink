@@ -19,7 +19,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version-file: ./go.mod
       - name: Setup goimports
         run: go install golang.org/x/tools/cmd/goimports@v0.13.0
       - name: Check go.mod and go.sum
@@ -38,20 +38,17 @@ jobs:
 
   unit-tests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go: ['1.22']  
     steps:
-    - name: set up go 1.x
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ matrix.go }}
-    - name: setup tparse
-      run:  go install github.com/mfridman/tparse@latest
     - name: checkout
       uses: actions/checkout@v4
       with:
         fetch-tags: true
+    - name: set up go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ./go.mod
+    - name: setup tparse
+      run:  go install github.com/mfridman/tparse@latest
     - name: run build
       run: make build
     - name: run unit tests

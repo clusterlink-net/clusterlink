@@ -1,12 +1,11 @@
 module github.com/clusterlink-net/clusterlink
 
-go 1.22.0
-
-toolchain go1.22.2
+go 1.22.3
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/envoyproxy/go-control-plane v0.12.0
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/lestrrat-go/jwx v1.2.29
@@ -23,7 +22,7 @@ require (
 	k8s.io/client-go v0.30.1
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	sigs.k8s.io/controller-runtime v0.18.3
-	sigs.k8s.io/e2e-framework v0.3.0
+	sigs.k8s.io/e2e-framework v0.4.0
 )
 
 require (
@@ -37,7 +36,6 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.0.4 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
-	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect

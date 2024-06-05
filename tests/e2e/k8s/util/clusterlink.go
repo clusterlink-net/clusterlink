@@ -15,14 +15,20 @@ package util
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/e2e-framework/klient/k8s"
+	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 
+	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 )
 
@@ -82,6 +88,65 @@ func (c *ClusterLink) RestartDataplane() error {
 		return err
 	}
 	return c.ScaleDataplane(1)
+}
+
+// RestartDataplane restarts the dataplane.
+func (c *ClusterLink) UpdatePeerCertificates(
+	fabricCert *bootstrap.Certificate, peerCert *bootstrap.Certificate,
+) error {
+	err := c.cluster.Resources().Update(
+		context.Background(),
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "cl-peer",
+				Namespace: c.namespace,
+			},
+			Data: map[string][]byte{
+				app.PeerCertificateFile:   peerCert.RawCert(),
+				app.PeerKeyFile:           peerCert.RawKey(),
+				app.FabricCertificateFile: fabricCert.RawCert(),
+			},
+		})
+	if err != nil {
+		return fmt.Errorf("cannot update peer secret: %w", err)
+	}
+
+	// update controlplane pods annotation to speed-up re-loading of secret
+	var pods v1.PodList
+	err = c.cluster.Resources().List(
+		context.Background(),
+		&pods,
+		resources.WithLabelSelector("app=cl-controlplane"))
+	if err != nil {
+		return fmt.Errorf("unable to list controlplane pods: %w", err)
+	}
+
+	mergePatch, err := json.Marshal(map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"annotations": map[string]interface{}{
+				"peer-tls-last-updated": time.Now().String(),
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("cannot encode pod annotation patch: %w", err)
+	}
+
+	for i := range pods.Items {
+		err := c.cluster.Resources().Patch(
+			context.Background(),
+			&pods.Items[i],
+			k8s.Patch{
+				PatchType: types.StrategicMergePatchType,
+				Data:      mergePatch,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("unable to annotate controlplane pod: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // Access a cluster service.
