@@ -26,11 +26,11 @@ For example, you can set up a local environment using [kind][].
    ```
 
 {{% expand summary="Download specific CLI version" %}}
-   To install a specific version of the ClusterLink CLI, add the `$VERSION` flag to the installation command.
+   To install a specific version of the ClusterLink CLI, use the URL path of the version release:
    For example, to download version v0.2.1:
 
    ```sh
-   curl -L https://github.com/clusterlink-net/clusterlink/releases/latest/download/clusterlink.sh | VERSION=v0.2.1 sh -
+   curl -L https://github.com/clusterlink-net/clusterlink/releases/download/v0.2.1/clusterlink.sh | sh -
    ```
 
 {{% /expand %}}
