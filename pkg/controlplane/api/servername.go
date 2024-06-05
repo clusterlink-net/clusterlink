@@ -15,5 +15,5 @@ package api
 
 const (
 	// ListenPort is the port used by the dataplane to access the controlplane.
-	ListenPort = 444
+	ListenPort = 4444
 )
