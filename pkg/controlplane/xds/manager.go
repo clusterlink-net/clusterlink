@@ -212,7 +212,7 @@ func (m *Manager) DeleteImport(name types.NamespacedName) error {
 }
 
 // SetPeerCertificates sets the TLS certificates used for peer-to-peer communication.
-func (m *Manager) SetPeerCertificates(rawCertData *utiltls.RawCertData) error {
+func (m *Manager) SetPeerCertificates(_ *utiltls.ParsedCertData, rawCertData *utiltls.RawCertData) error {
 	m.logger.Info("Setting peer certificates.")
 
 	certificateSecret := &tls.Secret{

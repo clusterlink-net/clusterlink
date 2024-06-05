@@ -35,6 +35,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/control"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/peer"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/xds"
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
 	"github.com/clusterlink-net/clusterlink/pkg/util/grpc"
@@ -105,7 +106,6 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 // Run the various controlplane servers.
 func (o *Options) Run() error {
 	// set log file
-
 	f, err := log.Set(o.LogLevel, o.LogFile)
 	if err != nil {
 		return err
@@ -131,11 +131,8 @@ func (o *Options) Run() error {
 		return err
 	}
 
-	peerCertData, rawPeerCertData, err := tls.ParseFiles(
+	peerCertsWatcher := peer.NewWatcher(
 		FabricCertificateFilePath(), PeerCertificateFilePath(), PeerKeyFilePath())
-	if err != nil {
-		return err
-	}
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -185,9 +182,7 @@ func (o *Options) Run() error {
 		return fmt.Errorf("cannot create authorization manager: %w", err)
 	}
 
-	if err := authzManager.SetPeerCertificates(peerCertData); err != nil {
-		return fmt.Errorf("authorization manager cannot set peer certificates: %w", err)
-	}
+	peerCertsWatcher.AddConsumer(authzManager)
 
 	err = authz.CreateControllers(authzManager, mgr)
 	if err != nil {
@@ -197,7 +192,7 @@ func (o *Options) Run() error {
 	authz.RegisterService(authzManager, grpcServer.GetGRPCServer())
 
 	controlManager := control.NewManager(mgr.GetClient(), namespace)
-	controlManager.SetPeerCertificates(peerCertData)
+	peerCertsWatcher.AddConsumer(controlManager)
 
 	err = control.CreateControllers(controlManager, mgr)
 	if err != nil {
@@ -207,15 +202,18 @@ func (o *Options) Run() error {
 	xdsManager := xds.NewManager()
 	xds.RegisterService(
 		context.Background(), xdsManager, grpcServer.GetGRPCServer())
-	if err := xdsManager.SetPeerCertificates(rawPeerCertData); err != nil {
-		return err
-	}
+	peerCertsWatcher.AddConsumer(xdsManager)
 
 	if err := xds.CreateControllers(xdsManager, mgr); err != nil {
 		return fmt.Errorf("cannot create xDS controllers: %w", err)
 	}
 
+	if err := peerCertsWatcher.ReadCertsAndUpdateConsumers(); err != nil {
+		return err
+	}
+
 	runnableManager := runnable.NewManager()
+	runnableManager.Add(peerCertsWatcher)
 	runnableManager.Add(controller.NewManager(mgr))
 	runnableManager.Add(controlManager)
 	runnableManager.AddServer(controlplaneServerListenAddress, grpcServer)

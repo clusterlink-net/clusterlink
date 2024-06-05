@@ -21,7 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Runnable represents a runnable instance.
+// Instance represents a runnable instance.
 type Instance interface {
 	Name() string
 	Start() error

@@ -385,7 +385,9 @@ func (m *Manager) getPeerName() string {
 	return m.peerName
 }
 
-func (m *Manager) SetPeerCertificates(peerTLS *tls.ParsedCertData) error {
+func (m *Manager) SetPeerCertificates(peerTLS *tls.ParsedCertData, _ *tls.RawCertData) error {
+	m.logger.Info("Setting peer certificates.")
+
 	dnsNames := peerTLS.DNSNames()
 	if len(dnsNames) == 0 {
 		return fmt.Errorf("expected peer certificate to contain at least one DNS name")
