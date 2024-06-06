@@ -48,7 +48,9 @@ jobs:
         tag: ${{ github.ref }}
         overwrite: true
         file_glob: true
-    - name: Upload script
+    - name: Update script installation version
+      run: sed -i "s/VERSION=\"latest\"/VERSION=\"${{ github.ref_name }}\"/" hack/install_clusterlink.sh
+    - name: Upload script installation
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}

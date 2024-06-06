@@ -13,7 +13,7 @@ For example, you can set up a local environment using [kind][].
 
 ## Installation
 
-1. {{< anchor install-cli>}}To install ClusterLink on Linux or Mac, use the installation script:
+1. {{< anchor install-cli>}}To install ClusterLink CLI on Linux or Mac, use the installation script:
 
    ```sh
    curl -L https://github.com/clusterlink-net/clusterlink/releases/latest/download/clusterlink.sh | sh -
@@ -24,6 +24,16 @@ For example, you can set up a local environment using [kind][].
    ```sh
    clusterlink --version
    ```
+
+{{% expand summary="Download specific CLI version" %}}
+   To install a specific version of the ClusterLink CLI, use the URL path of the version release:
+   For example, to download version v0.2.1:
+
+   ```sh
+   curl -L https://github.com/clusterlink-net/clusterlink/releases/download/v0.2.1/clusterlink.sh | sh -
+   ```
+
+{{% /expand %}}
 
 ## Setup
 
@@ -69,6 +79,7 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
     If they were not, use the flag `--path <path>` for pointing to the working directory
     that was used in the previous command.
     The `--fabric` option is optional, and by default, "default_fabric" will be used.
+    To install a specific image of ClusterLink use the `--tag <version>` flag.
     For more details and deployment configuration see [ClusterLink deployment operator][].
 {{< notice note >}}
 To set up ClusterLink on another cluster, create another set of peer certificates (step 2).
