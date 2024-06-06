@@ -54,7 +54,7 @@ const (
 	// CertificateFile is the path to the certificate file.
 	CertificateFile = "/etc/ssl/certs/clink-controlplane.pem"
 	// KeyFile is the path to the private-key file.
-	KeyFile = "/etc/ssl/private/clink-controlplane.pem"
+	KeyFile = "/etc/ssl/key/clink-controlplane.pem"
 
 	// PeerTLSDirectory is the path to the directory holding the peer TLS certificates.
 	PeerTLSDirectory = "/etc/ssl/certs/clink"
