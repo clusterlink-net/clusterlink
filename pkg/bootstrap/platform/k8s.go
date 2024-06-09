@@ -376,7 +376,15 @@ func K8SClusterLinkInstanceConfig(config *Config, name string) ([]byte, error) {
 // used for deleting the secrets.
 func K8SEmptyCertificateConfig(config *Config) ([]byte, error) {
 	args := map[string]interface{}{
-		"namespace": config.Namespace,
+		"Namespace":        config.Namespace,
+		"ca":               "",
+		"controlplaneCert": "",
+		"controlplaneKey":  "",
+		"dataplaneCert":    "",
+		"dataplaneKey":     "",
+		"peerCert":         "",
+		"peerKey":          "",
+		"fabricCert":       "",
 	}
 
 	var certConfig bytes.Buffer
