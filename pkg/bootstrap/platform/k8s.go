@@ -375,20 +375,16 @@ func K8SClusterLinkInstanceConfig(config *Config, name string) ([]byte, error) {
 // K8SEmptyCertificateConfig returns Kubernetes empty secrets for the control plane and data plane,
 // used for deleting the secrets.
 func K8SEmptyCertificateConfig(config *Config) ([]byte, error) {
-	// Create a base64-encoded string of zeros
-	zeroBytes := make([]byte, 64)
-	base64Zeros := base64.StdEncoding.EncodeToString(zeroBytes)
-
 	args := map[string]interface{}{
 		"Namespace":        config.Namespace,
-		"ca":               base64Zeros,
-		"controlplaneCert": base64Zeros,
-		"controlplaneKey":  base64Zeros,
-		"dataplaneCert":    base64Zeros,
-		"dataplaneKey":     base64Zeros,
-		"peerCert":         base64Zeros,
-		"peerKey":          base64Zeros,
-		"fabricCert":       base64Zeros,
+		"ca":               "",
+		"controlplaneCert": "",
+		"controlplaneKey":  "",
+		"dataplaneCert":    "",
+		"dataplaneKey":     "",
+		"peerCert":         "",
+		"peerKey":          "",
+		"fabricCert":       "",
 	}
 
 	var certConfig bytes.Buffer
