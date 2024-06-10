@@ -30,7 +30,7 @@
 # released version. Once the unstaged changes are ready, they can be added
 # and committed.
 #
-# To run gen-doc-version: "NEW_DOCS_VERSION=v0.2.0 PREVIOUS_DOCS_VERSION=v0.1.0 make docs-version"
+# To run gen-doc-version: "NEW_DOCS_VERSION=v0.2 PREVIOUS_DOCS_VERSION=v0.1 make docs-version"
 # Note: if PREVIOUS_DOCS_VERSION is not set, the script will guess it from the directory listing
 #
 
