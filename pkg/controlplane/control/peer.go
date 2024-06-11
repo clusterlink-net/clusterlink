@@ -121,7 +121,8 @@ func (m *peerMonitor) Start() {
 			break
 		}
 
-		heartbeatOK := m.getClient().GetHeartbeat() == nil
+		heartbeatErr := m.getClient().GetHeartbeat()
+		heartbeatOK := heartbeatErr == nil
 		if healthy == heartbeatOK {
 			if !healthy {
 				ticker.Reset(unhealthyInterval)
@@ -138,6 +139,8 @@ func (m *peerMonitor) Start() {
 		if strikeCount < threshold {
 			<-ticker.C
 			continue
+		} else if heartbeatErr != nil {
+			m.logger.Errorf("Failed to send heartbeat to %s : %v", m.pr.Name, heartbeatErr)
 		}
 
 		m.logger.Infof("Peer reachable status changed to: %v", heartbeatOK)
