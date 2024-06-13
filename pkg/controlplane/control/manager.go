@@ -156,10 +156,17 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 	var cm v1.ConfigMap
 
 	if err := m.client.Get(ctx, testName, &cm); err != nil {
-		m.logger.Errorf("[AVI WEIT] Error: %v.", err)
+		m.logger.Errorf("Error: %v.", err)
 		return err
 	} else {
-		m.logger.Errorf("[AVI WEIT] cm: %v.", cm)
+		m.logger.Infof("coredns configmap: %v.", cm)
+		data := cm.Data
+		for key, value := range data {
+			m.logger.Infof("      %s: %s\n", key, value)
+		}
+		for i, line := range strings.Split(strings.TrimSuffix(data["Corefile"], "\n"), "\n") {
+			m.logger.Infof("* %d %s\n", i, line)
+		}
 	}
 
 	targetPortValidCond := &metav1.Condition{
