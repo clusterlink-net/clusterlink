@@ -429,6 +429,13 @@ func (r *InstanceReconciler) createAccessControl(ctx context.Context, name, name
 				},
 			},
 			{
+				APIGroups: []string{""},
+				Resources: []string{"configmaps"},
+				Verbs: []string{
+					"get", "list", "watch", "create", "update",
+				},
+			},
+			{
 				APIGroups: []string{"discovery.k8s.io"},
 				Resources: []string{"endpointslices"},
 				Verbs: []string{

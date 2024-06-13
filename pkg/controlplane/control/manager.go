@@ -148,6 +148,20 @@ type Manager struct {
 func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err error) {
 	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
 
+	testName := types.NamespacedName{
+		Name:      "coredns",
+		Namespace: "kube-system",
+	}
+
+	var cm v1.ConfigMap
+
+	if err := m.client.Get(ctx, testName, &cm); err != nil {
+		m.logger.Errorf("[AVI WEIT] Error: %v.", err)
+		return err
+	} else {
+		m.logger.Errorf("[AVI WEIT] cm: %v.", cm)
+	}
+
 	targetPortValidCond := &metav1.Condition{
 		Type:   v1alpha1.ImportTargetPortValid,
 		Status: metav1.ConditionFalse,
