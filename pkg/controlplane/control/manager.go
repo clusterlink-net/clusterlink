@@ -25,6 +25,8 @@ import (
 	"fmt"
 	"sync"
 
+	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
+	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	discv1 "k8s.io/api/discovery/v1"
@@ -36,9 +38,6 @@ import (
 	k8sstrings "k8s.io/utils/strings"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
-	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 )
 
 const (
@@ -156,18 +155,54 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 	var cm v1.ConfigMap
 
 	if err := m.client.Get(ctx, testName, &cm); err != nil {
-		m.logger.Errorf("Error: %v.", err)
-		return err
+		if k8serrors.IsNotFound(err) {
+			m.logger.Infof("coredns configmap not found. Ignore...")
+		} else {
+			m.logger.Errorf("Error: %v.", err)
+			return err
+		}
 	} else {
-		m.logger.Infof("coredns configmap: %v.", cm)
-		data := cm.Data
-		for key, value := range data {
-			m.logger.Infof("      %s: %s\n", key, value)
-		}
-		for i, line := range strings.Split(strings.TrimSuffix(data["Corefile"], "\n"), "\n") {
+		data := cm.Data["Corefile"]
+		// remove trailing eol
+		data = strings.TrimSuffix(data, "\n")
+		// into lines
+		lines := strings.Split(data, "\n")
+		// traverse lines
+		for i, line := range lines {
 			m.logger.Infof("* %d %s\n", i, line)
+			if strings.Contains(line, "    ready") {
+				m.logger.Infof("Reached ready")
+				lines = append(lines[:i+1], lines[i:]...)
+				lines[i] = "    rewrite test.com"
+				break
+			}
 		}
+		m.logger.Infof("1. After append: %v\n", lines)
+		var newLines string = ""
+		for _, line := range lines {
+			newLines += line
+		}
+		m.logger.Infof("2. After append: %v\n", newLines)
+		cm.Data["Corefile"] = newLines //"this is a test corefile"
+		m.client.Update(
+			ctx,
+			&cm,
+		)
+
 	}
+	// 	// TODO: check notFound
+	// 	m.logger.Errorf("Error: %v.", err)
+	// 	return err
+	// } else {
+	// 	m.logger.Infof("coredns configmap: %v.", cm)
+	// 	data := cm.Data
+	// 	for key, value := range data {
+	// 		m.logger.Infof("      %s: %s\n", key, value)
+	// 	}
+	// 	for i, line := range strings.Split(strings.TrimSuffix(data["Corefile"], "\n"), "\n") {
+	// 		m.logger.Infof("* %d %s\n", i, line)
+	// 	}
+	// }
 
 	targetPortValidCond := &metav1.Condition{
 		Type:   v1alpha1.ImportTargetPortValid,
