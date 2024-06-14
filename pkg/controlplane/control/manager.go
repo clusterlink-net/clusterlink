@@ -143,53 +143,105 @@ type Manager struct {
 	logger *logrus.Entry
 }
 
-// AddImport adds a listening socket for an imported remote service.
-func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err error) {
-	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
-
-	testName := types.NamespacedName{
+// Deals with CoreDNS rewrite configurations
+func handleCoreDns(ctx context.Context, m *Manager) error {
+	corednsName := types.NamespacedName{
 		Name:      "coredns",
 		Namespace: "kube-system",
 	}
-
 	var cm v1.ConfigMap
 
-	if err := m.client.Get(ctx, testName, &cm); err != nil {
+	if err := m.client.Get(ctx, corednsName, &cm); err != nil {
 		if k8serrors.IsNotFound(err) {
-			m.logger.Infof("coredns configmap not found. Ignore...")
+			m.logger.Infof("coredns configmap not found. Ignoring..")
+			return nil
 		} else {
-			m.logger.Errorf("Error: %v.", err)
 			return err
 		}
-	} else {
-		data := cm.Data["Corefile"]
-		// remove trailing eol
-		data = strings.TrimSuffix(data, "\n")
-		// into lines
-		lines := strings.Split(data, "\n")
-		// traverse lines
-		for i, line := range lines {
-			m.logger.Infof("* %d %s\n", i, line)
-			if strings.Contains(line, "    ready") {
-				m.logger.Infof("Reached ready")
-				lines = append(lines[:i+1], lines[i:]...)
-				lines[i] = "    rewrite test.com"
-				break
-			}
-		}
-		m.logger.Infof("1. After append: %v\n", lines)
-		var newLines string = ""
-		for _, line := range lines {
-			newLines += line
-		}
-		m.logger.Infof("2. After append: %v\n", newLines)
-		cm.Data["Corefile"] = newLines //"this is a test corefile"
-		m.client.Update(
-			ctx,
-			&cm,
-		)
-
 	}
+	data := cm.Data["Corefile"]
+	// remove trailing end-of-line
+	dataEol := strings.TrimSuffix(data, "\n")
+	// break into lines
+	lines := strings.Split(dataEol, "\n")
+	for i, line := range lines {
+		if strings.Contains(line, "    rewrite test.com") {
+			return nil
+		}
+		if strings.Contains(line, "    ready") { // assume ready exists always
+			lines = append(lines[:i+1], lines[i:]...)
+			lines[i] = "    rewrite test.com"
+			break
+		}
+	}
+	var newLines string = ""
+	for _, line := range lines {
+		// return back EOL
+		newLines += (line + "\n")
+	}
+	cm.Data["Corefile"] = newLines //"this is a test corefile"
+	m.client.Update(
+		ctx,
+		&cm,
+	)
+
+	return nil
+}
+
+// AddImport adds a listening socket for an imported remote service.
+func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err error) {
+	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
+	if err := handleCoreDns(ctx, m); err != nil {
+		m.logger.Errorf("Error in handleCoreDns: %v.", err)
+		return err
+	}
+
+	// testName := types.NamespacedName{
+	// 	Name:      "coredns",
+	// 	Namespace: "kube-system",
+	// }
+
+	// var cm v1.ConfigMap
+
+	// if err := m.client.Get(ctx, testName, &cm); err != nil {
+	// 	if k8serrors.IsNotFound(err) {
+	// 		m.logger.Infof("coredns configmap not found. Ignore...")
+	// 	} else {
+	// 		m.logger.Errorf("Error: %v.", err)
+	// 		return err
+	// 	}
+	// } else {
+	// 	data := cm.Data["Corefile"]
+	// 	// remove trailing eol
+	// 	data = strings.TrimSuffix(data, "\n")
+	// 	// into lines
+	// 	lines := strings.Split(data, "\n")
+	// 	// traverse lines
+	// 	for i, line := range lines {
+	// 		m.logger.Infof("* %d %s\n", i, line)
+	// 		if strings.Contains(line, "    rewrite test.com") {
+	// 			break
+	// 		}
+	// 		if strings.Contains(line, "    ready") {
+	// 			m.logger.Infof("Reached ready")
+	// 			lines = append(lines[:i+1], lines[i:]...)
+	// 			lines[i] = "    rewrite test.com"
+	// 			break
+	// 		}
+	// 	}
+	// 	m.logger.Infof("1. After append: %v\n", lines)
+	// 	var newLines string = ""
+	// 	for _, line := range lines {
+	// 		newLines += (line + "\n")
+	// 	}
+	// 	m.logger.Infof("2. After append: %v\n", newLines)
+	// 	cm.Data["Corefile"] = newLines //"this is a test corefile"
+	// 	m.client.Update(
+	// 		ctx,
+	// 		&cm,
+	// 	)
+
+	//	}
 	// 	// TODO: check notFound
 	// 	m.logger.Errorf("Error: %v.", err)
 	// 	return err
