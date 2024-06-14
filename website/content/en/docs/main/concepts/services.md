@@ -208,7 +208,8 @@ spec:
 
 {{% /expand %}}
 
-In certain cases, a service can be imported without explicitly creating a another corresponding service at the imported side, but merging it along with an existing service by setting the label import.clusterlink.net/merge to true. This would trigger the creation of endpointslice which services requests to the imported service.
+
+In certain cases, a service can be imported without creating another corresponding service at the imported side, but merging it along with a pre-existing service with the same `name`. This can be specified by adding the label `import.clusterlink.net/merge`, which is set to `true`. This would trigger the creation of an endpointslice which services requests to the imported service (by setting `kubernetes.io/service-name` to the imported service name).
 
 {{% expand summary="Example YAML for `kubectl apply -f <import_file>`" %}}
 
