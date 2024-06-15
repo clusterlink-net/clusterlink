@@ -143,8 +143,8 @@ type Manager struct {
 	logger *logrus.Entry
 }
 
-// Deals with CoreDNS rewrite configurations
-func handleCoreDns(ctx context.Context, m *Manager) error {
+// Add coredns rewrite for a given external dns service
+func addCoreDnsRewrite(ctx context.Context, m *Manager) error {
 	corednsName := types.NamespacedName{
 		Name:      "coredns",
 		Namespace: "kube-system",
@@ -153,37 +153,41 @@ func handleCoreDns(ctx context.Context, m *Manager) error {
 
 	if err := m.client.Get(ctx, corednsName, &cm); err != nil {
 		if k8serrors.IsNotFound(err) {
-			m.logger.Infof("coredns configmap not found. Ignoring..")
+			m.logger.Warnf("coredns configmap not found.")
 			return nil
 		} else {
 			return err
 		}
 	}
-	data := cm.Data["Corefile"]
-	// remove trailing end-of-line
-	dataEol := strings.TrimSuffix(data, "\n")
-	// break into lines
-	lines := strings.Split(dataEol, "\n")
-	for i, line := range lines {
-		if strings.Contains(line, "    rewrite test.com") {
-			return nil
+	if data, ok := cm.Data["Corefile"]; ok {
+		// remove trailing end-of-line
+		dataEol := strings.TrimSuffix(data, "\n")
+		// break into lines
+		lines := strings.Split(dataEol, "\n")
+		for i, line := range lines {
+			if strings.Contains(line, "    rewrite test.com") {
+				return nil
+			}
+			if strings.Contains(line, "    ready") { // assume ready exists always
+				lines = append(lines[:i+1], lines[i:]...)
+				lines[i] = "    rewrite test.com"
+				break
+			}
 		}
-		if strings.Contains(line, "    ready") { // assume ready exists always
-			lines = append(lines[:i+1], lines[i:]...)
-			lines[i] = "    rewrite test.com"
-			break
+		var newLines string = ""
+		for _, line := range lines {
+			// return back EOL
+			newLines += (line + "\n")
 		}
+		cm.Data["Corefile"] = newLines //"this is a test corefile"
+		m.client.Update(
+			ctx,
+			&cm,
+		)
+	} else {
+		m.logger.Warnf("coredns configmap['Corefile'] not found.")
+		return nil
 	}
-	var newLines string = ""
-	for _, line := range lines {
-		// return back EOL
-		newLines += (line + "\n")
-	}
-	cm.Data["Corefile"] = newLines //"this is a test corefile"
-	m.client.Update(
-		ctx,
-		&cm,
-	)
 
 	return nil
 }
@@ -191,70 +195,6 @@ func handleCoreDns(ctx context.Context, m *Manager) error {
 // AddImport adds a listening socket for an imported remote service.
 func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err error) {
 	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
-	if err := handleCoreDns(ctx, m); err != nil {
-		m.logger.Errorf("Error in handleCoreDns: %v.", err)
-		return err
-	}
-
-	// testName := types.NamespacedName{
-	// 	Name:      "coredns",
-	// 	Namespace: "kube-system",
-	// }
-
-	// var cm v1.ConfigMap
-
-	// if err := m.client.Get(ctx, testName, &cm); err != nil {
-	// 	if k8serrors.IsNotFound(err) {
-	// 		m.logger.Infof("coredns configmap not found. Ignore...")
-	// 	} else {
-	// 		m.logger.Errorf("Error: %v.", err)
-	// 		return err
-	// 	}
-	// } else {
-	// 	data := cm.Data["Corefile"]
-	// 	// remove trailing eol
-	// 	data = strings.TrimSuffix(data, "\n")
-	// 	// into lines
-	// 	lines := strings.Split(data, "\n")
-	// 	// traverse lines
-	// 	for i, line := range lines {
-	// 		m.logger.Infof("* %d %s\n", i, line)
-	// 		if strings.Contains(line, "    rewrite test.com") {
-	// 			break
-	// 		}
-	// 		if strings.Contains(line, "    ready") {
-	// 			m.logger.Infof("Reached ready")
-	// 			lines = append(lines[:i+1], lines[i:]...)
-	// 			lines[i] = "    rewrite test.com"
-	// 			break
-	// 		}
-	// 	}
-	// 	m.logger.Infof("1. After append: %v\n", lines)
-	// 	var newLines string = ""
-	// 	for _, line := range lines {
-	// 		newLines += (line + "\n")
-	// 	}
-	// 	m.logger.Infof("2. After append: %v\n", newLines)
-	// 	cm.Data["Corefile"] = newLines //"this is a test corefile"
-	// 	m.client.Update(
-	// 		ctx,
-	// 		&cm,
-	// 	)
-
-	//	}
-	// 	// TODO: check notFound
-	// 	m.logger.Errorf("Error: %v.", err)
-	// 	return err
-	// } else {
-	// 	m.logger.Infof("coredns configmap: %v.", cm)
-	// 	data := cm.Data
-	// 	for key, value := range data {
-	// 		m.logger.Infof("      %s: %s\n", key, value)
-	// 	}
-	// 	for i, line := range strings.Split(strings.TrimSuffix(data["Corefile"], "\n"), "\n") {
-	// 		m.logger.Infof("* %d %s\n", i, line)
-	// 	}
-	// }
 
 	targetPortValidCond := &metav1.Condition{
 		Type:   v1alpha1.ImportTargetPortValid,
@@ -351,23 +291,75 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 		return err
 	}
 
-	if imp.Namespace == m.namespace {
+	if imp.Namespace != m.namespace {
+		userService := &v1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      imp.Name,
+				Namespace: imp.Namespace,
+				Labels:    make(map[string]string),
+			},
+			Spec: v1.ServiceSpec{
+				ExternalName: fmt.Sprintf("%s.%s.svc.cluster.local", serviceName, m.namespace),
+				Type:         v1.ServiceTypeExternalName,
+			},
+		}
+
+		if err := m.addImportService(ctx, imp, userService); err != nil {
+			return err
+		}
+	}
+
+	if err := addCoreDnsRewrite(ctx, m); err != nil {
+		m.logger.Errorf("Failed to configure CoreDns: %v.", err)
+		return err
+	}
+	return nil
+
+}
+
+// Remove coredns rewrite for a given external dns service
+func removeCoreDnsRewrite(ctx context.Context, m *Manager) error {
+	corednsName := types.NamespacedName{
+		Name:      "coredns",
+		Namespace: "kube-system",
+	}
+	var cm v1.ConfigMap
+	if err := m.client.Get(ctx, corednsName, &cm); err != nil {
+		if k8serrors.IsNotFound(err) {
+			m.logger.Warnf("coredns configmap not found.")
+			return nil
+		} else {
+			return err
+		}
+	}
+	if data, ok := cm.Data["Corefile"]; ok {
+		// remove trailing end-of-line
+		dataEol := strings.TrimSuffix(data, "\n")
+		// break into lines
+		lines := strings.Split(dataEol, "\n")
+		for i, line := range lines {
+			if strings.Contains(line, "    rewrite test.com") {
+				lines = append(lines[:i], lines[i+1:]...)
+				break
+			}
+		}
+		var newLines string = ""
+		for _, line := range lines {
+			// return back EOL
+			newLines += (line + "\n")
+		}
+		cm.Data["Corefile"] = newLines //"this is a test corefile"
+		m.client.Update(
+			ctx,
+			&cm,
+		)
+
+	} else {
+		m.logger.Warnf("coredns configmap['Corefile'] not found.")
 		return nil
 	}
 
-	userService := &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      imp.Name,
-			Namespace: imp.Namespace,
-			Labels:    make(map[string]string),
-		},
-		Spec: v1.ServiceSpec{
-			ExternalName: fmt.Sprintf("%s.%s.svc.cluster.local", serviceName, m.namespace),
-			Type:         v1.ServiceTypeExternalName,
-		},
-	}
-
-	return m.addImportService(ctx, imp, userService)
+	return nil
 }
 
 // DeleteImport removes the listening socket of a previously imported service.
@@ -375,7 +367,7 @@ func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) e
 	m.logger.Infof("Deleting import '%s/%s'.", name.Namespace, name.Name)
 
 	// delete user service
-	errs := make([]error, 3)
+	errs := make([]error, 4)
 	errs[0] = m.deleteImportService(ctx, name, name)
 
 	if name.Namespace != m.namespace {
@@ -391,6 +383,8 @@ func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) e
 	errs[2] = m.deleteImportEndpointSlices(ctx, name)
 
 	m.ports.Release(name)
+
+	errs[3] = removeCoreDnsRewrite(ctx, m)
 
 	return errors.Join(errs...)
 }
