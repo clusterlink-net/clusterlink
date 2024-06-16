@@ -182,11 +182,25 @@ func addCoreDnsRewrite(ctx context.Context, m *Manager, nn *types.NamespacedName
 			// return back EOL
 			newLines += (line + "\n")
 		}
-		cm.Data["Corefile"] = newLines //"this is a test corefile"
+		cm.Data["Corefile"] = newLines
 		m.client.Update(
 			ctx,
 			&cm,
 		)
+
+		var pods v1.PodList
+		if err := m.client.List(ctx, &pods, client.InNamespace(corednsName.Namespace)); err != nil {
+			return err
+		}
+		for _, pod := range pods.Items {
+			if strings.Contains(pod.Name, "coredns") {
+				m.logger.Infof("Deleting pod: %v.", corednsName)
+				err := m.client.Delete(ctx, &pod)
+				if err != nil {
+					return err
+				}
+			}
+		}
 	} else {
 		m.logger.Warnf("coredns configmap['Corefile'] not found.")
 		return nil
@@ -358,6 +372,19 @@ func removeCoreDnsRewrite(ctx context.Context, m *Manager, nn *types.NamespacedN
 			ctx,
 			&cm,
 		)
+		var pods v1.PodList
+		if err := m.client.List(ctx, &pods, client.InNamespace(corednsName.Namespace)); err != nil {
+			return err
+		}
+		for _, pod := range pods.Items {
+			if strings.Contains(pod.Name, "coredns") {
+				m.logger.Infof("Deleting pod: %v.", corednsName)
+				err := m.client.Delete(ctx, &pod)
+				if err != nil {
+					return err
+				}
+			}
+		}
 
 	} else {
 		m.logger.Warnf("coredns configmap['Corefile'] not found.")
