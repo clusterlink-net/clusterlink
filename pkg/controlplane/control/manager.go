@@ -144,7 +144,7 @@ type Manager struct {
 }
 
 // Add coredns rewrite for a given external dns service
-func addCoreDnsRewrite(ctx context.Context, m *Manager) error {
+func addCoreDnsRewrite(ctx context.Context, m *Manager, nn *types.NamespacedName) error {
 	corednsName := types.NamespacedName{
 		Name:      "coredns",
 		Namespace: "kube-system",
@@ -164,13 +164,16 @@ func addCoreDnsRewrite(ctx context.Context, m *Manager) error {
 		dataEol := strings.TrimSuffix(data, "\n")
 		// break into lines
 		lines := strings.Split(dataEol, "\n")
+		serviceDns := fmt.Sprintf("%s.%s.svc.cluster.local", nn.Name, nn.Namespace)
 		for i, line := range lines {
-			if strings.Contains(line, "    rewrite test.com") {
+			if strings.Contains(line, serviceDns) {
 				return nil
 			}
-			if strings.Contains(line, "    ready") { // assume ready exists always
+			// we assume ready line always exists in coredns settings
+			if strings.Contains(line, "    ready") {
+				// add matched line
 				lines = append(lines[:i+1], lines[i:]...)
-				lines[i] = "    rewrite test.com"
+				lines[i] = fmt.Sprintf("    rewrite name test.com %s", serviceDns)
 				break
 			}
 		}
@@ -309,7 +312,7 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 		}
 	}
 
-	if err := addCoreDnsRewrite(ctx, m); err != nil {
+	if err := addCoreDnsRewrite(ctx, m, &importName); err != nil {
 		m.logger.Errorf("Failed to configure CoreDns: %v.", err)
 		return err
 	}
@@ -318,7 +321,7 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 }
 
 // Remove coredns rewrite for a given external dns service
-func removeCoreDnsRewrite(ctx context.Context, m *Manager) error {
+func removeCoreDnsRewrite(ctx context.Context, m *Manager, nn *types.NamespacedName) error {
 	corednsName := types.NamespacedName{
 		Name:      "coredns",
 		Namespace: "kube-system",
@@ -337,8 +340,10 @@ func removeCoreDnsRewrite(ctx context.Context, m *Manager) error {
 		dataEol := strings.TrimSuffix(data, "\n")
 		// break into lines
 		lines := strings.Split(dataEol, "\n")
+		serviceDns := fmt.Sprintf("%s.%s.svc.cluster.local", nn.Name, nn.Namespace)
 		for i, line := range lines {
-			if strings.Contains(line, "    rewrite test.com") {
+			if strings.Contains(line, serviceDns) {
+				// remove matched line
 				lines = append(lines[:i], lines[i+1:]...)
 				break
 			}
@@ -348,7 +353,7 @@ func removeCoreDnsRewrite(ctx context.Context, m *Manager) error {
 			// return back EOL
 			newLines += (line + "\n")
 		}
-		cm.Data["Corefile"] = newLines //"this is a test corefile"
+		cm.Data["Corefile"] = newLines
 		m.client.Update(
 			ctx,
 			&cm,
@@ -384,7 +389,7 @@ func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) e
 
 	m.ports.Release(name)
 
-	errs[3] = removeCoreDnsRewrite(ctx, m)
+	errs[3] = removeCoreDnsRewrite(ctx, m, &name)
 
 	return errors.Join(errs...)
 }
