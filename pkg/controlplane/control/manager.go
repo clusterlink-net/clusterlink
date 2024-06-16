@@ -165,45 +165,52 @@ func addCoreDnsRewrite(ctx context.Context, m *Manager, name *types.NamespacedNa
 		// break into lines
 		lines := strings.Split(dataEol, "\n")
 		serviceFqdn := fmt.Sprintf("%s.%s.svc.cluster.local", name.Name, name.Namespace)
+
+		var coreFileUpdated = false
 		for i, line := range lines {
 			if strings.Contains(line, serviceFqdn) {
-				return nil
+				// matched line already exists
+				break
 			}
-			// we assume ready line always exists in coredns settings
+			// we reach ready marker - matched line not found, append it here
 			if strings.Contains(line, "    ready") {
 				// add matched line
 				lines = append(lines[:i+1], lines[i:]...)
 				lines[i] = fmt.Sprintf("    rewrite name %s %s", dnsName, serviceFqdn)
+				coreFileUpdated = true
 				break
 			}
 		}
-		var newLines string = ""
-		for _, line := range lines {
-			// return back EOL
-			newLines += (line + "\n")
-		}
-		cm.Data["Corefile"] = newLines
-		m.client.Update(
-			ctx,
-			&cm,
-		)
 
-		var pods v1.PodList
-		if err := m.client.List(ctx, &pods, client.InNamespace(corednsName.Namespace)); err != nil {
-			return err
-		}
-		for _, pod := range pods.Items {
-			if strings.Contains(pod.Name, "coredns") {
-				m.logger.Infof("Deleting pod: %v.", corednsName)
-				err := m.client.Delete(ctx, &pod)
-				if err != nil {
-					return err
+		if coreFileUpdated {
+			// update configmap and restart the pods
+			var newLines string = ""
+			for _, line := range lines {
+				// return back EOL
+				newLines += (line + "\n")
+			}
+			cm.Data["Corefile"] = newLines
+			m.client.Update(
+				ctx,
+				&cm,
+			)
+
+			var pods v1.PodList
+			if err := m.client.List(ctx, &pods, client.InNamespace(corednsName.Namespace)); err != nil {
+				return err
+			}
+			for _, pod := range pods.Items {
+				if strings.Contains(pod.Name, "coredns") {
+					m.logger.Infof("Deleting pod: %v.", corednsName)
+					err := m.client.Delete(ctx, &pod)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}
 	} else {
-		m.logger.Warnf("coredns configmap['Corefile'] not found.")
-		return nil
+		return errors.New("coredns configmap['Corefile'] not found")
 	}
 
 	return nil
@@ -357,40 +364,44 @@ func removeCoreDnsRewrite(ctx context.Context, m *Manager, name *types.Namespace
 		// break into lines
 		lines := strings.Split(dataEol, "\n")
 		serviceFqdn := fmt.Sprintf("%s.%s.svc.cluster.local", name.Name, name.Namespace)
+		var coreFileUpdated = false
 		for i, line := range lines {
 			if strings.Contains(line, serviceFqdn) {
 				// remove matched line
 				lines = append(lines[:i], lines[i+1:]...)
+				coreFileUpdated = true
 				break
 			}
 		}
-		var newLines string = ""
-		for _, line := range lines {
-			// return back EOL
-			newLines += (line + "\n")
-		}
-		cm.Data["Corefile"] = newLines
-		m.client.Update(
-			ctx,
-			&cm,
-		)
-		var pods v1.PodList
-		if err := m.client.List(ctx, &pods, client.InNamespace(corednsName.Namespace)); err != nil {
-			return err
-		}
-		for _, pod := range pods.Items {
-			if strings.Contains(pod.Name, "coredns") {
-				m.logger.Infof("Deleting pod: %v.", corednsName)
-				err := m.client.Delete(ctx, &pod)
-				if err != nil {
-					return err
+
+		if coreFileUpdated {
+			// update configmap and restart the pods
+			var newLines string = ""
+			for _, line := range lines {
+				// return back EOL
+				newLines += (line + "\n")
+			}
+			cm.Data["Corefile"] = newLines
+			m.client.Update(
+				ctx,
+				&cm,
+			)
+			var pods v1.PodList
+			if err := m.client.List(ctx, &pods, client.InNamespace(corednsName.Namespace)); err != nil {
+				return err
+			}
+			for _, pod := range pods.Items {
+				if strings.Contains(pod.Name, "coredns") {
+					m.logger.Infof("Deleting pod: %v.", corednsName)
+					err := m.client.Delete(ctx, &pod)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}
-
 	} else {
-		m.logger.Warnf("coredns configmap['Corefile'] not found.")
-		return nil
+		return errors.New("coredns configmap['Corefile'] not found")
 	}
 
 	return nil
