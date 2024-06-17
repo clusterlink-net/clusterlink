@@ -1,7 +1,12 @@
 #!/bin/sh
+# This script installs the latest ClusterLink CLI using the command:
+# curl -L https://github.com/clusterlink-net/clusterlink/releases/latest/download/clusterlink.sh | sh -
+# To fetch a specific version, use the URL path of the version release:
+# curl -L https://github.com/clusterlink-net/clusterlink/releases/download/v0.2.1/clusterlink.sh | sh -
+
 set -e
 
-# Detrmine the OS.
+# Determine the OS.
 OS=$(uname)
 if [ "${OS}" = "Darwin" ] ; then
   CL_OS="darwin"
@@ -10,14 +15,14 @@ else
 fi
 
 
-# Detrmine the OS architecture.
+# Determine the OS architecture.
 OS_ARCH=$(uname -m)
 case "${OS_ARCH}" in
   x86_64|amd64)
     CL_ARCH=amd64
     ;;
   armv8*|aarch64*|arm64)
-    ARCH=arm64
+    CL_ARCH=arm64
     ;;
   *)
     echo "This ${OS_ARCH} architecture isn't supported"
@@ -25,12 +30,12 @@ case "${OS_ARCH}" in
     ;;
 esac
 
+VERSION="latest"
 filename="clusterlink-${CL_OS}-${CL_ARCH}.tar.gz"
 url="https://github.com/clusterlink-net/clusterlink/releases/download/${VERSION}/${filename}"
 
 # Set version to latest if not define and update the url.
-if [ "${VERSION}" = "" ] ; then
-  VERSION="latest"
+if [ "${VERSION}" = "latest" ] ; then
   url="https://github.com/clusterlink-net/clusterlink/releases/${VERSION}/download/${filename}"
 fi
 
@@ -42,14 +47,12 @@ if ! curl -o /dev/null -sIf "$url"; then
 fi
 
 # Open the tar file.
+download_path=$(mktemp -d "$(pwd)/clusterlink.XXXXXX")
 curl -fsLO ${url}
-tar -xzf "${filename}"
+tar -xzf "${filename}" -C "${download_path}"
 rm "${filename}"
 
-current_path=$(pwd)/clusterlink
-
 install_path=${HOME}/.local/bin
-
 # If the install script is running in superuser context, change the install path
 if [ "$(id -u)" -eq 0 ]; then
 install_path=/usr/local/bin
@@ -60,8 +63,8 @@ if [ ! -d "$install_path" ]; then
     mkdir -p "$install_path" || { echo "Error: Failed to create directory $install_path"; exit 1; }
 fi
 
-mv $current_path/* $install_path
-rm -rf $current_path
+mv $download_path/clusterlink/* $install_path
+rm -rf $download_path
 
 # Installation summary.
 printf "\n"
@@ -73,7 +76,7 @@ printf "\n\n"
 
 printf "%s has been successfully downloaded.\n" "$filename"
 printf "\n"
-printf "ClusterLink CLI (gwctl and clusterlink) has been installed in the following directory:\n"
+printf "ClusterLink CLI (clusterlink) has been installed in the following directory:\n"
 printf "\n"
 printf "\t\e[1;33m%s\n\e[0m" "$install_path"
 printf "\n"

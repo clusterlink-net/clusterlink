@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -41,11 +41,12 @@ import (
 
 const (
 	// StartAll deploys the clusterlink operator, converts the peer certificates to secrets,
-	// and deploys the operator ClusterLink custom resource to create the ClusterLink components.
+	// creates and deploys the operator ClusterLink custom resource to create the ClusterLink components.
 	StartAll = "all"
 	// StartOperator deploys only the operator and converts the peer certificates to secrets.
+	// Creates a custom resource example file that can be deployed to the operator.
 	StartOperator = "operator"
-	// NoStart doesn't deploy anything but creates custom resource YAMLs.
+	// NoStart doesn't deploy the operator and creates a "k8s.yaml" file that allow to deploy ClusterLink without the operator.
 	NoStart = "none"
 )
 
@@ -78,9 +79,6 @@ type PeerOptions struct {
 	DataplaneType string
 	// LogLevel is the log level.
 	LogLevel string
-	// CRDMode indicates whether to run a k8s CRD-based controlplane.
-	// This flag will be removed once the CRD-based controlplane feature is complete and stable.
-	CRDMode bool
 }
 
 // NewCmdDeployPeer returns a cobra.Command to run the 'deploy peer' subcommand.
@@ -135,7 +133,6 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.Uint16Var(&o.DataplaneReplicas, "dataplane-replicas", 1, "Number of dataplanes.")
 	fs.StringVar(&o.LogLevel, "log-level", "info",
 		"The log level. One of fatal, error, warn, info, debug.")
-	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }
 
 // RequiredFlags are the names of flags that must be explicitly specified.
@@ -157,77 +154,61 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 	// Read certificates
-	fabricCert, err := bootstrap.ReadCertificates(
-		config.FabricDirectory(o.Fabric, o.Path), false)
+	fabricCert, err := bootstrap.ReadCertificates(config.FabricDirectory(o.Fabric, o.Path), false)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read fabric certificate: %w", err)
 	}
 
-	peerCertificate, err := bootstrap.ReadCertificates(
-		config.PeerDirectory(o.Name, o.Fabric, o.Path), false)
+	peerCert, err := bootstrap.ReadCertificates(config.PeerDirectory(o.Name, o.Fabric, o.Path), true)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read peer certificate: %w", err)
 	}
 
-	controlplaneCert, err := bootstrap.ReadCertificates(
-		config.ControlplaneDirectory(o.Name, o.Fabric, o.Path), true)
+	caCert, err := bootstrap.CreateCACertificate()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create CA certificate: %w", err)
 	}
 
-	dataplaneCert, err := bootstrap.ReadCertificates(
-		config.DataplaneDirectory(o.Name, o.Fabric, o.Path), true)
+	controlplaneCert, err := bootstrap.CreateControlplaneCertificate(caCert)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create controlplane certificates: %w", err)
 	}
 
-	gwctlCert, err := bootstrap.ReadCertificates(
-		config.GWCTLDirectory(o.Name, o.Fabric, o.Path), true)
+	dataplaneCert, err := bootstrap.CreateDataplaneCertificate(caCert)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create dataplane certificates: %w", err)
 	}
 
 	// Create k8s deployment YAML
 	platformCfg := &platform.Config{
 		Peer:                    o.Name,
 		FabricCertificate:       fabricCert,
-		PeerCertificate:         peerCertificate,
+		PeerCertificate:         peerCert,
+		CACertificate:           caCert,
 		ControlplaneCertificate: controlplaneCert,
 		DataplaneCertificate:    dataplaneCert,
-		GWCTLCertificate:        gwctlCert,
 		Dataplanes:              o.DataplaneReplicas,
 		DataplaneType:           o.DataplaneType,
 		LogLevel:                o.LogLevel,
 		ContainerRegistry:       o.ContainerRegistry,
-		CRDMode:                 o.CRDMode,
 		Namespace:               o.Namespace,
 		IngressType:             o.Ingress,
 		IngressAnnotations:      o.IngressAnnotations,
 		Tag:                     o.Tag,
 	}
 
-	k8sConfig, err := platform.K8SConfig(platformCfg)
-	if err != nil {
-		return err
-	}
-
-	outPath := filepath.Join(peerDir, config.K8SYAMLFile)
-	if err := os.WriteFile(outPath, k8sConfig, 0o600); err != nil {
-		return err
-	}
-
-	// Create clusterlink instance YAML for the operator.
-	clConfig, err := platform.K8SClusterLinkInstanceConfig(platformCfg, "cl-instance")
-	if err != nil {
-		return err
-	}
-
-	clOutPath := filepath.Join(peerDir, config.K8SClusterLinkInstanceYAMLFile)
-	if err := os.WriteFile(clOutPath, clConfig, 0o600); err != nil {
-		return err
-	}
-
 	if o.StartInstance == NoStart {
+		// Create a YAML file for deployment without using the operator.
+		k8sConfig, err := platform.K8SConfig(platformCfg)
+		if err != nil {
+			return err
+		}
+
+		outPath := filepath.Join(peerDir, config.K8SYAMLFile)
+		if err := os.WriteFile(outPath, k8sConfig, 0o600); err != nil {
+			return fmt.Errorf("failed to write YAML file: %w", err)
+		}
+
 		return nil
 	}
 
@@ -258,6 +239,7 @@ func (o *PeerOptions) Run() error {
 	if err := o.deployDir("operator/rbac/*", resource); err != nil {
 		return err
 	}
+
 	if err := o.deployDir("crds/*", resource); err != nil {
 		return err
 	}
@@ -267,6 +249,7 @@ func (o *PeerOptions) Run() error {
 	if err != nil {
 		return err
 	}
+
 	err = decoder.DecodeEach(
 		context.Background(),
 		strings.NewReader(string(secretConfig)),
@@ -277,22 +260,29 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
+	// Create clusterlink instance YAML for the operator.
+	if o.IngressPort != apis.DefaultExternalPort { // Set the port config only if it has changed.
+		platformCfg.IngressPort = o.IngressPort
+	}
+
+	instance, err := platform.K8SClusterLinkInstanceConfig(platformCfg, "cl-instance")
+	if err != nil {
+		return err
+	}
+
 	// Create ClusterLink instance
 	if o.StartInstance == StartAll {
-		if o.IngressPort != apis.DefaultExternalPort {
-			platformCfg.IngressPort = o.IngressPort
-		}
-
-		instance, err := platform.K8SClusterLinkInstanceConfig(platformCfg, "cl-instance")
-		if err != nil {
-			return err
-		}
-
 		err = decoder.DecodeEach(context.Background(), strings.NewReader(string(instance)), decoder.CreateHandler(resource))
 		if errors.IsAlreadyExists(err) {
 			fmt.Println("CRD instance for ClusterLink (\"cl-instance\") was already exist.")
 		} else if err != nil {
 			return err
+		}
+	} else {
+		// Store an example for clusterlink instance YAML.
+		clOutPath := filepath.Join(peerDir, config.K8SClusterLinkInstanceYAMLFile)
+		if err := os.WriteFile(clOutPath, instance, 0o600); err != nil {
+			return fmt.Errorf("failed to write YAML file: %w", err)
 		}
 	}
 

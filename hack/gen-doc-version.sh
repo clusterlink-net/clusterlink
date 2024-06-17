@@ -21,16 +21,16 @@
 #   2. Copy and git commit the contents of the last released docs directory
 #      (`$PREVIOUS_DOCS_VERSION``) into the new directory, to establish a baseline
 #      for documentation comparison.
-#   3. Delete and replaces the contents of the new docs directory with the
+#   3. Delete and replace the contents of the new docs directory with the
 #      contents of the 'main' docs directory. 
-#   4. Update and version and/or revision specific value in the documentation.
+#   4. Update the version and/or revision specific value in the documentation.
 #
 # The unstaged changes in the working directory can now easily be diff'ed 
 # using 'git diff' to review all docs changes made since the previous
 # released version. Once the unstaged changes are ready, they can be added
 # and committed.
 #
-# To run gen-doc-version: "NEW_DOCS_VERSION=v0.2.0 PREVIOUS_DOCS_VERSION=v0.1.0 make docs-version"
+# To run gen-doc-version: "NEW_DOCS_VERSION=v0.2 PREVIOUS_DOCS_VERSION=v0.1 make docs-version"
 # Note: if PREVIOUS_DOCS_VERSION is not set, the script will guess it from the directory listing
 #
 

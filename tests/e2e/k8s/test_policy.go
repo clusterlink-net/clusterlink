@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -32,23 +32,29 @@ func (s *TestSuite) TestPolicyLabels() {
 	require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
 
 	importedService := &util.Service{
-		Name: httpEchoService.Name,
-		Port: 80,
+		Name:   httpEchoService.Name,
+		Port:   80,
+		Labels: httpEchoService.Labels,
 	}
 	require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
 
 	// 1. Create a policy that allows traffic only to the echo service at cl[0] - apply in cl[1] (on egress)
 	//    In addition, create a policy to only allow traffic from cl[1] - apply in cl[0] (on ingress)
 	allowEchoPolicyName := "allow-access-to-echo-svc"
-	dstLabels := map[string]string{
-		authz.ServiceNameLabel: httpEchoService.Name,
-		authz.GatewayNameLabel: cl[0].Name(),
+	srcLabels := map[string]string{ // allow traffic only from cl1
+		authz.GatewayNameLabel: cl[1].Name(),
 	}
-	allowEchoPolicy := util.NewPolicy(allowEchoPolicyName, v1alpha1.AccessPolicyActionAllow, nil, dstLabels)
+	dstLabels := map[string]string{ // allow traffic only to echo in cl1
+		authz.ServiceNameLabel:            httpEchoService.Name,
+		authz.GatewayNameLabel:            cl[0].Name(),
+		authz.ServiceLabelsPrefix + "env": "test",
+	}
+	allowEchoPolicy := util.NewPolicy(allowEchoPolicyName, v1alpha1.AccessPolicyActionAllow, srcLabels, dstLabels)
 	require.Nil(s.T(), cl[1].CreatePolicy(allowEchoPolicy))
 
-	srcLabels := map[string]string{authz.GatewayNameLabel: cl[1].Name()}
-	specificSrcPeerPolicy := util.NewPolicy("specific-peer", v1alpha1.AccessPolicyActionAllow, srcLabels, nil)
+	srcLabels = map[string]string{authz.GatewayNameLabel: cl[1].Name()} // allow traffic only from cl1
+	dstLabels = map[string]string{authz.GatewayNameLabel: cl[0].Name()} // allow traffic only to cl0
+	specificSrcPeerPolicy := util.NewPolicy("specific-peer", v1alpha1.AccessPolicyActionAllow, srcLabels, dstLabels)
 	require.Nil(s.T(), cl[0].CreatePolicy(specificSrcPeerPolicy))
 
 	data, err := cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
@@ -105,15 +111,36 @@ func (s *TestSuite) TestPolicyLabels() {
 	// 8. Replace the policy in cl[1] with a policy having a wrong service name - connection should be denied
 	require.Nil(s.T(), cl[1].DeletePolicy(allowEchoPolicyName))
 
-	badSvcLabels := map[string]string{
+	attrsWithBadSvcName := map[string]string{
 		authz.ServiceNameLabel: "bad-svc",
 		authz.GatewayNameLabel: cl[0].Name(),
 	}
-	badSvcPolicy := util.NewPolicy("bad-svc", v1alpha1.AccessPolicyActionAllow, nil, badSvcLabels)
+	badSvcPolicy := util.NewPolicy("bad-svc", v1alpha1.AccessPolicyActionAllow, nil, attrsWithBadSvcName)
 	require.Nil(s.T(), cl[1].CreatePolicy(badSvcPolicy))
 
 	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
 	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+
+	// 9. Add an allow policy in cl[1], but with a wrong service label - connection should still be denied
+	attrsWithBadSvcLabels := map[string]string{
+		authz.ServiceLabelsPrefix + "env": "prod",
+	}
+	badLabelPolicy := util.NewPolicy("bad-label", v1alpha1.AccessPolicyActionAllow, nil, attrsWithBadSvcLabels)
+	require.Nil(s.T(), cl[1].CreatePolicy(badLabelPolicy))
+
+	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
+	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+
+	// 10. Add an allow policy in cl[1], now with the right service label - connection should be allowed
+	attrsWithGoodSvcLabels := map[string]string{
+		authz.ServiceLabelsPrefix + "env": "test",
+	}
+	GoodLabelPolicy := util.NewPolicy("good-label", v1alpha1.AccessPolicyActionAllow, nil, attrsWithGoodSvcLabels)
+	require.Nil(s.T(), cl[1].CreatePolicy(GoodLabelPolicy))
+
+	data, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
+	require.Nil(s.T(), err)
+	require.Equal(s.T(), cl[0].Name(), data)
 }
 
 func (s *TestSuite) TestPrivilegedPolicies() {

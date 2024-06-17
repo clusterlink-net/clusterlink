@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -15,7 +15,6 @@ package k8s
 
 import (
 	"context"
-	"strconv"
 	"strings"
 
 	"github.com/stretchr/testify/require"
@@ -25,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
-	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/control"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/httpecho"
@@ -338,128 +336,100 @@ func (s *TestSuite) TestImportInvalidName() {
 }
 
 func (s *TestSuite) TestImportMerge() {
-	testFunc := func(crdMode bool) {
-		cfg := &util.PeerConfig{
-			CRUDMode:      !crdMode,
-			DataplaneType: platform.DataplaneTypeEnvoy,
-			Dataplanes:    1,
-		}
+	cl, err := s.fabric.DeployClusterlinks(1, nil)
+	require.Nil(s.T(), err)
 
-		cl, err := s.fabric.DeployClusterlinks(1, cfg)
-		require.Nil(s.T(), err)
+	// create export, peer, and allow-all policy
+	require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
+	require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
+	require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
+	require.Nil(s.T(), cl[0].CreatePeer(cl[0]))
 
-		// create export, peer, and allow-all policy
-		require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
-		require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
-		require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
-		require.Nil(s.T(), cl[0].CreatePeer(cl[0]))
-
-		importedService := &util.Service{
-			Name: "imported",
-			Port: 80,
-		}
-
-		// create merge import
-		imp := &v1alpha1.Import{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      importedService.Name,
-				Namespace: cl[0].Namespace(),
-				Labels: map[string]string{
-					v1alpha1.LabelImportMerge: "true",
-				},
-			},
-			Spec: v1alpha1.ImportSpec{
-				Port: importedService.Port,
-				Sources: []v1alpha1.ImportSource{{
-					Peer:            cl[0].Name(),
-					ExportName:      httpEchoService.Name,
-					ExportNamespace: cl[0].Namespace(),
-				}},
-			},
-		}
-		if crdMode {
-			require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp))
-
-			// verify status is bad, since imported service should be pre-created for a merge import
-			require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, false))
-		} else {
-			// CRUD mode will fail since service does not exist, and operation is not async
-			require.NotNil(s.T(), cl[0].Client().Imports.Create(imp))
-		}
-
-		// create the import service
-		service := &v1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      importedService.Name,
-				Namespace: cl[0].Namespace(),
-			},
-			Spec: v1.ServiceSpec{
-				Ports: []v1.ServicePort{{
-					Port: int32(importedService.Port),
-				}},
-			},
-		}
-		require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), service))
-
-		if crdMode {
-			// verify status becomes good
-			require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, true))
-		} else {
-			// update import to re-try endpoint slice creation
-			require.Nil(s.T(), cl[0].Client().Imports.Update(imp))
-		}
-
-		// verify service access
-		data, err := cl[0].AccessService(httpecho.RunClientInPod, importedService, true, nil)
-		require.Nil(s.T(), err)
-		require.Equal(s.T(), cl[0].Name(), data)
-
-		// update dataplane endpoint slice via scaling
-		require.Nil(s.T(), cl[0].ScaleDataplane(0))
-		require.Nil(s.T(), cl[0].ScaleDataplane(1))
-
-		// verify service access
-		_, err = cl[0].AccessService(httpecho.RunClientInPod, importedService, true, nil)
-		require.Nil(s.T(), err)
-
-		// delete dataplane endpoint slice by deleting the dataplane service
-		var dataplaneService v1.Service
-		require.Nil(s.T(), cl[0].Cluster().Resources().Get(
-			context.Background(), "cl-dataplane", cl[0].Namespace(), &dataplaneService))
-		require.Nil(s.T(), cl[0].Cluster().Resources().Delete(
-			context.Background(), &dataplaneService))
-
-		// verify no access
-		_, err = cl[0].AccessService(httpecho.RunClientInPod, importedService, true, &util.PodFailedError{})
-		require.ErrorIs(s.T(), err, &util.PodFailedError{})
-
-		// create dataplane endpoint slice
-		dataplaneService.ResourceVersion = ""
-		require.Nil(s.T(), cl[0].Cluster().Resources().Create(
-			context.Background(), &dataplaneService))
-
-		// verify access is back
-		_, err = cl[0].AccessService(httpecho.RunClientInPod, importedService, true, nil)
-		require.Nil(s.T(), err)
-
-		// remove merge property of import
-		delete(imp.Labels, v1alpha1.LabelImportMerge)
-		if crdMode {
-			require.Nil(s.T(), cl[0].Cluster().Resources().Update(context.Background(), imp))
-		} else {
-			// CRUD mode will fail since service does not exist, and operation is not async
-			require.NotNil(s.T(), cl[0].Client().Imports.Update(imp))
-		}
-
-		// verify no access
-		_, err = cl[0].AccessService(
-			httpecho.RunClientInPod, importedService, true, &util.PodFailedError{})
-		require.ErrorIs(s.T(), err, &util.PodFailedError{})
+	importedService := &util.Service{
+		Name: "imported",
+		Port: 80,
 	}
 
-	// run test on both CRDMode = {true, false}
-	for _, crdMode := range []bool{true, false} {
-		testName := "CRDMode" + strings.ToUpper(strconv.FormatBool(crdMode))
-		s.RunSubTest(testName, func() { testFunc(crdMode) })
+	// create merge import
+	imp := &v1alpha1.Import{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      importedService.Name,
+			Namespace: cl[0].Namespace(),
+			Labels: map[string]string{
+				v1alpha1.LabelImportMerge: "true",
+			},
+		},
+		Spec: v1alpha1.ImportSpec{
+			Port: importedService.Port,
+			Sources: []v1alpha1.ImportSource{{
+				Peer:            cl[0].Name(),
+				ExportName:      httpEchoService.Name,
+				ExportNamespace: cl[0].Namespace(),
+			}},
+		},
 	}
+
+	require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), imp))
+
+	// verify status is bad, since imported service should be pre-created for a merge import
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, false))
+
+	// create the import service
+	service := &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      importedService.Name,
+			Namespace: cl[0].Namespace(),
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Port: int32(importedService.Port),
+			}},
+		},
+	}
+	require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), service))
+
+	// verify status becomes good
+	require.Nil(s.T(), cl[0].WaitForImportCondition(imp, v1alpha1.ImportServiceValid, true))
+
+	// verify service access
+	data, err := cl[0].AccessService(httpecho.RunClientInPod, importedService, true, nil)
+	require.Nil(s.T(), err)
+	require.Equal(s.T(), cl[0].Name(), data)
+
+	// update dataplane endpoint slice via scaling
+	require.Nil(s.T(), cl[0].ScaleDataplane(0))
+	require.Nil(s.T(), cl[0].ScaleDataplane(1))
+
+	// verify service access
+	_, err = cl[0].AccessService(httpecho.RunClientInPod, importedService, true, nil)
+	require.Nil(s.T(), err)
+
+	// delete dataplane endpoint slice by deleting the dataplane service
+	var dataplaneService v1.Service
+	require.Nil(s.T(), cl[0].Cluster().Resources().Get(
+		context.Background(), "cl-dataplane", cl[0].Namespace(), &dataplaneService))
+	require.Nil(s.T(), cl[0].Cluster().Resources().Delete(
+		context.Background(), &dataplaneService))
+
+	// verify no access
+	_, err = cl[0].AccessService(httpecho.RunClientInPod, importedService, true, &util.PodFailedError{})
+	require.ErrorIs(s.T(), err, &util.PodFailedError{})
+
+	// create dataplane endpoint slice
+	dataplaneService.ResourceVersion = ""
+	require.Nil(s.T(), cl[0].Cluster().Resources().Create(
+		context.Background(), &dataplaneService))
+
+	// verify access is back
+	_, err = cl[0].AccessService(httpecho.RunClientInPod, importedService, true, nil)
+	require.Nil(s.T(), err)
+
+	// remove merge property of import
+	delete(imp.Labels, v1alpha1.LabelImportMerge)
+	require.Nil(s.T(), cl[0].Cluster().Resources().Update(context.Background(), imp))
+
+	// verify no access
+	_, err = cl[0].AccessService(
+		httpecho.RunClientInPod, importedService, true, &util.PodFailedError{})
+	require.ErrorIs(s.T(), err, &util.PodFailedError{})
 }

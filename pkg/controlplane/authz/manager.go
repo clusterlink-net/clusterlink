@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -43,6 +43,7 @@ const (
 
 	ServiceNameLabel      = "clusterlink/metadata.serviceName"
 	ServiceNamespaceLabel = "clusterlink/metadata.serviceNamespace"
+	ServiceLabelsPrefix   = "service/metadata."
 	GatewayNameLabel      = "clusterlink/metadata.gatewayName"
 )
 
@@ -57,8 +58,6 @@ type egressAuthorizationRequest struct {
 
 // egressAuthorizationResponse (to local dataplane) represents a response for an egressAuthorizationRequest.
 type egressAuthorizationResponse struct {
-	// ServiceExists is true if the requested service exists.
-	ServiceExists bool
 	// Allowed is true if the request is allowed.
 	Allowed bool
 	// RemotePeerCluster is the cluster name of the remote peer where the connection should be routed to.
@@ -71,6 +70,8 @@ type egressAuthorizationResponse struct {
 type ingressAuthorizationRequest struct {
 	// Service is the name of the requested exported service.
 	ServiceName types.NamespacedName
+	// Attributes of the source workload, to be used by the PDP on the remote peer
+	SrcAttributes connectivitypdp.WorkloadAttrs
 }
 
 // ingressAuthorizationResponse (from remote peer controlplane) represents a response for an ingressAuthorizationRequest.
@@ -97,9 +98,12 @@ type Manager struct {
 	loadBalancer    *LoadBalancer
 	connectivityPDP *connectivitypdp.PDP
 
-	peerTLS    *tls.ParsedCertData
-	peerLock   sync.RWMutex
-	peerClient map[string]*peer.Client
+	selfPeerLock sync.RWMutex
+	peerTLS      *tls.ParsedCertData
+	peerName     string
+
+	peerClientLock sync.RWMutex
+	peerClient     map[string]*peer.Client
 
 	podLock sync.RWMutex
 	ipToPod map[string]types.NamespacedName
@@ -108,26 +112,7 @@ type Manager struct {
 	jwkSignKey   jwk.Key
 	jwkVerifyKey jwk.Key
 
-	// callback for getting an import (for non-CRD mode)
-	getImportCallback func(name string, imp *v1alpha1.Import) error
-	// callback for getting an export (for non-CRD mode)
-	getExportCallback func(name string, imp *v1alpha1.Export) error
-	// callback for getting a peer (for non-CRD mode)
-	getPeerCallback func(name string, pr *v1alpha1.Peer) error
-
 	logger *logrus.Entry
-}
-
-func (m *Manager) SetGetImportCallback(callback func(name string, imp *v1alpha1.Import) error) {
-	m.getImportCallback = callback
-}
-
-func (m *Manager) SetGetExportCallback(callback func(name string, imp *v1alpha1.Export) error) {
-	m.getExportCallback = callback
-}
-
-func (m *Manager) SetGetPeerCallback(callback func(name string, pr *v1alpha1.Peer) error) {
-	m.getPeerCallback = callback
 }
 
 // AddPeer defines a new route target for egress dataplane connections.
@@ -135,20 +120,22 @@ func (m *Manager) AddPeer(pr *v1alpha1.Peer) {
 	m.logger.Infof("Adding peer '%s'.", pr.Name)
 
 	// initialize peer client
+	m.selfPeerLock.RLock()
 	cl := peer.NewClient(pr, m.peerTLS.ClientConfig(pr.Name))
+	m.selfPeerLock.RUnlock()
 
-	m.peerLock.Lock()
+	m.peerClientLock.Lock()
 	m.peerClient[pr.Name] = cl
-	m.peerLock.Unlock()
+	m.peerClientLock.Unlock()
 }
 
 // DeletePeer removes the possibility for egress dataplane connections to be routed to a given peer.
 func (m *Manager) DeletePeer(name string) {
 	m.logger.Infof("Deleting peer '%s'.", name)
 
-	m.peerLock.Lock()
+	m.peerClientLock.Lock()
 	delete(m.peerClient, name)
-	m.peerLock.Unlock()
+	m.peerClientLock.Unlock()
 }
 
 // AddAccessPolicy adds an access policy to allow/deny specific connections.
@@ -206,7 +193,7 @@ func (m *Manager) getPodInfoByIP(ip string) *podInfo {
 func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationRequest) (*egressAuthorizationResponse, error) {
 	m.logger.Infof("Received egress authorization request: %v.", req)
 
-	srcAttributes := connectivitypdp.WorkloadAttrs{}
+	srcAttributes := connectivitypdp.WorkloadAttrs{GatewayNameLabel: m.getPeerName()}
 	podInfo := m.getPodInfoByIP(req.IP)
 	if podInfo != nil {
 		srcAttributes[ServiceNamespaceLabel] = podInfo.namespace
@@ -218,8 +205,13 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 	}
 
 	var imp v1alpha1.Import
-	if err := m.getImport(ctx, req.ImportName, &imp); err != nil {
+	if err := m.client.Get(ctx, req.ImportName, &imp); err != nil {
 		return nil, fmt.Errorf("cannot get import %v: %w", req.ImportName, err)
+	}
+
+	dstAttributes := connectivitypdp.WorkloadAttrs{}
+	for k, v := range imp.Labels { // add import labels to destination attributes
+		dstAttributes[ServiceLabelsPrefix+k] = v
 	}
 
 	lbResult := NewLoadBalancingResult(&imp)
@@ -229,9 +221,13 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 		}
 
 		importSource := lbResult.Get()
+		peerName := types.NamespacedName{
+			Name:      importSource.Peer,
+			Namespace: m.namespace,
+		}
 
 		var pr v1alpha1.Peer
-		if err := m.getPeer(ctx, importSource.Peer, &pr); err != nil {
+		if err := m.client.Get(ctx, peerName, &pr); err != nil {
 			return nil, fmt.Errorf("cannot get peer '%s': %w", importSource.Peer, err)
 		}
 
@@ -242,11 +238,10 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 			}
 		}
 
-		dstAttributes := connectivitypdp.WorkloadAttrs{
-			ServiceNameLabel:      imp.Name,
-			ServiceNamespaceLabel: imp.Namespace,
-			GatewayNameLabel:      importSource.Peer,
-		}
+		dstAttributes[ServiceNameLabel] = importSource.ExportName
+		dstAttributes[ServiceNamespaceLabel] = importSource.ExportNamespace
+		dstAttributes[GatewayNameLabel] = importSource.Peer
+
 		decision, err := m.connectivityPDP.Decide(srcAttributes, dstAttributes, req.ImportName.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error deciding on an egress connection: %w", err)
@@ -256,9 +251,9 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 			continue
 		}
 
-		m.peerLock.RLock()
+		m.peerClientLock.RLock()
 		cl, ok := m.peerClient[importSource.Peer]
-		m.peerLock.RUnlock()
+		m.peerClientLock.RUnlock()
 
 		if !ok {
 			return nil, fmt.Errorf("missing client for peer: %s", importSource.Peer)
@@ -274,34 +269,20 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 			DstNamespace = req.ImportName.Namespace
 		}
 
-		peerResp, err := cl.Authorize(&cpapi.AuthorizationRequest{
+		accessToken, err := cl.Authorize(&cpapi.AuthorizationRequest{
 			ServiceName:      DstName,
 			ServiceNamespace: DstNamespace,
+			SrcAttributes:    srcAttributes,
 		})
 		if err != nil {
 			m.logger.Infof("Unable to get access token from peer: %v", err)
 			continue
 		}
 
-		if !peerResp.ServiceExists {
-			m.logger.Infof(
-				"Peer %s does not have an import source for %v",
-				importSource.Peer, req.ImportName)
-			continue
-		}
-
-		if !peerResp.Allowed {
-			m.logger.Infof(
-				"Peer %s did not allow connection to import %v: %v",
-				importSource.Peer, req.ImportName, err)
-			continue
-		}
-
 		return &egressAuthorizationResponse{
-			ServiceExists:     true,
 			Allowed:           true,
 			RemotePeerCluster: cpapi.RemotePeerClusterName(importSource.Peer),
-			AccessToken:       peerResp.AccessToken,
+			AccessToken:       accessToken,
 		}, nil
 	}
 }
@@ -336,7 +317,6 @@ func (m *Manager) parseAuthorizationHeader(token string) (string, error) {
 func (m *Manager) authorizeIngress(
 	ctx context.Context,
 	req *ingressAuthorizationRequest,
-	pr string,
 ) (*ingressAuthorizationResponse, error) {
 	m.logger.Infof("Received ingress authorization request: %v.", req)
 
@@ -348,7 +328,7 @@ func (m *Manager) authorizeIngress(
 		Name:      req.ServiceName.Name,
 	}
 	var export v1alpha1.Export
-	if err := m.getExport(ctx, exportName, &export); err != nil {
+	if err := m.client.Get(ctx, exportName, &export); err != nil {
 		if errors.IsNotFound(err) || !meta.IsStatusConditionTrue(export.Status.Conditions, v1alpha1.ExportValid) {
 			return resp, nil
 		}
@@ -358,12 +338,16 @@ func (m *Manager) authorizeIngress(
 
 	resp.ServiceExists = true
 
-	srcAttributes := connectivitypdp.WorkloadAttrs{GatewayNameLabel: pr}
 	dstAttributes := connectivitypdp.WorkloadAttrs{
-		ServiceNameLabel:      req.ServiceName.Name,
-		ServiceNamespaceLabel: req.ServiceName.Namespace,
+		ServiceNameLabel:      export.Name,
+		ServiceNamespaceLabel: export.Namespace,
+		GatewayNameLabel:      m.getPeerName(),
 	}
-	decision, err := m.connectivityPDP.Decide(srcAttributes, dstAttributes, req.ServiceName.Namespace)
+	for k, v := range export.Labels { // add export labels to destination attributes
+		dstAttributes[ServiceLabelsPrefix+k] = v
+	}
+
+	decision, err := m.connectivityPDP.Decide(req.SrcAttributes, dstAttributes, req.ServiceName.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error deciding on an ingress connection: %w", err)
 	}
@@ -395,36 +379,39 @@ func (m *Manager) authorizeIngress(
 	return resp, nil
 }
 
-func (m *Manager) getImport(ctx context.Context, name types.NamespacedName, imp *v1alpha1.Import) error {
-	if m.getImportCallback != nil {
-		return m.getImportCallback(name.Name, imp)
-	}
-
-	return m.client.Get(ctx, name, imp)
+func (m *Manager) getPeerName() string {
+	m.selfPeerLock.RLock()
+	defer m.selfPeerLock.RUnlock()
+	return m.peerName
 }
 
-func (m *Manager) getExport(ctx context.Context, name types.NamespacedName, export *v1alpha1.Export) error {
-	if m.getExportCallback != nil {
-		return m.getExportCallback(name.Name, export)
+func (m *Manager) SetPeerCertificates(peerTLS *tls.ParsedCertData, _ *tls.RawCertData) error {
+	m.logger.Info("Setting peer certificates.")
+
+	dnsNames := peerTLS.DNSNames()
+	if len(dnsNames) == 0 {
+		return fmt.Errorf("expected peer certificate to contain at least one DNS name")
 	}
 
-	return m.client.Get(ctx, name, export)
-}
+	m.selfPeerLock.Lock()
+	defer m.selfPeerLock.Unlock()
 
-func (m *Manager) getPeer(ctx context.Context, name string, pr *v1alpha1.Peer) error {
-	if m.getPeerCallback != nil {
-		return m.getPeerCallback(name, pr)
+	m.peerName = dnsNames[0]
+	m.peerTLS = peerTLS
+
+	m.peerClientLock.Lock()
+	defer m.peerClientLock.Unlock()
+
+	// re-initialize peer clients
+	for pr, cl := range m.peerClient {
+		m.peerClient[pr] = peer.NewClient(cl.Peer(), m.peerTLS.ClientConfig(pr))
 	}
 
-	peerName := types.NamespacedName{
-		Name:      name,
-		Namespace: m.namespace,
-	}
-	return m.client.Get(ctx, peerName, pr)
+	return nil
 }
 
 // NewManager returns a new authorization manager.
-func NewManager(peerTLS *tls.ParsedCertData, cl client.Client, namespace string) (*Manager, error) {
+func NewManager(cl client.Client, namespace string) (*Manager, error) {
 	// generate RSA key-pair for JWT signing
 	// TODO: instead of generating, read from k8s secret
 	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -447,7 +434,6 @@ func NewManager(peerTLS *tls.ParsedCertData, cl client.Client, namespace string)
 		namespace:       namespace,
 		connectivityPDP: connectivitypdp.NewPDP(),
 		loadBalancer:    NewLoadBalancer(),
-		peerTLS:         peerTLS,
 		peerClient:      make(map[string]*peer.Client),
 		jwkSignKey:      jwkSignKey,
 		jwkVerifyKey:    jwkVerifyKey,

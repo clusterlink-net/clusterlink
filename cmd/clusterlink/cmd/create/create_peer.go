@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -59,49 +59,13 @@ func (o *PeerOptions) saveCertificate(cert *bootstrap.Certificate, outDirectory 
 	return os.WriteFile(filepath.Join(outDirectory, config.PrivateKeyFileName), cert.RawKey(), 0o600)
 }
 
-func (o *PeerOptions) createControlplane(peerCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
-	cert, err := bootstrap.CreateControlplaneCertificate(o.Name, peerCert)
+func (o *PeerOptions) createPeerCert(fabricCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
+	cert, err := bootstrap.CreatePeerCertificate(o.Name, fabricCert)
 	if err != nil {
 		return nil, err
 	}
 
-	outDirectory := config.ControlplaneDirectory(o.Name, o.Fabric, o.Path)
-	if err := os.Mkdir(outDirectory, 0o755); err != nil {
-		return nil, err
-	}
-
-	if err := o.saveCertificate(cert, outDirectory); err != nil {
-		return nil, err
-	}
-
-	return cert, nil
-}
-
-func (o *PeerOptions) createDataplane(peerCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
-	cert, err := bootstrap.CreateDataplaneCertificate(o.Name, peerCert)
-	if err != nil {
-		return nil, err
-	}
-
-	outDirectory := config.DataplaneDirectory(o.Name, o.Fabric, o.Path)
-	if err := os.Mkdir(outDirectory, 0o755); err != nil {
-		return nil, err
-	}
-
-	if err := o.saveCertificate(cert, outDirectory); err != nil {
-		return nil, err
-	}
-
-	return cert, nil
-}
-
-func (o *PeerOptions) createGWCTL(peerCert *bootstrap.Certificate) (*bootstrap.Certificate, error) {
-	cert, err := bootstrap.CreateGWCTLCertificate(peerCert)
-	if err != nil {
-		return nil, err
-	}
-
-	outDirectory := config.GWCTLDirectory(o.Name, o.Fabric, o.Path)
+	outDirectory := config.PeerDirectory(o.Name, o.Fabric, o.Path)
 	if err := os.Mkdir(outDirectory, 0o755); err != nil {
 		return nil, err
 	}
@@ -128,30 +92,7 @@ func (o *PeerOptions) Run() error {
 		return err
 	}
 
-	peerDirectory := config.PeerDirectory(o.Name, o.Fabric, o.Path)
-	if err := os.Mkdir(peerDirectory, 0o755); err != nil {
-		return err
-	}
-
-	peerCertificate, err := bootstrap.CreatePeerCertificate(o.Name, fabricCert)
-	if err != nil {
-		return err
-	}
-
-	err = o.saveCertificate(peerCertificate, peerDirectory)
-	if err != nil {
-		return err
-	}
-
-	if _, err := o.createControlplane(peerCertificate); err != nil {
-		return err
-	}
-
-	if _, err := o.createDataplane(peerCertificate); err != nil {
-		return err
-	}
-
-	if _, err := o.createGWCTL(peerCertificate); err != nil {
+	if _, err := o.createPeerCert(fabricCert); err != nil {
 		return err
 	}
 

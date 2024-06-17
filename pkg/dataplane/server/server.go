@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -16,18 +16,14 @@ package server
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
-	"strconv"
 	"time"
 
-	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
-	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
-)
+	authv3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
 
-const (
-	httpSchemaPrefix = "https://"
+	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 )
 
 // StartDataplaneServer starts the Dataplane server.
@@ -41,66 +37,114 @@ func (d *Dataplane) StartDataplaneServer(dataplaneServerAddress string) error {
 		WriteTimeout:      2 * time.Second,
 		IdleTimeout:       120 * time.Second,
 		MaxHeaderBytes:    10 * 1024,
-		TLSConfig:         d.parsedCertData.ServerConfig(),
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			ClientAuth: tls.RequireAndVerifyClientCert,
+			GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+				// this function is defined for the sake of skipping certificate file reading
+				// in net/http.Server.ServeTLS
+				return nil, fmt.Errorf("invalid")
+			},
+			GetConfigForClient: func(*tls.ClientHelloInfo) (*tls.Config, error) {
+				// return certificate set by the controlplane (using the SDS protocol)
+				d.tlsConfigLock.RLock()
+				defer d.tlsConfigLock.RUnlock()
+				return d.tlsConfig, nil
+			},
+		},
 	}
 
 	return server.ListenAndServeTLS("", "")
 }
 
-// StartSNIServer starts the SNI Proxy in the dataplane.
-func (d *Dataplane) StartSNIServer(dataplaneServerAddress string) error {
-	dataplaneListenAddress := ":" + strconv.Itoa(api.ListenPort)
-	sniProxy := sniproxy.NewServer(map[string]string{
-		d.peerName:                          d.controlplaneTarget,
-		api.DataplaneServerName(d.peerName): dataplaneServerAddress,
-	})
-
-	d.logger.Infof("SNI proxy starting at %s.", dataplaneListenAddress)
-	err := sniProxy.Listen(dataplaneListenAddress)
-	if err != nil {
-		return fmt.Errorf("unable to create listener for server on %s: %w",
-			dataplaneListenAddress, err)
-	}
-	return sniProxy.Start()
-}
-
 func (d *Dataplane) addAuthzHandlers() {
-	d.router.Post("/", d.dataplaneIngressAuthorize)
+	d.router.NotFound(d.dataplaneIngressAuthorize)
 }
 
 func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Request) {
-	forwardingURL := httpSchemaPrefix + d.controlplaneTarget + cpapi.DataplaneIngressAuthorizationPath
-
-	forwardingReq, err := http.NewRequest(r.Method, forwardingURL, r.Body)
-	if err != nil {
-		d.logger.Error("Forwarding error in NewRequest", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 || len(r.TLS.PeerCertificates[0].DNSNames) == 0 {
+		http.Error(w, "certificate does not contain a valid DNS name for the peer gateway", http.StatusBadRequest)
 		return
 	}
-	forwardingReq.ContentLength = r.ContentLength
-	for key, values := range r.Header {
-		for _, value := range values {
-			forwardingReq.Header.Add(key, value)
+
+	headers := make(map[string]string)
+	allowedHeaders := []string{cpapi.AuthorizationHeader}
+	for _, header := range allowedHeaders {
+		if value := r.Header.Get(header); value != "" {
+			headers[header] = value
 		}
 	}
 
-	resp, err := d.apiClient.Do(forwardingReq)
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			d.logger.Warnf("Cannot close response body: %v.", err)
+		}
+	}()
+
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		d.logger.Error("Forwarding error in sending operation", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		d.logger.Infof("Failed to obtain ingress authorization: %s.", resp.Status)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errorString := fmt.Sprintf("Unable to read response body: %v.", err)
+		d.logger.Errorf(errorString)
+		http.Error(w, errorString, http.StatusInternalServerError)
 		return
 	}
 
-	d.logger.Infof("Got authorization to use service: %s.", resp.Header.Get(cpapi.TargetClusterHeader))
+	authzReq := &authv3.CheckRequest{
+		Attributes: &authv3.AttributeContext{
+			Source: &authv3.AttributeContext_Peer{
+				Principal: r.TLS.PeerCertificates[0].DNSNames[0],
+			},
+			Request: &authv3.AttributeContext_Request{
+				Http: &authv3.AttributeContext_HttpRequest{
+					Method:  r.Method,
+					Path:    r.URL.Path,
+					Headers: headers,
+					Body:    string(body),
+				},
+			},
+		},
+	}
 
-	serviceTarget, err := d.GetClusterTarget(resp.Header.Get(cpapi.TargetClusterHeader))
+	resp, err := d.authzClient.Check(r.Context(), authzReq)
+	if err != nil {
+		d.logger.Errorf("Error authorizing ingress request: %v.", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if okResp, ok := resp.HttpResponse.(*authv3.CheckResponse_OkResponse); ok {
+		d.routeIngress(w, r, okResp.OkResponse)
+		return
+	}
+	if deniedResp, ok := resp.HttpResponse.(*authv3.CheckResponse_DeniedResponse); ok {
+		d.logger.Infof("Ingress connection denied: %s", deniedResp.DeniedResponse.Body)
+		http.Error(w, deniedResp.DeniedResponse.Body, http.StatusForbidden)
+		return
+	}
+
+	d.logger.Errorf("Unknown authorization response: %+v", resp)
+	http.Error(w, "Unknown authorization response.", http.StatusInternalServerError)
+}
+
+func (d *Dataplane) routeIngress(w http.ResponseWriter, r *http.Request, authzResp *authv3.OkHttpResponse) {
+	if r.Method != http.MethodConnect {
+		for _, header := range authzResp.ResponseHeadersToAdd {
+			w.Header().Set(header.Header.Key, header.Header.Value)
+		}
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// get target cluster (for export tunnel)
+	var targetCluster string
+	for _, header := range authzResp.Headers {
+		if header.Header.Key == cpapi.TargetClusterHeader {
+			targetCluster = header.Header.Value
+			break
+		}
+	}
+
+	serviceTarget, err := d.GetClusterTarget(targetCluster)
 	if err != nil {
 		d.logger.Errorf("Unable to get cluster target: %v.", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -161,7 +205,14 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, ap
 		d.logger.Error(err)
 		return err
 	}
-	url := httpSchemaPrefix + target
+
+	targetHostname, err := d.GetClusterHostname(targetCluster)
+	if err != nil {
+		d.logger.Errorf("Unable to get cluster hostname: %v.", err)
+		return err
+	}
+
+	url := "https://" + targetHostname
 	d.logger.Debugf("Starting to initiate egress connection to: %s.", url)
 
 	peerConn, err := tls.Dial("tcp", target, tlsConfig)
@@ -177,7 +228,7 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, ap
 		},
 	}
 
-	egressReq, err := http.NewRequest(http.MethodPost, url, http.NoBody)
+	egressReq, err := http.NewRequest(http.MethodConnect, url, http.NoBody)
 	if err != nil {
 		return err
 	}

@@ -8,9 +8,6 @@ on:
 jobs:
   e2e-connectivity-test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go: ['1.22']
         
     steps:
     - name: checkout
@@ -20,7 +17,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go }}
+        go-version-file: ./go.mod
     - name: Install kind
       uses: helm/kind-action@v1.10.0
       with:

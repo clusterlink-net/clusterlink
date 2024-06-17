@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -22,9 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/util/log"
-	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 const (
@@ -36,7 +34,7 @@ const (
 	// CertificateFile is the path to the certificate file.
 	CertificateFile = "/etc/ssl/certs/clink-dataplane.pem"
 	// KeyFile is the path to the private-key file.
-	KeyFile = "/etc/ssl/private/clink-dataplane.pem"
+	KeyFile = "/etc/ssl/key/clink-dataplane.pem"
 
 	// Name is the app label of dataplane pods.
 	Name = "cl-dataplane"
@@ -81,27 +79,11 @@ func (o *Options) Run() error {
 		}()
 	}
 
-	// parse TLS files
-	parsedCertData, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
-	if err != nil {
-		return err
-	}
-
-	dnsNames := parsedCertData.DNSNames()
-	if len(dnsNames) != 1 {
-		return fmt.Errorf("expected peer certificate to contain a single DNS name, but got %d", len(dnsNames))
-	}
-
-	peerName, err := api.StripServerPrefix(dnsNames[0])
-	if err != nil {
-		return err
-	}
-
 	// generate random dataplane ID
 	dataplaneID := uuid.New().String()
 	logrus.Infof("Dataplane ID: %s.", dataplaneID)
 
-	return o.runEnvoy(peerName, dataplaneID)
+	return o.runEnvoy(dataplaneID)
 }
 
 // NewCLDataplaneCommand creates a *cobra.Command object with default parameters.

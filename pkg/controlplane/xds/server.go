@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -36,6 +36,7 @@ func RegisterService(ctx context.Context, manager *Manager, grpcServer *grpc.Ser
 		Caches: map[string]cache.Cache{
 			resource.ClusterType:  manager.clusters,
 			resource.ListenerType: manager.listeners,
+			resource.SecretType:   manager.secrets,
 		},
 	}
 

@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -18,11 +18,15 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
+	"google.golang.org/grpc/credentials"
 
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
@@ -41,10 +45,7 @@ const (
 	// CertificateFile is the path to the certificate file.
 	CertificateFile = "/etc/ssl/certs/clink-dataplane.pem"
 	// KeyFile is the path to the private-key file.
-	KeyFile = "/etc/ssl/private/clink-dataplane.pem"
-
-	// dataplaneServerAddress is the address of the dataplane HTTP server for accepting ingress dataplane connections.
-	dataplaneServerAddress = "127.0.0.1:8443"
+	KeyFile = "/etc/ssl/key/clink-dataplane.pem"
 )
 
 // Options contains everything necessary to create and run a dataplane.
@@ -73,26 +74,36 @@ func (o *Options) RequiredFlags() []string {
 }
 
 // Run the go dataplane.
-func (o *Options) runGoDataplane(peerName, dataplaneID string, parsedCertData *tls.ParsedCertData) error {
+func (o *Options) runGoDataplane(dataplaneID string, parsedCertData *tls.ParsedCertData) error {
 	controlplaneTarget := net.JoinHostPort(o.ControlplaneHost, strconv.Itoa(cpapi.ListenPort))
 
-	logrus.Infof("Starting go dataplane, Name: %s, ID: %s", peerName, dataplaneID)
+	logrus.Infof("Starting go dataplane, ID: %s", dataplaneID)
 
-	dataplane := dpserver.NewDataplane(dataplaneID, controlplaneTarget, peerName, parsedCertData)
+	controlplaneClient, err := grpc.NewClient(
+		controlplaneTarget,
+		grpc.WithTransportCredentials(credentials.NewTLS(parsedCertData.ClientConfig("cl-controlplane"))),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  100 * time.Millisecond,
+				Multiplier: 1.6,
+				Jitter:     0.2,
+				MaxDelay:   time.Second,
+			},
+		}))
+	if err != nil {
+		return fmt.Errorf("error initializing controlplane client: %w", err)
+	}
+
+	dataplaneServerAddress := fmt.Sprintf(":%d", api.ListenPort)
+	dataplane := dpserver.NewDataplane(dataplaneID, controlplaneClient, parsedCertData)
 	go func() {
 		err := dataplane.StartDataplaneServer(dataplaneServerAddress)
 		logrus.Errorf("Failed to start dataplane server: %v.", err)
 	}()
 
-	go func() {
-		err := dataplane.StartSNIServer(dataplaneServerAddress)
-		logrus.Error("Failed to start dataplane server", err)
-	}()
-
 	// Start xDS client, if it fails to start we keep retrying to connect to the controlplane host
-	tlsConfig := parsedCertData.ClientConfig(cpapi.GRPCServerName(peerName))
-	xdsClient := dpclient.NewXDSClient(dataplane, controlplaneTarget, tlsConfig)
-	err := xdsClient.Run()
+	xdsClient := dpclient.NewXDSClient(dataplane, controlplaneClient)
+	err = xdsClient.Run()
 	return fmt.Errorf("xDS Client stopped: %w", err)
 }
 
@@ -111,17 +122,7 @@ func (o *Options) Run() error {
 	}
 
 	// parse TLS files
-	parsedCertData, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
-	if err != nil {
-		return err
-	}
-
-	dnsNames := parsedCertData.DNSNames()
-	if len(dnsNames) != 1 {
-		return fmt.Errorf("expected peer certificate to contain a single DNS name, but got %d", len(dnsNames))
-	}
-
-	peerName, err := api.StripServerPrefix(dnsNames[0])
+	parsedCertData, _, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
 	if err != nil {
 		return err
 	}
@@ -130,7 +131,7 @@ func (o *Options) Run() error {
 	dataplaneID := uuid.New().String()
 	logrus.Infof("Dataplane ID: %s.", dataplaneID)
 
-	return o.runGoDataplane(peerName, dataplaneID, parsedCertData)
+	return o.runGoDataplane(dataplaneID, parsedCertData)
 }
 
 // NewCLGoDataplaneCommand creates a *cobra.Command object with default parameters.

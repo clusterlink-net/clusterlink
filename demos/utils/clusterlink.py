@@ -1,4 +1,4 @@
-# Copyright 2023 The ClusterLink Authors.
+# Copyright (c) The ClusterLink Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -52,7 +52,7 @@ class CRDObject:
         except Exception as e:
             print(f"Error deleting {kind} '{name}': {e}")
 
-# Imports Peers contains all the commands for managing peer CRD.
+# Peers class contains all the commands for managing peer CRD.
 class Peers(CRDObject):
     def __init__(self, namespace):
         self.namespace=namespace
@@ -242,11 +242,10 @@ class ClusterLink:
         runcmdDir(f"{CL_CLI} create peer-cert --name {name}",dir)
 
     # deploy_peer deploys clusterlink to the cluster using ClusterLink CLI.
-    def deploy_peer(self, name, dir, logLevel="info", dataplane="envoy", container_reg="", CRDMode=True, ingress_type="", ingress_port=0):
+    def deploy_peer(self, name, dir, logLevel="info", dataplane="envoy", container_reg="", ingress_type="", ingress_port=0):
         flag = f"--container-registry={container_reg} " if container_reg != "" else ""
         flag += f"--ingress={ingress_type} " if ingress_type != "" else ""
         flag += f"--ingress-port={ingress_port} " if ingress_port != 0 else ""
-        flag += "--crd-mode=true " if CRDMode else ""
         runcmdDir(f"{CL_CLI} deploy peer --name {name} --log-level {logLevel} --dataplane {dataplane} {flag}",dir)
         waitPod("cl-controlplane", CLUSTELINK_NS)
         waitPod("cl-dataplane", CLUSTELINK_NS)

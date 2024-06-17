@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -14,11 +14,14 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net"
-	"net/http"
 	"strconv"
 	"strings"
+
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	authv3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
 
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 )
@@ -70,7 +73,12 @@ func (d *Dataplane) serveEgressConnections(name string, listener net.Listener) e
 			conn.Close()
 			continue
 		}
-		tlsConfig := d.parsedCertData.ClientConfig(targetHost)
+
+		d.tlsConfigLock.RLock()
+		tlsConfig := d.tlsConfig.Clone()
+		d.tlsConfigLock.RUnlock()
+
+		tlsConfig.ServerName = targetHost
 
 		go func() {
 			err := d.initiateEgressConnection(targetPeer, accessToken, conn, tlsConfig)
@@ -84,27 +92,59 @@ func (d *Dataplane) serveEgressConnections(name string, listener net.Listener) e
 
 // getEgressAuth returns the target cluster and authorization token for the outgoing connection.
 func (d *Dataplane) getEgressAuth(name, sourceIP string) (string, string, error) { //nolint:gocritic // unnamedResult
-	url := "https://" + d.controlplaneTarget + api.DataplaneEgressAuthorizationPath
-	egressAuthReq, err := http.NewRequest(http.MethodPost, url, http.NoBody)
-	if err != nil {
-		return "", "", err
-	}
-	egressAuthReq.Close = true
-
 	components := strings.SplitN(name, "/", 2)
+	authzReq := &authv3.CheckRequest{
+		Attributes: &authv3.AttributeContext{
+			Source: &authv3.AttributeContext_Peer{
+				Address: &corev3.Address{
+					Address: &corev3.Address_EnvoyInternalAddress{
+						EnvoyInternalAddress: &corev3.EnvoyInternalAddress{},
+					},
+				},
+			},
+			Request: &authv3.AttributeContext_Request{
+				Http: &authv3.AttributeContext_HttpRequest{
+					Headers: map[string]string{
+						api.ImportNamespaceHeader: components[0],
+						api.ImportNameHeader:      components[1],
+						api.ClientIPHeader:        sourceIP,
+					},
+				},
+			},
+		},
+	}
 
-	egressAuthReq.Header.Add(api.ClientIPHeader, sourceIP)
-	egressAuthReq.Header.Add(api.ImportNamespaceHeader, components[0])
-	egressAuthReq.Header.Add(api.ImportNameHeader, components[1])
-	egressAuthResp, err := d.apiClient.Do(egressAuthReq)
+	resp, err := d.authzClient.Check(context.Background(), authzReq)
 	if err != nil {
-		d.logger.Errorf("Unable to send auth/egress request: %v.", err)
+		d.logger.Errorf("Error authorizing egress request: %v.", err)
 		return "", "", err
 	}
-	defer egressAuthResp.Body.Close()
-	if egressAuthResp.StatusCode != http.StatusOK {
-		d.logger.Infof("Failed to obtain egress authorization: %s", egressAuthResp.Status)
-		return "", "", fmt.Errorf("failed egress authorization:%s", egressAuthResp.Status)
+
+	okResp, ok := resp.HttpResponse.(*authv3.CheckResponse_OkResponse)
+	if !ok {
+		if deniedResp, denied := resp.HttpResponse.(*authv3.CheckResponse_DeniedResponse); denied {
+			return "", "", fmt.Errorf("egress connection denied: %s", deniedResp.DeniedResponse.Body)
+		}
+		return "", "", fmt.Errorf("unknown authorization response: %+v", resp)
 	}
-	return egressAuthResp.Header.Get(api.TargetClusterHeader), egressAuthResp.Header.Get(api.AuthorizationHeader), nil
+
+	// get target and access token from response headers
+	var accessToken, targetCluster string
+	for _, header := range okResp.OkResponse.Headers {
+		if header.Header.Key == api.TargetClusterHeader {
+			targetCluster = header.Header.Value
+		} else if header.Header.Key == api.AuthorizationHeader {
+			accessToken = header.Header.Value
+		}
+	}
+
+	if targetCluster == "" {
+		return "", "", fmt.Errorf("missing target cluster")
+	}
+
+	if accessToken == "" {
+		return "", "", fmt.Errorf("missing access token")
+	}
+
+	return targetCluster, accessToken, nil
 }

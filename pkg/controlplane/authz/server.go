@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -14,16 +14,22 @@
 package authz
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	authv3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
+	typev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/genproto/googleapis/rpc/code"
+	"google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	utilhttp "github.com/clusterlink-net/clusterlink/pkg/util/http"
 )
 
 const (
@@ -35,142 +41,213 @@ type server struct {
 	logger  *logrus.Entry
 }
 
-// RegisterHandlers registers the HTTP handlers for dataplane authz requests.
-func RegisterHandlers(manager *Manager, srv *utilhttp.Server) {
-	router := srv.Router()
-	server := &server{
-		manager: manager,
-		logger:  logrus.WithField("component", "controlplane.authz.server"),
+// Check a dataplane connection.
+func (s *server) Check(ctx context.Context, req *authv3.CheckRequest) (*authv3.CheckResponse, error) {
+	if req == nil ||
+		req.Attributes == nil ||
+		req.Attributes.Source == nil ||
+		req.Attributes.Request == nil ||
+		req.Attributes.Request.Http == nil {
+		s.logger.Errorf("Invalid check request: %+v", req)
+		return nil, fmt.Errorf("invalid check request: %v", req)
 	}
 
-	router.Post(api.DataplaneEgressAuthorizationPath, server.DataplaneEgressAuthorize)
-	router.Post(api.DataplaneIngressAuthorizationPath, server.DataplaneIngressAuthorize)
+	var resp *authv3.CheckResponse
+	if req.Attributes.Source.Address != nil &&
+		req.Attributes.Source.Address.GetEnvoyInternalAddress() != nil {
+		resp = s.checkEgress(ctx, req)
+	} else {
+		resp = s.checkIngress(ctx, req)
+	}
 
-	router.Get(api.HeartbeatPath, server.Heartbeat)
-	router.Post(api.RemotePeerAuthorizationPath, server.PeerAuthorize)
+	s.logger.WithFields(logrus.Fields{
+		"request":  req,
+		"response": resp,
+	}).Debugf("Check.")
+
+	return resp, nil
 }
 
-// DataplaneEgressAuthorize authorizes access to an imported service.
-func (s *server) DataplaneEgressAuthorize(w http.ResponseWriter, r *http.Request) {
-	// TODO: verify that request originates from local dataplane
+// check an egress dataplane connection.
+func (s *server) checkEgress(ctx context.Context, req *authv3.CheckRequest) *authv3.CheckResponse {
+	httpReq := req.Attributes.Request.Http
+	headers := httpReq.Headers
 
-	ip := r.Header.Get(api.ClientIPHeader)
-	if ip == "" {
-		http.Error(w, fmt.Sprintf("missing '%s' header", api.ClientIPHeader), http.StatusBadRequest)
-		return
+	expectedHeaders := []string{api.ClientIPHeader, api.ImportNameHeader, api.ImportNamespaceHeader}
+	for _, header := range expectedHeaders {
+		if _, ok := headers[header]; !ok {
+			errorString := fmt.Sprintf("Missing '%s' header.", header)
+			return buildDeniedResponse(code.Code_INVALID_ARGUMENT, typev3.StatusCode_BadRequest, errorString)
+		}
 	}
 
-	importName := r.Header.Get(api.ImportNameHeader)
-	if importName == "" {
-		http.Error(w, fmt.Sprintf("missing '%s' header", api.ImportNameHeader), http.StatusBadRequest)
-		return
-	}
-
-	importNamespace := r.Header.Get(api.ImportNamespaceHeader)
-	if importNamespace == "" {
-		http.Error(w, fmt.Sprintf("missing '%s' header", api.ImportNamespaceHeader), http.StatusBadRequest)
-		return
-	}
-
-	resp, err := s.manager.authorizeEgress(r.Context(), &egressAuthorizationRequest{
+	resp, err := s.manager.authorizeEgress(ctx, &egressAuthorizationRequest{
 		ImportName: types.NamespacedName{
-			Namespace: importNamespace,
-			Name:      importName,
+			Namespace: headers[api.ImportNamespaceHeader],
+			Name:      headers[api.ImportNameHeader],
 		},
-		IP: ip,
+		IP: headers[api.ClientIPHeader],
 	})
-
-	switch {
-	case err != nil:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	case !resp.ServiceExists:
-		w.WriteHeader(http.StatusNotFound)
-		return
-	case !resp.Allowed:
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+	if err != nil {
+		return buildDeniedResponse(code.Code_INTERNAL, typev3.StatusCode_InternalServerError, err.Error())
 	}
 
-	w.Header().Set(api.TargetClusterHeader, resp.RemotePeerCluster)
-	w.Header().Set(api.AuthorizationHeader, bearerSchemaPrefix+resp.AccessToken)
+	if !resp.Allowed {
+		errorString := fmt.Sprintf(
+			"Access denied for '%s/%s'.", headers[api.ImportNamespaceHeader], headers[api.ImportNameHeader])
+		return buildDeniedResponse(code.Code_PERMISSION_DENIED, typev3.StatusCode_Forbidden, errorString)
+	}
+
+	return buildAllowedResponse(&authv3.OkHttpResponse{
+		Headers: []*corev3.HeaderValueOption{
+			{
+				Header: &corev3.HeaderValue{
+					Key:   api.TargetClusterHeader,
+					Value: resp.RemotePeerCluster,
+				},
+			},
+			{
+				Header: &corev3.HeaderValue{
+					Key:   api.AuthorizationHeader,
+					Value: bearerSchemaPrefix + resp.AccessToken,
+				},
+			},
+		},
+	})
 }
 
-// DataplaneIngressAuthorize authorizes a remote peer dataplane access to an exported service.
-func (s *server) DataplaneIngressAuthorize(w http.ResponseWriter, r *http.Request) {
-	authorization := r.Header.Get(api.AuthorizationHeader)
-	if authorization == "" {
-		http.Error(w, fmt.Sprintf("missing '%s' header", api.AuthorizationHeader), http.StatusBadRequest)
-		return
+// check an ingress dataplane connection.
+func (s *server) checkIngress(ctx context.Context, req *authv3.CheckRequest) *authv3.CheckResponse {
+	httpReq := req.Attributes.Request.Http
+	switch {
+	case httpReq.Method == http.MethodGet && httpReq.Path == api.HeartbeatPath:
+		// heartbeat request always simply allowed
+		return buildAllowedResponse(&authv3.OkHttpResponse{})
+	case httpReq.Method == http.MethodPost && httpReq.Path == api.RemotePeerAuthorizationPath:
+		return s.checkAuthorizationRequest(ctx, httpReq)
+	case httpReq.Method == http.MethodConnect:
+		return s.checkServiceAccessRequest(httpReq)
+	}
+
+	errorString := fmt.Sprintf("No handler defined for %s %s.", httpReq.Method, httpReq.Path)
+	return buildDeniedResponse(code.Code_INVALID_ARGUMENT, typev3.StatusCode_BadRequest, errorString)
+}
+
+// check an ingress connection for accessing an exported service.
+func (s *server) checkServiceAccessRequest(req *authv3.AttributeContext_HttpRequest) *authv3.CheckResponse {
+	authorization, ok := req.Headers[api.AuthorizationHeader]
+	if !ok {
+		errorString := fmt.Sprintf("Missing '%s' header.", api.AuthorizationHeader)
+		return buildDeniedResponse(code.Code_INVALID_ARGUMENT, typev3.StatusCode_BadRequest, errorString)
 	}
 
 	if !strings.HasPrefix(authorization, bearerSchemaPrefix) {
-		http.Error(w, fmt.Sprintf("authorization header is not using the bearer scheme: %s", authorization),
-			http.StatusBadRequest)
-		return
+		errorString := "Authorization header is not using the bearer scheme."
+		return buildDeniedResponse(code.Code_INVALID_ARGUMENT, typev3.StatusCode_BadRequest, errorString)
 	}
 	token := strings.TrimPrefix(authorization, bearerSchemaPrefix)
 
 	targetCluster, err := s.manager.parseAuthorizationHeader(token)
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
+		return buildDeniedResponse(code.Code_PERMISSION_DENIED, typev3.StatusCode_Forbidden, err.Error())
 	}
 
-	w.Header().Set(api.TargetClusterHeader, targetCluster)
-}
-
-// Heartbeat returns a response for heartbeat checks from remote peers.
-func (s *server) Heartbeat(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-}
-
-// PeerAuthorize authorizes a remote peer controlplane request for accessing an exported service,
-// yielding an access token.
-func (s *server) PeerAuthorize(w http.ResponseWriter, r *http.Request) {
-	var req api.AuthorizationRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 || len(r.TLS.PeerCertificates[0].DNSNames) != 2 ||
-		r.TLS.PeerCertificates[0].DNSNames[0] == "" {
-		http.Error(w, "certificate does not contain a valid DNS name for the peer gateway", http.StatusBadRequest)
-		return
-	}
-
-	peerName := r.TLS.PeerCertificates[0].DNSNames[0]
-	resp, err := s.manager.authorizeIngress(
-		r.Context(),
-		&ingressAuthorizationRequest{
-			ServiceName: types.NamespacedName{
-				Namespace: req.ServiceNamespace,
-				Name:      req.ServiceName,
+	return buildAllowedResponse(&authv3.OkHttpResponse{
+		Headers: []*corev3.HeaderValueOption{
+			{
+				Header: &corev3.HeaderValue{
+					Key:   api.TargetClusterHeader,
+					Value: targetCluster,
+				},
 			},
 		},
-		peerName)
+	})
+}
+
+// check an ingress connection for authorizing access to an exported service.
+func (s *server) checkAuthorizationRequest(
+	ctx context.Context,
+	req *authv3.AttributeContext_HttpRequest,
+) *authv3.CheckResponse {
+	var authzReq api.AuthorizationRequest
+	if err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&authzReq); err != nil {
+		s.logger.Errorf("Cannot decode authorization request: %v.", err)
+		return buildDeniedResponse(code.Code_INVALID_ARGUMENT, typev3.StatusCode_BadRequest, err.Error())
+	}
+
+	resp, err := s.manager.authorizeIngress(
+		ctx,
+		&ingressAuthorizationRequest{
+			ServiceName: types.NamespacedName{
+				Namespace: authzReq.ServiceNamespace,
+				Name:      authzReq.ServiceName,
+			},
+			SrcAttributes: authzReq.SrcAttributes,
+		})
 	switch {
 	case err != nil:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return buildDeniedResponse(code.Code_INTERNAL, typev3.StatusCode_InternalServerError, err.Error())
 	case !resp.ServiceExists:
-		w.WriteHeader(http.StatusNotFound)
-		return
+		errorString := fmt.Sprintf(
+			"Exported service '%s/%s' not found.",
+			authzReq.ServiceNamespace, authzReq.ServiceName)
+		return buildDeniedResponse(code.Code_NOT_FOUND, typev3.StatusCode_NotFound, errorString)
 	case !resp.Allowed:
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+		errorString := fmt.Sprintf(
+			"Permission denied for '%s/%s'.",
+			authzReq.ServiceNamespace, authzReq.ServiceName)
+		return buildDeniedResponse(code.Code_PERMISSION_DENIED, typev3.StatusCode_Forbidden, errorString)
 	}
 
-	responseBody, err := json.Marshal(api.AuthorizationResponse{AccessToken: resp.AccessToken})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	return buildAllowedResponse(&authv3.OkHttpResponse{
+		ResponseHeadersToAdd: []*corev3.HeaderValueOption{
+			{
+				Header: &corev3.HeaderValue{
+					Key:   api.AccessTokenHeader,
+					Value: resp.AccessToken,
+				},
+			},
+		},
+	})
+}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	if _, err := w.Write(responseBody); err != nil {
-		s.logger.Errorf("Cannot write http response: %v.", err)
+// RegisterService registers an ext_authz service backed by Manager to the given gRPC server.
+func RegisterService(manager *Manager, grpcServer *grpc.Server) {
+	srv := newServer(manager)
+	authv3.RegisterAuthorizationServer(grpcServer, srv)
+}
+
+func buildAllowedResponse(resp *authv3.OkHttpResponse) *authv3.CheckResponse {
+	return &authv3.CheckResponse{
+		Status: &status.Status{
+			Code: int32(code.Code_OK),
+		},
+		HttpResponse: &authv3.CheckResponse_OkResponse{
+			OkResponse: resp,
+		},
+	}
+}
+
+func buildDeniedResponse(rpcCode code.Code, httpCode typev3.StatusCode, message string) *authv3.CheckResponse {
+	return &authv3.CheckResponse{
+		Status: &status.Status{
+			Code:    int32(rpcCode),
+			Message: message,
+		},
+		HttpResponse: &authv3.CheckResponse_DeniedResponse{
+			DeniedResponse: &authv3.DeniedHttpResponse{
+				Status: &typev3.HttpStatus{
+					Code: httpCode,
+				},
+				Body: message,
+			},
+		},
+	}
+}
+
+func newServer(manager *Manager) *server {
+	return &server{
+		manager: manager,
+		logger:  logrus.WithField("component", "controlplane.authz.server"),
 	}
 }

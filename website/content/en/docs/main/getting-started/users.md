@@ -4,7 +4,7 @@ description: Installing and configuring a basic ClusterLink deployment
 weight: 22
 ---
 
-This guide will give you a quick start on installing and setting up the ClusterLink on a Kubernetes cluster.
+This guide will give you a quick start on installing and setting up ClusterLink on a Kubernetes cluster.
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ For example, you can set up a local environment using [kind][].
 
 ## Installation
 
-1. {{< anchor install-cli>}}To install ClusterLink on Linux or Mac, use the installation script:
+1. {{< anchor install-cli>}}To install ClusterLink CLI on Linux or Mac, use the installation script:
 
    ```sh
    curl -L https://github.com/clusterlink-net/clusterlink/releases/latest/download/clusterlink.sh | sh -
@@ -24,6 +24,16 @@ For example, you can set up a local environment using [kind][].
    ```sh
    clusterlink --version
    ```
+
+{{% expand summary="Download specific CLI version" %}}
+   To install a specific version of the ClusterLink CLI, use the URL path of the version release:
+   For example, to download version v0.2.1:
+
+   ```sh
+   curl -L https://github.com/clusterlink-net/clusterlink/releases/download/v0.2.1/clusterlink.sh | sh -
+   ```
+
+{{% /expand %}}
 
 ## Setup
 
@@ -49,11 +59,9 @@ To set up ClusterLink on a Kubernetes cluster, follow these steps:
    This command will create the certificate files `cert.pem` and `key.pem`
     in a directory named `<fabric_name>`/`<peer_name>`.
     The `--path <path>` flag can be used to change the directory location.
-    The `--name` option is optional, and by default, "default_fabric" will be used.
+    Here too, the `--name` option is optional, and by default, "default_fabric" will be used.
 
-{{< notice note >}}
-All the peer certificates in the fabric should be created from the same fabric CA files in step 1.
-{{< /notice >}}
+**All the peer certificates in the fabric should be created from the same fabric CA files in step 1.**
 
 1. {{< anchor install-cl-operator >}}Install ClusterLink deployment:
 
@@ -64,13 +72,14 @@ All the peer certificates in the fabric should be created from the same fabric C
    This command will deploy the ClusterLink operator on the `clusterlink-operator` namespace
     and convert the peer certificates to secrets in the namespace where ClusterLink components will be installed.
     By default, the `clusterlink-system` namespace is used.
-    in addition it will create a ClusterLink instance custom resource object and deploy it to the operator.
+    In addition, it will create a ClusterLink instance custom resource object and deploy it to the operator.
     The operator will then create the ClusterLink components in the `clusterlink-system` namespace and enable ClusterLink in the cluster.
     The command assumes that `kubectl` is set to the correct peer (K8s cluster)
     and that the certificates were created by running the previous command on the same working directory.
     If they were not, use the flag `--path <path>` for pointing to the working directory
     that was used in the previous command.
     The `--fabric` option is optional, and by default, "default_fabric" will be used.
+    To install a specific image of ClusterLink use the `--tag <version>` flag.
     For more details and deployment configuration see [ClusterLink deployment operator][].
 {{< notice note >}}
 To set up ClusterLink on another cluster, create another set of peer certificates (step 2).
@@ -79,7 +88,7 @@ Deploy ClusterLink in a console with access to the cluster (step 3).
 
 ## Try it out
 
-Check out the [ClusterLink Tutorials][] for setting up multi-cluster connectivity
+Check out the [ClusterLink tutorials][] for setting up multi-cluster connectivity
  for applications using two or more clusters.
 
 ## Uninstall ClusterLink
@@ -108,6 +117,12 @@ This command  using the current `kubectl` context.
    rm `which clusterlink`
    ```
 
-[kind]: https://kind.sigs.k8s.io/)
-[ClusterLink deployment operator]: {{< relref "../tasks/operator" >}}
+## Links for further information
+
+* [Kind](https://kind.sigs.k8s.io/)
+* [ClusterLink deployment operator][]
+* [ClusterLink tutorials][]
+
+[Kind]: https://kind.sigs.k8s.io/docs/user/quick-start/
+[ClusterLink deployment operator]: {{< relref "../tasks/operator/" >}}
 [ClusterLink tutorials]: {{< relref "../tutorials/" >}}

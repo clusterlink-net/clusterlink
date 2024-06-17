@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -54,9 +54,10 @@ type peerMonitor struct {
 
 // peerManager manages peers status.
 type peerManager struct {
-	client             client.Client
-	peerTLS            *tls.ParsedCertData
-	peerStatusCallback func(*v1alpha1.Peer)
+	client client.Client
+
+	peerTLSLock sync.RWMutex
+	peerTLS     *tls.ParsedCertData
 
 	lock     sync.Mutex
 	monitors map[string]*peerMonitor
@@ -84,6 +85,20 @@ func (m *peerMonitor) SetPeer(pr *v1alpha1.Peer) {
 	m.pr = pr
 }
 
+func (m *peerMonitor) SetClientCertificates(peerTLS *tls.ParsedCertData) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	m.client = peer.NewClient(m.pr, peerTLS.ClientConfig(m.pr.Name))
+}
+
+func (m *peerMonitor) getClient() *peer.Client {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	return m.client
+}
+
 func (m *peerMonitor) Start() {
 	defer m.wg.Done()
 
@@ -106,7 +121,8 @@ func (m *peerMonitor) Start() {
 			break
 		}
 
-		heartbeatOK := m.client.GetHeartbeat() == nil
+		heartbeatErr := m.getClient().GetHeartbeat()
+		heartbeatOK := heartbeatErr == nil
 		if healthy == heartbeatOK {
 			if !healthy {
 				ticker.Reset(unhealthyInterval)
@@ -123,6 +139,8 @@ func (m *peerMonitor) Start() {
 		if strikeCount < threshold {
 			<-ticker.C
 			continue
+		} else if heartbeatErr != nil {
+			m.logger.Errorf("Failed to send heartbeat to %s : %v", m.pr.Name, heartbeatErr)
 		}
 
 		m.logger.Infof("Peer reachable status changed to: %v", heartbeatOK)
@@ -190,10 +208,6 @@ func (m *peerManager) Name() string {
 	return "peerManager"
 }
 
-func (m *peerManager) SetPeerStatusCallback(callback func(*v1alpha1.Peer)) {
-	m.peerStatusCallback = callback
-}
-
 // Start the peer manager.
 func (m *peerManager) Start() error {
 	m.updaterWG.Add(1)
@@ -216,15 +230,10 @@ func (m *peerManager) Start() error {
 
 				currPeer := monitor.Peer()
 
-				if m.peerStatusCallback != nil {
-					m.peerStatusCallback(&currPeer)
-				} else {
-					// CRD-mode
-					err := m.client.Status().Update(context.Background(), &currPeer)
-					if err != nil {
-						m.logger.Warnf("Cannot update peer '%s' status: %v", pr.Name, err)
-						continue
-					}
+				err := m.client.Status().Update(context.Background(), &currPeer)
+				if err != nil {
+					m.logger.Warnf("Cannot update peer '%s' status: %v", pr.Name, err)
+					continue
 				}
 
 				break
@@ -306,13 +315,30 @@ func newPeerMonitor(pr *v1alpha1.Peer, manager *peerManager) *peerMonitor {
 	return monitor
 }
 
+func (m *peerManager) SetPeerCertificates(peerTLS *tls.ParsedCertData, _ *tls.RawCertData) error {
+	m.logger.Info("Setting peer certificates.")
+
+	m.peerTLSLock.Lock()
+	defer m.peerTLSLock.Unlock()
+
+	m.peerTLS = peerTLS
+
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	for _, mon := range m.monitors {
+		mon.SetClientCertificates(peerTLS)
+	}
+
+	return nil
+}
+
 // newPeerManager returns a new empty peerManager.
-func newPeerManager(cl client.Client, peerTLS *tls.ParsedCertData) peerManager {
+func newPeerManager(cl client.Client) peerManager {
 	logger := logrus.WithField("component", "controlplane.control.peerManager")
 
 	return peerManager{
 		client:          cl,
-		peerTLS:         peerTLS,
 		monitors:        make(map[string]*peerMonitor),
 		stopCh:          make(chan struct{}),
 		statusUpdatesCh: make(chan *v1alpha1.Peer),

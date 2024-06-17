@@ -1,0 +1,12 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: curl-nginx-homepage
+spec:
+  template:
+    spec:
+      containers:
+      - name: curl
+        image: curlimages/curl:latest
+        command: ["curl", "http://nginx.default.svc.cluster.local"]
+      restartPolicy: Never

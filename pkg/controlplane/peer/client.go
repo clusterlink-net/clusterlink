@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -30,6 +30,7 @@ import (
 
 // Client for accessing a remote peer.
 type Client struct {
+	pr *v1alpha1.Peer
 	// jsonapi clients for connecting to the remote peer (one per each gateway)
 	clients []*jsonapi.Client
 	logger  *logrus.Entry
@@ -93,42 +94,25 @@ func (c *Client) getResponse(
 }
 
 // Authorize a request for accessing a peer exported service, yielding an access token.
-func (c *Client) Authorize(req *api.AuthorizationRequest) (*RemoteServerAuthorizationResponse, error) {
+func (c *Client) Authorize(req *api.AuthorizationRequest) (string, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
-		return nil, fmt.Errorf("unable to serialize authorization request: %w", err)
+		return "", fmt.Errorf("unable to serialize authorization request: %w", err)
 	}
 
 	serverResp, err := c.getResponse(func(client *jsonapi.Client) (*jsonapi.Response, error) {
 		return client.Post(api.RemotePeerAuthorizationPath, body)
 	})
 	if err != nil {
-		return nil, err
-	}
-
-	resp := &RemoteServerAuthorizationResponse{}
-	if serverResp.Status == http.StatusNotFound {
-		return resp, nil
-	}
-
-	resp.ServiceExists = true
-	if serverResp.Status == http.StatusUnauthorized {
-		return resp, nil
+		return "", err
 	}
 
 	if serverResp.Status != http.StatusOK {
-		return nil, fmt.Errorf("unable to authorize connection (%d), server returned: %s",
+		return "", fmt.Errorf("unable to authorize connection (%d), server returned: %s",
 			serverResp.Status, serverResp.Body)
 	}
 
-	var authResp api.AuthorizationResponse
-	if err := json.Unmarshal(serverResp.Body, &authResp); err != nil {
-		return nil, fmt.Errorf("unable to parse server response: %w", err)
-	}
-
-	resp.Allowed = true
-	resp.AccessToken = authResp.AccessToken
-	return resp, nil
+	return serverResp.Headers.Get(api.AccessTokenHeader), nil
 }
 
 // GetHeartbeat get a heartbeat from other peers.
@@ -148,6 +132,11 @@ func (c *Client) GetHeartbeat() error {
 	return nil
 }
 
+// Peer object this client corresponds to.
+func (c *Client) Peer() *v1alpha1.Peer {
+	return c.pr
+}
+
 // NewClient returns a new Peer API client.
 func NewClient(peer *v1alpha1.Peer, tlsConfig *tls.Config) *Client {
 	clients := make([]*jsonapi.Client, len(peer.Spec.Gateways))
@@ -156,6 +145,7 @@ func NewClient(peer *v1alpha1.Peer, tlsConfig *tls.Config) *Client {
 	}
 
 	return &Client{
+		pr:      peer,
 		clients: clients,
 		logger: logrus.WithFields(logrus.Fields{
 			"component": "controlplane.peer.client",

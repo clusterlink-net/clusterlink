@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -13,15 +13,14 @@
 
 package api
 
-import "github.com/lestrrat-go/jwx/jwa"
+import (
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz/connectivitypdp"
+	"github.com/lestrrat-go/jwx/jwa"
+)
 
 const (
 	// RemotePeerAuthorizationPath is the path remote peers use to send an authorization request.
 	RemotePeerAuthorizationPath = "/authz"
-	// DataplaneEgressAuthorizationPath is the path the dataplane uses to authorize an egress connection.
-	DataplaneEgressAuthorizationPath = "/authz/egress/"
-	// DataplaneIngressAuthorizationPath is the path the dataplane uses to authorize an ingress connection.
-	DataplaneIngressAuthorizationPath = "/authz/ingress/"
 
 	// ImportNameHeader holds the name of the imported service.
 	ImportNameHeader = "x-import-name"
@@ -35,6 +34,9 @@ const (
 
 	// TargetClusterHeader holds the name of the target cluster.
 	TargetClusterHeader = "host"
+
+	// AccessTokenHeader holds the access token for an exported service, sent back by the server.
+	AccessTokenHeader = "x-access-token"
 
 	// JWTSignatureAlgorithm defines the signing algorithm for JWT tokens.
 	JWTSignatureAlgorithm = jwa.RS256
@@ -50,10 +52,6 @@ type AuthorizationRequest struct {
 	ServiceName string
 	// ServiceNamespace is the namespace of the requested exported service.
 	ServiceNamespace string
-}
-
-// AuthorizationResponse represents a response for a successful AuthorizationRequest.
-type AuthorizationResponse struct {
-	// AccessToken holds an access token which can be used to access the requested exported service.
-	AccessToken string
+	// Attributes of the source workload, to be used by the PDP on the remote peer
+	SrcAttributes connectivitypdp.WorkloadAttrs
 }

@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -35,7 +35,7 @@ import (
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
+	utiltls "github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
 
 // Manager manages the core routing components of the dataplane.
@@ -45,10 +45,9 @@ import (
 // - Import -> Listener (whose name starts with a designated prefix)
 // Note that imported service bindings are handled by the egress authz server.
 type Manager struct {
-	crdMode bool
-
 	clusters  *cache.LinearCache
 	listeners *cache.LinearCache
+	secrets   *cache.LinearCache
 
 	logger *logrus.Entry
 }
@@ -58,21 +57,30 @@ func (m *Manager) AddPeer(peer *v1alpha1.Peer) error {
 	m.logger.Infof("Adding peer '%s'.", peer.Name)
 
 	clusterName := cpapi.RemotePeerClusterName(peer.Name)
-	dataplaneSNI := dpapi.DataplaneSNI(peer.Name)
-	epc, err := makeEndpointsCluster(clusterName, peer.Spec.Gateways, dataplaneSNI)
+	epc, err := makeEndpointsCluster(clusterName, peer.Spec.Gateways, peer.Name+":443")
 	if err != nil {
 		return err
 	}
 
+	sdsConfig := &core.ConfigSource{
+		ConfigSourceSpecifier: &core.ConfigSource_Ads{
+			Ads: &core.AggregatedConfigSource{},
+		},
+		InitialFetchTimeout: durationpb.New(time.Second),
+		ResourceApiVersion:  core.ApiVersion_V3,
+	}
+
 	tlsConfig := &tls.UpstreamTlsContext{
-		Sni: dataplaneSNI,
+		Sni: peer.Name,
 		CommonTlsContext: &tls.CommonTlsContext{
 			TlsCertificateSdsSecretConfigs: []*tls.SdsSecretConfig{{
-				Name: cpapi.CertificateSecret,
+				Name:      cpapi.CertificateSecret,
+				SdsConfig: sdsConfig,
 			}},
 			ValidationContextType: &tls.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &tls.SdsSecretConfig{
-					Name: cpapi.ValidationSecret,
+					Name:      cpapi.ValidationSecret,
+					SdsConfig: sdsConfig,
 				},
 			},
 		},
@@ -132,7 +140,7 @@ func (m *Manager) DeleteExport(name types.NamespacedName) error {
 func (m *Manager) AddImport(imp *v1alpha1.Import) error {
 	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
 
-	if m.crdMode && !meta.IsStatusConditionTrue(imp.Status.Conditions, v1alpha1.ImportTargetPortValid) {
+	if !meta.IsStatusConditionTrue(imp.Status.Conditions, v1alpha1.ImportTargetPortValid) {
 		// target port not yet allocated, skip
 		m.logger.Infof("Skipping import with no valid target port '%s/%s'.", imp.Namespace, imp.Name)
 		return nil
@@ -143,7 +151,6 @@ func (m *Manager) AddImport(imp *v1alpha1.Import) error {
 
 	tunnelingConfig := &tcpproxy.TcpProxy_TunnelingConfig{
 		Hostname: egressRouterHostname,
-		UsePost:  true,
 		HeadersToAdd: []*core.HeaderValueOption{
 			{
 				Header: &core.HeaderValue{
@@ -202,6 +209,52 @@ func (m *Manager) DeleteImport(name types.NamespacedName) error {
 
 	listenerName := cpapi.ImportListenerName(name.Name, name.Namespace)
 	return m.listeners.DeleteResource(listenerName)
+}
+
+// SetPeerCertificates sets the TLS certificates used for peer-to-peer communication.
+func (m *Manager) SetPeerCertificates(_ *utiltls.ParsedCertData, rawCertData *utiltls.RawCertData) error {
+	m.logger.Info("Setting peer certificates.")
+
+	certificateSecret := &tls.Secret{
+		Name: cpapi.CertificateSecret,
+		Type: &tls.Secret_TlsCertificate{
+			TlsCertificate: &tls.TlsCertificate{
+				CertificateChain: &core.DataSource{
+					Specifier: &core.DataSource_InlineBytes{
+						InlineBytes: rawCertData.Certificate(),
+					},
+				},
+				PrivateKey: &core.DataSource{
+					Specifier: &core.DataSource_InlineBytes{
+						InlineBytes: rawCertData.Key(),
+					},
+				},
+			},
+		},
+	}
+
+	if err := m.secrets.UpdateResource(certificateSecret.Name, certificateSecret); err != nil {
+		return fmt.Errorf("error setting certificate secret: %w", err)
+	}
+
+	validationSecret := &tls.Secret{
+		Name: cpapi.ValidationSecret,
+		Type: &tls.Secret_ValidationContext{
+			ValidationContext: &tls.CertificateValidationContext{
+				TrustedCa: &core.DataSource{
+					Specifier: &core.DataSource_InlineBytes{
+						InlineBytes: rawCertData.CA(),
+					},
+				},
+			},
+		},
+	}
+
+	if err := m.secrets.UpdateResource(validationSecret.Name, validationSecret); err != nil {
+		return fmt.Errorf("error setting validation secret: %w", err)
+	}
+
+	return nil
 }
 
 func makeAddressCluster(name, addr string, port uint16, hostname string) (*cluster.Cluster, error) {
@@ -283,13 +336,13 @@ func makeTCPProxyFilter(clusterName, statPrefix string,
 }
 
 // NewManager creates an uninitialized, non-registered xDS manager.
-func NewManager(crdMode bool) *Manager {
+func NewManager() *Manager {
 	logger := logrus.WithField("component", "controlplane.xds.manager")
 
 	return &Manager{
-		crdMode:   crdMode,
 		clusters:  cache.NewLinearCache(resource.ClusterType, cache.WithLogger(logger)),
 		listeners: cache.NewLinearCache(resource.ListenerType, cache.WithLogger(logger)),
+		secrets:   cache.NewLinearCache(resource.SecretType, cache.WithLogger(logger)),
 		logger:    logger,
 	}
 }

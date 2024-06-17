@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -15,18 +15,20 @@ package util
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/url"
-	"syscall"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/e2e-framework/klient/k8s"
+	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 
+	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
-	"github.com/clusterlink-net/clusterlink/pkg/client"
+	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 )
 
@@ -34,9 +36,7 @@ import (
 type ClusterLink struct {
 	cluster   *KindCluster
 	namespace string
-	client    *client.Client
 	port      uint16
-	crdMode   bool
 }
 
 // Name returns the peer name.
@@ -64,36 +64,6 @@ func (c *ClusterLink) Cluster() *KindCluster {
 	return c.cluster
 }
 
-// Client returns a controlplane API client for this cluster.
-func (c *ClusterLink) Client() *client.Client {
-	return c.client
-}
-
-// WaitForControlplaneAPI waits until the controlplane API server is up.
-func (c *ClusterLink) WaitForControlplaneAPI() error {
-	var err error
-	for t := time.Now(); time.Since(t) < time.Second*60; time.Sleep(time.Millisecond * 100) {
-		var uerr *url.Error
-		_, err = c.client.Peers.List()
-		switch {
-		case err == nil:
-			return nil
-		case errors.Is(err, syscall.ECONNREFUSED):
-			continue
-		case errors.Is(err, syscall.ECONNRESET):
-			continue
-		case errors.Is(err, io.EOF):
-			continue
-		case errors.As(err, &uerr) && uerr.Timeout():
-			continue
-		}
-
-		return err
-	}
-
-	return err
-}
-
 // ScaleControlplane scales the controlplane deployment.
 func (c *ClusterLink) ScaleControlplane(replicas int32) error {
 	return c.cluster.ScaleDeployment("cl-controlplane", c.namespace, replicas)
@@ -104,10 +74,7 @@ func (c *ClusterLink) RestartControlplane() error {
 	if err := c.ScaleControlplane(0); err != nil {
 		return err
 	}
-	if err := c.ScaleControlplane(1); err != nil {
-		return err
-	}
-	return c.WaitForControlplaneAPI()
+	return c.ScaleControlplane(1)
 }
 
 // ScaleDataplane scales the dataplane deployment.
@@ -121,6 +88,65 @@ func (c *ClusterLink) RestartDataplane() error {
 		return err
 	}
 	return c.ScaleDataplane(1)
+}
+
+// RestartDataplane restarts the dataplane.
+func (c *ClusterLink) UpdatePeerCertificates(
+	fabricCert *bootstrap.Certificate, peerCert *bootstrap.Certificate,
+) error {
+	err := c.cluster.Resources().Update(
+		context.Background(),
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "cl-peer",
+				Namespace: c.namespace,
+			},
+			Data: map[string][]byte{
+				app.PeerCertificateFile:   peerCert.RawCert(),
+				app.PeerKeyFile:           peerCert.RawKey(),
+				app.FabricCertificateFile: fabricCert.RawCert(),
+			},
+		})
+	if err != nil {
+		return fmt.Errorf("cannot update peer secret: %w", err)
+	}
+
+	// update controlplane pods annotation to speed-up re-loading of secret
+	var pods v1.PodList
+	err = c.cluster.Resources().List(
+		context.Background(),
+		&pods,
+		resources.WithLabelSelector("app=cl-controlplane"))
+	if err != nil {
+		return fmt.Errorf("unable to list controlplane pods: %w", err)
+	}
+
+	mergePatch, err := json.Marshal(map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"annotations": map[string]interface{}{
+				"peer-tls-last-updated": time.Now().String(),
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("cannot encode pod annotation patch: %w", err)
+	}
+
+	for i := range pods.Items {
+		err := c.cluster.Resources().Patch(
+			context.Background(),
+			&pods.Items[i],
+			k8s.Patch{
+				PatchType: types.StrategicMergePatchType,
+				Data:      mergePatch,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("unable to annotate controlplane pod: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // Access a cluster service.
@@ -173,48 +199,7 @@ func (c *ClusterLink) CreatePeer(peer *ClusterLink) error {
 		},
 	}
 
-	if c.crdMode {
-		return c.cluster.Resources().Create(context.Background(), pr)
-	}
-
-	return c.client.Peers.Create(pr)
-}
-
-func (c *ClusterLink) UpdatePeer(peer *ClusterLink) error {
-	return c.client.Peers.Update(&v1alpha1.Peer{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      peer.Name(),
-			Namespace: c.namespace,
-		},
-		Spec: v1alpha1.PeerSpec{
-			Gateways: []v1alpha1.Endpoint{{
-				Host: peer.IP(),
-				Port: peer.Port(),
-			}},
-		},
-	})
-}
-
-func (c *ClusterLink) GetPeer(peer *ClusterLink) (*v1alpha1.Peer, error) {
-	res, err := c.client.Peers.Get(peer.Name())
-	if err != nil {
-		return nil, err
-	}
-
-	return res.(*v1alpha1.Peer), nil
-}
-
-func (c *ClusterLink) GetAllPeers() (*[]v1alpha1.Peer, error) {
-	res, err := c.client.Peers.List()
-	if err != nil {
-		return nil, err
-	}
-
-	return res.(*[]v1alpha1.Peer), nil
-}
-
-func (c *ClusterLink) DeletePeer(peer *ClusterLink) error {
-	return c.client.Peers.Delete(peer.Name())
+	return c.cluster.Resources().Create(context.Background(), pr)
 }
 
 func (c *ClusterLink) CreateService(service *Service) error {
@@ -248,61 +233,25 @@ func (c *ClusterLink) CreateExport(service *Service) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      service.Name,
 			Namespace: c.namespace,
+			Labels:    service.Labels,
 		},
 		Spec: v1alpha1.ExportSpec{
 			Port: service.Port,
 		},
 	}
 
-	if c.crdMode {
-		return c.cluster.Resources().Create(context.Background(), export)
-	}
-
-	return c.client.Exports.Create(export)
-}
-
-func (c *ClusterLink) UpdateExport(name string, service *Service) error {
-	return c.client.Exports.Update(&v1alpha1.Export{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Spec: v1alpha1.ExportSpec{
-			Host: fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace),
-			Port: service.Port,
-		},
-	})
-}
-
-func (c *ClusterLink) GetExport(name string) (*v1alpha1.Export, error) {
-	res, err := c.client.Exports.Get(name)
-	if err != nil {
-		return nil, err
-	}
-
-	return res.(*v1alpha1.Export), nil
-}
-
-func (c *ClusterLink) GetAllExports() (*[]v1alpha1.Export, error) {
-	res, err := c.client.Exports.List()
-	if err != nil {
-		return nil, err
-	}
-
-	return res.(*[]v1alpha1.Export), nil
+	return c.cluster.Resources().Create(context.Background(), export)
 }
 
 func (c *ClusterLink) DeleteExport(name string) error {
-	if c.crdMode {
-		return c.cluster.Resources().Delete(
-			context.Background(),
-			&v1alpha1.Export{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: c.namespace,
-				},
-			})
-	}
-	return c.client.Exports.Delete(name)
+	return c.cluster.Resources().Delete(
+		context.Background(),
+		&v1alpha1.Export{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: c.namespace,
+			},
+		})
 }
 
 func (c *ClusterLink) CreateImport(service *Service, peer *ClusterLink, exportName string) error {
@@ -310,6 +259,7 @@ func (c *ClusterLink) CreateImport(service *Service, peer *ClusterLink, exportNa
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      service.Name,
 			Namespace: c.namespace,
+			Labels:    service.Labels,
 		},
 		Spec: v1alpha1.ImportSpec{
 			Port: service.Port,
@@ -321,11 +271,7 @@ func (c *ClusterLink) CreateImport(service *Service, peer *ClusterLink, exportNa
 		},
 	}
 
-	if c.crdMode {
-		return c.cluster.Resources().Create(context.Background(), imp)
-	}
-
-	return c.client.Imports.Create(imp)
+	return c.cluster.Resources().Create(context.Background(), imp)
 }
 
 func (c *ClusterLink) UpdateImport(service *Service, peer *ClusterLink, exportName string) error {
@@ -344,33 +290,7 @@ func (c *ClusterLink) UpdateImport(service *Service, peer *ClusterLink, exportNa
 		},
 	}
 
-	if c.crdMode {
-		return c.cluster.Resources().Update(context.Background(), imp)
-	}
-
-	return c.client.Imports.Update(imp)
-}
-
-func (c *ClusterLink) GetImport(name string) (*v1alpha1.Import, error) {
-	res, err := c.client.Imports.Get(name)
-	if err != nil {
-		return nil, err
-	}
-
-	return res.(*v1alpha1.Import), nil
-}
-
-func (c *ClusterLink) GetAllImports() (*[]v1alpha1.Import, error) {
-	res, err := c.client.Imports.List()
-	if err != nil {
-		return nil, err
-	}
-
-	return res.(*[]v1alpha1.Import), nil
-}
-
-func (c *ClusterLink) DeleteImport(name string) error {
-	return c.client.Imports.Delete(name)
+	return c.cluster.Resources().Update(context.Background(), imp)
 }
 
 func (c *ClusterLink) CreatePolicy(policy *v1alpha1.AccessPolicy) error {
@@ -380,62 +300,25 @@ func (c *ClusterLink) CreatePolicy(policy *v1alpha1.AccessPolicy) error {
 		policy = &accessPolicyCopy
 	}
 
-	if c.crdMode {
-		return c.cluster.Resources().Create(context.Background(), policy)
-	}
-
-	return c.client.AccessPolicies.Create(policy)
-}
-
-func (c *ClusterLink) UpdatePolicy(policy *v1alpha1.AccessPolicy) error {
-	return c.client.AccessPolicies.Update(&policy)
-}
-
-func (c *ClusterLink) GetPolicy(name string) (*v1alpha1.AccessPolicy, error) {
-	res, err := c.client.AccessPolicies.Get(name)
-	if err != nil {
-		return nil, err
-	}
-
-	return res.(*v1alpha1.AccessPolicy), nil
-}
-
-func (c *ClusterLink) GetAllPolicies() (*[]v1alpha1.AccessPolicy, error) {
-	res, err := c.client.AccessPolicies.List()
-	if err != nil {
-		return nil, err
-	}
-
-	return res.(*[]v1alpha1.AccessPolicy), nil
+	return c.cluster.Resources().Create(context.Background(), policy)
 }
 
 func (c *ClusterLink) DeletePolicy(name string) error {
-	if c.crdMode {
-		return c.cluster.Resources().Delete(
-			context.Background(),
-			&v1alpha1.AccessPolicy{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: c.namespace,
-				},
-			})
-	}
-	return c.client.AccessPolicies.Delete(name)
+	return c.cluster.Resources().Delete(
+		context.Background(),
+		&v1alpha1.AccessPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: c.namespace,
+			},
+		})
 }
 
 func (c *ClusterLink) CreatePrivilegedPolicy(policy *v1alpha1.PrivilegedAccessPolicy) error {
-	if !c.crdMode {
-		return errors.New("privileged access policies are only supported in CRD mode")
-	}
-
 	return c.cluster.Resources().Create(context.Background(), policy)
 }
 
 func (c *ClusterLink) DeletePrivilegedPolicy(name string) error {
-	if !c.crdMode {
-		return errors.New("privileged access policies are only supported in CRD mode")
-	}
-
 	return c.cluster.Resources().Delete(
 		context.Background(),
 		&v1alpha1.PrivilegedAccessPolicy{

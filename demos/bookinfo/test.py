@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2023 The ClusterLink Authors.
+# Copyright (c) The ClusterLink Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,11 +14,11 @@
 
 ##############################################################################################
 # Name: Bookinfo
-# Info: support bookinfo application with gwctl inside the clusters
+# Info: support bookinfo application inside the clusters
 #       In this we create three kind clusters
-#       1) cluster1- contain gw, gwctl,product and details microservices (bookinfo services)
-#       2) cluster2- contain gw, gwctl, review-v2 and rating microservices (bookinfo services)
-#       3) cluster3- contain gw, gwctl, review-v3 and rating microservices (bookinfo services)
+#       1) cluster1- contain gw, product and details microservices (bookinfo services)
+#       2) cluster2- contain gw, review-v2 and rating microservices (bookinfo services)
+#       3) cluster3- contain gw, review-v3 and rating microservices (bookinfo services)
 ##############################################################################################
 
 import os

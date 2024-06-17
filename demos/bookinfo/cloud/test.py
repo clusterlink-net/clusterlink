@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2023 The ClusterLink Authors.
+# Copyright (c) The ClusterLink Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -15,7 +15,7 @@
 
 ################################################################
 #Name: Service node test
-#Desc: create 1 proxy that send data to target ip
+#Desc: create 1 proxy that sends data to target ip
 ###############################################################
 import os
 import sys

@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -24,16 +24,17 @@ type Config struct {
 	// Namespace is the namespace the components deployed.
 	Namespace string
 
-	// FabricCertificate is the fabric certificate.
-	FabricCertificate *bootstrap.Certificate
-	// PeerCertificate is the peer certificate.
-	PeerCertificate *bootstrap.Certificate
+	// CACertificate is the CA certificate.
+	CACertificate *bootstrap.Certificate
 	// ControlplaneCertificate is the controlplane certificate.
 	ControlplaneCertificate *bootstrap.Certificate
 	// DataplaneCertificate is the dataplane certificate.
 	DataplaneCertificate *bootstrap.Certificate
-	// GWCTLCertificate is the gwctl certificate.
-	GWCTLCertificate *bootstrap.Certificate
+
+	// FabricCertificate is the fabric CA certificate.
+	FabricCertificate *bootstrap.Certificate
+	// PeerCertificate is the peer certificate.
+	PeerCertificate *bootstrap.Certificate
 
 	// Dataplanes is the number of dataplane servers to run.
 	Dataplanes uint16
@@ -52,8 +53,6 @@ type Config struct {
 	IngressPort uint16
 	// IngressAnnotations is the annotations added to the ingress service.
 	IngressAnnotations map[string]string
-	// CRDMode indicates a CRD-based controlplane.
-	CRDMode bool
 }
 
 const (

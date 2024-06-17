@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -26,81 +26,79 @@ import (
 )
 
 // CreateControllers creates the various k8s controllers used to update the xDS manager.
-func CreateControllers(mgr *Manager, controllerManager ctrl.Manager, crdMode bool) error {
-	if crdMode {
-		err := controller.AddToManager(controllerManager, &controller.Spec{
-			Name:   "authz.access-policy",
-			Object: &v1alpha1.AccessPolicy{},
-			AddHandler: func(ctx context.Context, object any) error {
-				accPolicy := connectivitypdp.PolicyFromCR(object.(*v1alpha1.AccessPolicy))
-				return mgr.AddAccessPolicy(accPolicy)
-			},
-			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-				return mgr.DeleteAccessPolicy(name, false)
-			},
-		})
-		if err != nil {
-			return err
-		}
+func CreateControllers(mgr *Manager, controllerManager ctrl.Manager) error {
+	err := controller.AddToManager(controllerManager, &controller.Spec{
+		Name:   "authz.access-policy",
+		Object: &v1alpha1.AccessPolicy{},
+		AddHandler: func(ctx context.Context, object any) error {
+			accPolicy := connectivitypdp.PolicyFromCR(object.(*v1alpha1.AccessPolicy))
+			return mgr.AddAccessPolicy(accPolicy)
+		},
+		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+			return mgr.DeleteAccessPolicy(name, false)
+		},
+	})
+	if err != nil {
+		return err
+	}
 
-		err = controller.AddToManager(controllerManager, &controller.Spec{
-			Name:   "authz.privileged-access-policy",
-			Object: &v1alpha1.PrivilegedAccessPolicy{},
-			AddHandler: func(_ context.Context, object any) error {
-				accPolicy := connectivitypdp.PolicyFromPrivilegedCR(object.(*v1alpha1.PrivilegedAccessPolicy))
-				return mgr.AddAccessPolicy(accPolicy)
-			},
-			DeleteHandler: func(_ context.Context, name types.NamespacedName) error {
-				return mgr.DeleteAccessPolicy(name, true)
-			},
-		})
-		if err != nil {
-			return err
-		}
+	err = controller.AddToManager(controllerManager, &controller.Spec{
+		Name:   "authz.privileged-access-policy",
+		Object: &v1alpha1.PrivilegedAccessPolicy{},
+		AddHandler: func(_ context.Context, object any) error {
+			accPolicy := connectivitypdp.PolicyFromPrivilegedCR(object.(*v1alpha1.PrivilegedAccessPolicy))
+			return mgr.AddAccessPolicy(accPolicy)
+		},
+		DeleteHandler: func(_ context.Context, name types.NamespacedName) error {
+			return mgr.DeleteAccessPolicy(name, true)
+		},
+	})
+	if err != nil {
+		return err
+	}
 
-		err = controller.AddToManager(controllerManager, &controller.Spec{
-			Name:   "authz.peer",
-			Object: &v1alpha1.Peer{},
-			AddHandler: func(ctx context.Context, object any) error {
-				mgr.AddPeer(object.(*v1alpha1.Peer))
-				return nil
-			},
-			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-				mgr.DeletePeer(name.Name)
-				return nil
-			},
-		})
-		if err != nil {
-			return err
-		}
+	err = controller.AddToManager(controllerManager, &controller.Spec{
+		Name:   "authz.peer",
+		Object: &v1alpha1.Peer{},
+		AddHandler: func(ctx context.Context, object any) error {
+			mgr.AddPeer(object.(*v1alpha1.Peer))
+			return nil
+		},
+		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+			mgr.DeletePeer(name.Name)
+			return nil
+		},
+	})
+	if err != nil {
+		return err
+	}
 
-		err = controller.AddToManager(controllerManager, &controller.Spec{
-			Name:   "authz.import",
-			Object: &v1alpha1.Import{},
-			AddHandler: func(ctx context.Context, object any) error {
-				return nil
-			},
-			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-				return nil
-			},
-		})
-		if err != nil {
-			return err
-		}
+	err = controller.AddToManager(controllerManager, &controller.Spec{
+		Name:   "authz.import",
+		Object: &v1alpha1.Import{},
+		AddHandler: func(ctx context.Context, object any) error {
+			return nil
+		},
+		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+			return nil
+		},
+	})
+	if err != nil {
+		return err
+	}
 
-		err = controller.AddToManager(controllerManager, &controller.Spec{
-			Name:   "authz.export",
-			Object: &v1alpha1.Export{},
-			AddHandler: func(ctx context.Context, object any) error {
-				return nil
-			},
-			DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
-				return nil
-			},
-		})
-		if err != nil {
-			return err
-		}
+	err = controller.AddToManager(controllerManager, &controller.Spec{
+		Name:   "authz.export",
+		Object: &v1alpha1.Export{},
+		AddHandler: func(ctx context.Context, object any) error {
+			return nil
+		},
+		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+			return nil
+		},
+	})
+	if err != nil {
+		return err
 	}
 
 	return controller.AddToManager(controllerManager, &controller.Spec{

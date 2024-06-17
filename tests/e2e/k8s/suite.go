@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -47,6 +47,7 @@ var httpEchoService = util.Service{
 	Name:      "http-echo",
 	Namespace: v1.NamespaceDefault,
 	Port:      8080,
+	Labels:    map[string]string{"env": "test"},
 }
 
 // TestSuite is a suite for e2e testing on k8s clusters.
@@ -148,6 +149,7 @@ func convertCaseCamelToKebab(s string) string {
 
 // BeforeTest creates the test namespace before each test, and removes the previous test namespace.
 func (s *TestSuite) BeforeTest(_, testName string) {
+	s.fabric.ClearErrors()
 	testName = convertCaseCamelToKebab(testName)
 	if err := s.fabric.SwitchToNewNamespace(testName, false); err != nil {
 		s.T().Fatal(err)

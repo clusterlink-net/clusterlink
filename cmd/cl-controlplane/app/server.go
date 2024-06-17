@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/bombsimon/logrusr/v4"
 	"github.com/sirupsen/logrus"
@@ -34,16 +35,12 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/control"
-	cprest "github.com/clusterlink-net/clusterlink/pkg/controlplane/rest"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/peer"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/xds"
-	"github.com/clusterlink-net/clusterlink/pkg/store/kv"
-	"github.com/clusterlink-net/clusterlink/pkg/store/kv/bolt"
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
 	"github.com/clusterlink-net/clusterlink/pkg/util/grpc"
 	"github.com/clusterlink-net/clusterlink/pkg/util/log"
-	utilrest "github.com/clusterlink-net/clusterlink/pkg/util/rest"
 	"github.com/clusterlink-net/clusterlink/pkg/util/runnable"
-	"github.com/clusterlink-net/clusterlink/pkg/util/sniproxy"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 	"github.com/clusterlink-net/clusterlink/pkg/versioninfo"
 )
@@ -52,20 +49,21 @@ const (
 	// logLevel is the default log level.
 	logLevel = "warn"
 
-	// StoreFile is the path to the file holding the persisted state.
-	StoreFile = "/var/lib/clink/controlplane.db"
-
 	// CAFile is the path to the certificate authority file.
 	CAFile = "/etc/ssl/certs/clink_ca.pem"
 	// CertificateFile is the path to the certificate file.
 	CertificateFile = "/etc/ssl/certs/clink-controlplane.pem"
 	// KeyFile is the path to the private-key file.
-	KeyFile = "/etc/ssl/private/clink-controlplane.pem"
+	KeyFile = "/etc/ssl/key/clink-controlplane.pem"
 
-	// httpServerAddress is the address of the localhost HTTP server.
-	httpServerAddress = "127.0.0.1:1100"
-	// grpcServerAddress is the address of the localhost gRPC server.
-	grpcServerAddress = "127.0.0.1:1101"
+	// PeerTLSDirectory is the path to the directory holding the peer TLS certificates.
+	PeerTLSDirectory = "/etc/ssl/certs/clink"
+	// PeerCertificateFile is the name to the peer certificate file.
+	PeerCertificateFile = "cert.pem"
+	// PeerKeyFile is the name of the peer private-key file.
+	PeerKeyFile = "key.pem"
+	// FabricCertificateFile is the name of the fabric CA file.
+	FabricCertificateFile = "ca.pem"
 
 	// NamespaceEnvVariable is the environment variable
 	// which should hold the clusterlink system namespace name.
@@ -74,15 +72,27 @@ const (
 	SystemNamespace = "clusterlink-system"
 )
 
+// PeerCertificateFilePath returns the path to the peer certificate file.
+func PeerCertificateFilePath() string {
+	return path.Join(PeerTLSDirectory, PeerCertificateFile)
+}
+
+// PeerKeyFilePath returns the path to the peer private key file.
+func PeerKeyFilePath() string {
+	return path.Join(PeerTLSDirectory, PeerKeyFile)
+}
+
+// FabricCertificateFilePath returns the path to the fabric CA file.
+func FabricCertificateFilePath() string {
+	return path.Join(PeerTLSDirectory, FabricCertificateFile)
+}
+
 // Options contains everything necessary to create and run a controlplane.
 type Options struct {
 	// LogFile is the path to file where logs will be written.
 	LogFile string
 	// LogLevel is the log level.
 	LogLevel string
-	// CRDMode indicates a k8s CRD-based controlplane.
-	// This flag will be removed once the CRD-based controlplane feature is complete and stable.
-	CRDMode bool
 }
 
 // AddFlags adds flags to fs and binds them to options.
@@ -91,13 +101,11 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 		"Path to a file where logs will be written. If not specified, logs will be printed to stderr.")
 	fs.StringVar(&o.LogLevel, "log-level", logLevel,
 		"The log level. One of fatal, error, warn, info, debug.")
-	fs.BoolVar(&o.CRDMode, "crd-mode", false, "Run a CRD-based controlplane.")
 }
 
 // Run the various controlplane servers.
 func (o *Options) Run() error {
 	// set log file
-
 	f, err := log.Set(o.LogLevel, o.LogFile)
 	if err != nil {
 		return err
@@ -118,24 +126,13 @@ func (o *Options) Run() error {
 	}
 	logrus.Infof("ClusterLink namespace: %s", namespace)
 
-	parsedCertData, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
+	controlplaneCertData, _, err := tls.ParseFiles(CAFile, CertificateFile, KeyFile)
 	if err != nil {
 		return err
 	}
 
-	dnsNames := parsedCertData.DNSNames()
-	if len(dnsNames) != 2 {
-		return fmt.Errorf("expected peer certificate to contain 2 DNS names, but got %d", len(dnsNames))
-	}
-
-	serverName := dnsNames[0]
-	grpcServerName := dnsNames[1]
-
-	expectedGRPCServerName := api.GRPCServerName(serverName)
-	if grpcServerName != expectedGRPCServerName {
-		return fmt.Errorf("expected second DNS name to be '%s', but got: '%s'",
-			expectedGRPCServerName, grpcServerName)
-	}
+	peerCertsWatcher := peer.NewWatcher(
+		FabricCertificateFilePath(), PeerCertificateFilePath(), PeerKeyFilePath())
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -160,18 +157,15 @@ func (o *Options) Run() error {
 
 	managerOptions := manager.Options{
 		Cache: cache.Options{
-			ByObject: make(map[client.Object]cache.ByObject),
+			ByObject: map[client.Object]cache.ByObject{
+				&v1alpha1.Peer{}: {
+					Namespaces: map[string]cache.Config{
+						namespace: {},
+					},
+				},
+			},
 		},
 		Scheme: scheme,
-	}
-
-	// limit watch for v1alpha1.Peer and EndpointSlice to the namespace given by 'namespace'
-	if o.CRDMode {
-		managerOptions.Cache.ByObject[&v1alpha1.Peer{}] = cache.ByObject{
-			Namespaces: map[string]cache.Config{
-				namespace: {},
-			},
-		}
 	}
 
 	mgr, err := manager.New(config, managerOptions)
@@ -181,84 +175,48 @@ func (o *Options) Run() error {
 	}
 
 	controlplaneServerListenAddress := fmt.Sprintf("0.0.0.0:%d", api.ListenPort)
-	sniProxy := sniproxy.NewServer(map[string]string{
-		serverName:     httpServerAddress,
-		grpcServerName: grpcServerAddress,
-	})
+	grpcServer := grpc.NewServer("controlplane-grpc", controlplaneCertData.ServerConfig())
 
-	httpServer := utilrest.NewServer("controlplane-http", parsedCertData.ServerConfig())
-	grpcServer := grpc.NewServer("controlplane-grpc", parsedCertData.ServerConfig())
-
-	authzManager, err := authz.NewManager(parsedCertData, mgr.GetClient(), namespace)
+	authzManager, err := authz.NewManager(mgr.GetClient(), namespace)
 	if err != nil {
 		return fmt.Errorf("cannot create authorization manager: %w", err)
 	}
 
-	err = authz.CreateControllers(authzManager, mgr, o.CRDMode)
+	peerCertsWatcher.AddConsumer(authzManager)
+
+	err = authz.CreateControllers(authzManager, mgr)
 	if err != nil {
 		return fmt.Errorf("cannot create authz controllers: %w", err)
 	}
 
-	authz.RegisterHandlers(authzManager, &httpServer.Server)
+	authz.RegisterService(authzManager, grpcServer.GetGRPCServer())
 
-	controlManager := control.NewManager(mgr.GetClient(), parsedCertData, namespace, o.CRDMode)
+	controlManager := control.NewManager(mgr.GetClient(), namespace)
+	peerCertsWatcher.AddConsumer(controlManager)
 
-	err = control.CreateControllers(controlManager, mgr, o.CRDMode)
+	err = control.CreateControllers(controlManager, mgr)
 	if err != nil {
 		return fmt.Errorf("cannot create control controllers: %w", err)
 	}
 
-	xdsManager := xds.NewManager(o.CRDMode)
+	xdsManager := xds.NewManager()
 	xds.RegisterService(
 		context.Background(), xdsManager, grpcServer.GetGRPCServer())
+	peerCertsWatcher.AddConsumer(xdsManager)
 
-	if o.CRDMode {
-		err := xds.CreateControllers(xdsManager, mgr)
-		if err != nil {
-			return fmt.Errorf("cannot create xDS controllers: %w", err)
-		}
-	} else {
-		// open store
-		kvStore, err := bolt.Open(StoreFile)
-		if err != nil {
-			return err
-		}
+	if err := xds.CreateControllers(xdsManager, mgr); err != nil {
+		return fmt.Errorf("cannot create xDS controllers: %w", err)
+	}
 
-		defer func() {
-			if err := kvStore.Close(); err != nil {
-				logrus.Warnf("Cannot close store: %v.", err)
-			}
-		}()
-
-		storeManager := kv.NewManager(kvStore)
-
-		restManager, err := cprest.NewManager(
-			namespace, storeManager, xdsManager, authzManager, controlManager)
-		if err != nil {
-			return err
-		}
-
-		cprest.RegisterHandlers(restManager, httpServer)
-
-		authzManager.SetGetImportCallback(restManager.GetK8sImport)
-		authzManager.SetGetExportCallback(restManager.GetK8sExport)
-		authzManager.SetGetPeerCallback(restManager.GetK8sPeer)
-		controlManager.SetGetImportCallback(restManager.GetK8sImport)
-		controlManager.SetGetMergeImportListCallback(restManager.GetMergeImportList)
-		controlManager.SetPeerStatusCallback(func(pr *v1alpha1.Peer) {
-			restManager.UpdatePeerStatus(pr.Name, &pr.Status)
-		})
-		controlManager.SetExportStatusCallback(func(export *v1alpha1.Export) {
-			restManager.UpdateExportStatus(export.Name, &export.Status)
-		})
+	if err := peerCertsWatcher.ReadCertsAndUpdateConsumers(); err != nil {
+		return err
 	}
 
 	runnableManager := runnable.NewManager()
+	runnableManager.Add(peerCertsWatcher)
 	runnableManager.Add(controller.NewManager(mgr))
 	runnableManager.Add(controlManager)
-	runnableManager.AddServer(httpServerAddress, httpServer)
-	runnableManager.AddServer(grpcServerAddress, grpcServer)
-	runnableManager.AddServer(controlplaneServerListenAddress, sniProxy)
+	runnableManager.AddServer(controlplaneServerListenAddress, grpcServer)
 
 	return runnableManager.Run()
 }

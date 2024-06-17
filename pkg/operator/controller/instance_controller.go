@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -223,7 +223,7 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 				Name: "ca",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: "cl-fabric",
+						SecretName: "cl-ca",
 					},
 				},
 			},
@@ -235,13 +235,21 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 					},
 				},
 			},
+			{
+				Name: "peer-tls",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: "cl-peer",
+					},
+				},
+			},
 		},
 		Containers: []corev1.Container{
 			{
 				Name:            ControlPlaneName,
 				Image:           instance.Spec.ContainerRegistry + ControlPlaneName + ":" + instance.Spec.Tag,
 				ImagePullPolicy: corev1.PullIfNotPresent,
-				Args:            []string{"--log-level", instance.Spec.LogLevel, "--crd-mode"},
+				Args:            []string{"--log-level", instance.Spec.LogLevel},
 				Ports: []corev1.ContainerPort{
 					{
 						ContainerPort: cpapi.ListenPort,
@@ -264,6 +272,11 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 						Name:      "tls",
 						MountPath: cpapp.KeyFile,
 						SubPath:   "key",
+						ReadOnly:  true,
+					},
+					{
+						Name:      "peer-tls",
+						MountPath: cpapp.PeerTLSDirectory,
 						ReadOnly:  true,
 					},
 				},
@@ -297,7 +310,7 @@ func (r *InstanceReconciler) applyDataplane(ctx context.Context, instance *clust
 				Name: "ca",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: "cl-fabric",
+						SecretName: "cl-ca",
 					},
 				},
 			},

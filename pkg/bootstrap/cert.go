@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -18,8 +18,6 @@ import (
 	"path/filepath"
 
 	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
-	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
-	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 )
 
 // Certificate represents a clusterlink certificate.
@@ -54,13 +52,11 @@ func CreateFabricCertificate(name string) (*Certificate, error) {
 	return &Certificate{cert: cert}, nil
 }
 
-// CreatePeerCertificate creates a peer certificate.
-func CreatePeerCertificate(name string, fabricCert *Certificate) (*Certificate, error) {
+// CreateCACertificate creates a site CA certificate for controlplane <-> dataplane trust.
+func CreateCACertificate() (*Certificate, error) {
 	cert, err := createCertificate(&certificateConfig{
-		Parent:   fabricCert.cert,
-		Name:     name,
-		IsCA:     true,
-		DNSNames: []string{name},
+		Name: "cl-ca",
+		IsCA: true,
 	})
 	if err != nil {
 		return nil, err
@@ -69,14 +65,13 @@ func CreatePeerCertificate(name string, fabricCert *Certificate) (*Certificate, 
 	return &Certificate{cert: cert}, nil
 }
 
-// CreatePeerCertificate creates a controlplane certificate.
-func CreateControlplaneCertificate(peer string, peerCert *Certificate) (*Certificate, error) {
+// CreateControlplaneCertificate creates a controlplane certificate.
+func CreateControlplaneCertificate(caCert *Certificate) (*Certificate, error) {
 	cert, err := createCertificate(&certificateConfig{
-		Parent:   peerCert.cert,
+		Parent:   caCert.cert,
 		Name:     "cl-controlplane",
 		IsServer: true,
-		IsClient: true,
-		DNSNames: []string{peer, api.GRPCServerName(peer)},
+		DNSNames: []string{"cl-controlplane"},
 	})
 	if err != nil {
 		return nil, err
@@ -85,28 +80,29 @@ func CreateControlplaneCertificate(peer string, peerCert *Certificate) (*Certifi
 	return &Certificate{cert: cert}, nil
 }
 
-// CreatePeerCertificate creates a dataplane certificate.
-func CreateDataplaneCertificate(peer string, peerCert *Certificate) (*Certificate, error) {
+// CreateDataplaneCertificate creates a dataplane certificate.
+func CreateDataplaneCertificate(caCert *Certificate) (*Certificate, error) {
 	cert, err := createCertificate(&certificateConfig{
-		Parent:   peerCert.cert,
+		Parent:   caCert.cert,
 		Name:     "cl-dataplane",
+		IsClient: true,
+		DNSNames: []string{"cl-dataplane"},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &Certificate{cert: cert}, nil
+}
+
+// CreatePeerCertificate creates a peer certificate.
+func CreatePeerCertificate(peer string, fabricCert *Certificate) (*Certificate, error) {
+	cert, err := createCertificate(&certificateConfig{
+		Parent:   fabricCert.cert,
+		Name:     peer,
 		IsServer: true,
 		IsClient: true,
-		DNSNames: []string{dpapi.DataplaneServerName(peer)},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &Certificate{cert: cert}, nil
-}
-
-// CreatePeerCertificate creates a gwctl certificate.
-func CreateGWCTLCertificate(peerCert *Certificate) (*Certificate, error) {
-	cert, err := createCertificate(&certificateConfig{
-		Parent:   peerCert.cert,
-		Name:     "gwctl",
-		IsClient: true,
+		DNSNames: []string{peer},
 	})
 	if err != nil {
 		return nil, err

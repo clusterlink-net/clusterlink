@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -16,12 +16,8 @@ package api
 const (
 	// cluster names.
 
-	// ControlplaneInternalHTTPCluster is the cluster name of the controlplane HTTP server for local dataplanes.
-	ControlplaneInternalHTTPCluster = "controlplane-internal-http"
-	// ControlplaneExternalHTTPCluster is the cluster name of the controlplane HTTP server for remote clients.
-	ControlplaneExternalHTTPCluster = "controlplane-external-http"
-	// ControlplaneGRPCCluster is the cluster name of the controlplane gRPC server.
-	ControlplaneGRPCCluster = "controlplane-grpc"
+	// ControlplaneCluster is the cluster name of the controlplane gRPC server.
+	ControlplaneCluster = "controlplane"
 	// EgressRouterCluster is the cluster name of the internal egress router.
 	EgressRouterCluster = "egress-router"
 	// ExportClusterPrefix is the prefix of clusters representing exported services.

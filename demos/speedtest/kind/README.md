@@ -2,9 +2,9 @@
 In this demo we use OpenSpeedTest application for checking connectivity between different kind clusters using the Clusterlink components.  
 This demo shows different access policies defined by various attributes such as source service, destination service, and destination gateway.
 This setup uses three Kind clusters- 
-1. Cluster 1- contains GW, gwctl (GW CLI component), and firefox client.
-2. Cluster 2- contains GW, gwctl (GW CLI component), and OpenSpeedTest server.
-3. cluster 3- contains GW, gwctl (GW CLI component), and two firefox clients.
+1. Cluster 1- contains GW, and firefox client.
+2. Cluster 2- contains GW, and OpenSpeedTest server.
+3. cluster 3- contains GW, and two firefox clients.
      
 System illustration:
 

@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -27,7 +27,7 @@ const (
 	ServiceReady StatusConditionType = "ServiceReady"
 )
 
-// IngressType represents the ingress type  of the deployed ClusterLink.
+// IngressType represents the ingress type of the deployed ClusterLink.
 type IngressType string
 
 const (
@@ -39,7 +39,7 @@ const (
 	IngressTypeLoadBalancer IngressType = "LoadBalancer"
 )
 
-// DataplaneType represents the dataplane type  of the deployed ClusterLink.
+// DataplaneType represents the dataplane type of the deployed ClusterLink.
 type DataplaneType string
 
 const (
@@ -54,7 +54,7 @@ const (
 	DefaultExternalPort = 443
 )
 
-// ComponentStatus defines the status of component in ClusterLink.
+// ComponentStatus defines the status of a component in ClusterLink.
 type ComponentStatus struct {
 	// Conditions contain the status conditions.
 	Conditions map[string]metav1.Condition `json:"conditions,omitempty"`
@@ -70,7 +70,7 @@ type IngressStatus struct {
 	Conditions map[string]metav1.Condition `json:"conditions,omitempty"`
 }
 
-// InstanceStatus defines the observed state of ClusterlLink Instance.
+// InstanceStatus defines the observed state of a ClusterlLink Instance.
 type InstanceStatus struct {
 	Controlplane ComponentStatus `json:"controlplane,omitempty"`
 	Dataplane    ComponentStatus `json:"dataplane,omitempty"`

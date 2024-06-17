@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -62,4 +62,11 @@ func (r *AsyncRunner) Error() error {
 func (r *AsyncRunner) Wait() error {
 	r.wg.Wait()
 	return r.Error()
+}
+
+// ClearErrors clears all errors.
+func (r *AsyncRunner) ClearErrors() {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.err = nil
 }

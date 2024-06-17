@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2023 The ClusterLink Authors.
+# Copyright (c) The ClusterLink Authors.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,11 +14,11 @@
 
 ##############################################################################################
 # Name: quote of today
-# Info: support qotd application with gwctl inside the clusters
+# Info: support qotd application inside the clusters
 #       In this we create three kind clusters
-#       1) cluster1- contain gw, gwctl,webApp and engravingApp microservices (qotd services)
-#       2) cluster2- contain gw, gwctl, quoteApp, authorApp, imageApp, dbApp microservices (qotd services)
-#       3) cluster3- contain gw, gwctl, pdfApp and ratingApp microservices (qotd services)
+#       1) cluster1- contain gw, webApp and engravingApp microservices (qotd services)
+#       2) cluster2- contain gw, quoteApp, authorApp, imageApp, dbApp microservices (qotd services)
+#       3) cluster3- contain gw, pdfApp and ratingApp microservices (qotd services)
 ##############################################################################################
 import os
 import sys
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     cl2.exports.create(dbApp.name,     dbApp.namespace,     dbApp.port)
     cl2.exports.create(imageApp.name,  imageApp.namespace,  imageApp.port)
 
-    ###Set gwctl3
+    ###Set cl3 service
     cl3.useCluster()
     cl3.loadService(ratingApp.name, "registry.gitlab.com/quote-of-the-day/qotd-ratings-service/v4.0.0:latest",
                 f"{qotdFol}/qotd_rating.yaml", namespace= ratingApp.namespace)

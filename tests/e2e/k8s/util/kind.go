@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -61,6 +61,8 @@ type Service struct {
 	Namespace string
 	// Port is the service external listening port.
 	Port uint16
+	// A key-value map to organize and categorize (scope and select) services.
+	Labels map[string]string
 }
 
 // PodAndService represents a kubernetes service and a backing pod.

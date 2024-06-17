@@ -1,4 +1,4 @@
-// Copyright 2023 The ClusterLink Authors.
+// Copyright (c) The ClusterLink Authors.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -38,8 +38,9 @@ type Client struct {
 
 // Response for a request.
 type Response struct {
-	Status int
-	Body   []byte
+	Status  int
+	Headers *http.Header
+	Body    []byte
 }
 
 // Get sends an HTTP GET request.
@@ -114,8 +115,9 @@ func (c *Client) do(method, path string, body []byte) (*Response, error) {
 	requestLogger.Debugf("Response body: %v.", body)
 
 	return &Response{
-		Status: resp.StatusCode,
-		Body:   body,
+		Status:  resp.StatusCode,
+		Headers: &resp.Header,
+		Body:    body,
 	}, nil
 }
 
