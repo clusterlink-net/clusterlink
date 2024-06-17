@@ -7,6 +7,14 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - update
+- apiGroups:
+  - ""
+  resources:
   - nodes
   verbs:
   - get
@@ -17,10 +25,10 @@ rules:
   resources:
   - pods
   verbs:
+  - delete
   - get
   - list
   - watch
-  - delete
 - apiGroups:
   - ""
   resources:
@@ -123,13 +131,3 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
