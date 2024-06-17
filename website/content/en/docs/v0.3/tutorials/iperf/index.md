@@ -173,7 +173,43 @@ spec:
 
 ### Set-up access policies
 
+Create access policies on both clusters to allow connectivity:
+
+*Client cluster*:
+
+{{< tabpane text=true >}}
+{{% tab header="File" %}}
+
+```sh
+kubectl apply -f $TEST_FILES/clusterlink/allow-policy.yaml
+```
+
+{{% /tab %}}
+{{% tab header="Full CR" %}}
+
 {{% readfile file="/static/files/tutorials/allow-all-policy.md" %}}
+
+{{% /tab %}}
+{{< /tabpane >}}
+
+*Server cluster*:
+
+{{< tabpane text=true >}}
+{{% tab header="File" %}}
+
+```sh
+kubectl apply -f $TEST_FILES/clusterlink/allow-policy.yaml
+```
+
+{{% /tab %}}
+{{% tab header="Full CR" %}}
+
+{{% readfile file="/static/files/tutorials/allow-all-policy.md" %}}
+
+{{% /tab %}}
+{{< /tabpane >}}
+
+For more details regarding policy configuration, see [policies][] documentation.
 
 ## Test service connectivity
 
@@ -249,3 +285,4 @@ iperf Done.
 
 [kind]: https://kind.sigs.k8s.io/
 [kind installation guide]: https://kind.sigs.k8s.io/docs/user/quick-start
+[policies]: {{< relref "../../concepts/policies/_index.md" >}}
