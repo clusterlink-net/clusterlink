@@ -430,6 +430,13 @@ func (r *InstanceReconciler) createAccessControl(ctx context.Context, name, name
 				},
 			},
 			{
+				APIGroups: []string{""},
+				Resources: []string{"configmaps"},
+				Verbs: []string{
+					"get", "list", "update",
+				},
+			},
+			{
 				APIGroups: []string{"discovery.k8s.io"},
 				Resources: []string{"endpointslices"},
 				Verbs: []string{
@@ -439,7 +446,7 @@ func (r *InstanceReconciler) createAccessControl(ctx context.Context, name, name
 			{
 				APIGroups: []string{""},
 				Resources: []string{"pods"},
-				Verbs:     []string{"get", "list", "watch"},
+				Verbs:     []string{"get", "delete", "list", "watch"},
 			},
 			{
 				APIGroups: []string{"clusterlink.net"},
