@@ -64,7 +64,7 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager) error {
 		Object:              &v1alpha1.Export{},
 		NeedsLeaderElection: true,
 		AddHandler: func(ctx context.Context, object any) error {
-			return mgr.AddExport(ctx, object.(*v1alpha1.Export))
+			return mgr.addExport(ctx, object.(*v1alpha1.Export))
 		},
 		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
 			return nil
@@ -79,9 +79,21 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager) error {
 		Object:              &v1alpha1.Import{},
 		NeedsLeaderElection: true,
 		AddHandler: func(ctx context.Context, object any) error {
-			return mgr.AddImport(ctx, object.(*v1alpha1.Import))
+			return mgr.addImport(ctx, object.(*v1alpha1.Import))
 		},
-		DeleteHandler: mgr.DeleteImport,
+		DeleteHandler: mgr.deleteImport,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = controller.AddToManager(controllerManager, &controller.Spec{
+		Name:   "control.secret",
+		Object: &v1.Secret{},
+		AddHandler: func(ctx context.Context, object any) error {
+			return mgr.addSecret(ctx, object.(*v1.Secret))
+		},
+		DeleteHandler: mgr.deleteSecret,
 	})
 	if err != nil {
 		return err

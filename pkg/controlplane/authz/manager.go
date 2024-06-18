@@ -15,8 +15,6 @@ package authz
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"fmt"
 	"sync"
 	"time"
@@ -33,6 +31,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz/connectivitypdp"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/control"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/peer"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
@@ -109,6 +108,7 @@ type Manager struct {
 	ipToPod map[string]types.NamespacedName
 	podList map[types.NamespacedName]podInfo
 
+	jwksLock     sync.RWMutex
 	jwkSignKey   jwk.Key
 	jwkVerifyKey jwk.Key
 
@@ -174,6 +174,35 @@ func (m *Manager) addPod(pod *v1.Pod) {
 			m.ipToPod[ip.IP] = podID
 		}
 	}
+}
+
+// addSecret adds a new secret.
+func (m *Manager) addSecret(secret *v1.Secret) error {
+	if secret.Namespace != m.namespace || secret.Name != control.JWKSecretName {
+		return nil
+	}
+
+	privateKey, err := control.ParseJWKSSecret(secret)
+	if err != nil {
+		return fmt.Errorf("cannot parse JWKS secret: %w", err)
+	}
+
+	jwkSignKey, err := jwk.New(privateKey)
+	if err != nil {
+		return fmt.Errorf("unable to create JWK signing key: %w", err)
+	}
+
+	jwkVerifyKey, err := jwk.New(privateKey.PublicKey)
+	if err != nil {
+		return fmt.Errorf("unable to create JWK verifing key: %w", err)
+	}
+
+	m.jwksLock.Lock()
+	defer m.jwksLock.Unlock()
+	m.jwkSignKey = jwkSignKey
+	m.jwkVerifyKey = jwkVerifyKey
+
+	return nil
 }
 
 // getPodInfoByIP returns the information about the Pod with the specified IP address.
@@ -292,8 +321,16 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 func (m *Manager) parseAuthorizationHeader(token string) (string, error) {
 	m.logger.Debug("Parsing access token.")
 
+	m.jwksLock.RLock()
+	jwkVerifyKey := m.jwkVerifyKey
+	m.jwksLock.RUnlock()
+
+	if jwkVerifyKey == nil {
+		return "", fmt.Errorf("jwk verify key undefined")
+	}
+
 	parsedToken, err := jwt.ParseString(
-		token, jwt.WithVerify(cpapi.JWTSignatureAlgorithm, m.jwkVerifyKey), jwt.WithValidate(true))
+		token, jwt.WithVerify(cpapi.JWTSignatureAlgorithm, jwkVerifyKey), jwt.WithValidate(true))
 	if err != nil {
 		return "", err
 	}
@@ -369,8 +406,16 @@ func (m *Manager) authorizeIngress(
 		return nil, fmt.Errorf("unable to generate access token: %w", err)
 	}
 
+	m.jwksLock.RLock()
+	jwkSignKey := m.jwkSignKey
+	m.jwksLock.RUnlock()
+
+	if jwkSignKey == nil {
+		return nil, fmt.Errorf("jwk sign key undefined")
+	}
+
 	// sign access token
-	signed, err := jwt.Sign(token, cpapi.JWTSignatureAlgorithm, m.jwkSignKey)
+	signed, err := jwt.Sign(token, cpapi.JWTSignatureAlgorithm, jwkSignKey)
 	if err != nil {
 		return nil, fmt.Errorf("unable to sign access token: %w", err)
 	}
@@ -411,34 +456,15 @@ func (m *Manager) SetPeerCertificates(peerTLS *tls.ParsedCertData, _ *tls.RawCer
 }
 
 // NewManager returns a new authorization manager.
-func NewManager(cl client.Client, namespace string) (*Manager, error) {
-	// generate RSA key-pair for JWT signing
-	// TODO: instead of generating, read from k8s secret
-	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, fmt.Errorf("unable to generate RSA keys: %w", err)
-	}
-
-	jwkSignKey, err := jwk.New(rsaKey)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create JWK signing key: %w", err)
-	}
-
-	jwkVerifyKey, err := jwk.New(rsaKey.PublicKey)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create JWK verifing key: %w", err)
-	}
-
+func NewManager(cl client.Client, namespace string) *Manager {
 	return &Manager{
 		client:          cl,
 		namespace:       namespace,
 		connectivityPDP: connectivitypdp.NewPDP(),
 		loadBalancer:    NewLoadBalancer(),
 		peerClient:      make(map[string]*peer.Client),
-		jwkSignKey:      jwkSignKey,
-		jwkVerifyKey:    jwkVerifyKey,
 		ipToPod:         make(map[string]types.NamespacedName),
 		podList:         make(map[types.NamespacedName]podInfo),
 		logger:          logrus.WithField("component", "controlplane.authz.manager"),
-	}, nil
+	}
 }
