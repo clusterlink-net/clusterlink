@@ -187,6 +187,7 @@ func addCoreDnsRewrite(ctx context.Context, m *Manager, name *types.NamespacedNa
 		serviceFqdn := fmt.Sprintf("%s.%s.svc.cluster.local", name.Name, name.Namespace)
 
 		var coreFileUpdated = false
+		var rewriteLine = ""
 		for i, line := range lines {
 			if strings.Contains(line, serviceFqdn) {
 				// matched line already exists
@@ -194,9 +195,19 @@ func addCoreDnsRewrite(ctx context.Context, m *Manager, name *types.NamespacedNa
 			}
 			// ready marker is reached - matched line not found, append it here
 			if strings.Contains(line, "    ready") {
+				if strings.HasPrefix(dnsName, "*.") {
+					// wildcard dns
+					dnsName = strings.TrimPrefix(dnsName, "*")
+					dnsName = strings.ReplaceAll(dnsName, ".", "\\.")
+					dnsName = "(.*)" + dnsName
+
+					rewriteLine = fmt.Sprintf("    rewrite name regex %s %s answer auto", dnsName, serviceFqdn)
+				} else {
+					rewriteLine = fmt.Sprintf("    rewrite name %s %s", dnsName, serviceFqdn)
+				}
 				// add matched line
 				lines = append(lines[:i+1], lines[i:]...)
-				lines[i] = fmt.Sprintf("    rewrite name %s %s", dnsName, serviceFqdn)
+				lines[i] = rewriteLine
 				coreFileUpdated = true
 				break
 			}
