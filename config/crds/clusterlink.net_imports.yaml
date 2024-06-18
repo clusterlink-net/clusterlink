@@ -40,6 +40,10 @@ spec:
           spec:
             description: Spec represents the attributes of the imported service.
             properties:
+              dnsName:
+                description: DnsName is an optional external dns name for this imported
+                  service
+                type: string
               lbScheme:
                 default: round-robin
                 description: LBScheme is the load-balancing scheme to use (e.g., random,

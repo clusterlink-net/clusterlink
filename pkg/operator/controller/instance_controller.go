@@ -68,7 +68,8 @@ type InstanceReconciler struct {
 // +kubebuilder:rbac:groups="",resources=services;serviceaccounts,verbs=list;get;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="discovery.k8s.io",resources=endpointslices,verbs=list;get;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=list;get;watch
-// +kubebuilder:rbac:groups="",resources=pods,verbs=list;get;watch
+// +kubebuilder:rbac:groups="",resources=pods,verbs=list;get;delete;watch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;update
 // +kubebuilder:rbac:groups=clusterlink.net,resources=exports;peers;accesspolicies;privilegedaccesspolicies,verbs=list;get;watch
 // +kubebuilder:rbac:groups=clusterlink.net,resources=imports,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=clusterlink.net,resources=peers/status;exports/status;imports/status,verbs=update
