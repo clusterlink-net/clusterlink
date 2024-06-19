@@ -199,8 +199,14 @@ metadata:
   name: cl-controlplane
 rules:
 - apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "update"]
+- apiGroups: [""]
   resources: ["services"]
   verbs: ["get", "list", "watch", "create", "delete", "update"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "create", "update"]
 - apiGroups: ["discovery.k8s.io"]
   resources: ["endpointslices"]
   verbs: ["get", "list", "watch", "create", "delete", "update"]

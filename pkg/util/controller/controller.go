@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
 // Spec holds everything needed to create a controller.
@@ -30,6 +31,8 @@ type Spec struct {
 	Name string
 	// Object being watched.
 	Object client.Object
+	// NeedsLeaderElection determines if the controller needs leader election.
+	NeedsLeaderElection bool
 	// AddHandler handles object create/update.
 	AddHandler func(ctx context.Context, object any) error
 	// DeleteHandler handles object deletes.
@@ -75,5 +78,8 @@ func newReconciler(clnt client.Client, spec *Spec) *reconciler {
 func AddToManager(manager ctrl.Manager, spec *Spec) error {
 	return ctrl.NewControllerManagedBy(manager).
 		For(spec.Object).
+		WithOptions(controller.Options{
+			NeedLeaderElection: &spec.NeedsLeaderElection,
+		}).
 		Complete(newReconciler(manager.GetClient(), spec))
 }
