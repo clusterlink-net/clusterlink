@@ -59,6 +59,7 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 		FabricCertificate:       f.cert,
 		PeerCertificate:         p.peerCert,
 		CACertificate:           p.caCert,
+		Controlplanes:           cfg.Controlplanes,
 		ControlplaneCertificate: p.controlplaneCert,
 		DataplaneCertificate:    p.dataplaneCert,
 		Dataplanes:              cfg.Dataplanes,
@@ -186,6 +187,7 @@ func (f *Fabric) generateClusterlinkInstance(name string, p *peer, cfg *PeerConf
 
 	instance, err := platform.K8SClusterLinkInstanceConfig(&platform.Config{
 		Peer:              p.cluster.Name(),
+		Controlplanes:     cfg.Controlplanes,
 		Dataplanes:        cfg.Dataplanes,
 		DataplaneType:     cfg.DataplaneType,
 		LogLevel:          logLevel,

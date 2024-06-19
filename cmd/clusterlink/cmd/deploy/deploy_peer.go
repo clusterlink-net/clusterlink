@@ -73,7 +73,9 @@ type PeerOptions struct {
 	ContainerRegistry string
 	// Tag represents the tag of the project images.
 	Tag string
-	// Dataplanes is the number of dataplanes to create.
+	// ControlplaneReplicas is the number of controlplanes to create.
+	ControlplaneReplicas uint16
+	// DataplaneReplicas is the number of dataplanes to create.
 	DataplaneReplicas uint16
 	// DataplaneType is the type of dataplane to create (envoy or go-based)
 	DataplaneType string
@@ -130,6 +132,7 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 		"For example: --ingress-annotations <key1>=<value1> --ingress-annotations <key2>=<value2>.")
 	fs.StringVar(&o.DataplaneType, "dataplane", platform.DataplaneTypeEnvoy,
 		"Type of dataplane, Supported values: \"envoy\", \"go\"")
+	fs.Uint16Var(&o.ControlplaneReplicas, "controlplane-replicas", 1, "Number of controlplanes.")
 	fs.Uint16Var(&o.DataplaneReplicas, "dataplane-replicas", 1, "Number of dataplanes.")
 	fs.StringVar(&o.LogLevel, "log-level", "info",
 		"The log level. One of fatal, error, warn, info, debug.")
@@ -185,6 +188,7 @@ func (o *PeerOptions) Run() error {
 		FabricCertificate:       fabricCert,
 		PeerCertificate:         peerCert,
 		CACertificate:           caCert,
+		Controlplanes:           o.ControlplaneReplicas,
 		ControlplaneCertificate: controlplaneCert,
 		DataplaneCertificate:    dataplaneCert,
 		Dataplanes:              o.DataplaneReplicas,

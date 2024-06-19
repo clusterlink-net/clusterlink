@@ -36,6 +36,9 @@ type Config struct {
 	// PeerCertificate is the peer certificate.
 	PeerCertificate *bootstrap.Certificate
 
+	// Controlplanes is the number of controlplane servers to run.
+	Controlplanes uint16
+
 	// Dataplanes is the number of dataplane servers to run.
 	Dataplanes uint16
 	// DataplaneType is the type of dataplane to create (envoy or go-based)
