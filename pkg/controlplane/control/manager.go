@@ -196,8 +196,7 @@ func addCoreDnsRewrite(ctx context.Context, m *Manager, name *types.NamespacedNa
 			}
 			// ready marker is reached - matched line not found, append it here
 			if strings.Contains(line, "    ready") {
-				if strings.HasPrefix(dnsName, "*.") {
-					// wildcard dns
+				if strings.HasPrefix(dnsName, "*.") { // wildcard DNS
 					dnsName = strings.TrimPrefix(dnsName, "*")
 					dnsName = strings.ReplaceAll(dnsName, ".", "\\.")
 					dnsName = "(.*)" + dnsName
