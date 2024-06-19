@@ -165,7 +165,7 @@ func coreDnsRestart(ctx context.Context, m *Manager) error {
 }
 
 // Add coredns rewrite for a given external dns service
-func addCoreDnsRewrite(ctx context.Context, m *Manager, name *types.NamespacedName, dnsName string) error {
+func addCoreDnsRewrite(ctx context.Context, m *Manager, name *types.NamespacedName, alias string) error {
 	corednsName := types.NamespacedName{
 		Name:      "coredns",
 		Namespace: "kube-system",
@@ -182,9 +182,9 @@ func addCoreDnsRewrite(ctx context.Context, m *Manager, name *types.NamespacedNa
 	}
 	if data, ok := cm.Data["Corefile"]; ok {
 		// remove trailing end-of-line
-		dataEol := strings.TrimSuffix(data, "\n")
+		data := strings.TrimSuffix(data, "\n")
 		// break into lines
-		lines := strings.Split(dataEol, "\n")
+		lines := strings.Split(data, "\n")
 		serviceFqdn := fmt.Sprintf("%s.%s.svc.cluster.local", name.Name, name.Namespace)
 
 		var coreFileUpdated = false
@@ -196,14 +196,14 @@ func addCoreDnsRewrite(ctx context.Context, m *Manager, name *types.NamespacedNa
 			}
 			// ready marker is reached - matched line not found, append it here
 			if strings.Contains(line, "    ready") {
-				if strings.HasPrefix(dnsName, "*.") { // wildcard DNS
-					dnsName = strings.TrimPrefix(dnsName, "*")
-					dnsName = strings.ReplaceAll(dnsName, ".", "\\.")
-					dnsName = "(.*)" + dnsName
+				if strings.HasPrefix(alias, "*.") { // wildcard DNS
+					alias = strings.TrimPrefix(alias, "*")
+					alias = strings.ReplaceAll(alias, ".", "\\.")
+					alias = "(.*)" + alias
 
-					rewriteLine = fmt.Sprintf("    rewrite name regex %s %s answer auto", dnsName, serviceFqdn)
+					rewriteLine = fmt.Sprintf("    rewrite name regex %s %s answer auto", alias, serviceFqdn)
 				} else {
-					rewriteLine = fmt.Sprintf("    rewrite name %s %s", dnsName, serviceFqdn)
+					rewriteLine = fmt.Sprintf("    rewrite name %s %s", alias, serviceFqdn)
 				}
 				// add matched line
 				lines = append(lines[:i+1], lines[i:]...)
@@ -353,8 +353,8 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 		}
 	}
 
-	if imp.Spec.DnsName != "" {
-		if err := addCoreDnsRewrite(ctx, m, &importName, imp.Spec.DnsName); err != nil {
+	if imp.Spec.Alias != "" {
+		if err := addCoreDnsRewrite(ctx, m, &importName, imp.Spec.Alias); err != nil {
 			m.logger.Errorf("Failed to configure CoreDns: %v.", err)
 			return err
 		}
