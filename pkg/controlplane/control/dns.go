@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -26,16 +27,16 @@ import (
 )
 
 // Restart coredns pods
-func restartCoreDNS(ctx context.Context, m *Manager) error {
+func restartCoreDNS(ctx context.Context, mClient client.Client, logger *logrus.Entry) error {
 	var pods v1.PodList
-	if err := m.client.List(ctx, &pods, client.InNamespace("kube-system")); err != nil {
+	if err := mClient.List(ctx, &pods, client.InNamespace("kube-system")); err != nil {
 		return err
 	}
 
 	for _, pod := range pods.Items {
 		if strings.Contains(pod.Name, "coredns") {
-			m.logger.Infof("Deleting pod: %s/%s.", pod.Namespace, pod.Name)
-			err := m.client.Delete(ctx, &pod)
+			logger.Infof("Deleting pod: %s/%s.", pod.Namespace, pod.Name)
+			err := mClient.Delete(ctx, &pod)
 			if err != nil {
 				return err
 			}
@@ -46,16 +47,16 @@ func restartCoreDNS(ctx context.Context, m *Manager) error {
 }
 
 // Add coredns rewrite for a given external dns service
-func addCoreDnsRewrite(ctx context.Context, m *Manager, name *types.NamespacedName, alias string) error {
+func addCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *logrus.Entry, name *types.NamespacedName, alias string) error {
 	corednsName := types.NamespacedName{
 		Name:      "coredns",
 		Namespace: "kube-system",
 	}
 	var cm v1.ConfigMap
 
-	if err := m.client.Get(ctx, corednsName, &cm); err != nil {
+	if err := mClient.Get(ctx, corednsName, &cm); err != nil {
 		if k8serrors.IsNotFound(err) {
-			m.logger.Warnf("coredns configmap not found.")
+			logger.Warnf("coredns configmap not found.")
 			return nil
 		} else {
 			return err
@@ -102,11 +103,11 @@ func addCoreDnsRewrite(ctx context.Context, m *Manager, name *types.NamespacedNa
 				newLines += (line + "\n")
 			}
 			cm.Data["Corefile"] = newLines
-			if err := m.client.Update(ctx, &cm); err != nil {
+			if err := mClient.Update(ctx, &cm); err != nil {
 				return err
 			}
 
-			if err := coreDnsRestart(ctx, m); err != nil {
+			if err := restartCoreDNS(ctx, mClient, logger); err != nil {
 				return err
 			}
 		}
@@ -118,16 +119,16 @@ func addCoreDnsRewrite(ctx context.Context, m *Manager, name *types.NamespacedNa
 }
 
 // Remove coredns rewrite for a given external dns service
-func removeCoreDnsRewrite(ctx context.Context, m *Manager, name *types.NamespacedName) error {
+func removeCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *logrus.Entry, name *types.NamespacedName) error {
 	corednsName := types.NamespacedName{
 		Name:      "coredns",
 		Namespace: "kube-system",
 	}
 	var cm v1.ConfigMap
 
-	if err := m.client.Get(ctx, corednsName, &cm); err != nil {
+	if err := mClient.Get(ctx, corednsName, &cm); err != nil {
 		if k8serrors.IsNotFound(err) {
-			m.logger.Warnf("coredns configmap not found.")
+			logger.Warnf("coredns configmap not found.")
 			return nil
 		} else {
 			return err
@@ -158,11 +159,11 @@ func removeCoreDnsRewrite(ctx context.Context, m *Manager, name *types.Namespace
 				newLines += (line + "\n")
 			}
 			cm.Data["Corefile"] = newLines
-			if err := m.client.Update(ctx, &cm); err != nil {
+			if err := mClient.Update(ctx, &cm); err != nil {
 				return err
 			}
 
-			if err := coreDnsRestart(ctx, m); err != nil {
+			if err := restartCoreDNS(ctx, mClient, logger); err != nil {
 				return err
 			}
 		}

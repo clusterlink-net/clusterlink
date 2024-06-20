@@ -262,7 +262,7 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 	}
 
 	if imp.Spec.Alias != "" {
-		if err := addCoreDnsRewrite(ctx, m, &importName, imp.Spec.Alias); err != nil {
+		if err := addCoreDNSRewrite(ctx, m.client, m.logger, &importName, imp.Spec.Alias); err != nil {
 			m.logger.Errorf("failed to configure CoreDNS: %v.", err)
 			return err
 		}
@@ -293,7 +293,7 @@ func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) e
 
 	m.ports.Release(name)
 
-	errs[3] = removeCoreDnsRewrite(ctx, m, &name)
+	errs[3] = removeCoreDNSRewrite(ctx, m.client, m.logger, &name)
 
 	return errors.Join(errs...)
 }
