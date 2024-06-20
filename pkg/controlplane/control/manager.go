@@ -263,7 +263,7 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 
 	if imp.Spec.Alias != "" {
 		if err := addCoreDnsRewrite(ctx, m, &importName, imp.Spec.Alias); err != nil {
-			m.logger.Errorf("Failed to configure CoreDns: %v.", err)
+			m.logger.Errorf("failed to configure CoreDNS: %v.", err)
 			return err
 		}
 	}
