@@ -26,7 +26,7 @@ import (
 )
 
 // Restart coredns pods
-func coreDnsRestart(ctx context.Context, m *Manager) error {
+func restartCoreDNS(ctx context.Context, m *Manager) error {
 	var pods v1.PodList
 	if err := m.client.List(ctx, &pods, client.InNamespace("kube-system")); err != nil {
 		return err
