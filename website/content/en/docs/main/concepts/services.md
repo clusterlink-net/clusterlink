@@ -208,6 +208,28 @@ spec:
 
 {{% /expand %}}
 
+
+In certain cases, a service can be imported without creating another corresponding service at the imported side, but merging it along with a pre-existing service with the same `name`. This can be specified by adding the label `import.clusterlink.net/merge`, which is set to `true`. This would trigger the creation of an endpointslice which services requests to the imported service (by setting `kubernetes.io/service-name` to the imported service name).
+
+{{% expand summary="Example YAML for `kubectl apply -f <import_file>`" %}}
+
+```yaml
+apiVersion: clusterlink.net/v1alpha1
+kind: Import
+metadata:
+  name: iperf3-server
+  namespace: default
+  labels:
+    import.clusterlink.net/merge: true
+spec:
+  port:       5000
+  sources:
+    - exportName:       iperf3-server
+      exportNamespace:  default
+      peer:             server
+```
+{{% /expand %}}
+
 ## Related tasks
 
 Once a service is exported and imported by one or more clusters, you should
