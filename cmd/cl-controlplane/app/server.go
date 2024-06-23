@@ -165,7 +165,10 @@ func (o *Options) Run() error {
 				},
 			},
 		},
-		Scheme: scheme,
+		LeaderElection:          true,
+		LeaderElectionNamespace: namespace,
+		LeaderElectionID:        "cl-controlplane",
+		Scheme:                  scheme,
 	}
 
 	mgr, err := manager.New(config, managerOptions)
