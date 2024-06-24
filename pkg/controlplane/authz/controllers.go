@@ -93,7 +93,21 @@ func CreateControllers(mgr *Manager, controllerManager ctrl.Manager) error {
 		AddHandler: func(ctx context.Context, object any) error {
 			return nil
 		},
-		DeleteHandler: func(ctx context.Context, name types.NamespacedName) error {
+		DeleteHandler: func(_ context.Context, _ types.NamespacedName) error {
+			return nil
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = controller.AddToManager(controllerManager, &controller.Spec{
+		Name:   "authz.secret",
+		Object: &v1.Secret{},
+		AddHandler: func(_ context.Context, object any) error {
+			return mgr.addSecret(object.(*v1.Secret))
+		},
+		DeleteHandler: func(context.Context, types.NamespacedName) error {
 			return nil
 		},
 	})
