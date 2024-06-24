@@ -169,9 +169,17 @@ func (o *Options) Run() error {
 						namespace: {},
 					},
 				},
+				&v1.Secret{}: {
+					Namespaces: map[string]cache.Config{
+						namespace: {},
+					},
+				},
 			},
 		},
-		Scheme: scheme,
+		LeaderElection:          true,
+		LeaderElectionNamespace: namespace,
+		LeaderElectionID:        "cl-controlplane",
+		Scheme:                  scheme,
 	}
 
 	mgr, err := manager.New(config, managerOptions)
@@ -183,11 +191,7 @@ func (o *Options) Run() error {
 	controlplaneServerListenAddress := fmt.Sprintf("0.0.0.0:%d", api.ListenPort)
 	grpcServer := grpc.NewServer("controlplane-grpc", controlplaneCertData.ServerConfig())
 
-	authzManager, err := authz.NewManager(mgr.GetClient(), namespace)
-	if err != nil {
-		return fmt.Errorf("cannot create authorization manager: %w", err)
-	}
-
+	authzManager := authz.NewManager(mgr.GetClient(), namespace)
 	peerCertsWatcher.AddConsumer(authzManager)
 
 	err = authz.CreateControllers(authzManager, mgr)
@@ -199,6 +203,9 @@ func (o *Options) Run() error {
 
 	controlManager := control.NewManager(mgr.GetClient(), namespace)
 	peerCertsWatcher.AddConsumer(controlManager)
+	if err := controlManager.CreateJWKSSecret(context.Background()); err != nil {
+		return fmt.Errorf("cannot create JWKS secret: %w", err)
+	}
 
 	err = control.CreateControllers(controlManager, mgr)
 	if err != nil {

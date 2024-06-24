@@ -14,7 +14,13 @@
 package control
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
 	"reflect"
 	"strconv"
 	"strings"
@@ -51,6 +57,10 @@ const (
 
 	// endpoint slice labels.
 	LabelDPEndpointSliceName = "clusterlink.net/dataplane-endpointslice-name"
+
+	// JWK secret.
+	JWKSecretName    = "jwk"
+	JWKSecretKeyName = "key"
 )
 
 type exportServiceNotExistError struct {
@@ -144,8 +154,8 @@ type Manager struct {
 	logger *logrus.Entry
 }
 
-// AddImport adds a listening socket for an imported remote service.
-func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err error) {
+// addImport adds a listening socket for an imported remote service.
+func (m *Manager) addImport(ctx context.Context, imp *v1alpha1.Import) (err error) {
 	m.logger.Infof("Adding import '%s/%s'.", imp.Namespace, imp.Name)
 
 	targetPortValidCond := &metav1.Condition{
@@ -271,8 +281,8 @@ func (m *Manager) AddImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 
 }
 
-// DeleteImport removes the listening socket of a previously imported service.
-func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) error {
+// deleteImport removes the listening socket of a previously imported service.
+func (m *Manager) deleteImport(ctx context.Context, name types.NamespacedName) error {
 	m.logger.Infof("Deleting import '%s/%s'.", name.Namespace, name.Name)
 
 	// delete user service
@@ -298,8 +308,8 @@ func (m *Manager) DeleteImport(ctx context.Context, name types.NamespacedName) e
 	return errors.Join(errs...)
 }
 
-// AddExport defines a new route target for ingress dataplane connections.
-func (m *Manager) AddExport(ctx context.Context, export *v1alpha1.Export) (err error) {
+// addExport defines a new route target for ingress dataplane connections.
+func (m *Manager) addExport(ctx context.Context, export *v1alpha1.Export) (err error) {
 	m.logger.Infof("Adding export '%s/%s'.", export.Namespace, export.Name)
 
 	defer func() {
@@ -383,6 +393,71 @@ func (m *Manager) deleteService(ctx context.Context, name types.NamespacedName) 
 	return m.checkExportService(ctx, name)
 }
 
+// addSecret adds a new secret.
+func (m *Manager) addSecret(ctx context.Context, secret *v1.Secret) error {
+	return m.checkJWKSecret(ctx, types.NamespacedName{
+		Namespace: secret.Namespace,
+		Name:      secret.Name,
+	})
+}
+
+// deleteSecret deletes a secret.
+func (m *Manager) deleteSecret(ctx context.Context, name types.NamespacedName) error {
+	return m.checkJWKSecret(ctx, name)
+}
+
+func (m *Manager) checkJWKSecret(ctx context.Context, name types.NamespacedName) error {
+	if name.Namespace != m.namespace || name.Name != JWKSecretName {
+		return nil
+	}
+
+	secretName := types.NamespacedName{
+		Namespace: m.namespace,
+		Name:      JWKSecretName,
+	}
+
+	var secret v1.Secret
+	create := true
+	if err := m.client.Get(ctx, secretName, &secret); err == nil {
+		if !k8serrors.IsNotFound(err) {
+			return err
+		}
+
+		m.logger.Info("No JWKS secret defined.")
+	} else {
+		if _, err := ParseJWKSSecret(&secret); err == nil {
+			return nil
+		}
+
+		create = false
+		m.logger.Warnf("Bad JWKS secret: %v.", err)
+	}
+
+	m.logger.Info("Generating new JWKS secret.")
+	jwksSecretData, err := generateJWKSecret()
+	if err != nil {
+		return fmt.Errorf("cannot generate JWK secret: %w", err)
+	}
+
+	newSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      JWKSecretName,
+			Namespace: m.namespace,
+		},
+		Data: map[string][]byte{
+			JWKSecretKeyName: jwksSecretData,
+		},
+	}
+
+	if create {
+		m.logger.Infof("Creating JWK Secret.")
+		return m.client.Create(ctx, newSecret)
+	}
+
+	m.logger.Infof("Updating JWK Secret.")
+	return m.client.Update(ctx, newSecret)
+}
+
 // addEndpointSlice adds a dataplane / import endpoint slices.
 func (m *Manager) addEndpointSlice(ctx context.Context, endpointSlice *discv1.EndpointSlice) error {
 	if endpointSlice.Labels[discv1.LabelServiceName] == dpapp.Name && endpointSlice.Namespace == m.namespace {
@@ -456,7 +531,7 @@ func (m *Manager) checkExportService(ctx context.Context, name types.NamespacedN
 		return nil
 	}
 
-	return m.AddExport(ctx, &export)
+	return m.addExport(ctx, &export)
 }
 
 func (m *Manager) checkImportService(ctx context.Context, name types.NamespacedName) error {
@@ -466,7 +541,7 @@ func (m *Manager) checkImportService(ctx context.Context, name types.NamespacedN
 			return err
 		}
 	} else {
-		if err := m.AddImport(ctx, &imp); err != nil {
+		if err := m.addImport(ctx, &imp); err != nil {
 			return err
 		}
 	}
@@ -488,7 +563,7 @@ func (m *Manager) checkImportService(ctx context.Context, name types.NamespacedN
 			return err
 		}
 	} else {
-		return m.AddImport(ctx, &imp)
+		return m.addImport(ctx, &imp)
 	}
 
 	return nil
@@ -784,6 +859,55 @@ func (m *Manager) deleteImportEndpointSlices(ctx context.Context, imp types.Name
 	return nil
 }
 
+// CreateJWKSSecret creates the JWKS secret if it does not exist.
+func (m *Manager) CreateJWKSSecret(ctx context.Context) error {
+	jwksSecretData, err := generateJWKSecret()
+	if err != nil {
+		return fmt.Errorf("cannot generate JWKS secret: %w", err)
+	}
+
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      JWKSecretName,
+			Namespace: m.namespace,
+		},
+		Data: map[string][]byte{
+			JWKSecretKeyName: jwksSecretData,
+		},
+	}
+
+	m.logger.Info("Trying to create JWKS secret.")
+	if err := m.client.Create(ctx, secret); err != nil {
+		if !k8serrors.IsAlreadyExists(err) {
+			return err
+		}
+
+		m.logger.Info("JWKS secret already exists.")
+	}
+
+	return nil
+}
+
+func generateJWKSecret() ([]byte, error) {
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, fmt.Errorf("unable to generate JWK key: %w", err)
+	}
+
+	// PEM encode private key
+	keyPEM := new(bytes.Buffer)
+	err = pem.Encode(keyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(rsaKey),
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("cannot encode JWK key: %w", err)
+	}
+
+	return []byte(base64.StdEncoding.EncodeToString(keyPEM.Bytes())), nil
+}
+
 func checkServiceLabels(service *v1.Service, importName types.NamespacedName) bool {
 	if managedBy, ok := service.Labels[LabelManagedBy]; !ok || managedBy != AppName {
 		return false
@@ -896,6 +1020,30 @@ func endpointSliceChanged(endpointSlice1, endpointSlice2 *discv1.EndpointSlice) 
 	}
 
 	return false
+}
+
+func ParseJWKSSecret(secret *v1.Secret) (*rsa.PrivateKey, error) {
+	keyBase64, ok := secret.Data[JWKSecretKeyName]
+	if !ok {
+		return nil, fmt.Errorf("secret missing %s key", JWKSecretKeyName)
+	}
+
+	keyPEM, err := base64.StdEncoding.DecodeString(string(keyBase64))
+	if err != nil {
+		return nil, fmt.Errorf("cannot base64 decode key")
+	}
+
+	keyBlock, _ := pem.Decode(keyPEM)
+	if keyBlock == nil {
+		return nil, fmt.Errorf("key is not in PEM format")
+	}
+
+	privateKey, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing private key: %w", err)
+	}
+
+	return privateKey, nil
 }
 
 // NewManager returns a new control manager.
