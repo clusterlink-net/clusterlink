@@ -23,7 +23,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+
 	discv1 "k8s.io/api/discovery/v1"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -150,6 +152,10 @@ func (o *Options) Run() error {
 
 	if err := discv1.AddToScheme(scheme); err != nil {
 		return fmt.Errorf("unable to add discovery v1 objects to scheme: %w", err)
+	}
+
+	if err := appsv1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("unable to add core appsv1 objects to scheme: %w", err)
 	}
 
 	// set logger for controller-runtime components
