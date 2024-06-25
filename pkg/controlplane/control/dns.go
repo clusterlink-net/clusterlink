@@ -64,57 +64,58 @@ func addCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *logru
 		}
 		return err
 	}
-	if data, ok := cm.Data["Corefile"]; ok {
-		// remove trailing end-of-line
-		data := strings.TrimSuffix(data, "\n")
-		// break into lines
-		lines := strings.Split(data, "\n")
-		serviceFqdn := fmt.Sprintf("%s.%s.svc.cluster.local", name.Name, name.Namespace)
-
-		coreFileUpdated := false
-		rewriteLine := ""
-		for i, line := range lines {
-			if strings.Contains(line, serviceFqdn) {
-				// matched line already exists
-				break
-			}
-			// ready marker is reached - matched line not found, append it here
-			if strings.Contains(line, "    ready") {
-				if strings.HasPrefix(alias, "*.") { // wildcard DNS
-					alias = strings.TrimPrefix(alias, "*")
-					alias = strings.ReplaceAll(alias, ".", "\\.")
-					alias = "(.*)" + alias
-
-					rewriteLine = fmt.Sprintf("    rewrite name regex %s %s answer auto", alias, serviceFqdn)
-				} else {
-					rewriteLine = fmt.Sprintf("    rewrite name %s %s", alias, serviceFqdn)
-				}
-				// add matched line
-				lines = append(lines[:i+1], lines[i:]...)
-				lines[i] = rewriteLine
-				coreFileUpdated = true
-				break
-			}
-		}
-
-		if coreFileUpdated {
-			// update configmap and restart the pods
-			var newLines string
-			for _, line := range lines {
-				// return back EOL
-				newLines += (line + "\n")
-			}
-			cm.Data["Corefile"] = newLines
-			if err := mClient.Update(ctx, &cm); err != nil {
-				return err
-			}
-
-			if err := restartCoreDNS(ctx, mClient, logger); err != nil {
-				return err
-			}
-		}
-	} else {
+	if _, ok := cm.Data["Corefile"]; !ok {
 		return errors.New("coredns configmap['Corefile'] not found")
+	}
+
+	data := cm.Data["Corefile"]
+	// remove trailing end-of-line
+	data = strings.TrimSuffix(data, "\n")
+	// break into lines
+	lines := strings.Split(data, "\n")
+	serviceFqdn := fmt.Sprintf("%s.%s.svc.cluster.local", name.Name, name.Namespace)
+
+	coreFileUpdated := false
+	rewriteLine := ""
+	for i, line := range lines {
+		if strings.Contains(line, serviceFqdn) {
+			// matched line already exists
+			break
+		}
+		// ready marker is reached - matched line not found, append it here
+		if strings.Contains(line, "    ready") {
+			if strings.HasPrefix(alias, "*.") { // wildcard DNS
+				alias = strings.TrimPrefix(alias, "*")
+				alias = strings.ReplaceAll(alias, ".", "\\.")
+				alias = "(.*)" + alias
+
+				rewriteLine = fmt.Sprintf("    rewrite name regex %s %s answer auto", alias, serviceFqdn)
+			} else {
+				rewriteLine = fmt.Sprintf("    rewrite name %s %s", alias, serviceFqdn)
+			}
+			// add matched line
+			lines = append(lines[:i+1], lines[i:]...)
+			lines[i] = rewriteLine
+			coreFileUpdated = true
+			break
+		}
+	}
+
+	if coreFileUpdated {
+		// update configmap and restart the pods
+		var newLines string
+		for _, line := range lines {
+			// return back EOL
+			newLines += (line + "\n")
+		}
+		cm.Data["Corefile"] = newLines
+		if err := mClient.Update(ctx, &cm); err != nil {
+			return err
+		}
+
+		if err := restartCoreDNS(ctx, mClient, logger); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -135,41 +136,42 @@ func removeCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *lo
 		}
 		return err
 	}
-	if data, ok := cm.Data["Corefile"]; ok {
-		// remove trailing end-of-line
-		dataEol := strings.TrimSuffix(data, "\n")
-		// break into lines
-		lines := strings.Split(dataEol, "\n")
-		serviceFqdn := fmt.Sprintf("%s.%s.svc.cluster.local", name.Name, name.Namespace)
-
-		coreFileUpdated := false
-		for i, line := range lines {
-			if strings.Contains(line, serviceFqdn) {
-				// remove matched line
-				lines = append(lines[:i], lines[i+1:]...)
-				coreFileUpdated = true
-				break
-			}
-		}
-
-		if coreFileUpdated {
-			// update configmap and restart the pods
-			var newLines string
-			for _, line := range lines {
-				// return back EOL
-				newLines += (line + "\n")
-			}
-			cm.Data["Corefile"] = newLines
-			if err := mClient.Update(ctx, &cm); err != nil {
-				return err
-			}
-
-			if err := restartCoreDNS(ctx, mClient, logger); err != nil {
-				return err
-			}
-		}
-	} else {
+	if _, ok := cm.Data["Corefile"]; !ok {
 		return errors.New("coredns configmap['Corefile'] not found")
+	}
+
+	data := cm.Data["Corefile"]
+	// remove trailing end-of-line
+	dataEol := strings.TrimSuffix(data, "\n")
+	// break into lines
+	lines := strings.Split(dataEol, "\n")
+	serviceFqdn := fmt.Sprintf("%s.%s.svc.cluster.local", name.Name, name.Namespace)
+
+	coreFileUpdated := false
+	for i, line := range lines {
+		if strings.Contains(line, serviceFqdn) {
+			// remove matched line
+			lines = append(lines[:i], lines[i+1:]...)
+			coreFileUpdated = true
+			break
+		}
+	}
+
+	if coreFileUpdated {
+		// update configmap and restart the pods
+		var newLines string
+		for _, line := range lines {
+			// return back EOL
+			newLines += (line + "\n")
+		}
+		cm.Data["Corefile"] = newLines
+		if err := mClient.Update(ctx, &cm); err != nil {
+			return err
+		}
+
+		if err := restartCoreDNS(ctx, mClient, logger); err != nil {
+			return err
+		}
 	}
 
 	return nil
