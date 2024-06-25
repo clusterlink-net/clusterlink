@@ -39,16 +39,12 @@ func restartCoreDNS(ctx context.Context, mClient client.Client, logger *logrus.E
 		),
 	)
 
-	if err := mClient.Patch(ctx, &appsv1.Deployment{
+	return mClient.Patch(ctx, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "kube-system",
 			Name:      "coredns",
 		},
-	}, client.RawPatch(types.StrategicMergePatchType, patch)); err != nil {
-		return err
-	}
-
-	return nil
+	}, client.RawPatch(types.StrategicMergePatchType, patch))
 }
 
 // Add coredns rewrite for a given external dns service.
