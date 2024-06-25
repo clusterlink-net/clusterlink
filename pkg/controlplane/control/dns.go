@@ -49,7 +49,6 @@ func restartCoreDNS(ctx context.Context, mClient client.Client, logger *logrus.E
 	}
 
 	return nil
-
 }
 
 // Add coredns rewrite for a given external dns service
@@ -75,8 +74,8 @@ func addCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *logru
 		lines := strings.Split(data, "\n")
 		serviceFqdn := fmt.Sprintf("%s.%s.svc.cluster.local", name.Name, name.Namespace)
 
-		var coreFileUpdated = false
-		var rewriteLine = ""
+		coreFileUpdated := false
+		rewriteLine := ""
 		for i, line := range lines {
 			if strings.Contains(line, serviceFqdn) {
 				// matched line already exists
@@ -147,7 +146,7 @@ func removeCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *lo
 		lines := strings.Split(dataEol, "\n")
 		serviceFqdn := fmt.Sprintf("%s.%s.svc.cluster.local", name.Name, name.Namespace)
 
-		var coreFileUpdated = false
+		coreFileUpdated := false
 		for i, line := range lines {
 			if strings.Contains(line, serviceFqdn) {
 				// remove matched line

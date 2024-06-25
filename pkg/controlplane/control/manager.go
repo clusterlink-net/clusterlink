@@ -278,7 +278,6 @@ func (m *Manager) addImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 		}
 	}
 	return nil
-
 }
 
 // deleteImport removes the listening socket of a previously imported service.
@@ -900,7 +899,6 @@ func generateJWKSecret() ([]byte, error) {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(rsaKey),
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("cannot encode JWK key: %w", err)
 	}
