@@ -199,6 +199,9 @@ metadata:
   name: cl-controlplane
 rules:
 - apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["create", "get", "list", "update", "watch"]
+- apiGroups: [""]
   resources: ["events"]
   verbs: ["create", "update"]
 - apiGroups: [""]
