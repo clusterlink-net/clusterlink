@@ -27,6 +27,12 @@ import (
 )
 
 const (
+	nsTemplate = `---
+  apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: {{.namespace}}
+`
 	certsTemplate = `---
 apiVersion: v1
 kind: Secret
@@ -64,7 +70,6 @@ data:
   {{.peerKeyFile}}: {{.peerKey}}
   {{.fabricCertFile}}: {{.fabricCert}}
 `
-
 	k8sTemplate = `---
 apiVersion: apps/v1
 kind: Deployment
@@ -237,7 +242,8 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: {{.namespace}}`
+  namespace: {{.namespace}}
+`
 	ClusterLinkInstanceTemplate = `apiVersion: clusterlink.net/v1alpha1
 kind: Instance
 metadata:
@@ -263,6 +269,24 @@ spec:
   namespace: {{.namespace}}
   tag: {{.tag}}
 `
+	ingressTemplate = `---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clusterlink
+  namespace: {{.namespace}}
+spec:
+  type: {{.ingressType}}
+  ports:
+    - name: dataplane
+      port: {{.ingressPort }}
+      targetPort: {{.dataplanePort}}
+{{ if .ingressNodePort }}
+      nodePort: {{.ingressNodePort }}
+{{ end }}
+  selector:
+    app:  {{.dataplaneAppName}}
+  `
 )
 
 // K8SConfig returns a kubernetes deployment file.
@@ -299,19 +323,36 @@ func K8SConfig(config *Config) ([]byte, error) {
 		"dataplanePort":    dpapi.ListenPort,
 	}
 
-	var k8sConfig bytes.Buffer
-	t := template.Must(template.New("").Parse(k8sTemplate))
+	var k8sConfig, nsConfig bytes.Buffer
+	// ClusterLink namespace
+	t := template.Must(template.New("").Parse(nsTemplate))
+	if err := t.Execute(&nsConfig, args); err != nil {
+		return nil, fmt.Errorf("cannot create K8s namespace from template: %w", err)
+	}
+
+	// ClusterLink components
+	t = template.Must(template.New("").Parse(k8sTemplate))
 	if err := t.Execute(&k8sConfig, args); err != nil {
 		return nil, fmt.Errorf("cannot create k8s configuration from template: %w", err)
 	}
 
+	// ClusterLink certificates
 	certConfig, err := K8SCertificateConfig(config)
 	if err != nil {
 		return nil, err
 	}
 
-	k8sBytes := certConfig
+	// ClusterLink ingress service
+	ingressConfig, err := k8SIngressConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	k8sBytes := nsConfig.Bytes()
+	k8sBytes = append(k8sBytes, certConfig...)
 	k8sBytes = append(k8sBytes, k8sConfig.Bytes()...)
+	k8sBytes = append(k8sBytes, ingressConfig...)
+
 	return k8sBytes, nil
 }
 
@@ -372,6 +413,7 @@ func K8SClusterLinkInstanceConfig(config *Config, name string) ([]byte, error) {
 		}
 		args["ingressPort"] = config.IngressPort
 	}
+
 	var clConfig bytes.Buffer
 	t := template.Must(template.New("").Parse(ClusterLinkInstanceTemplate))
 	if err := t.Execute(&clConfig, args); err != nil {
@@ -403,4 +445,39 @@ func K8SEmptyCertificateConfig(config *Config) ([]byte, error) {
 	}
 
 	return certConfig.Bytes(), nil
+}
+
+// k8SIngressConfig returns a kubernetes ingress service.
+func k8SIngressConfig(config *Config) ([]byte, error) {
+	var ingressConfig bytes.Buffer
+	if config.IngressType == "" {
+		return ingressConfig.Bytes(), nil
+	}
+
+	args := map[string]interface{}{
+		"namespace":   config.Namespace,
+		"ingressPort": apis.DefaultExternalPort,
+		"ingressType": config.IngressType,
+
+		"dataplaneAppName": dpapp.Name,
+		"dataplanePort":    dpapi.ListenPort,
+	}
+
+	if config.IngressPort != 0 {
+		if config.IngressType == string(apis.IngressTypeNodePort) {
+			args["ingressNodePort"] = config.IngressPort
+			if (config.IngressPort < 30000) || (config.IngressPort > 32767) {
+				return nil, fmt.Errorf("nodeport number %v is not in the valid range (30000:32767)", config.IngressPort)
+			}
+		} else {
+			args["ingressPort"] = config.IngressPort
+		}
+	}
+
+	t := template.Must(template.New("").Parse(ingressTemplate))
+	if err := t.Execute(&ingressConfig, args); err != nil {
+		return nil, fmt.Errorf("cannot create K8s namespace from template: %w", err)
+	}
+
+	return ingressConfig.Bytes(), nil
 }

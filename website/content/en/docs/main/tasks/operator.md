@@ -61,7 +61,7 @@ The deployment process can be split into two steps:
 1. Deploy only ClusterLink operator:
 
     ```sh
-    clusterlink deploy peer ---name <peer_name> --fabric <fabric_name> --start operator
+    clusterlink deploy peer --name <peer_name> --fabric <fabric_name> --start operator
     ```
 
     The `start` flag will deploy only the ClusterLink operator and the certificate's secrets as described in the [common use case][] above.
@@ -120,6 +120,30 @@ The `deploy peer` {{< anchor commandline-flags >}} command has the following fla
         `none` doesn't deploy the operator and creates a `k8s.yaml` file that allows deploying ClusterLink without the operator.
    - **path**: Represents the path where the peer and fabric certificates are stored,
         by default is the working current working directory.
+
+## Manual Deployment without the operator
+
+To deploy the ClusterLink without using the Operator, follow the instructions below:
+
+1. Create a `k8s.yaml` file to deploy ClusterLink without the operator:
+
+    ```sh
+    clusterlink deploy peer --name <peer_name> --fabric <fabric_name> --start none
+    ```
+
+    The `k8s.yaml` file contains the deployment of all ClusterLink components and can be configured for various purposes, such as adding sidecar pods or managing the ClusterLink certificates.
+
+1. Deploy ClusterLink CRDs:
+
+    ```sh
+    curl -L https://github.com/clusterlink-net/clusterlink/archive/refs/heads/main.tar.gz | tar -xzO clusterlink-main/config/crds | kubectl apply -f -
+    ```
+
+1. Apply the `k8s.yaml` file to the cluster:
+
+   ```sh
+    kubectl apply ./<fabric_name>/<peer_name>/k8s.yaml
+    ```
 
 ## Manual Deployment without CLI
 
