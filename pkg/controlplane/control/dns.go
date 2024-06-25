@@ -29,12 +29,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Restart coredns deployment
+// Restart coredns deployment.
 func restartCoreDNS(ctx context.Context, mClient client.Client, logger *logrus.Entry) error {
 	logger.Infof("restarting coredns deployment")
 	patch := []byte(
 		fmt.Sprintf(
-			`{"spec": {"template": {"metadata": {"annotations":{"kubectl.kubernetes.io/restartedAt": "%s"}}}}}`,
+			`{"spec": {"template": {"metadata": {"annotations":{"kubectl.kubernetes.io/restartedAt": %q}}}}}`,
 			time.Now().String(),
 		),
 	)
@@ -51,7 +51,7 @@ func restartCoreDNS(ctx context.Context, mClient client.Client, logger *logrus.E
 	return nil
 }
 
-// Add coredns rewrite for a given external dns service
+// Add coredns rewrite for a given external dns service.
 func addCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *logrus.Entry, name *types.NamespacedName, alias string) error {
 	corednsName := types.NamespacedName{
 		Name:      "coredns",
@@ -63,9 +63,8 @@ func addCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *logru
 		if k8serrors.IsNotFound(err) {
 			logger.Warnf("coredns configmap not found.")
 			return nil
-		} else {
-			return err
 		}
+		return err
 	}
 	if data, ok := cm.Data["Corefile"]; ok {
 		// remove trailing end-of-line
@@ -135,9 +134,8 @@ func removeCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *lo
 		if k8serrors.IsNotFound(err) {
 			logger.Warnf("coredns configmap not found.")
 			return nil
-		} else {
-			return err
 		}
+		return err
 	}
 	if data, ok := cm.Data["Corefile"]; ok {
 		// remove trailing end-of-line
