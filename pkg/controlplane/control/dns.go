@@ -52,7 +52,9 @@ func restartCoreDNS(ctx context.Context, mClient client.Client, logger *logrus.E
 }
 
 // Add coredns rewrite for a given external dns service.
-func addCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *logrus.Entry, name *types.NamespacedName, alias string) error {
+func addCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *logrus.Entry, name *types.NamespacedName,
+	alias string,
+) error {
 	corednsName := types.NamespacedName{
 		Name:      "coredns",
 		Namespace: "kube-system",
@@ -101,7 +103,7 @@ func addCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *logru
 
 		if coreFileUpdated {
 			// update configmap and restart the pods
-			var newLines string = ""
+			var newLines string
 			for _, line := range lines {
 				// return back EOL
 				newLines += (line + "\n")
@@ -122,7 +124,7 @@ func addCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *logru
 	return nil
 }
 
-// Remove coredns rewrite for a given external dns service
+// Remove coredns rewrite for a given external dns service.
 func removeCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *logrus.Entry, name *types.NamespacedName) error {
 	corednsName := types.NamespacedName{
 		Name:      "coredns",
@@ -156,7 +158,7 @@ func removeCoreDNSRewrite(ctx context.Context, mClient client.Client, logger *lo
 
 		if coreFileUpdated {
 			// update configmap and restart the pods
-			var newLines string = ""
+			var newLines string
 			for _, line := range lines {
 				// return back EOL
 				newLines += (line + "\n")
