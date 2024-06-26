@@ -23,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/control"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
@@ -407,7 +408,7 @@ func (s *TestSuite) TestImportMerge() {
 	// delete dataplane endpoint slice by deleting the dataplane service
 	var dataplaneService v1.Service
 	require.Nil(s.T(), cl[0].Cluster().Resources().Get(
-		context.Background(), "cl-dataplane", cl[0].Namespace(), &dataplaneService))
+		context.Background(), dpapp.IngressSvcName, cl[0].Namespace(), &dataplaneService))
 	require.Nil(s.T(), cl[0].Cluster().Resources().Delete(
 		context.Background(), &dataplaneService))
 

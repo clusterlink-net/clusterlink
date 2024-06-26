@@ -24,6 +24,7 @@ import (
 	apis "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -186,18 +187,6 @@ spec:
     - name: controlplane
       port: {{.controlplanePort}}
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: cl-dataplane
-  namespace: {{.namespace}}
-spec:
-  selector:
-    app: {{ .dataplaneAppName }}
-  ports:
-    - name: dataplane
-      port: {{.dataplanePort}}
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -273,7 +262,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: clusterlink
+  name: {{.dataplaneService}}
   namespace: {{.namespace}}
 spec:
   type: {{.ingressType}}
@@ -450,15 +439,18 @@ func K8SEmptyCertificateConfig(config *Config) ([]byte, error) {
 // k8SIngressConfig returns a kubernetes ingress service.
 func k8SIngressConfig(config *Config) ([]byte, error) {
 	var ingressConfig bytes.Buffer
-	if config.IngressType == "" {
-		return ingressConfig.Bytes(), nil
+
+	ingressType := string(corev1.ServiceTypeClusterIP)
+	if config.IngressType == string(apis.IngressTypeNodePort) || config.IngressType == string(apis.IngressTypeLoadBalancer) {
+		ingressType = config.IngressType
 	}
 
 	args := map[string]interface{}{
 		"namespace":   config.Namespace,
 		"ingressPort": apis.DefaultExternalPort,
-		"ingressType": config.IngressType,
+		"ingressType": ingressType,
 
+		"dataplaneService": dpapp.IngressSvcName,
 		"dataplaneAppName": dpapp.Name,
 		"dataplanePort":    dpapi.ListenPort,
 	}

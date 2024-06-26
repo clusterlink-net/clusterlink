@@ -449,7 +449,7 @@ func (m *Manager) checkJWKSecret(ctx context.Context, name types.NamespacedName)
 
 // addEndpointSlice adds a dataplane / import endpoint slices.
 func (m *Manager) addEndpointSlice(ctx context.Context, endpointSlice *discv1.EndpointSlice) error {
-	if endpointSlice.Labels[discv1.LabelServiceName] == dpapp.Name && endpointSlice.Namespace == m.namespace {
+	if endpointSlice.Labels[discv1.LabelServiceName] == dpapp.IngressSvcName && endpointSlice.Namespace == m.namespace {
 		m.logger.Infof("Adding a dataplane endpoint slice: %s", endpointSlice.Name)
 
 		mergeImportList := v1alpha1.ImportList{}
@@ -808,7 +808,7 @@ func (m *Manager) addImportEndpointSlices(ctx context.Context, imp *v1alpha1.Imp
 	err := m.client.List(
 		ctx,
 		&dataplaneEndpointSliceList,
-		client.MatchingLabels{discv1.LabelServiceName: dpapp.Name},
+		client.MatchingLabels{discv1.LabelServiceName: dpapp.IngressSvcName},
 		client.InNamespace(m.namespace))
 	if err != nil {
 		return err

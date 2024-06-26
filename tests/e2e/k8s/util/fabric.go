@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 
+	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
@@ -258,9 +259,8 @@ func (f *Fabric) deployClusterLink(target *peer, cfg *PeerConfig) (*ClusterLink,
 		return nil, fmt.Errorf("namespace not set")
 	}
 
-	svcNodePort := "cl-dataplane"
+	svcNodePort := dpapp.IngressSvcName
 	if cfg.DeployWithOperator {
-		svcNodePort = controller.IngressName
 		deployFunc = f.deployUsingOperator
 	} else {
 		deployFunc = f.deployUsingK8sYAML

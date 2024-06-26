@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
+	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	clusterlink "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/operator/controller"
 )
@@ -150,8 +151,8 @@ func TestClusterLinkController(t *testing.T) {
 	}
 	roleResource := []client.Object{&rbacv1.ClusterRole{}, &rbacv1.ClusterRoleBinding{}}
 	dpID := types.NamespacedName{Name: controller.DataPlaneName, Namespace: controller.InstanceNamespace}
-	dpResource := []client.Object{&appsv1.Deployment{}, &corev1.Service{}}
-	ingressID := types.NamespacedName{Name: controller.IngressName, Namespace: controller.InstanceNamespace}
+	dpResource := []client.Object{&appsv1.Deployment{}}
+	ingressID := types.NamespacedName{Name: dpapp.IngressSvcName, Namespace: controller.InstanceNamespace}
 
 	t.Run("Create ClusterLink deployment", func(t *testing.T) {
 		// Create ClusterLink namespaces
