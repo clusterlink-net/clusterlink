@@ -38,6 +38,8 @@ const (
 
 	// Name is the app label of dataplane pods.
 	Name = "cl-dataplane"
+	// IngressSvcName is the ingress service name for the dataplane pods.
+	IngressSvcName = "clusterlink"
 )
 
 // Options contains everything necessary to create and run a dataplane.

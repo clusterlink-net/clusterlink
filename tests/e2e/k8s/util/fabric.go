@@ -20,10 +20,12 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 
+	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
@@ -142,13 +144,6 @@ func (f *Fabric) SwitchToNewNamespace(name string, appendName bool) error {
 		f.baseNamespace = name
 	}
 
-	// create new namespace
-	for _, p := range f.peers {
-		if err := p.cluster.CreateNamespace(name); err != nil {
-			return fmt.Errorf("cannot create namespace %s: %w", name, err)
-		}
-	}
-
 	if f.namespace != "" {
 		// delete old namespace
 		for _, p := range f.peers {
@@ -165,7 +160,7 @@ func (f *Fabric) SwitchToNewNamespace(name string, appendName bool) error {
 				}
 			}
 
-			if err := p.cluster.DeleteNamespace(f.namespace); err != nil {
+			if err := p.cluster.DeleteNamespace(f.namespace); err != nil && !apierrors.IsNotFound(err) {
 				return fmt.Errorf("cannot delete namespace %s: %w", f.namespace, err)
 			}
 		}
@@ -180,6 +175,11 @@ var deployFunc func(target *peer, cfg *PeerConfig) error
 // deployUsingOperator deploys ClusterLink using operator.
 func (f *Fabric) deployUsingOperator(target *peer, cfg *PeerConfig) error {
 	instanceName := "cl-instance" + f.namespace
+
+	// Create namespace to run ClusterLink
+	if err := target.cluster.CreateNamespace(f.namespace); err != nil {
+		return fmt.Errorf("cannot create namespace %s: %w", f.namespace, err)
+	}
 
 	// Create ClusterLink instance
 	instance, err := f.generateClusterlinkInstance(instanceName, target, cfg)
@@ -259,9 +259,8 @@ func (f *Fabric) deployClusterLink(target *peer, cfg *PeerConfig) (*ClusterLink,
 		return nil, fmt.Errorf("namespace not set")
 	}
 
-	svcNodePort := "cl-dataplane"
+	svcNodePort := dpapp.IngressSvcName
 	if cfg.DeployWithOperator {
-		svcNodePort = controller.IngressName
 		deployFunc = f.deployUsingOperator
 	} else {
 		deployFunc = f.deployUsingK8sYAML

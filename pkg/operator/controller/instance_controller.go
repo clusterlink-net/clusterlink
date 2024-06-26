@@ -44,7 +44,6 @@ const (
 	ControlPlaneName  = "cl-controlplane"
 	DataPlaneName     = "cl-dataplane"
 	GoDataPlaneName   = "cl-go-dataplane"
-	IngressName       = "clusterlink"
 	OperatorNamespace = "clusterlink-operator"
 	InstanceNamespace = "clusterlink-system"
 	FinalizerName     = "instance.clusterlink.net/finalizer"
@@ -204,10 +203,6 @@ func (r *InstanceReconciler) applyClusterLink(ctx context.Context, instance *clu
 	}
 
 	// Create datapalne components
-	if err := r.createService(ctx, DataPlaneName, instance.Spec.Namespace, dpapi.ListenPort); err != nil {
-		return err
-	}
-
 	if err := r.applyDataplane(ctx, instance); err != nil {
 		return err
 	}
@@ -516,7 +511,7 @@ func (r *InstanceReconciler) createExternalService(ctx context.Context, instance
 	// Create a Service object
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        IngressName,
+			Name:        dpapp.IngressSvcName,
 			Namespace:   instance.Spec.Namespace,
 			Annotations: instance.Spec.Ingress.Annotations,
 		},
@@ -632,7 +627,7 @@ func (r *InstanceReconciler) deleteClusterLink(ctx context.Context, namespace st
 	}
 
 	// Delete external ingress service
-	ingerssObj := metav1.ObjectMeta{Name: IngressName, Namespace: namespace}
+	ingerssObj := metav1.ObjectMeta{Name: dpapp.IngressSvcName, Namespace: namespace}
 	return r.deleteResource(ctx, &corev1.Service{ObjectMeta: ingerssObj})
 }
 
@@ -720,7 +715,7 @@ func (r *InstanceReconciler) checkDataplaneStatus(ctx context.Context, instance 
 
 // checkIngressStatus check the status of the ingress components.
 func (r *InstanceReconciler) checkIngressStatus(ctx context.Context, instance *clusterlink.Instance) (bool, error) {
-	ingress := types.NamespacedName{Name: IngressName, Namespace: instance.Spec.Namespace}
+	ingress := types.NamespacedName{Name: dpapp.IngressSvcName, Namespace: instance.Spec.Namespace}
 	serviceStatus, err := r.checkExternalServiceStatus(ctx, ingress, &instance.Status.Ingress)
 	if err != nil {
 		return false, err

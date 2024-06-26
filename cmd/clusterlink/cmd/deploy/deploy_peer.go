@@ -197,6 +197,11 @@ func (o *PeerOptions) Run() error {
 		Tag:                     o.Tag,
 	}
 
+	// Create clusterlink instance YAML for the operator.
+	if o.IngressPort != apis.DefaultExternalPort { // Set the port config only if it has changed.
+		platformCfg.IngressPort = o.IngressPort
+	}
+
 	if o.StartInstance == NoStart {
 		// Create a YAML file for deployment without using the operator.
 		k8sConfig, err := platform.K8SConfig(platformCfg)
@@ -258,11 +263,6 @@ func (o *PeerOptions) Run() error {
 	)
 	if err != nil {
 		return err
-	}
-
-	// Create clusterlink instance YAML for the operator.
-	if o.IngressPort != apis.DefaultExternalPort { // Set the port config only if it has changed.
-		platformCfg.IngressPort = o.IngressPort
 	}
 
 	instance, err := platform.K8SClusterLinkInstanceConfig(platformCfg, "cl-instance")
