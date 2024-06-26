@@ -889,7 +889,6 @@ func generateJWKSecret() ([]byte, error) {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(rsaKey),
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("cannot encode JWK key: %w", err)
 	}

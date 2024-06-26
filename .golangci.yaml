@@ -24,7 +24,7 @@ linters:
     - bodyclose
     - contextcheck
     - durationcheck
-    - errcheck 
+    - errcheck
     - errname
     - errorlint
     - exportloopref
@@ -122,7 +122,8 @@ linters-settings:
 
 output:
   # prefer the simplest output: `line-number` without saving to file
-  format: line-number
+  formats:
+    - format: line-number
   print-issued-lines: false
   print-linter-name: true
   # allow multiple reports per line
