@@ -23,7 +23,6 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/wait"
 
 	clusterlink "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
-	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 	"github.com/clusterlink-net/clusterlink/pkg/operator/controller"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/httpecho"
@@ -34,8 +33,6 @@ import (
 func (s *TestSuite) TestOperator() {
 	// Deploy ClusterLink with operator
 	cfg := &util.PeerConfig{
-		DataplaneType:      platform.DataplaneTypeEnvoy,
-		Dataplanes:         1,
 		DeployWithOperator: true,
 	}
 	cl, err := s.fabric.DeployClusterlinks(2, cfg)

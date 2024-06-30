@@ -29,12 +29,13 @@ import (
 	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
-	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
 	"github.com/clusterlink-net/clusterlink/pkg/operator/controller"
 )
 
 // PeerConfig is a peer configuration.
 type PeerConfig struct {
+	// Controlplanes is the number of controlplane instances.
+	Controlplanes uint16
 	// DataplaneType is the dataplane type (envoy / go).
 	DataplaneType string
 	// Dataplanes is the number of dataplane instances.
@@ -316,10 +317,7 @@ func (f *Fabric) DeployClusterlinks(peerCount uint8, cfg *PeerConfig) ([]*Cluste
 
 	if cfg == nil {
 		// default config
-		cfg = &PeerConfig{
-			DataplaneType: platform.DataplaneTypeEnvoy,
-			Dataplanes:    1,
-		}
+		cfg = &PeerConfig{}
 	}
 
 	clusterlinks := make([]*ClusterLink, peerCount)

@@ -197,7 +197,6 @@ func (s *TestSuite) RunOnAllDataplaneTypes(test func(cfg *util.PeerConfig)) {
 		s.RunSubTest(dataplaneType, func() {
 			test(&util.PeerConfig{
 				DataplaneType: dataplaneType,
-				Dataplanes:    1,
 			})
 		})
 	}
