@@ -41,9 +41,6 @@ import (
 )
 
 const (
-	ControlPlaneName  = "cl-controlplane"
-	DataPlaneName     = "cl-dataplane"
-	GoDataPlaneName   = "cl-go-dataplane"
 	OperatorNamespace = "clusterlink-operator"
 	InstanceNamespace = "clusterlink-system"
 	FinalizerName     = "instance.clusterlink.net/finalizer"
@@ -87,7 +84,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: ControlPlaneName,
+					Name: cpapi.Name,
 				},
 			},
 			&handler.EnqueueRequestForObject{},
@@ -95,7 +92,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: DataPlaneName,
+					Name: dpapi.Name,
 				},
 			},
 			&handler.EnqueueRequestForObject{},
@@ -190,11 +187,11 @@ func (r *InstanceReconciler) applyClusterLink(ctx context.Context, instance *clu
 		instance.Spec.ContainerRegistry += "/"
 	}
 	// Create controlplane components
-	if err := r.createAccessControl(ctx, ControlPlaneName, instance.Spec.Namespace); err != nil {
+	if err := r.createAccessControl(ctx, cpapi.Name, instance.Spec.Namespace); err != nil {
 		return err
 	}
 
-	if err := r.createService(ctx, ControlPlaneName, instance.Spec.Namespace, cpapi.ListenPort); err != nil {
+	if err := r.createService(ctx, cpapi.Name, instance.Spec.Namespace, cpapi.ListenPort); err != nil {
 		return err
 	}
 
@@ -213,9 +210,9 @@ func (r *InstanceReconciler) applyClusterLink(ctx context.Context, instance *clu
 
 // applyControlplane sets up the controlplane deployment.
 func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *clusterlink.Instance) error {
-	cpDeployment := r.setDeployment(ControlPlaneName, instance.Spec.Namespace, 1)
+	cpDeployment := r.setDeployment(cpapi.Name, instance.Spec.Namespace, 1)
 	cpDeployment.Spec.Template.Spec = corev1.PodSpec{
-		ServiceAccountName: ControlPlaneName,
+		ServiceAccountName: cpapi.Name,
 		Volumes: []corev1.Volume{
 			{
 				Name: "ca",
@@ -229,7 +226,7 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 				Name: "tls",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: ControlPlaneName,
+						SecretName: cpapi.Name,
 					},
 				},
 			},
@@ -244,10 +241,17 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 		},
 		Containers: []corev1.Container{
 			{
-				Name:            ControlPlaneName,
-				Image:           instance.Spec.ContainerRegistry + ControlPlaneName + ":" + instance.Spec.Tag,
+				Name:            cpapi.Name,
+				Image:           instance.Spec.ContainerRegistry + cpapi.Name + ":" + instance.Spec.Tag,
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Args:            []string{"--log-level", instance.Spec.LogLevel},
+				ReadinessProbe: &corev1.Probe{
+					ProbeHandler: corev1.ProbeHandler{
+						HTTPGet: &corev1.HTTPGetAction{
+							Port: intstr.FromInt32(cpapi.ReadinessListenPort),
+						},
+					},
+				},
 				Ports: []corev1.ContainerPort{
 					{
 						ContainerPort: cpapi.ListenPort,
@@ -296,12 +300,12 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 
 // applyDataplane sets up the dataplane deployment.
 func (r *InstanceReconciler) applyDataplane(ctx context.Context, instance *clusterlink.Instance) error {
-	DataplaneImage := DataPlaneName
+	DataplaneImage := dpapi.Name
 	if instance.Spec.DataPlane.Type == clusterlink.DataplaneTypeGo {
-		DataplaneImage = GoDataPlaneName
+		DataplaneImage = dpapi.GoDataplaneName
 	}
 
-	dpDeployment := r.setDeployment(DataPlaneName, instance.Spec.Namespace, int32(instance.Spec.DataPlane.Replicas))
+	dpDeployment := r.setDeployment(dpapi.Name, instance.Spec.Namespace, int32(instance.Spec.DataPlane.Replicas))
 	dpDeployment.Spec.Template.Spec = corev1.PodSpec{
 		Volumes: []corev1.Volume{
 			{
@@ -316,7 +320,7 @@ func (r *InstanceReconciler) applyDataplane(ctx context.Context, instance *clust
 				Name: "tls",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: DataPlaneName,
+						SecretName: dpapi.Name,
 					},
 				},
 			},
@@ -327,12 +331,19 @@ func (r *InstanceReconciler) applyDataplane(ctx context.Context, instance *clust
 				Image: instance.Spec.ContainerRegistry + DataplaneImage + ":" + instance.Spec.Tag,
 				Args: []string{
 					"--log-level", instance.Spec.LogLevel,
-					"--controlplane-host", ControlPlaneName,
+					"--controlplane-host", cpapi.Name,
 				},
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Ports: []corev1.ContainerPort{
 					{
 						ContainerPort: dpapi.ListenPort,
+					},
+				},
+				ReadinessProbe: &corev1.Probe{
+					ProbeHandler: corev1.ProbeHandler{
+						HTTPGet: &corev1.HTTPGetAction{
+							Port: intstr.FromInt32(dpapi.ReadinessListenPort),
+						},
 					},
 				},
 				VolumeMounts: []corev1.VolumeMount{
@@ -494,7 +505,7 @@ func (r *InstanceReconciler) createAccessControl(ctx context.Context, name, name
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      ControlPlaneName,
+				Name:      cpapi.Name,
 				Namespace: namespace,
 			},
 		},
@@ -517,7 +528,7 @@ func (r *InstanceReconciler) createExternalService(ctx context.Context, instance
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				"app": dpapp.Name,
+				"app": dpapi.Name,
 			},
 			Ports: []corev1.ServicePort{
 				{
@@ -599,7 +610,7 @@ func (r *InstanceReconciler) createResource(ctx context.Context, object client.O
 // deleteClusterLink delete all the ClusterLink resource.
 func (r *InstanceReconciler) deleteClusterLink(ctx context.Context, namespace string) error {
 	// Delete controlPlane Resources
-	cpObj := metav1.ObjectMeta{Name: ControlPlaneName, Namespace: namespace}
+	cpObj := metav1.ObjectMeta{Name: cpapi.Name, Namespace: namespace}
 	if err := r.deleteResource(ctx, &appsv1.Deployment{ObjectMeta: cpObj}); err != nil {
 		return err
 	}
@@ -617,7 +628,7 @@ func (r *InstanceReconciler) deleteClusterLink(ctx context.Context, namespace st
 	}
 
 	// Delete dataplane Resources
-	dpObj := metav1.ObjectMeta{Name: DataPlaneName, Namespace: namespace}
+	dpObj := metav1.ObjectMeta{Name: dpapi.Name, Namespace: namespace}
 	if err := r.deleteResource(ctx, &appsv1.Deployment{ObjectMeta: dpObj}); err != nil {
 		return err
 	}
@@ -674,7 +685,7 @@ func (r *InstanceReconciler) checkStatus(ctx context.Context, instance *clusterl
 
 // checkControlplaneStatus check the status of the controlplane components.
 func (r *InstanceReconciler) checkControlplaneStatus(ctx context.Context, instance *clusterlink.Instance) (bool, error) {
-	cp := types.NamespacedName{Name: ControlPlaneName, Namespace: instance.Spec.Namespace}
+	cp := types.NamespacedName{Name: cpapi.Name, Namespace: instance.Spec.Namespace}
 	deploymentStatus, err := r.checkDeploymnetStatus(ctx, cp)
 	if err != nil {
 		return false, err
@@ -695,7 +706,7 @@ func (r *InstanceReconciler) checkControlplaneStatus(ctx context.Context, instan
 
 // checkDataplaneStatus check the status of the dataplane components.
 func (r *InstanceReconciler) checkDataplaneStatus(ctx context.Context, instance *clusterlink.Instance) (bool, error) {
-	dp := types.NamespacedName{Name: DataPlaneName, Namespace: instance.Spec.Namespace}
+	dp := types.NamespacedName{Name: dpapi.Name, Namespace: instance.Spec.Namespace}
 	deploymentStatus, err := r.checkDeploymnetStatus(ctx, dp)
 	if err != nil {
 		return false, err

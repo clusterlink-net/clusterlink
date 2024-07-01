@@ -15,15 +15,18 @@ package server
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"syscall"
 	"time"
 
 	authv3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
 
 	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 )
 
 // StartDataplaneServer starts the Dataplane server.
@@ -55,6 +58,21 @@ func (d *Dataplane) StartDataplaneServer(dataplaneServerAddress string) error {
 	}
 
 	return server.ListenAndServeTLS("", "")
+}
+
+func (d *Dataplane) IsReady() bool {
+	resp, err := http.Get(fmt.Sprintf("https://127.0.0.1:%d", api.ListenPort))
+	if err == nil && resp.Body.Close() != nil {
+		d.logger.Infof("Cannot close readiness response body: %v", err)
+	}
+	if errors.Is(err, syscall.ECONNREFUSED) ||
+		errors.Is(err, syscall.ECONNRESET) {
+		return false
+	}
+
+	d.tlsConfigLock.RLock()
+	defer d.tlsConfigLock.RUnlock()
+	return d.tlsConfig != nil
 }
 
 func (d *Dataplane) addAuthzHandlers() {

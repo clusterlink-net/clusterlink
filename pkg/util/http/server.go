@@ -54,7 +54,13 @@ func (s *Server) Start() error {
 		}
 	}()
 
-	err := s.server.ServeTLS(s.GetListener(), "", "")
+	var err error
+	if s.server.TLSConfig != nil {
+		err = s.server.ServeTLS(s.GetListener(), "", "")
+	} else {
+		err = s.server.Serve(s.GetListener())
+	}
+
 	if err == http.ErrServerClosed {
 		s.logger.Info("Server closed by demand.")
 		return nil

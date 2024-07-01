@@ -18,6 +18,8 @@ import (
 	"path/filepath"
 
 	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
+	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 )
 
 // Certificate represents a clusterlink certificate.
@@ -69,9 +71,9 @@ func CreateCACertificate() (*Certificate, error) {
 func CreateControlplaneCertificate(caCert *Certificate) (*Certificate, error) {
 	cert, err := createCertificate(&certificateConfig{
 		Parent:   caCert.cert,
-		Name:     "cl-controlplane",
+		Name:     cpapi.Name,
 		IsServer: true,
-		DNSNames: []string{"cl-controlplane"},
+		DNSNames: []string{cpapi.Name},
 	})
 	if err != nil {
 		return nil, err
@@ -84,9 +86,9 @@ func CreateControlplaneCertificate(caCert *Certificate) (*Certificate, error) {
 func CreateDataplaneCertificate(caCert *Certificate) (*Certificate, error) {
 	cert, err := createCertificate(&certificateConfig{
 		Parent:   caCert.cert,
-		Name:     "cl-dataplane",
+		Name:     dpapi.Name,
 		IsClient: true,
-		DNSNames: []string{"cl-dataplane"},
+		DNSNames: []string{dpapi.Name},
 	})
 	if err != nil {
 		return nil, err

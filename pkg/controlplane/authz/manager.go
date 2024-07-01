@@ -455,6 +455,12 @@ func (m *Manager) SetPeerCertificates(peerTLS *tls.ParsedCertData, _ *tls.RawCer
 	return nil
 }
 
+func (m *Manager) IsReady() bool {
+	m.jwksLock.RLock()
+	defer m.jwksLock.RUnlock()
+	return m.jwkSignKey != nil
+}
+
 // NewManager returns a new authorization manager.
 func NewManager(cl client.Client, namespace string) *Manager {
 	return &Manager{

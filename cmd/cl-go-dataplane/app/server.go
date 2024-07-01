@@ -16,6 +16,7 @@ package app
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -32,6 +33,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 	dpclient "github.com/clusterlink-net/clusterlink/pkg/dataplane/client"
 	dpserver "github.com/clusterlink-net/clusterlink/pkg/dataplane/server"
+	utilhttp "github.com/clusterlink-net/clusterlink/pkg/util/http"
 	"github.com/clusterlink-net/clusterlink/pkg/util/log"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
 )
@@ -81,7 +83,7 @@ func (o *Options) runGoDataplane(dataplaneID string, parsedCertData *tls.ParsedC
 
 	controlplaneClient, err := grpc.NewClient(
 		controlplaneTarget,
-		grpc.WithTransportCredentials(credentials.NewTLS(parsedCertData.ClientConfig("cl-controlplane"))),
+		grpc.WithTransportCredentials(credentials.NewTLS(parsedCertData.ClientConfig(cpapi.Name))),
 		grpc.WithConnectParams(grpc.ConnectParams{
 			Backoff: backoff.Config{
 				BaseDelay:  100 * time.Millisecond,
@@ -101,8 +103,24 @@ func (o *Options) runGoDataplane(dataplaneID string, parsedCertData *tls.ParsedC
 		logrus.Errorf("Failed to start dataplane server: %v.", err)
 	}()
 
-	// Start xDS client, if it fails to start we keep retrying to connect to the controlplane host
 	xdsClient := dpclient.NewXDSClient(dataplane, controlplaneClient)
+
+	readinessListenAddress := fmt.Sprintf("0.0.0.0:%d", api.ReadinessListenPort)
+	httpServer := utilhttp.NewServer("go-dataplane-readiness-http", nil)
+	if err := httpServer.Listen(readinessListenAddress); err != nil {
+		return fmt.Errorf("cannot listen for readiness: %w", err)
+	}
+	httpServer.Router().Get("/", func(w http.ResponseWriter, r *http.Request) {
+		if !xdsClient.IsReady() || !dataplane.IsReady() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+	})
+	go func() {
+		err := httpServer.Start()
+		logrus.Errorf("Failed to start readiness server: %v.", err)
+	}()
+
+	// Start xDS client, if it fails to start we keep retrying to connect to the controlplane host
 	err = xdsClient.Run()
 	return fmt.Errorf("xDS Client stopped: %w", err)
 }
