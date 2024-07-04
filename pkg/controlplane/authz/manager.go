@@ -237,6 +237,7 @@ func (m *Manager) getClientAttributes(req *egressAuthorizationRequest) connectiv
 	}
 
 	clientAttrs[ServiceNamespaceLabel] = podInfo.namespace // deprecated
+	clientAttrs[ClientNamespaceLabel] = podInfo.namespace
 	clientAttrs[ClientSALabel] = podInfo.serviceAccount
 
 	if src, ok := podInfo.labels["app"]; ok {
