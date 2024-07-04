@@ -38,30 +38,42 @@ type XDSClient struct {
 	errors             map[string]error
 	logger             *logrus.Entry
 	clustersReady      chan bool
+	fetchers           map[string]*fetcher
 }
 
-func (x *XDSClient) runFetcher(resourceType string) error {
+func (x *XDSClient) runFetcher(fetcher *fetcher) error {
 	for {
-		fetcher, err := newFetcher(context.Background(), x.controlplaneClient, resourceType, x.dataplane)
-		if err != nil {
-			x.logger.Errorf("Failed to initialize %s fetcher: %v.", resourceType, err)
+		for {
+			err := fetcher.client.InitConnect(x.controlplaneClient)
+			if err == nil {
+				break
+			}
+
+			x.logger.Errorf("Failed to initialize %s fetcher: %v.", fetcher.resourceType, err)
 			time.Sleep(time.Second)
-			continue
 		}
-		x.logger.Infof("Successfully initialized client for %s type.", resourceType)
 
 		// If the resource type is listener, it shouldn't run until the cluster fetcher is running
-		switch resourceType {
+		switch fetcher.resourceType {
 		case resource.ClusterType:
 			x.clustersReady <- true
 		case resource.ListenerType:
 			<-x.clustersReady
 			x.logger.Infof("Done waiting for cluster fetcher")
 		}
-		x.logger.Infof("Starting to run %s fetcher.", resourceType)
-		err = fetcher.Run()
-		x.logger.Infof("Fetcher '%s' stopped: %v.", resourceType, err)
+		x.logger.Infof("Starting to run %s fetcher.", fetcher.resourceType)
+		err := fetcher.Run()
+		x.logger.Infof("Fetcher '%s' stopped: %v.", fetcher.resourceType, err)
 	}
+}
+
+func (x *XDSClient) IsReady() bool {
+	for _, fetcher := range x.fetchers {
+		if !fetcher.IsReady() {
+			return false
+		}
+	}
+	return true
 }
 
 // Run starts the running xDS client which fetches clusters and listeners from the controlplane.
@@ -72,7 +84,7 @@ func (x *XDSClient) Run() error {
 	for _, res := range resources {
 		go func(res string) {
 			defer wg.Done()
-			err := x.runFetcher(res)
+			err := x.runFetcher(x.fetchers[res])
 			x.logger.Errorf("Fetcher (%s) stopped: %v", res, err)
 
 			x.lock.Lock()
@@ -95,11 +107,17 @@ func (x *XDSClient) Run() error {
 
 // NewXDSClient returns am xDS client which can fetch clusters and listeners from the controlplane.
 func NewXDSClient(dataplane *server.Dataplane, controlplaneClient grpc.ClientConnInterface) *XDSClient {
+	fetchers := make(map[string]*fetcher, len(resources))
+	for _, res := range resources {
+		fetchers[res] = newFetcher(context.Background(), res, dataplane)
+	}
+
 	return &XDSClient{
 		dataplane:          dataplane,
 		controlplaneClient: controlplaneClient,
 		errors:             make(map[string]error),
 		logger:             logrus.WithField("component", "xds.client"),
 		clustersReady:      make(chan bool, 1),
+		fetchers:           fetchers,
 	}
 }

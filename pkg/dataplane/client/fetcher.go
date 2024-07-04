@@ -26,7 +26,6 @@ import (
 	client "github.com/envoyproxy/go-control-plane/pkg/client/sotw/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
@@ -41,6 +40,15 @@ type fetcher struct {
 	logger       *logrus.Entry
 	clusterLock  sync.Mutex
 	listenerLock sync.Mutex
+
+	ready     bool
+	readyLock sync.Mutex
+}
+
+func (f *fetcher) IsReady() bool {
+	f.readyLock.Lock()
+	defer f.readyLock.Unlock()
+	return f.ready
 }
 
 func (f *fetcher) handleClusters(resources []*anypb.Any) error {
@@ -122,6 +130,9 @@ func (f *fetcher) Run() error {
 			f.logger.Errorf("Failed to fetch %s: %v.", f.resourceType, err)
 			return err
 		}
+		f.readyLock.Lock()
+		f.ready = true
+		f.readyLock.Unlock()
 		f.logger.Debugf("Fetched %s -> %+v", f.resourceType, resp.Resources)
 
 		switch f.resourceType {
@@ -153,19 +164,13 @@ func (f *fetcher) Run() error {
 
 func newFetcher(
 	ctx context.Context,
-	controlplaneClient grpc.ClientConnInterface,
 	resourceType string,
 	dp *server.Dataplane,
-) (*fetcher, error) {
-	cl := client.NewADSClient(ctx, &core.Node{Id: dp.ID}, resourceType)
-	err := cl.InitConnect(controlplaneClient)
-	if err != nil {
-		return nil, err
-	}
+) *fetcher {
 	return &fetcher{
-		client:       cl,
+		client:       client.NewADSClient(ctx, &core.Node{Id: dp.ID}, resourceType),
 		resourceType: resourceType,
 		dataplane:    dp,
 		logger:       logrus.WithField("component", "fetcher.xds.client"),
-	}, nil
+	}
 }

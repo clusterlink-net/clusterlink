@@ -14,6 +14,10 @@
 package api
 
 const (
-	// ListenPort is the dataplane external listening port.
-	ListenPort = 4443
+	// ListenPort is the port used by the dataplane to access the controlplane.
+	ListenPort = 4444
+	// ReadinessListenPort is the port used to probe for controlplane readiness.
+	ReadinessListenPort = 4445
+	// Name is the controlplane name.
+	Name = "cl-controlplane"
 )

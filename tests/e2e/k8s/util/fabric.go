@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
+
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -272,7 +274,7 @@ func (f *Fabric) deployClusterLink(target *peer, cfg *PeerConfig) (*ClusterLink,
 	}
 
 	// Wait for dataplane will be ready.
-	dep := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "cl-dataplane", Namespace: f.namespace}}
+	dep := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: api.Name, Namespace: f.namespace}}
 	waitCon := conditions.New(target.cluster.resources).DeploymentConditionMatch(&dep, appsv1.DeploymentAvailable, v1.ConditionTrue)
 	err = wait.For(waitCon, wait.WithTimeout(time.Second*60))
 	if err != nil {

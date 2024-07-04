@@ -14,6 +14,12 @@
 package api
 
 const (
-	// ListenPort is the port used by the dataplane to access the controlplane.
-	ListenPort = 4444
+	// ListenPort is the dataplane external listening port.
+	ListenPort = 4443
+	// Name is the dataplane name.
+	Name = "cl-dataplane"
+	// Name of the go-dataplane image.
+	GoDataplaneName = "cl-go-dataplane"
+	// ReadinessListenPort is the port used to probe for dataplane readiness.
+	ReadinessListenPort = 4445
 )

@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 )
 
 // replaceOnce replaces <search> exactly once.
@@ -121,7 +122,7 @@ func switchClusterRoleName(yaml, name string) (string, error) {
 	search := `
 kind: ClusterRole
 metadata:
-  name: cl-controlplane`
+  name: ` + api.Name
 	replace := `
 kind: ClusterRole
 metadata:
@@ -134,7 +135,7 @@ metadata:
 
 	search = `
   kind: ClusterRole
-  name: cl-controlplane`
+  name: ` + api.Name
 	replace = `
   kind: ClusterRole
   name: %s`
@@ -146,7 +147,7 @@ func switchClusterRoleBindingName(yaml, name string) (string, error) {
 	search := `
 kind: ClusterRoleBinding
 metadata:
-  name: cl-controlplane`
+  name: ` + api.Name
 	replace := `
 kind: ClusterRoleBinding
 metadata:

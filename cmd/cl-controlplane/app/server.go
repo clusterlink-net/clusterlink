@@ -15,9 +15,12 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path"
+	"syscall"
 
 	"github.com/bombsimon/logrusr/v4"
 	"github.com/sirupsen/logrus"
@@ -39,6 +42,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/xds"
 	"github.com/clusterlink-net/clusterlink/pkg/util/controller"
 	"github.com/clusterlink-net/clusterlink/pkg/util/grpc"
+	utilhttp "github.com/clusterlink-net/clusterlink/pkg/util/http"
 	"github.com/clusterlink-net/clusterlink/pkg/util/log"
 	"github.com/clusterlink-net/clusterlink/pkg/util/runnable"
 	"github.com/clusterlink-net/clusterlink/pkg/util/tls"
@@ -219,11 +223,27 @@ func (o *Options) Run() error {
 		return err
 	}
 
+	readinessListenAddress := fmt.Sprintf("0.0.0.0:%d", api.ReadinessListenPort)
+	httpServer := utilhttp.NewServer("controlplane-http", nil)
+	httpServer.Router().Get("/", func(w http.ResponseWriter, r *http.Request) {
+		resp, err := http.Get(fmt.Sprintf("https://127.0.0.1:%d", api.ListenPort))
+		if err == nil && resp.Body.Close() != nil {
+			logrus.Infof("Cannot close readiness response body: %v", err)
+		}
+		if errors.Is(err, syscall.ECONNREFUSED) ||
+			errors.Is(err, syscall.ECONNRESET) ||
+			!authzManager.IsReady() ||
+			!mgr.GetCache().WaitForCacheSync(r.Context()) {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+	})
+
 	runnableManager := runnable.NewManager()
 	runnableManager.Add(peerCertsWatcher)
 	runnableManager.Add(controller.NewManager(mgr))
 	runnableManager.Add(controlManager)
 	runnableManager.AddServer(controlplaneServerListenAddress, grpcServer)
+	runnableManager.AddServer(readinessListenAddress, httpServer)
 
 	return runnableManager.Run()
 }

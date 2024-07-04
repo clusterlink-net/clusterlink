@@ -25,6 +25,8 @@ import (
 
 	"github.com/clusterlink-net/clusterlink/cmd/clusterlink/config"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap/platform"
+	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/operator/controller"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/httpecho"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/iperf3"
@@ -35,7 +37,7 @@ const (
 	clusterCount = 3
 )
 
-var images = [...]string{"cl-controlplane", "cl-dataplane", "cl-go-dataplane", "cl-operator"}
+var images = [...]string{cpapi.Name, dpapi.Name, dpapi.GoDataplaneName, "cl-operator"}
 
 var iperf3Service = util.Service{
 	Name:      "iperf3-server",
