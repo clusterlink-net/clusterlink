@@ -40,6 +40,10 @@ const (
 	// the number of seconds a JWT access token is valid before it expires.
 	jwtExpirySeconds = 5
 
+	ClientNameLabel       = "clusterlink/metadata.clientName"
+	ClientNamespaceLabel  = "clusterlink/metadata.clientNamespace"
+	ClientSALabel         = "clusterlink/metadata.clientServiceAccount"
+	ClientLabelsPrefix    = "client/metadata."
 	ServiceNameLabel      = "clusterlink/metadata.serviceName"
 	ServiceNamespaceLabel = "clusterlink/metadata.serviceNamespace"
 	ServiceLabelsPrefix   = "service/metadata."
@@ -84,9 +88,10 @@ type ingressAuthorizationResponse struct {
 }
 
 type podInfo struct {
-	name      string
-	namespace string
-	labels    map[string]string
+	name           string
+	namespace      string
+	serviceAccount string
+	labels         map[string]string
 }
 
 // Manager manages the authorization dataplane connections.
@@ -167,7 +172,12 @@ func (m *Manager) addPod(pod *v1.Pod) {
 	defer m.podLock.Unlock()
 
 	podID := types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}
-	m.podList[podID] = podInfo{name: pod.Name, namespace: pod.Namespace, labels: pod.Labels}
+	m.podList[podID] = podInfo{
+		name:           pod.Name,
+		namespace:      pod.Namespace,
+		labels:         pod.Labels,
+		serviceAccount: pod.Spec.ServiceAccountName,
+	}
 	for _, ip := range pod.Status.PodIPs {
 		// ignoring host-networked Pod IPs
 		if ip.IP != pod.Status.HostIP {
@@ -218,20 +228,36 @@ func (m *Manager) getPodInfoByIP(ip string) *podInfo {
 	return nil
 }
 
+func (m *Manager) getClientAttributes(req *egressAuthorizationRequest) connectivitypdp.WorkloadAttrs {
+	clientAttrs := connectivitypdp.WorkloadAttrs{GatewayNameLabel: m.getPeerName()}
+	podInfo := m.getPodInfoByIP(req.IP)
+	if podInfo == nil {
+		m.logger.Infof("Pod has no info: IP=%v.", req.IP)
+		return clientAttrs // better return an error here?
+	}
+
+	clientAttrs[ServiceNamespaceLabel] = podInfo.namespace // deprecated
+	clientAttrs[ClientSALabel] = podInfo.serviceAccount
+
+	if src, ok := podInfo.labels["app"]; ok {
+		clientAttrs[ServiceNameLabel] = src // deprecated
+		clientAttrs[ClientNameLabel] = src
+	}
+
+	for k, v := range podInfo.labels {
+		clientAttrs[ClientLabelsPrefix+k] = v
+	}
+
+	m.logger.Infof("Client attributes: %v.", clientAttrs)
+
+	return clientAttrs
+}
+
 // authorizeEgress authorizes a request for accessing an imported service.
 func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationRequest) (*egressAuthorizationResponse, error) {
 	m.logger.Infof("Received egress authorization request: %v.", req)
 
-	srcAttributes := connectivitypdp.WorkloadAttrs{GatewayNameLabel: m.getPeerName()}
-	podInfo := m.getPodInfoByIP(req.IP)
-	if podInfo != nil {
-		srcAttributes[ServiceNamespaceLabel] = podInfo.namespace
-
-		if src, ok := podInfo.labels["app"]; ok { // TODO: Add support for labels other than just the "app" key.
-			m.logger.Infof("Received egress authorization srcLabels[app]: %v.", podInfo.labels["app"])
-			srcAttributes[ServiceNameLabel] = src
-		}
-	}
+	srcAttributes := m.getClientAttributes(req)
 
 	var imp v1alpha1.Import
 	if err := m.client.Get(ctx, req.ImportName, &imp); err != nil {

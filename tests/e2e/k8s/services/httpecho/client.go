@@ -29,6 +29,8 @@ import (
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/util"
 )
 
+const EchoClientPodName = "echo-client"
+
 func GetEchoValue(cluster *util.KindCluster, server *util.Service) (string, error) {
 	port, err := cluster.ExposeNodeport(server)
 	if err != nil {
@@ -77,10 +79,22 @@ func GetEchoValue(cluster *util.KindCluster, server *util.Service) (string, erro
 
 func RunClientInPod(cluster *util.KindCluster, server *util.Service) (string, error) {
 	body, err := cluster.RunPod(&util.Pod{
-		Name:      "echo-client",
+		Name:      EchoClientPodName,
 		Namespace: server.Namespace,
 		Image:     "curlimages/curl",
 		Args:      []string{"curl", "-s", "-m", "1", "http://" + server.Name},
+	})
+	return strings.TrimSpace(body), err
+}
+
+// Sleep allows more time for CL to be notified of the new Pod, so CL can retrieve the Pod's info.
+func RunClientInPodWithSleep(cluster *util.KindCluster, server *util.Service) (string, error) {
+	body, err := cluster.RunPod(&util.Pod{
+		Name:      EchoClientPodName,
+		Namespace: server.Namespace,
+		Image:     "curlimages/curl",
+		Command:   []string{"sh", "-c"},
+		Args:      []string{"sleep 3 && curl -s -m 1 http://" + server.Name},
 	})
 	return strings.TrimSpace(body), err
 }

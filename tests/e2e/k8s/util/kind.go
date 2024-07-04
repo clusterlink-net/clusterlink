@@ -83,6 +83,8 @@ type Pod struct {
 	Namespace string
 	// Image is the container image.
 	Image string
+	// Command is the command to execute on the container
+	Command []string
 	// Args are the container command line arguments.
 	Args []string
 }
@@ -300,9 +302,10 @@ func (c *KindCluster) RunPod(podSpec *Pod) (string, error) {
 			Spec: v1.PodSpec{
 				RestartPolicy: v1.RestartPolicyNever,
 				Containers: []v1.Container{{
-					Name:  podSpec.Name,
-					Image: podSpec.Image,
-					Args:  podSpec.Args,
+					Name:    podSpec.Name,
+					Image:   podSpec.Image,
+					Command: podSpec.Command,
+					Args:    podSpec.Args,
 				}},
 			},
 		})

@@ -15,6 +15,7 @@ package k8s
 
 import (
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/authz"
@@ -24,19 +25,7 @@ import (
 )
 
 func (s *TestSuite) TestPolicyLabels() {
-	cl, err := s.fabric.DeployClusterlinks(2, nil)
-	require.Nil(s.T(), err)
-
-	require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
-	require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
-	require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
-
-	importedService := &util.Service{
-		Name:   httpEchoService.Name,
-		Port:   80,
-		Labels: httpEchoService.Labels,
-	}
-	require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
+	cl, importedService := s.createTwoClustersWithEchoSvc()
 
 	// 1. Create a policy that allows traffic only to the echo service at cl[0] - apply in cl[1] (on egress)
 	//    In addition, create a policy to only allow traffic from cl[1] - apply in cl[0] (on ingress)
@@ -143,20 +132,58 @@ func (s *TestSuite) TestPolicyLabels() {
 	require.Equal(s.T(), cl[0].Name(), data)
 }
 
-func (s *TestSuite) TestPrivilegedPolicies() {
-	cl, err := s.fabric.DeployClusterlinks(2, nil)
+func (s *TestSuite) TestPodAttributes() {
+	cl, importedService := s.createTwoClustersWithEchoSvc()
+	require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
+	require.Nil(s.T(), cl[1].CreatePolicy(util.PolicyAllowAll))
+
+	// 1. Sanity - just test that a pod can connect to echo service
+	data, err := cl[1].AccessService(httpecho.RunClientInPodWithSleep, importedService, true, nil)
+	require.Nil(s.T(), err)
+	require.Equal(s.T(), cl[0].Name(), data)
+
+	// 2. Denying clients with a service account which is different from the Pod's SA - connection should work
+	srcLabels := map[string]string{
+		authz.ClientSALabel: "non-default",
+	}
+	denyNonDefaultSA := util.NewPolicy("deny-non-default-sa", v1alpha1.AccessPolicyActionDeny, srcLabels, nil)
+	require.Nil(s.T(), cl[0].CreatePolicy(denyNonDefaultSA))
+	require.Nil(s.T(), cl[1].CreatePolicy(denyNonDefaultSA))
+	_, err = cl[1].AccessService(httpecho.RunClientInPodWithSleep, importedService, true, nil)
 	require.Nil(s.T(), err)
 
-	require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
-	require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
-	require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
-	require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
-
-	importedService := &util.Service{
-		Name: httpEchoService.Name,
-		Port: 80,
+	// 3. Egress only - denying clients with a SA which equals the Pod's SA - connection should fail
+	srcLabels = map[string]string{
+		authz.ClientSALabel: "default",
 	}
-	require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
+	denyDefaultSA := util.NewPolicy("deny-default-sa", v1alpha1.AccessPolicyActionDeny, srcLabels, nil)
+	require.Nil(s.T(), cl[1].CreatePolicy(denyDefaultSA))
+	_, err = cl[1].AccessService(httpecho.RunClientInPodWithSleep, importedService, true, nil)
+	require.NotNil(s.T(), err)
+	require.Nil(s.T(), cl[1].DeletePolicy(denyDefaultSA.Name)) // revert
+
+	// 4. Ingress only - denying clients with a SA which equals the Pod's SA - connection should fail
+	require.Nil(s.T(), cl[0].CreatePolicy(denyDefaultSA))
+	_, err = cl[1].AccessService(httpecho.RunClientInPodWithSleep, importedService, true, nil)
+	require.NotNil(s.T(), err)
+	require.Nil(s.T(), cl[0].DeletePolicy(denyDefaultSA.Name)) // revert
+
+	// 5. Egress only - denying client-pods with a label different from the client pod - connection should work
+	selRequirement := metav1.LabelSelectorRequirement{
+		Key:      authz.ClientLabelsPrefix + "app",
+		Operator: metav1.LabelSelectorOpNotIn,
+		Values:   []string{httpecho.EchoClientPodName},
+	}
+	labelSelector := metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selRequirement}}
+	denyOthers := util.NewPolicyFromLabelSelectors("deny-others", v1alpha1.AccessPolicyActionDeny, &labelSelector, nil)
+	require.Nil(s.T(), cl[1].CreatePolicy(denyOthers))
+	_, err = cl[1].AccessService(httpecho.RunClientInPodWithSleep, importedService, true, nil)
+	require.Nil(s.T(), err)
+}
+
+func (s *TestSuite) TestPrivilegedPolicies() {
+	cl, importedService := s.createTwoClustersWithEchoSvc()
+	require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
 
 	dstLabels := map[string]string{
 		authz.ServiceNameLabel: httpEchoService.Name,
@@ -180,7 +207,7 @@ func (s *TestSuite) TestPrivilegedPolicies() {
 	require.Nil(s.T(), cl[1].CreatePolicy(regAllowPolicy))
 
 	// 1. privileged deny has highest priority -> connection is denied
-	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
+	_, err := cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
 	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 
 	// 2. deleting privileged deny -> privileged allow now has highest priority -> connection is allowed
@@ -208,4 +235,21 @@ func (s *TestSuite) TestPrivilegedPolicies() {
 
 	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
 	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+}
+
+func (s *TestSuite) createTwoClustersWithEchoSvc() ([]*util.ClusterLink, *util.Service) {
+	cl, err := s.fabric.DeployClusterlinks(2, nil)
+	require.Nil(s.T(), err)
+
+	require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
+	require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
+	require.Nil(s.T(), cl[1].CreatePeer(cl[0]))
+
+	importedService := &util.Service{
+		Name:   httpEchoService.Name,
+		Port:   80,
+		Labels: httpEchoService.Labels,
+	}
+	require.Nil(s.T(), cl[1].CreateImport(importedService, cl[0], httpEchoService.Name))
+	return cl, importedService
 }
