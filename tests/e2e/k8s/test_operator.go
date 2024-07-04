@@ -18,15 +18,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apiwait "k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait"
-	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 
 	clusterlink "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
-	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/operator/controller"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services/httpecho"
@@ -83,16 +79,19 @@ func (s *TestSuite) TestOperator() {
 		condStatus metav1.ConditionStatus,
 	) apiwait.ConditionWithContextFunc {
 		return func(ctx context.Context) (bool, error) {
-			done := false
 			if err := peerResource.Get(ctx, instance.GetName(), instance.GetNamespace(), instance); err != nil {
 				return false, err
 			}
-			if c, ok := instance.Status.Controlplane.Conditions[string(clusterlink.DeploymentReady)]; ok {
-				if c.Status == condStatus {
-					done = true
-				}
+
+			conds := &instance.Status.Controlplane.Conditions
+			if c, ok := (*conds)[string(clusterlink.DeploymentReady)]; !ok || c.Status != condStatus {
+				return false, nil
 			}
-			return done, nil
+			conds = &instance.Status.Dataplane.Conditions
+			if c, ok := (*conds)[string(clusterlink.DeploymentReady)]; !ok || c.Status != condStatus {
+				return false, nil
+			}
+			return true, nil
 		}
 	}
 
@@ -129,19 +128,6 @@ func (s *TestSuite) TestOperator() {
 	err = peerResource.Get(context.Background(), "instance2", controller.OperatorNamespace, instance2)
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), metav1.ConditionTrue, instance2.Status.Controlplane.Conditions[string(clusterlink.DeploymentReady)].Status)
-
-	dep := appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      api.Name,
-			Namespace: s.fabric.Namespace(),
-		},
-	}
-	waitCon := conditions.New(peerResource).DeploymentConditionMatch(
-		&dep, appsv1.DeploymentAvailable, v1.ConditionTrue)
-	require.Nil(s.T(), wait.For(waitCon, wait.WithTimeout(time.Second*60)))
-	err = peerResource.Get(context.Background(), "instance2", controller.OperatorNamespace, instance2)
-	require.Nil(s.T(), err)
-
 	require.Equal(s.T(), metav1.ConditionTrue, instance2.Status.Dataplane.Conditions[string(clusterlink.DeploymentReady)].Status)
 	require.Equal(s.T(), metav1.ConditionTrue, instance2.Status.Ingress.Conditions[string(clusterlink.ServiceReady)].Status)
 
