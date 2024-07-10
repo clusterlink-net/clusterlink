@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apiwait "k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait"
 
@@ -40,7 +40,7 @@ func (s *TestSuite) TestOperator() {
 
 	// Deploy instance2
 	instance2 := &clusterlink.Instance{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "instance2",
 			Namespace: controller.OperatorNamespace,
 		},
@@ -74,41 +74,47 @@ func (s *TestSuite) TestOperator() {
 	require.Equal(s.T(), cl[0].Name(), data)
 
 	// Verify that instance2 failed.
-	instanceReadyCondition := func(instance *clusterlink.Instance, condStatus v1.ConditionStatus) apiwait.ConditionWithContextFunc {
+	instanceReadyCondition := func(
+		instance *clusterlink.Instance,
+		condStatus metav1.ConditionStatus,
+	) apiwait.ConditionWithContextFunc {
 		return func(ctx context.Context) (bool, error) {
-			done := false
 			if err := peerResource.Get(ctx, instance.GetName(), instance.GetNamespace(), instance); err != nil {
 				return false, err
 			}
-			if c, ok := instance.Status.Controlplane.Conditions[string(clusterlink.DeploymentReady)]; ok {
-				if c.Status == condStatus {
-					done = true
-				}
+
+			conds := &instance.Status.Controlplane.Conditions
+			if c, ok := (*conds)[string(clusterlink.DeploymentReady)]; !ok || c.Status != condStatus {
+				return false, nil
 			}
-			return done, nil
+			conds = &instance.Status.Dataplane.Conditions
+			if c, ok := (*conds)[string(clusterlink.DeploymentReady)]; !ok || c.Status != condStatus {
+				return false, nil
+			}
+			return true, nil
 		}
 	}
 
 	// Check that instance1 deployment succeeded.
 	instance1 := &clusterlink.Instance{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cl-instance" + s.fabric.Namespace(),
 			Namespace: controller.OperatorNamespace,
 		},
 	}
-	err = wait.For(instanceReadyCondition(instance1, v1.ConditionTrue), wait.WithTimeout(time.Second*60))
+	err = wait.For(instanceReadyCondition(instance1, metav1.ConditionTrue), wait.WithTimeout(time.Second*60))
 	require.Nil(s.T(), err)
 	err = peerResource.Get(context.Background(), "cl-instance"+s.fabric.Namespace(), controller.OperatorNamespace, instance1)
 	require.Nil(s.T(), err)
-	require.Equal(s.T(), v1.ConditionTrue, instance1.Status.Dataplane.Conditions[string(clusterlink.DeploymentReady)].Status)
-	require.Equal(s.T(), v1.ConditionTrue, instance1.Status.Ingress.Conditions[string(clusterlink.ServiceReady)].Status)
+	require.Equal(s.T(), metav1.ConditionTrue, instance1.Status.Dataplane.Conditions[string(clusterlink.DeploymentReady)].Status)
+	require.Equal(s.T(), metav1.ConditionTrue, instance1.Status.Ingress.Conditions[string(clusterlink.ServiceReady)].Status)
 
-	err = wait.For(instanceReadyCondition(instance2, v1.ConditionFalse), wait.WithTimeout(time.Second*60))
+	err = wait.For(instanceReadyCondition(instance2, metav1.ConditionFalse), wait.WithTimeout(time.Second*60))
 	require.Nil(s.T(), err)
 	err = peerResource.Get(context.Background(), "instance2", controller.OperatorNamespace, instance2)
 	require.Nil(s.T(), err)
-	require.Equal(s.T(), v1.ConditionFalse, instance2.Status.Controlplane.Conditions[string(clusterlink.DeploymentReady)].Status)
-	require.Equal(s.T(), v1.ConditionFalse, instance2.Status.Dataplane.Conditions[string(clusterlink.DeploymentReady)].Status)
+	require.Equal(s.T(), metav1.ConditionFalse, instance2.Status.Controlplane.Conditions[string(clusterlink.DeploymentReady)].Status)
+	require.Equal(s.T(), metav1.ConditionFalse, instance2.Status.Dataplane.Conditions[string(clusterlink.DeploymentReady)].Status)
 
 	// Delete first instance.
 	err = peerResource.Delete(context.Background(), instance1)
@@ -117,13 +123,13 @@ func (s *TestSuite) TestOperator() {
 	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
 	require.Equal(s.T(), &services.ConnectionResetError{}, err)
 	// Check that instance2 succeeded.
-	err = wait.For(instanceReadyCondition(instance2, v1.ConditionTrue), wait.WithTimeout(time.Second*60))
+	err = wait.For(instanceReadyCondition(instance2, metav1.ConditionTrue), wait.WithTimeout(time.Second*60))
 	require.Nil(s.T(), err)
 	err = peerResource.Get(context.Background(), "instance2", controller.OperatorNamespace, instance2)
 	require.Nil(s.T(), err)
-	require.Equal(s.T(), v1.ConditionTrue, instance2.Status.Controlplane.Conditions[string(clusterlink.DeploymentReady)].Status)
-	require.Equal(s.T(), v1.ConditionTrue, instance2.Status.Dataplane.Conditions[string(clusterlink.DeploymentReady)].Status)
-	require.Equal(s.T(), v1.ConditionTrue, instance2.Status.Ingress.Conditions[string(clusterlink.ServiceReady)].Status)
+	require.Equal(s.T(), metav1.ConditionTrue, instance2.Status.Controlplane.Conditions[string(clusterlink.DeploymentReady)].Status)
+	require.Equal(s.T(), metav1.ConditionTrue, instance2.Status.Dataplane.Conditions[string(clusterlink.DeploymentReady)].Status)
+	require.Equal(s.T(), metav1.ConditionTrue, instance2.Status.Ingress.Conditions[string(clusterlink.ServiceReady)].Status)
 
 	// Check access service in the new instance
 	data, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)

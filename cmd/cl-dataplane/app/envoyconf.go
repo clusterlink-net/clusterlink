@@ -22,7 +22,7 @@ admin:
   address:
     socket_address:
       address: 127.0.0.1
-      port_value: 1500
+      port_value: {{.adminPort}}
 bootstrap_extensions:
 - name: envoy.bootstrap.internal_listener
   typed_config:

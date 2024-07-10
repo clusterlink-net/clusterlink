@@ -29,6 +29,7 @@ import (
 	"github.com/clusterlink-net/clusterlink/cmd/cl-controlplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
 	"github.com/clusterlink-net/clusterlink/pkg/bootstrap"
+	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 	"github.com/clusterlink-net/clusterlink/tests/e2e/k8s/services"
 )
 
@@ -66,7 +67,7 @@ func (c *ClusterLink) Cluster() *KindCluster {
 
 // ScaleControlplane scales the controlplane deployment.
 func (c *ClusterLink) ScaleControlplane(replicas int32) error {
-	return c.cluster.ScaleDeployment("cl-controlplane", c.namespace, replicas)
+	return c.cluster.ScaleDeployment(api.Name, c.namespace, replicas)
 }
 
 // RestartControlplane restarts the controlplane.
@@ -116,7 +117,7 @@ func (c *ClusterLink) UpdatePeerCertificates(
 	err = c.cluster.Resources().List(
 		context.Background(),
 		&pods,
-		resources.WithLabelSelector("app=cl-controlplane"))
+		resources.WithLabelSelector("app="+api.Name))
 	if err != nil {
 		return fmt.Errorf("unable to list controlplane pods: %w", err)
 	}

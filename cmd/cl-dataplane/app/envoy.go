@@ -26,11 +26,15 @@ import (
 
 const (
 	envoyPath = "/usr/local/bin/envoy"
+
+	adminPort = 1500
 )
 
 func (o *Options) runEnvoy(dataplaneID string) error {
 	envoyConfArgs := map[string]interface{}{
 		"dataplaneID": dataplaneID,
+
+		"adminPort": adminPort,
 
 		"controlplaneHost": o.ControlplaneHost,
 		"controlplanePort": cpapi.ListenPort,

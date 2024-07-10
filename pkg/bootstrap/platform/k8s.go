@@ -46,7 +46,7 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: cl-controlplane
+  name: {{.controlplaneName}}
   namespace: {{.namespace}}
 data:
   cert: {{.controlplaneCert}}
@@ -55,7 +55,7 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: cl-dataplane
+  name: {{.dataplaneName}}
   namespace: {{.namespace}}
 data:
   cert: {{.dataplaneCert}}
@@ -75,19 +75,19 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cl-controlplane
+  name: {{.controlplaneName}}
   namespace: {{.namespace}}
   labels:
-    app: cl-controlplane
+    app: {{.controlplaneName}}
 spec:
   replicas: {{.controlplanes}}
   selector:
     matchLabels:
-      app: cl-controlplane
+      app: {{.controlplaneName}}
   template:
     metadata:
       labels:
-        app: cl-controlplane
+        app: {{.controlplaneName}}
     spec:
       volumes:
         - name: ca
@@ -95,15 +95,18 @@ spec:
             secretName: cl-ca
         - name: tls
           secret:
-            secretName: cl-controlplane
+            secretName: {{.controlplaneName}}
         - name: peer-tls
           secret:
             secretName: cl-peer
       containers:
-        - name: cl-controlplane
-          image: {{.containerRegistry}}cl-controlplane:{{.tag}}
+        - name: {{.controlplaneName}}
+          image: {{.containerRegistry}}{{.controlplaneName}}:{{.tag}}
           args: ["--log-level", "{{.logLevel}}"]
           imagePullPolicy: IfNotPresent
+          readinessProbe:
+            httpGet:
+              port:  {{.controlplaneReadinessPort}}
           ports:
             - containerPort: {{.controlplanePort}}
           volumeMounts:
@@ -131,19 +134,19 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cl-dataplane
+  name: {{.dataplaneName}}
   namespace: {{.namespace}}
   labels:
-    app: {{ .dataplaneAppName }}
+    app: {{ .dataplaneName }}
 spec:
   replicas: {{.dataplanes}}
   selector:
     matchLabels:
-      app: {{ .dataplaneAppName }}
+      app: {{ .dataplaneName }}
   template:
     metadata:
       labels:
-        app: {{ .dataplaneAppName }}
+        app: {{ .dataplaneName }}
     spec:
       volumes:
         - name: ca
@@ -151,16 +154,19 @@ spec:
             secretName: cl-ca
         - name: tls
           secret:
-            secretName: cl-dataplane
+            secretName: {{.dataplaneName}}
       containers:
         - name: dataplane
           image: {{.containerRegistry}}{{
-          if (eq .dataplaneType .dataplaneTypeEnvoy) }}cl-dataplane{{
-          else }}cl-go-dataplane{{ end }}:{{.tag}}
-          args: ["--log-level", "{{.logLevel}}", "--controlplane-host", "cl-controlplane"]
+          if (eq .dataplaneType .dataplaneTypeEnvoy) }}{{.dataplaneName}}{{
+          else }}{{.goDataplaneImageName}}{{ end }}:{{.tag}}
+          args: ["--log-level", "{{.logLevel}}", "--controlplane-host", "{{.controlplaneName}}"]
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: {{.dataplanePort}}
+          readinessProbe:
+            httpGet:
+              port: {{.dataplaneReadinessPort}}
           volumeMounts:
             - name: ca
               mountPath: {{.dataplaneCAMountPath}}
@@ -178,11 +184,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: cl-controlplane
+  name: {{.controlplaneName}}
   namespace: {{.namespace}}
 spec:
   selector:
-    app: cl-controlplane
+    app: {{.controlplaneName}}
   ports:
     - name: controlplane
       port: {{.controlplanePort}}
@@ -190,7 +196,7 @@ spec:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: cl-controlplane
+  name: {{.controlplaneName}}
 rules:
 - apiGroups: [""]
   resources: ["events"]
@@ -223,11 +229,11 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: cl-controlplane
+  name: {{.controlplaneName}}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cl-controlplane
+  name: {{.controlplaneName}}
 subjects:
 - kind: ServiceAccount
   name: default
@@ -274,7 +280,7 @@ spec:
       nodePort: {{.ingressNodePort }}
 {{ end }}
   selector:
-    app:  {{.dataplaneAppName}}
+    app:  {{.dataplaneName}}
   `
 )
 
@@ -312,7 +318,10 @@ func K8SConfig(config *Config) ([]byte, error) {
 
 		"dataplaneTypeEnvoy":   DataplaneTypeEnvoy,
 		"namespaceEnvVariable": cpapp.NamespaceEnvVariable,
-		"dataplaneAppName":     dpapp.Name,
+
+		"controlplaneName":     cpapi.Name,
+		"dataplaneName":        dpapi.Name,
+		"goDataplaneImageName": dpapi.GoDataplaneName,
 
 		"controlplaneCAMountPath":   cpapp.CAFile,
 		"controlplaneCertMountPath": cpapp.CertificateFile,
@@ -324,8 +333,10 @@ func K8SConfig(config *Config) ([]byte, error) {
 		"dataplaneCertMountPath": dpapp.CertificateFile,
 		"dataplaneKeyMountPath":  dpapp.KeyFile,
 
-		"controlplanePort": cpapi.ListenPort,
-		"dataplanePort":    dpapi.ListenPort,
+		"controlplanePort":          cpapi.ListenPort,
+		"controlplaneReadinessPort": cpapi.ReadinessListenPort,
+		"dataplanePort":             dpapi.ListenPort,
+		"dataplaneReadinessPort":    dpapi.ReadinessListenPort,
 	}
 
 	var k8sConfig, nsConfig bytes.Buffer
@@ -369,6 +380,8 @@ func K8SCertificateConfig(config *Config) ([]byte, error) {
 		"controlplaneKey":     base64.StdEncoding.EncodeToString(config.ControlplaneCertificate.RawKey()),
 		"dataplaneCert":       base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawCert()),
 		"dataplaneKey":        base64.StdEncoding.EncodeToString(config.DataplaneCertificate.RawKey()),
+		"controlplaneName":    cpapi.Name,
+		"dataplaneName":       dpapi.Name,
 		"peerCertificateFile": cpapp.PeerCertificateFile,
 		"peerKeyFile":         cpapp.PeerKeyFile,
 		"fabricCertFile":      cpapp.FabricCertificateFile,
@@ -434,6 +447,8 @@ func K8SClusterLinkInstanceConfig(config *Config, name string) ([]byte, error) {
 func K8SEmptyCertificateConfig(config *Config) ([]byte, error) {
 	args := map[string]interface{}{
 		"Namespace":        config.Namespace,
+		"controlplaneName": cpapi.Name,
+		"dataplaneName":    dpapi.Name,
 		"ca":               "",
 		"controlplaneCert": "",
 		"controlplaneKey":  "",
@@ -468,7 +483,7 @@ func k8SIngressConfig(config *Config) ([]byte, error) {
 		"ingressType": ingressType,
 
 		"dataplaneService": dpapp.IngressSvcName,
-		"dataplaneAppName": dpapp.Name,
+		"dataplaneName":    dpapi.Name,
 		"dataplanePort":    dpapi.ListenPort,
 	}
 

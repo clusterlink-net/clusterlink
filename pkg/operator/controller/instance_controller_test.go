@@ -37,6 +37,8 @@ import (
 
 	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	clusterlink "github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+	cpapi "github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
+	dpapi "github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 	"github.com/clusterlink-net/clusterlink/pkg/operator/controller"
 )
 
@@ -143,14 +145,14 @@ func TestClusterLinkController(t *testing.T) {
 		},
 	}
 
-	cpID := types.NamespacedName{Name: controller.ControlPlaneName, Namespace: controller.InstanceNamespace}
+	cpID := types.NamespacedName{Name: cpapi.Name, Namespace: controller.InstanceNamespace}
 	cpResource := []client.Object{&appsv1.Deployment{}, &corev1.Service{}}
 	roleID := types.NamespacedName{
-		Name:      controller.ControlPlaneName + controller.InstanceNamespace,
+		Name:      cpapi.Name + controller.InstanceNamespace,
 		Namespace: controller.InstanceNamespace,
 	}
 	roleResource := []client.Object{&rbacv1.ClusterRole{}, &rbacv1.ClusterRoleBinding{}}
-	dpID := types.NamespacedName{Name: controller.DataPlaneName, Namespace: controller.InstanceNamespace}
+	dpID := types.NamespacedName{Name: dpapi.Name, Namespace: controller.InstanceNamespace}
 	dpResource := []client.Object{&appsv1.Deployment{}}
 	ingressID := types.NamespacedName{Name: dpapp.IngressSvcName, Namespace: controller.InstanceNamespace}
 
@@ -189,7 +191,7 @@ func TestClusterLinkController(t *testing.T) {
 		// Check controlplane fields
 		cp := &appsv1.Deployment{}
 		getResource(t, cpID, cp)
-		cpImage := "ghcr.io/clusterlink-net/" + controller.ControlPlaneName + ":latest"
+		cpImage := "ghcr.io/clusterlink-net/" + cpapi.Name + ":latest"
 		require.Equal(t, cpImage, cp.Spec.Template.Spec.Containers[0].Image)
 		require.Equal(t, "info", cp.Spec.Template.Spec.Containers[0].Args[1])
 
@@ -201,7 +203,7 @@ func TestClusterLinkController(t *testing.T) {
 		// Check Dataplane fields
 		dp := &appsv1.Deployment{}
 		getResource(t, dpID, dp)
-		envoyImage := "ghcr.io/clusterlink-net/" + controller.DataPlaneName + ":latest"
+		envoyImage := "ghcr.io/clusterlink-net/" + dpapi.Name + ":latest"
 		require.Equal(t, envoyImage, dp.Spec.Template.Spec.Containers[0].Image)
 		require.Equal(t, int32(1), *dp.Spec.Replicas)
 		require.Equal(t, "info", dp.Spec.Template.Spec.Containers[0].Args[1])
@@ -258,13 +260,13 @@ func TestClusterLinkController(t *testing.T) {
 
 		/// Check controlplane
 		checkResourceCreated(t, cpID, cp)
-		cpImage := containerRegistry + "/" + controller.ControlPlaneName + ":" + tag
+		cpImage := containerRegistry + "/" + cpapi.Name + ":" + tag
 		require.Equal(t, cpImage, cp.Spec.Template.Spec.Containers[0].Image)
 		require.Equal(t, loglevel, cp.Spec.Template.Spec.Containers[0].Args[1])
 
 		/// Check dataplane
 		checkResourceCreated(t, dpID, dp)
-		goImage := containerRegistry + "/" + controller.GoDataPlaneName + ":" + tag
+		goImage := containerRegistry + "/" + dpapi.GoDataplaneName + ":" + tag
 		require.Equal(t, goImage, dp.Spec.Template.Spec.Containers[0].Image)
 		require.Equal(t, int32(goReplicas), *dp.Spec.Replicas)
 		require.Equal(t, loglevel, dp.Spec.Template.Spec.Containers[0].Args[1])

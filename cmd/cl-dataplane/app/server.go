@@ -15,6 +15,7 @@ package app
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/google/uuid"
@@ -22,6 +23,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
+	utilhttp "github.com/clusterlink-net/clusterlink/pkg/util/http"
 	"github.com/clusterlink-net/clusterlink/pkg/util/log"
 )
 
@@ -36,8 +39,6 @@ const (
 	// KeyFile is the path to the private-key file.
 	KeyFile = "/etc/ssl/key/clink-dataplane.pem"
 
-	// Name is the app label of dataplane pods.
-	Name = "cl-dataplane"
 	// IngressSvcName is the ingress service name for the dataplane pods.
 	IngressSvcName = "clusterlink"
 )
@@ -84,6 +85,25 @@ func (o *Options) Run() error {
 	// generate random dataplane ID
 	dataplaneID := uuid.New().String()
 	logrus.Infof("Dataplane ID: %s.", dataplaneID)
+
+	readinessListenAddress := fmt.Sprintf("0.0.0.0:%d", api.ReadinessListenPort)
+	httpServer := utilhttp.NewServer("dataplane-readiness-http", nil)
+	if err := httpServer.Listen(readinessListenAddress); err != nil {
+		return fmt.Errorf("cannot listen for readiness: %w", err)
+	}
+	httpServer.Router().Get("/", func(w http.ResponseWriter, r *http.Request) {
+		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/ready", adminPort))
+		if err == nil && resp.Body.Close() != nil {
+			logrus.Infof("Cannot close readiness response body: %v", err)
+		}
+		if err != nil || resp.StatusCode != http.StatusOK {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+	})
+	go func() {
+		err := httpServer.Start()
+		logrus.Errorf("Failed to start readiness server: %v.", err)
+	}()
 
 	return o.runEnvoy(dataplaneID)
 }

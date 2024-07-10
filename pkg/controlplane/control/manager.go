@@ -16,19 +16,19 @@ package control
 import (
 	"bytes"
 	"context"
+
+	//nolint:gosec // G505: use of weak cryptographic primitive is fine for service name
+	"crypto/md5"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
-
-	//nolint:gosec // G505: use of weak cryptographic primitive is fine for service name
-	"crypto/md5"
-	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -45,6 +45,7 @@ import (
 
 	dpapp "github.com/clusterlink-net/clusterlink/cmd/cl-dataplane/app"
 	"github.com/clusterlink-net/clusterlink/pkg/apis/clusterlink.net/v1alpha1"
+	"github.com/clusterlink-net/clusterlink/pkg/dataplane/api"
 )
 
 const (
@@ -244,7 +245,7 @@ func (m *Manager) addImport(ctx context.Context, imp *v1alpha1.Import) (err erro
 					TargetPort: intstr.FromInt32(int32(imp.Spec.TargetPort)),
 				},
 			},
-			Selector: map[string]string{"app": dpapp.Name},
+			Selector: map[string]string{"app": api.Name},
 			Type:     v1.ServiceTypeClusterIP,
 		},
 	}
@@ -980,6 +981,14 @@ func conditionChanged(conditions *[]metav1.Condition, cond *metav1.Condition) bo
 	return oldCond.Message != cond.Message
 }
 
+func boolPointerChanged(bool1, bool2 *bool) bool {
+	if bool1 != nil {
+		return bool2 == nil || *bool1 != *bool2
+	}
+
+	return bool2 != nil
+}
+
 func endpointSliceChanged(endpointSlice1, endpointSlice2 *discv1.EndpointSlice) bool {
 	if endpointSlice1.AddressType != endpointSlice2.AddressType {
 		return true
@@ -1004,6 +1013,20 @@ func endpointSliceChanged(endpointSlice1, endpointSlice2 *discv1.EndpointSlice) 
 			if addresses1[j] != addresses2[j] {
 				return true
 			}
+		}
+
+		conditions1 := &endpointSlice1.Endpoints[i].Conditions
+		conditions2 := &endpointSlice2.Endpoints[i].Conditions
+		if boolPointerChanged(conditions1.Ready, conditions2.Ready) {
+			return true
+		}
+
+		if boolPointerChanged(conditions1.Serving, conditions2.Serving) {
+			return true
+		}
+
+		if boolPointerChanged(conditions1.Terminating, conditions2.Terminating) {
+			return true
 		}
 	}
 
