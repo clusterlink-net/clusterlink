@@ -191,7 +191,7 @@ func TestClusterLinkController(t *testing.T) {
 		// Check controlplane fields
 		cp := &appsv1.Deployment{}
 		getResource(t, cpID, cp)
-		cpImage := "ghcr.io/clusterlink-net/" + cpapi.Name + ":latest"
+		cpImage := cpapi.Name + ":latest"
 		require.Equal(t, cpImage, cp.Spec.Template.Spec.Containers[0].Image)
 		require.Equal(t, "info", cp.Spec.Template.Spec.Containers[0].Args[1])
 
@@ -203,7 +203,7 @@ func TestClusterLinkController(t *testing.T) {
 		// Check Dataplane fields
 		dp := &appsv1.Deployment{}
 		getResource(t, dpID, dp)
-		envoyImage := "ghcr.io/clusterlink-net/" + dpapi.Name + ":latest"
+		envoyImage := dpapi.Name + ":latest"
 		require.Equal(t, envoyImage, dp.Spec.Template.Spec.Containers[0].Image)
 		require.Equal(t, int32(1), *dp.Spec.Replicas)
 		require.Equal(t, "info", dp.Spec.Template.Spec.Containers[0].Args[1])

@@ -117,7 +117,6 @@ type InstanceSpec struct {
 	// +kubebuilder:default=info
 	// LogLevel define the ClusterLink components log level.
 	LogLevel string `json:"logLevel,omitempty"`
-	// +kubebuilder:default="ghcr.io/clusterlink-net"
 	// ContainerRegistry is the container registry to pull the ClusterLink project images.
 	ContainerRegistry string `json:"containerRegistry,omitempty"`
 	// +kubebuilder:default="latest"
