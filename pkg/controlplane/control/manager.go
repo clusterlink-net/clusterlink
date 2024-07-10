@@ -14,16 +14,12 @@
 package control
 
 import (
-	"bytes"
 	"context"
 
 	//nolint:gosec // G505: use of weak cryptographic primitive is fine for service name
 	"crypto/md5"
 	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"reflect"
@@ -879,22 +875,13 @@ func (m *Manager) CreateJWKSSecret(ctx context.Context) error {
 }
 
 func generateJWKSecret() ([]byte, error) {
-	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	keyBytes := make([]byte, 32)
+	_, err := rand.Read(keyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate JWK key: %w", err)
 	}
 
-	// PEM encode private key
-	keyPEM := new(bytes.Buffer)
-	err = pem.Encode(keyPEM, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(rsaKey),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("cannot encode JWK key: %w", err)
-	}
-
-	return []byte(base64.StdEncoding.EncodeToString(keyPEM.Bytes())), nil
+	return []byte(base64.StdEncoding.EncodeToString(keyBytes)), nil
 }
 
 func checkServiceLabels(service *v1.Service, importName types.NamespacedName) bool {
@@ -1033,28 +1020,18 @@ func endpointSliceChanged(endpointSlice1, endpointSlice2 *discv1.EndpointSlice) 
 	return false
 }
 
-func ParseJWKSSecret(secret *v1.Secret) (*rsa.PrivateKey, error) {
+func ParseJWKSSecret(secret *v1.Secret) ([]byte, error) {
 	keyBase64, ok := secret.Data[JWKSecretKeyName]
 	if !ok {
 		return nil, fmt.Errorf("secret missing %s key", JWKSecretKeyName)
 	}
 
-	keyPEM, err := base64.StdEncoding.DecodeString(string(keyBase64))
+	keyBytes, err := base64.StdEncoding.DecodeString(string(keyBase64))
 	if err != nil {
 		return nil, fmt.Errorf("cannot base64 decode key")
 	}
 
-	keyBlock, _ := pem.Decode(keyPEM)
-	if keyBlock == nil {
-		return nil, fmt.Errorf("key is not in PEM format")
-	}
-
-	privateKey, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing private key: %w", err)
-	}
-
-	return privateKey, nil
+	return keyBytes, nil
 }
 
 // NewManager returns a new control manager.
