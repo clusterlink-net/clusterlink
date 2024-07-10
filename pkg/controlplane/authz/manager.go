@@ -40,10 +40,9 @@ const (
 	// the number of seconds a JWT access token is valid before it expires.
 	jwtExpirySeconds = 5
 
-	ClientNameLabel       = "clusterlink/metadata.clientName"
 	ClientNamespaceLabel  = "clusterlink/metadata.clientNamespace"
 	ClientSALabel         = "clusterlink/metadata.clientServiceAccount"
-	ClientLabelsPrefix    = "client/metadata."
+	ClientLabelsPrefix    = "client/metadata.labels."
 	ServiceNameLabel      = "clusterlink/metadata.serviceName"
 	ServiceNamespaceLabel = "clusterlink/metadata.serviceNamespace"
 	ServiceLabelsPrefix   = "service/metadata."
@@ -244,7 +243,6 @@ func (m *Manager) getClientAttributes(req *egressAuthorizationRequest) connectiv
 
 	if src, ok := podInfo.labels["app"]; ok {
 		clientAttrs[ServiceNameLabel] = src // deprecated
-		clientAttrs[ClientNameLabel] = src
 	}
 
 	for k, v := range podInfo.labels {
