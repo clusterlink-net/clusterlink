@@ -46,7 +46,7 @@ func (s *TestSuite) TestPolicyLabels() {
 	specificSrcPeerPolicy := util.NewPolicy("specific-peer", v1alpha1.AccessPolicyActionAllow, srcLabels, dstLabels)
 	require.Nil(s.T(), cl[0].CreatePolicy(specificSrcPeerPolicy))
 
-	data, err := cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
+	data, err := cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), cl[0].Name(), data)
 
@@ -56,13 +56,13 @@ func (s *TestSuite) TestPolicyLabels() {
 	denyEchoPolicy := util.NewPolicy(denyEchoPolicyName, v1alpha1.AccessPolicyActionDeny, nil, dstLabels)
 	require.Nil(s.T(), cl[1].CreatePolicy(denyEchoPolicy))
 
-	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
-	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
+	require.ErrorIs(s.T(), err, &util.PodFailedError{})
 
 	// 3. Delete deny policy - connection is now allowed again
 	require.Nil(s.T(), cl[1].DeletePolicy(denyEchoPolicyName))
 
-	data, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
+	data, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), cl[0].Name(), data)
 
@@ -72,13 +72,13 @@ func (s *TestSuite) TestPolicyLabels() {
 	denyCl0Policy := util.NewPolicy(denyCl0PolicyName, v1alpha1.AccessPolicyActionDeny, nil, dstLabels)
 	require.Nil(s.T(), cl[1].CreatePolicy(denyCl0Policy))
 
-	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
-	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
+	require.ErrorIs(s.T(), err, &util.PodFailedError{})
 
 	// 5. Delete deny policy - connection is now allowed again
 	require.Nil(s.T(), cl[1].DeletePolicy(denyCl0PolicyName))
 
-	data, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
+	data, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), cl[0].Name(), data)
 
@@ -87,13 +87,13 @@ func (s *TestSuite) TestPolicyLabels() {
 	denyCl1Policy := util.NewPolicy(denyCl1PolicyName, v1alpha1.AccessPolicyActionDeny, srcLabels, nil)
 	require.Nil(s.T(), cl[0].CreatePolicy(denyCl1Policy))
 
-	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
-	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
+	require.ErrorIs(s.T(), err, &util.PodFailedError{})
 
 	// 7. Delete deny policy in cl[0] - connection is now allowed again
 	require.Nil(s.T(), cl[0].DeletePolicy(denyCl1PolicyName))
 
-	data, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
+	data, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), cl[0].Name(), data)
 
@@ -107,8 +107,8 @@ func (s *TestSuite) TestPolicyLabels() {
 	badSvcPolicy := util.NewPolicy("bad-svc", v1alpha1.AccessPolicyActionAllow, nil, attrsWithBadSvcName)
 	require.Nil(s.T(), cl[1].CreatePolicy(badSvcPolicy))
 
-	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
-	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
+	require.ErrorIs(s.T(), err, &util.PodFailedError{})
 
 	// 9. Add an allow policy in cl[1], but with a wrong service label - connection should still be denied
 	attrsWithBadSvcLabels := map[string]string{
@@ -117,8 +117,8 @@ func (s *TestSuite) TestPolicyLabels() {
 	badLabelPolicy := util.NewPolicy("bad-label", v1alpha1.AccessPolicyActionAllow, nil, attrsWithBadSvcLabels)
 	require.Nil(s.T(), cl[1].CreatePolicy(badLabelPolicy))
 
-	_, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, &services.ConnectionResetError{})
-	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
+	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
+	require.ErrorIs(s.T(), err, &util.PodFailedError{})
 
 	// 10. Add an allow policy in cl[1], now with the right service label - connection should be allowed
 	attrsWithGoodSvcLabels := map[string]string{
@@ -127,7 +127,7 @@ func (s *TestSuite) TestPolicyLabels() {
 	GoodLabelPolicy := util.NewPolicy("good-label", v1alpha1.AccessPolicyActionAllow, nil, attrsWithGoodSvcLabels)
 	require.Nil(s.T(), cl[1].CreatePolicy(GoodLabelPolicy))
 
-	data, err = cl[1].AccessService(httpecho.GetEchoValue, importedService, true, nil)
+	data, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), cl[0].Name(), data)
 }
@@ -138,7 +138,7 @@ func (s *TestSuite) TestPodAttributes() {
 	require.Nil(s.T(), cl[1].CreatePolicy(util.PolicyAllowAll))
 
 	// 1. Sanity - just test that a pod can connect to echo service
-	data, err := cl[1].AccessService(httpecho.RunClientInPodWithSleep, importedService, true, nil)
+	data, err := cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), cl[0].Name(), data)
 
@@ -149,7 +149,7 @@ func (s *TestSuite) TestPodAttributes() {
 	denyNonDefaultSA := util.NewPolicy("deny-non-default-sa", v1alpha1.AccessPolicyActionDeny, srcLabels, nil)
 	require.Nil(s.T(), cl[0].CreatePolicy(denyNonDefaultSA))
 	require.Nil(s.T(), cl[1].CreatePolicy(denyNonDefaultSA))
-	_, err = cl[1].AccessService(httpecho.RunClientInPodWithSleep, importedService, true, nil)
+	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
 	require.Nil(s.T(), err)
 
 	// 3. Egress only - denying clients with a SA which equals the Pod's SA - connection should fail
@@ -158,13 +158,13 @@ func (s *TestSuite) TestPodAttributes() {
 	}
 	denyDefaultSA := util.NewPolicy("deny-default-sa", v1alpha1.AccessPolicyActionDeny, srcLabels, nil)
 	require.Nil(s.T(), cl[1].CreatePolicy(denyDefaultSA))
-	_, err = cl[1].AccessService(httpecho.RunClientInPodWithSleep, importedService, true, nil)
+	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
 	require.NotNil(s.T(), err)
 	require.Nil(s.T(), cl[1].DeletePolicy(denyDefaultSA.Name)) // revert
 
 	// 4. Ingress only - denying clients with a SA which equals the Pod's SA - connection should fail
 	require.Nil(s.T(), cl[0].CreatePolicy(denyDefaultSA))
-	_, err = cl[1].AccessService(httpecho.RunClientInPodWithSleep, importedService, true, nil)
+	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
 	require.NotNil(s.T(), err)
 	require.Nil(s.T(), cl[0].DeletePolicy(denyDefaultSA.Name)) // revert
 
@@ -177,7 +177,7 @@ func (s *TestSuite) TestPodAttributes() {
 	labelSelector := metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selRequirement}}
 	denyOthers := util.NewPolicyFromLabelSelectors("deny-others", v1alpha1.AccessPolicyActionDeny, &labelSelector, nil)
 	require.Nil(s.T(), cl[1].CreatePolicy(denyOthers))
-	_, err = cl[1].AccessService(httpecho.RunClientInPodWithSleep, importedService, true, nil)
+	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
 	require.Nil(s.T(), err)
 }
 

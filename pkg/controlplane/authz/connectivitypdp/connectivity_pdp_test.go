@@ -186,6 +186,61 @@ func getNameOfFirstPolicyInPDP(pdp *connectivitypdp.PDP, action v1alpha1.AccessP
 	return ""
 }
 
+func TestDependsOnClientAttrs(t *testing.T) {
+	emptyWorkloadSet := []v1alpha1.WorkloadSetOrSelector{{WorkloadSelector: &metav1.LabelSelector{}}}
+	nonEmptyWorkloadSet := []v1alpha1.WorkloadSetOrSelector{trivialWorkloadSet}
+	allowFromAllClientsPol := v1alpha1.AccessPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "allow-from-all-clients",
+			Namespace: defaultNS,
+		},
+		Spec: v1alpha1.AccessPolicySpec{
+			Action: v1alpha1.AccessPolicyActionAllow,
+			From:   emptyWorkloadSet,
+			To:     nonEmptyWorkloadSet,
+		},
+	}
+	allowFromSomeClientsPol := v1alpha1.AccessPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "reg",
+			Namespace: defaultNS,
+		},
+		Spec: v1alpha1.AccessPolicySpec{
+			Action: v1alpha1.AccessPolicyActionAllow,
+			From:   nonEmptyWorkloadSet,
+			To:     nonEmptyWorkloadSet,
+		},
+	}
+	allowFromSomeClientsPrivPol := v1alpha1.PrivilegedAccessPolicy{
+		ObjectMeta: metav1.ObjectMeta{Name: "priv"},
+		Spec: v1alpha1.AccessPolicySpec{
+			Action: v1alpha1.AccessPolicyActionDeny,
+			From:   nonEmptyWorkloadSet,
+			To:     nonEmptyWorkloadSet,
+		},
+	}
+
+	pdp := connectivitypdp.NewPDP()
+	// no policy -> no dependency on client attributes
+	require.False(t, pdp.DependsOnClientAttrs())
+
+	// adding a policy with allow-all From field -> still no dependency on client attributes
+	require.Nil(t, pdp.AddOrUpdatePolicy(connectivitypdp.PolicyFromCR(&allowFromAllClientsPol)))
+	require.False(t, pdp.DependsOnClientAttrs())
+
+	// adding a policy that only allows clients with specific labels -> now we have a dependency on client attributes
+	require.Nil(t, pdp.AddOrUpdatePolicy(connectivitypdp.PolicyFromCR(&allowFromSomeClientsPol)))
+	require.True(t, pdp.DependsOnClientAttrs())
+
+	// deleting this last policy -> no dependency on client attributes again
+	require.Nil(t, pdp.DeletePolicy(types.NamespacedName{Namespace: defaultNS, Name: allowFromSomeClientsPol.Name}, false))
+	require.False(t, pdp.DependsOnClientAttrs())
+
+	// adding a privileged policy that only allows clients with specific labels -> a dependency on client attributes
+	require.Nil(t, pdp.AddOrUpdatePolicy(connectivitypdp.PolicyFromPrivilegedCR(&allowFromSomeClientsPrivPol)))
+	require.True(t, pdp.DependsOnClientAttrs())
+}
+
 func TestDeleteNonexistingPolicies(t *testing.T) {
 	pdp := connectivitypdp.NewPDP()
 	err := pdp.DeletePolicy(types.NamespacedName{Name: "no-such-policy"}, true)

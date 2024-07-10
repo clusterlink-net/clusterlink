@@ -229,16 +229,18 @@ func (m *Manager) getPodInfoByIP(ip string) *podInfo {
 }
 
 func (m *Manager) getClientAttributes(req *egressAuthorizationRequest) connectivitypdp.WorkloadAttrs {
-	clientAttrs := connectivitypdp.WorkloadAttrs{GatewayNameLabel: m.getPeerName()}
 	podInfo := m.getPodInfoByIP(req.IP)
 	if podInfo == nil {
 		m.logger.Infof("Pod has no info: IP=%v.", req.IP)
-		return clientAttrs // better return an error here?
+		return nil
 	}
 
-	clientAttrs[ServiceNamespaceLabel] = podInfo.namespace // deprecated
-	clientAttrs[ClientNamespaceLabel] = podInfo.namespace
-	clientAttrs[ClientSALabel] = podInfo.serviceAccount
+	clientAttrs := connectivitypdp.WorkloadAttrs{
+		GatewayNameLabel:      m.getPeerName(),
+		ServiceNamespaceLabel: podInfo.namespace, // deprecated
+		ClientNamespaceLabel:  podInfo.namespace,
+		ClientSALabel:         podInfo.serviceAccount,
+	}
 
 	if src, ok := podInfo.labels["app"]; ok {
 		clientAttrs[ServiceNameLabel] = src // deprecated
@@ -259,6 +261,9 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 	m.logger.Infof("Received egress authorization request: %v.", req)
 
 	srcAttributes := m.getClientAttributes(req)
+	if len(srcAttributes) == 0 && m.connectivityPDP.DependsOnClientAttrs() {
+		return nil, fmt.Errorf("failed to extract client attributes, however, access policies depend on such attributes")
+	}
 
 	var imp v1alpha1.Import
 	if err := m.client.Get(ctx, req.ImportName, &imp); err != nil {
