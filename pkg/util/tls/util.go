@@ -102,10 +102,11 @@ func (c *ParsedCertData) ServerConfig() *tls.Config {
 // ClientConfig return a TLS configuration for a client.
 func (c *ParsedCertData) ClientConfig(sni string) *tls.Config {
 	return &tls.Config{
-		MinVersion:   tls.VersionTLS12,
-		Certificates: []tls.Certificate{c.certificate},
-		RootCAs:      c.ca,
-		ServerName:   sni,
+		MinVersion:         tls.VersionTLS12,
+		ClientSessionCache: tls.NewLRUClientSessionCache(64),
+		Certificates:       []tls.Certificate{c.certificate},
+		RootCAs:            c.ca,
+		ServerName:         sni,
 	}
 }
 
