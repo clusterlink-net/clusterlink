@@ -414,6 +414,12 @@ func (m *Manager) authorizeIngress(
 		dstAttributes[ServiceLabelsPrefix+k] = v
 	}
 
+	// do not allow requests from clients with no attributes if the PDP has attribute-dependent policies
+	if len(req.SrcAttributes) == 0 && m.connectivityPDP.DependsOnClientAttrs() {
+		resp.Allowed = false
+		return resp, nil
+	}
+
 	decision, err := m.connectivityPDP.Decide(req.SrcAttributes, dstAttributes, req.ServiceName.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error deciding on an ingress connection: %w", err)
