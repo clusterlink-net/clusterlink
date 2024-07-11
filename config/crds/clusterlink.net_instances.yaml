@@ -41,7 +41,6 @@ spec:
             description: InstanceSpec defines the desired state of a ClusterLink instance.
             properties:
               containerRegistry:
-                default: ghcr.io/clusterlink-net
                 description: ContainerRegistry is the container registry to pull the
                   ClusterLink project images.
                 type: string

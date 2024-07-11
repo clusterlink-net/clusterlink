@@ -112,9 +112,8 @@ type Manager struct {
 	ipToPod map[string]types.NamespacedName
 	podList map[types.NamespacedName]podInfo
 
-	jwksLock     sync.RWMutex
-	jwkSignKey   jwk.Key
-	jwkVerifyKey jwk.Key
+	jwksLock sync.RWMutex
+	jwkKey   jwk.Key
 
 	logger *logrus.Entry
 }
@@ -191,25 +190,19 @@ func (m *Manager) addSecret(secret *v1.Secret) error {
 		return nil
 	}
 
-	privateKey, err := control.ParseJWKSSecret(secret)
+	key, err := control.ParseJWKSSecret(secret)
 	if err != nil {
 		return fmt.Errorf("cannot parse JWKS secret: %w", err)
 	}
 
-	jwkSignKey, err := jwk.New(privateKey)
+	jwkKey, err := jwk.New(key)
 	if err != nil {
-		return fmt.Errorf("unable to create JWK signing key: %w", err)
-	}
-
-	jwkVerifyKey, err := jwk.New(privateKey.PublicKey)
-	if err != nil {
-		return fmt.Errorf("unable to create JWK verifing key: %w", err)
+		return fmt.Errorf("unable to create JWK key: %w", err)
 	}
 
 	m.jwksLock.Lock()
 	defer m.jwksLock.Unlock()
-	m.jwkSignKey = jwkSignKey
-	m.jwkVerifyKey = jwkVerifyKey
+	m.jwkKey = jwkKey
 
 	return nil
 }
@@ -352,15 +345,15 @@ func (m *Manager) parseAuthorizationHeader(token string) (string, error) {
 	m.logger.Debug("Parsing access token.")
 
 	m.jwksLock.RLock()
-	jwkVerifyKey := m.jwkVerifyKey
+	jwkkey := m.jwkKey
 	m.jwksLock.RUnlock()
 
-	if jwkVerifyKey == nil {
-		return "", fmt.Errorf("jwk verify key undefined")
+	if jwkkey == nil {
+		return "", fmt.Errorf("jwk key undefined")
 	}
 
 	parsedToken, err := jwt.ParseString(
-		token, jwt.WithVerify(cpapi.JWTSignatureAlgorithm, jwkVerifyKey), jwt.WithValidate(true))
+		token, jwt.WithVerify(cpapi.JWTSignatureAlgorithm, jwkkey), jwt.WithValidate(true))
 	if err != nil {
 		return "", err
 	}
@@ -443,15 +436,15 @@ func (m *Manager) authorizeIngress(
 	}
 
 	m.jwksLock.RLock()
-	jwkSignKey := m.jwkSignKey
+	jwkKey := m.jwkKey
 	m.jwksLock.RUnlock()
 
-	if jwkSignKey == nil {
-		return nil, fmt.Errorf("jwk sign key undefined")
+	if jwkKey == nil {
+		return nil, fmt.Errorf("jwk key undefined")
 	}
 
 	// sign access token
-	signed, err := jwt.Sign(token, cpapi.JWTSignatureAlgorithm, jwkSignKey)
+	signed, err := jwt.Sign(token, cpapi.JWTSignatureAlgorithm, jwkKey)
 	if err != nil {
 		return nil, fmt.Errorf("unable to sign access token: %w", err)
 	}
@@ -494,7 +487,7 @@ func (m *Manager) SetPeerCertificates(peerTLS *tls.ParsedCertData, _ *tls.RawCer
 func (m *Manager) IsReady() bool {
 	m.jwksLock.RLock()
 	defer m.jwksLock.RUnlock()
-	return m.jwkSignKey != nil
+	return m.jwkKey != nil
 }
 
 // NewManager returns a new authorization manager.
