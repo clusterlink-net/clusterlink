@@ -39,7 +39,7 @@ const (
 	AccessTokenHeader = "x-access-token"
 
 	// JWTSignatureAlgorithm defines the signing algorithm for JWT tokens.
-	JWTSignatureAlgorithm = jwa.RS256
+	JWTSignatureAlgorithm = jwa.HS256
 	// ExportNameJWTClaim holds the name of the requested exported service.
 	ExportNameJWTClaim = "export_name"
 	// ExportNamespaceJWTClaim holds the namespace of the requested exported service.
