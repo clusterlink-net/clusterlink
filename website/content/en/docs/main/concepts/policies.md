@@ -126,6 +126,7 @@ A `WorkloadSetOrSelector` object has two fields; exactly one of them must be spe
  defining a set of client workloads or a set of services, based on their
  attributes. An empty selector matches all workloads/services.
 
+### Example policies
 The following policy allows all incoming/outgoing connections in the `default` namespace.
 
 ```yaml
@@ -142,7 +143,35 @@ spec:
     - workloadSelector: {}
 ```
 
+The following privileged policy denies incoming/outgoing connections originating from a cluster with a Peer named `testing`.
+```yaml
+apiVersion: clusterlink.net/v1alpha1
+kind: PrivilegedAccessPolicy
+metadata:
+    name: deny-from-testing
+spec:
+    action: deny
+    from:
+    - workloadSelector:
+        matchLabels:
+            peer.clusterlink.net/name: testing
+    to:
+    - workloadSelector: {}
+```
+
 More examples are available on our repo under [examples/policies][].
+
+### Available attributes
+The following attributes (labels) are set by ClusterLink on each connection request, and can be used in access policies within a `workloadSelector`.
+#### Peer attributes - set when running `clusterlink deploy peer`
+* `peer.clusterlink.net/name` - Peer name
+#### Client attributes - derived from Pod info, as retrieved from Kubernetes API. Only relevant in the `from` section of access policies
+* `client.clusterlink.net/namespace` - Pod's Namespace
+* `client.clusterlink.net/service-account` - Pod's Service Account
+* `client.clusterlink.net/labels.<label-key>` - Pod's labels - an attribute for each Pod label with key `<label-key>`
+#### Service attributes - derived from the Export CR. Only relevant in the `to` section of access policies
+* `export.clusterlink.net/name` - Export name
+* `export.clusterlink.net/namespace` - Export namespace
 
 [peers]: {{< relref "peers" >}}
 [services]: {{< relref "services" >}}
