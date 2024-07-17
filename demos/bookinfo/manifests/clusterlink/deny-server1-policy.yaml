@@ -12,7 +12,7 @@ spec:
         [{
             workloadSelector: {
                 matchLabels: {
-                    clusterlink/metadata.gatewayName: server1
+                    peer.clusterlink.net/name: server1
                 }
             }
         }

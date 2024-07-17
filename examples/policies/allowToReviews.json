@@ -16,7 +16,7 @@
             {
                 "workloadSelector": {
                     "matchLabels": {
-                        "clusterlink/metadata.serviceName": "reviews"
+                        "export.clusterlink.net/name": "reviews"
                     }
                 }
             }

@@ -11,7 +11,7 @@
             {
                 "workloadSelector": {
                     "matchLabels": {
-                        "clusterlink/metadata.gatewayName": "gw1"
+                        "peer.clusterlink.net/name": "gw1"
                     }
                 }
             }

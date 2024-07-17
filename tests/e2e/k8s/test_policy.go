@@ -31,18 +31,18 @@ func (s *TestSuite) TestPolicyLabels() {
 	//    In addition, create a policy to only allow traffic from cl[1] - apply in cl[0] (on ingress)
 	allowEchoPolicyName := "allow-access-to-echo-svc"
 	srcLabels := map[string]string{ // allow traffic only from cl1
-		authz.GatewayNameLabel: cl[1].Name(),
+		authz.PeerNameLabel: cl[1].Name(),
 	}
 	dstLabels := map[string]string{ // allow traffic only to echo in cl1
 		authz.ServiceNameLabel:            httpEchoService.Name,
-		authz.GatewayNameLabel:            cl[0].Name(),
+		authz.PeerNameLabel:               cl[0].Name(),
 		authz.ServiceLabelsPrefix + "env": "test",
 	}
 	allowEchoPolicy := util.NewPolicy(allowEchoPolicyName, v1alpha1.AccessPolicyActionAllow, srcLabels, dstLabels)
 	require.Nil(s.T(), cl[1].CreatePolicy(allowEchoPolicy))
 
-	srcLabels = map[string]string{authz.GatewayNameLabel: cl[1].Name()} // allow traffic only from cl1
-	dstLabels = map[string]string{authz.GatewayNameLabel: cl[0].Name()} // allow traffic only to cl0
+	srcLabels = map[string]string{authz.PeerNameLabel: cl[1].Name()} // allow traffic only from cl1
+	dstLabels = map[string]string{authz.PeerNameLabel: cl[0].Name()} // allow traffic only to cl0
 	specificSrcPeerPolicy := util.NewPolicy("specific-peer", v1alpha1.AccessPolicyActionAllow, srcLabels, dstLabels)
 	require.Nil(s.T(), cl[0].CreatePolicy(specificSrcPeerPolicy))
 
@@ -68,7 +68,7 @@ func (s *TestSuite) TestPolicyLabels() {
 
 	// 4. Add a "deny peer cl0" policy in cl[1] - should have a higher priority and so block the connection
 	denyCl0PolicyName := "deny-access-to-cl0"
-	dstLabels = map[string]string{authz.GatewayNameLabel: cl[0].Name()}
+	dstLabels = map[string]string{authz.PeerNameLabel: cl[0].Name()}
 	denyCl0Policy := util.NewPolicy(denyCl0PolicyName, v1alpha1.AccessPolicyActionDeny, nil, dstLabels)
 	require.Nil(s.T(), cl[1].CreatePolicy(denyCl0Policy))
 
@@ -102,7 +102,7 @@ func (s *TestSuite) TestPolicyLabels() {
 
 	attrsWithBadSvcName := map[string]string{
 		authz.ServiceNameLabel: "bad-svc",
-		authz.GatewayNameLabel: cl[0].Name(),
+		authz.PeerNameLabel:    cl[0].Name(),
 	}
 	badSvcPolicy := util.NewPolicy("bad-svc", v1alpha1.AccessPolicyActionAllow, nil, attrsWithBadSvcName)
 	require.Nil(s.T(), cl[1].CreatePolicy(badSvcPolicy))
@@ -187,7 +187,7 @@ func (s *TestSuite) TestPrivilegedPolicies() {
 
 	dstLabels := map[string]string{
 		authz.ServiceNameLabel: httpEchoService.Name,
-		authz.GatewayNameLabel: cl[0].Name(),
+		authz.PeerNameLabel:    cl[0].Name(),
 	}
 
 	privDenyPolicyName := "priv-deny"

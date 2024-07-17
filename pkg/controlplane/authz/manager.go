@@ -40,13 +40,13 @@ const (
 	// the number of seconds a JWT access token is valid before it expires.
 	jwtExpirySeconds = 5
 
-	ClientNamespaceLabel  = "clusterlink/metadata.clientNamespace"
-	ClientSALabel         = "clusterlink/metadata.clientServiceAccount"
-	ClientLabelsPrefix    = "client/metadata.labels."
-	ServiceNameLabel      = "clusterlink/metadata.serviceName"
-	ServiceNamespaceLabel = "clusterlink/metadata.serviceNamespace"
-	ServiceLabelsPrefix   = "service/metadata."
-	GatewayNameLabel      = "clusterlink/metadata.gatewayName"
+	ClientNamespaceLabel  = "client.clusterlink.net/namespace"
+	ClientSALabel         = "client.clusterlink.net/service-account"
+	ClientLabelsPrefix    = "client.clusterlink.net/labels."
+	ServiceNameLabel      = "export.clusterlink.net/name"
+	ServiceNamespaceLabel = "export.clusterlink.net/namespace"
+	ServiceLabelsPrefix   = "export.clusterlink.net/labels."
+	PeerNameLabel         = "peer.clusterlink.net/name"
 )
 
 // egressAuthorizationRequest (from local dataplane)
@@ -228,21 +228,16 @@ func (m *Manager) getClientAttributes(req *egressAuthorizationRequest) connectiv
 	}
 
 	clientAttrs := connectivitypdp.WorkloadAttrs{
-		GatewayNameLabel:      m.getPeerName(),
-		ServiceNamespaceLabel: podInfo.namespace, // deprecated
-		ClientNamespaceLabel:  podInfo.namespace,
-		ClientSALabel:         podInfo.serviceAccount,
-	}
-
-	if src, ok := podInfo.labels["app"]; ok {
-		clientAttrs[ServiceNameLabel] = src // deprecated
+		PeerNameLabel:        m.getPeerName(),
+		ClientNamespaceLabel: podInfo.namespace,
+		ClientSALabel:        podInfo.serviceAccount,
 	}
 
 	for k, v := range podInfo.labels {
 		clientAttrs[ClientLabelsPrefix+k] = v
 	}
 
-	m.logger.Infof("Client attributes: %v.", clientAttrs)
+	m.logger.Debugf("Client attributes: %v.", clientAttrs)
 
 	return clientAttrs
 }
@@ -292,7 +287,7 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 
 		dstAttributes[ServiceNameLabel] = importSource.ExportName
 		dstAttributes[ServiceNamespaceLabel] = importSource.ExportNamespace
-		dstAttributes[GatewayNameLabel] = importSource.Peer
+		dstAttributes[PeerNameLabel] = importSource.Peer
 
 		decision, err := m.connectivityPDP.Decide(srcAttributes, dstAttributes, req.ImportName.Namespace)
 		if err != nil {
@@ -401,7 +396,7 @@ func (m *Manager) authorizeIngress(
 	dstAttributes := connectivitypdp.WorkloadAttrs{
 		ServiceNameLabel:      export.Name,
 		ServiceNamespaceLabel: export.Namespace,
-		GatewayNameLabel:      m.getPeerName(),
+		PeerNameLabel:         m.getPeerName(),
 	}
 	for k, v := range export.Labels { // add export labels to destination attributes
 		dstAttributes[ServiceLabelsPrefix+k] = v
