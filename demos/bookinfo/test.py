@@ -132,8 +132,8 @@ def applyPolicy(cl:Cluster, type):
         cl.imports.update(reviewSvc,  namespace, srcK8sSvcPort,  ["peer2","peer3"], [reviewSvc,reviewSvc], [namespace,namespace],"static")
     elif type == "diff":
         cl.policies.delete(name="allow-all",namespace= namespace)
-        cl.policies.create(name="src1topeer2",namespace= namespace, action="allow", from_attribute=[{"workloadSelector": {"matchLabels": {"clusterlink/metadata.serviceName": srcSvc1}}}],to_attribute=[{"workloadSelector": {"matchLabels": {"clusterlink/metadata.serviceName": reviewSvc, "clusterlink/metadata.gatewayName": "peer2"}}}])
-        cl.policies.create(name="src2topeer3",namespace= namespace, action="allow", from_attribute=[{"workloadSelector": {"matchLabels": {"clusterlink/metadata.serviceName": srcSvc2}}}],to_attribute=[{"workloadSelector": {"matchLabels": {"clusterlink/metadata.serviceName": reviewSvc, "clusterlink/metadata.gatewayName": "peer3"}}}])
+        cl.policies.create(name="src1topeer2",namespace= namespace, action="allow", from_attribute=[{"workloadSelector": {"matchLabels": {"client.clusterlink.net/labels.app": srcSvc1}}}],to_attribute=[{"workloadSelector": {"matchLabels": {"export.clusterlink.net/name": reviewSvc, "peer.clusterlink.net/name": "peer2"}}}])
+        cl.policies.create(name="src2topeer3",namespace= namespace, action="allow", from_attribute=[{"workloadSelector": {"matchLabels": {"client.clusterlink.net/labels.app": srcSvc2}}}],to_attribute=[{"workloadSelector": {"matchLabels": {"export.clusterlink.net/name": reviewSvc, "peer.clusterlink.net/name": "peer3"}}}])
     elif type == "show":
         runcmd(f'kubectl get imports.clusterlink.net')
     elif type == "clean":

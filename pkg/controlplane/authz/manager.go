@@ -40,10 +40,13 @@ const (
 	// the number of seconds a JWT access token is valid before it expires.
 	jwtExpirySeconds = 5
 
-	ServiceNameLabel      = "clusterlink/metadata.serviceName"
-	ServiceNamespaceLabel = "clusterlink/metadata.serviceNamespace"
-	ServiceLabelsPrefix   = "service/metadata."
-	GatewayNameLabel      = "clusterlink/metadata.gatewayName"
+	ClientNamespaceLabel  = "client.clusterlink.net/namespace"
+	ClientSALabel         = "client.clusterlink.net/service-account"
+	ClientLabelsPrefix    = "client.clusterlink.net/labels."
+	ServiceNameLabel      = "export.clusterlink.net/name"
+	ServiceNamespaceLabel = "export.clusterlink.net/namespace"
+	ServiceLabelsPrefix   = "export.clusterlink.net/labels."
+	PeerNameLabel         = "peer.clusterlink.net/name"
 )
 
 // egressAuthorizationRequest (from local dataplane)
@@ -84,9 +87,10 @@ type ingressAuthorizationResponse struct {
 }
 
 type podInfo struct {
-	name      string
-	namespace string
-	labels    map[string]string
+	name           string
+	namespace      string
+	serviceAccount string
+	labels         map[string]string
 }
 
 // Manager manages the authorization dataplane connections.
@@ -166,7 +170,12 @@ func (m *Manager) addPod(pod *v1.Pod) {
 	defer m.podLock.Unlock()
 
 	podID := types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}
-	m.podList[podID] = podInfo{name: pod.Name, namespace: pod.Namespace, labels: pod.Labels}
+	m.podList[podID] = podInfo{
+		name:           pod.Name,
+		namespace:      pod.Namespace,
+		labels:         pod.Labels,
+		serviceAccount: pod.Spec.ServiceAccountName,
+	}
 	for _, ip := range pod.Status.PodIPs {
 		// ignoring host-networked Pod IPs
 		if ip.IP != pod.Status.HostIP {
@@ -211,19 +220,35 @@ func (m *Manager) getPodInfoByIP(ip string) *podInfo {
 	return nil
 }
 
+func (m *Manager) getClientAttributes(req *egressAuthorizationRequest) connectivitypdp.WorkloadAttrs {
+	podInfo := m.getPodInfoByIP(req.IP)
+	if podInfo == nil {
+		m.logger.Infof("Pod has no info: IP=%v.", req.IP)
+		return nil
+	}
+
+	clientAttrs := connectivitypdp.WorkloadAttrs{
+		PeerNameLabel:        m.getPeerName(),
+		ClientNamespaceLabel: podInfo.namespace,
+		ClientSALabel:        podInfo.serviceAccount,
+	}
+
+	for k, v := range podInfo.labels {
+		clientAttrs[ClientLabelsPrefix+k] = v
+	}
+
+	m.logger.Debugf("Client attributes: %v.", clientAttrs)
+
+	return clientAttrs
+}
+
 // authorizeEgress authorizes a request for accessing an imported service.
 func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationRequest) (*egressAuthorizationResponse, error) {
 	m.logger.Infof("Received egress authorization request: %v.", req)
 
-	srcAttributes := connectivitypdp.WorkloadAttrs{GatewayNameLabel: m.getPeerName()}
-	podInfo := m.getPodInfoByIP(req.IP)
-	if podInfo != nil {
-		srcAttributes[ServiceNamespaceLabel] = podInfo.namespace
-
-		if src, ok := podInfo.labels["app"]; ok { // TODO: Add support for labels other than just the "app" key.
-			m.logger.Infof("Received egress authorization srcLabels[app]: %v.", podInfo.labels["app"])
-			srcAttributes[ServiceNameLabel] = src
-		}
+	srcAttributes := m.getClientAttributes(req)
+	if len(srcAttributes) == 0 && m.connectivityPDP.DependsOnClientAttrs() {
+		return nil, fmt.Errorf("failed to extract client attributes, however, access policies depend on such attributes")
 	}
 
 	var imp v1alpha1.Import
@@ -262,7 +287,7 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 
 		dstAttributes[ServiceNameLabel] = importSource.ExportName
 		dstAttributes[ServiceNamespaceLabel] = importSource.ExportNamespace
-		dstAttributes[GatewayNameLabel] = importSource.Peer
+		dstAttributes[PeerNameLabel] = importSource.Peer
 
 		decision, err := m.connectivityPDP.Decide(srcAttributes, dstAttributes, req.ImportName.Namespace)
 		if err != nil {
@@ -371,10 +396,16 @@ func (m *Manager) authorizeIngress(
 	dstAttributes := connectivitypdp.WorkloadAttrs{
 		ServiceNameLabel:      export.Name,
 		ServiceNamespaceLabel: export.Namespace,
-		GatewayNameLabel:      m.getPeerName(),
+		PeerNameLabel:         m.getPeerName(),
 	}
 	for k, v := range export.Labels { // add export labels to destination attributes
 		dstAttributes[ServiceLabelsPrefix+k] = v
+	}
+
+	// do not allow requests from clients with no attributes if the PDP has attribute-dependent policies
+	if len(req.SrcAttributes) == 0 && m.connectivityPDP.DependsOnClientAttrs() {
+		resp.Allowed = false
+		return resp, nil
 	}
 
 	decision, err := m.connectivityPDP.Decide(req.SrcAttributes, dstAttributes, req.ServiceName.Namespace)

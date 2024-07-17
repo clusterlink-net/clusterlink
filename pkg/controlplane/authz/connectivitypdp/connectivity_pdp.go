@@ -75,7 +75,7 @@ func NewPDP() *PDP {
 	}
 }
 
-// Returns a slice of copies of the non-privileged policies stored in the PDP.
+// GetPrivilegedPolicies returns a slice of copies of the non-privileged policies stored in the PDP.
 func (pdp *PDP) GetPrivilegedPolicies() []v1alpha1.PrivilegedAccessPolicy {
 	pols := pdp.privilegedPolicies.getPolicies()
 	res := []v1alpha1.PrivilegedAccessPolicy{}
@@ -88,7 +88,7 @@ func (pdp *PDP) GetPrivilegedPolicies() []v1alpha1.PrivilegedAccessPolicy {
 	return res
 }
 
-// Returns a slice of copies of the non-privileged policies stored in the PDP.
+// GetPolicies returns a slice of copies of the non-privileged policies stored in the PDP.
 func (pdp *PDP) GetPolicies() []v1alpha1.AccessPolicy {
 	pols := pdp.regularPolicies.getPolicies()
 	res := []v1alpha1.AccessPolicy{}
@@ -99,6 +99,13 @@ func (pdp *PDP) GetPolicies() []v1alpha1.AccessPolicy {
 		})
 	}
 	return res
+}
+
+// DependsOnClientAttrs returns whether the PDP holds a policy which depends on attributes
+// the client workload (From field) may or may not have.
+func (pdp *PDP) DependsOnClientAttrs() bool {
+	return pdp.privilegedPolicies.dependsOnClientAttrs() ||
+		pdp.regularPolicies.dependsOnClientAttrs()
 }
 
 // AddOrUpdatePolicy adds an AccessPolicy to the PDP.
@@ -170,6 +177,11 @@ func (pt *policyTier) getPolicies() connPolicyMap {
 		res[key] = val
 	}
 	return res
+}
+
+// dependsOnClientAttrs returns whether any of the tier's policies has a From field which depends on specific attributes.
+func (pt *policyTier) dependsOnClientAttrs() bool {
+	return pt.denyPolicies.dependsOnClientAttrs() || pt.allowPolicies.dependsOnClientAttrs()
 }
 
 // addPolicy adds an access policy to the given tier, based on its action.
@@ -257,6 +269,22 @@ func (cpm connPolicyMap) decide(src WorkloadAttrs, dest *DestinationDecision, pr
 	}
 
 	return false, nil
+}
+
+// dependsOnClientAttrs returns whether any of the policies has a From field which depends on specific attributes.
+func (cpm connPolicyMap) dependsOnClientAttrs() bool {
+	for _, policySpec := range cpm {
+		for i := range policySpec.From {
+			selector := policySpec.From[i].WorkloadSelector
+			if selector == nil {
+				continue
+			}
+			if len(selector.MatchExpressions) > 0 || len(selector.MatchLabels) > 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // accessPolicyDecide returns a policy's decision on a given connection.

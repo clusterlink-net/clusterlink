@@ -189,7 +189,7 @@ spec:
   to:
     - workloadSelector: {
       matchLabels: {
-                    clusterlink/metadata.gatewayName: server1
+                    peer.clusterlink.net/name: server1
                 }
     }
 " | kubectl apply -f -
@@ -223,7 +223,7 @@ spec:
   to:
     - workloadSelector: {
       matchLabels: {
-                    clusterlink/metadata.gatewayName: server1
+                    peer.clusterlink.net/name: server1
                 }
     }
 " | kubectl delete -f -

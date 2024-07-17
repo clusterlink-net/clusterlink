@@ -26,6 +26,26 @@ func NewPolicy(
 	action v1alpha1.AccessPolicyAction,
 	from, to map[string]string,
 ) *v1alpha1.AccessPolicy {
+	return NewPolicyFromLabelSelectors(
+		name,
+		action,
+		&metav1.LabelSelector{MatchLabels: from},
+		&metav1.LabelSelector{MatchLabels: to},
+	)
+}
+
+func NewPolicyFromLabelSelectors(
+	name string,
+	action v1alpha1.AccessPolicyAction,
+	from, to *metav1.LabelSelector,
+) *v1alpha1.AccessPolicy {
+	if from == nil {
+		from = &metav1.LabelSelector{MatchLabels: nil}
+	}
+	if to == nil {
+		to = &metav1.LabelSelector{MatchLabels: nil}
+	}
+
 	return &v1alpha1.AccessPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -33,10 +53,10 @@ func NewPolicy(
 		Spec: v1alpha1.AccessPolicySpec{
 			Action: action,
 			From: v1alpha1.WorkloadSetOrSelectorList{{
-				WorkloadSelector: &metav1.LabelSelector{MatchLabels: from},
+				WorkloadSelector: from,
 			}},
 			To: v1alpha1.WorkloadSetOrSelectorList{{
-				WorkloadSelector: &metav1.LabelSelector{MatchLabels: to},
+				WorkloadSelector: to,
 			}},
 		},
 	}
