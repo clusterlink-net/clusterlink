@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frpc
+  namespace: clusterlink-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frpc
+  template:
+    metadata:
+      labels:
+        app: frpc
+    spec:
+      # hostNetwork: true
+      containers:
+        - name: frpc
+          image: snowdreamtech/frpc
+          volumeMounts:
+            - name: frpc-config-volume
+              mountPath: /etc/frp
+      volumes:
+        - name: frpc-config-volume
+          configMap:
+            name: frpc-config
+      restartPolicy: Always
