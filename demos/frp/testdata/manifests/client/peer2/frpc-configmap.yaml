@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: frpc-config
-  namespace: clusterlink-system
+  namespace: frp
 data:
   frpc.toml: |
     # Set server address
@@ -14,13 +14,13 @@ data:
     type = "stcp"
     localIP = "clusterlink.clusterlink-system.svc.cluster.local"
     localPort = 443
-    secretKey = "abcdefg"
+    secretKey = "${FRP_SECRET_KEY}"
 
     [[visitors]]
     name = "clusterlink-peer2-to-peer1-visitor"
     type = "stcp"
     serverName = "clusterlink-peer1"
-    secretKey = "abcdefg"
+    secretKey = "${FRP_SECRET_KEY}"
     bindAddr = "::"
     bindPort = 6001
 
@@ -28,6 +28,6 @@ data:
     name = "clusterlink-peer2-to-peer3-visitor"
     type = "stcp"
     serverName = "clusterlink-peer3"
-    secretKey = "abcdefg"
+    secretKey = "${FRP_SECRET_KEY}"
     bindAddr = "::"
     bindPort = 6003

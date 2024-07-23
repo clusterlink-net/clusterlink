@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: frps-config
-  namespace: clusterlink-system
+  namespace: frp
 data:
   frps.toml: |
     bindPort = 4443

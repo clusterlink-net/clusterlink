@@ -1,23 +1,56 @@
 ---
 title: Private Networks
-description: Running ClusterLink in a private network when the K8s cluster is behind a NAT or firewall.
+description: Running ClusterLink in a private network, behind a NAT or firewall.
 ---
 
 
 This task involves connecting ClusterLink behind a NAT or firewall.
-To connect the ClusterLink gateway, each peer should have a public IP that will be reachable from other peers to enable cross-cluster communications. In many cases, this is not possible because clusters are behind corporate NAT or firewalls that allow outgoing connections only. For this scenario, we will use the [Fast Reverse Proxy][] (FRP) open-source project to create reverse tunnels and connect all clusters behind a private network. With FRP, only one IP needs to be public to connect all the clusters in the fabric.
+To connect the ClusterLink gateway, each peer should have a public IP that will be reachable from other peers to enable cross-cluster communications. However, this is not always possible if clusters are behind corporate NAT or firewalls that allow outgoing connections only. In such scenarios, we will use the [Fast Reverse Proxy][] (FRP) open-source project to create reverse tunnels and connect all clusters behind a private network. With FRP, only one IP needs to be public to connect all the clusters in the fabric.
 
-To create connectivity between the ClusterLink gateways, we need to set up one FRP server with a public IP and create an FRP client for each ClusterLink gateway, as illustrated below.
+To enable connectivity between the ClusterLink gateways, we need to set up one FRP server with a public IP and create an FRP client for each ClusterLink gateway that connects to the server.
 
+In this task, we will use the FRP Kubernetes image to create the FRP server and clients. We will create one FRP server and two FRP clients: one to create a reverse tunnel and provide access to the server cluster behind a NAT, and another to connect to the FRP server and provide access to the cluster behind the NAT.
+
+<img src="frp-system.png" alt="drawing" width="1000" >
+<br>
+<br>
+
+The FRP server can support multiple clusters behind a private network. However, it is also possible to establish multiple FRP servers, with one for each cluster. If a cluster gateway has a public IP, communication can occur without using FRP.
 This task includes instructions on how to connect the peers using FRP. Instructions for creating full connectivity between applications to remote services can be found in the [Nginx tutorial][] and [iPerf3 tutorial][].
 
 In this task, we will extend the peer connectivity instructions to use FRP.
 
 ## Create FRP Server
 
-In this step, we will create the FRP server on the same cluster we use for ClusterLink, but it can be on any peer or Kubernetes cluster.
+In this step, we will create the FRP server on the same cluster we use for ClusterLink (the `client cluster`), but it can be on any peer or Kubernetes cluster.
 
-1. Create a configmap that contains the server configuration:
+1. Create a namespace for all FRP components:
+
+    *Client cluster*:
+
+    ```sh
+    echo "
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+        name: frp
+    " | kubectl apply -f -
+    ```
+
+    *Server cluster*:
+
+    ```sh
+    echo "
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+        name: frp
+    " | kubectl apply -f -
+    ```
+
+2. Create a configmap that contains the FRP server configuration:
+
+    *Client cluster*:
 
     ```sh
     echo "
@@ -25,7 +58,7 @@ In this step, we will create the FRP server on the same cluster we use for Clust
     kind: ConfigMap
     metadata:
         name: frps-config
-        namespace: clusterlink-system
+        namespace: frp
     data:
         frps.toml: |
             bindPort = 4443
@@ -33,7 +66,9 @@ In this step, we will create the FRP server on the same cluster we use for Clust
     ```
 
     In this setup, we expose the FRP server pod on port `4443`.
-2. Create FRP server deployment:
+3. Create FRP server deployment:
+
+    *Client cluster*:
 
     ```sh
     echo "
@@ -41,7 +76,7 @@ In this step, we will create the FRP server on the same cluster we use for Clust
     kind: Deployment
     metadata:
       name: frps
-      namespace: clusterlink-system
+      namespace: frp
     spec:
       replicas: 1
       selector:
@@ -68,15 +103,17 @@ In this step, we will create the FRP server on the same cluster we use for Clust
     " | kubectl apply -f -
     ```
 
-3. Create sn ingress service to expose the FRP server:
+4. Create an ingress service to expose the FRP server:
 
+    *Client cluster*:
+v
     ```sh
     echo "
     apiVersion: v1
     kind: Service
     metadata:
         name: clusterlink-frps
-        namespace: clusterlink-system
+        namespace: frp
     spec:
         type: NodePort
         selector:
@@ -90,21 +127,25 @@ In this step, we will create the FRP server on the same cluster we use for Clust
 
     In this case, we use a `NodePort` service, but it can be other types like `LoadBalancer`.
 
-## Create FRPs Clients
+## Create FRP Clients
 
-1. Set the `FRP_SERVER_IP` variable for each cluster:
-
-    *Client cluster*:
-
-    ```sh
-    export FRP_SERVER_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' client-control-plane`
-    ```
+1. Set the `FRP_SERVER_IP` and `FRP_SECRET_KEY` variables for each cluster:
 
     *Client cluster*:
 
     ```sh
     export FRP_SERVER_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' client-control-plane`
+    export FRP_SECRET_KEY=`echo $USER | sha256sum | head -c 10`
     ```
+
+    *Server cluster*:
+
+    ```sh
+    export FRP_SERVER_IP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' client-control-plane`
+    export FRP_SECRET_KEY=`echo $USER | sha256sum | head -c 10`
+    ```
+
+    The `FRP_SECRET_KEY` should be identical across all clusters.
 
 2. Deploy FRP client configuration on each cluster:
 
@@ -116,25 +157,18 @@ In this step, we will create the FRP server on the same cluster we use for Clust
     kind: ConfigMap
     metadata:
         name: frpc-config
-        namespace: clusterlink-system
+        namespace: frp
     data:
         frpc.toml: |
             # Set server address
             serverAddr = \""${FRP_SERVER_IP}"\"
             serverPort = 30444
 
-            [[proxies]]
-            name = \"clusterlink-client\"
-            type = \"stcp\"
-            localIP = \"clusterlink.clusterlink-system.svc.cluster.local\"
-            localPort = 443
-            secretKey = \"abcdefg\"
-
             [[visitors]]
             name = \"clusterlink-client-to-server-visitor\"
             type = \"stcp\"
             serverName = \"clusterlink-server\"
-            secretKey = \"abcdefg\"
+            secretKey = \""${FRP_SECRET_KEY}"\"
             bindAddr = \"::\"
             bindPort = 6002
     " | kubectl apply -f -
@@ -148,7 +182,7 @@ In this step, we will create the FRP server on the same cluster we use for Clust
     kind: ConfigMap
     metadata:
         name: frpc-config
-        namespace: clusterlink-system
+        namespace: frp
     data:
         frpc.toml: |
             # Set server address
@@ -160,23 +194,17 @@ In this step, we will create the FRP server on the same cluster we use for Clust
             type = \"stcp\"
             localIP = \"clusterlink.clusterlink-system.svc.cluster.local\"
             localPort = 443
-            secretKey = \"abcdefg\"
+            secretKey = \""${FRP_SECRET_KEY}"\"
 
-            [[visitors]]
-            name = \"clusterlink-server-to-client-visitor\"
-            type = \"stcp\"
-            serverName = \"clusterlink-client\"
-            secretKey = \"abcdefg\"
-            bindAddr = \"::\"
-            bindPort = 6001
     " | kubectl apply -f -
     ```
 
-    For each configuration, we first set the FRP server IP and port number.
-    We create a `proxy` that connects to the ClusterLink gateway and establishes a reverse tunnel to allow other clients to connect.
-    We also create an FRP `visitor` that specifies which other peers this client wants to connect to (you need to create a visitor for every peer you want to connect).
+    For each configuration, we first set the FRP server's IP address and port number.
 
-4. Create a K8s service that connects to the FRP client `visitor`, allowing ClusterLink to connect to it:
+    In the server cluster, we create a `proxy` that connects to the local ClusterLink gateway and establishes a reverse tunnel to the FRP server, allowing other FRP clients to connect to it.
+    In the client cluster, we create an FRP `visitor` that specifies which other peers this client wants to connect to. (You need to create a visitor for each peer you want to connect to.) For more details about FRP configuration, you can refer to the [FRP configuration documentation][]. For an example of connecting multiple clusters behind a private network, see the [ClusterLink FRP example][].
+
+3. Create a K8s service that connects to the FRP client `visitor`, allowing ClusterLink to connect to it:
 
     *Client cluster*:
 
@@ -186,7 +214,7 @@ In this step, we will create the FRP server on the same cluster we use for Clust
     kind: Service
     metadata:
         name: server-peer-clusterlink
-        namespace: clusterlink-system
+        namespace: frp
     spec:
         type: ClusterIP
         selector:
@@ -194,25 +222,6 @@ In this step, we will create the FRP server on the same cluster we use for Clust
         ports:
             - port: 6002
               targetPort: 6002
-    ' | kubectl apply -f -
-     ```
-
-    *Server cluster*:
-
-    ```sh
-    echo '
-    apiVersion: v1
-    kind: Service
-    metadata:
-        name: client-peer-clusterlink
-        namespace: clusterlink-system
-    spec:
-        type: ClusterIP
-        selector:
-            app: frpc
-        ports:
-            - port: 6001
-              targetPort: 6001
     ' | kubectl apply -f -
      ```
 
@@ -226,7 +235,7 @@ In this step, we will create the FRP server on the same cluster we use for Clust
     kind: Deployment
     metadata:
         name: frpc
-        namespace: clusterlink-system
+        namespace: frp
     spec:
         replicas: 1
         selector:
@@ -259,7 +268,7 @@ In this step, we will create the FRP server on the same cluster we use for Clust
     kind: Deployment
     metadata:
         name: frpc
-        namespace: clusterlink-system
+        namespace: frp
     spec:
         replicas: 1
         selector:
@@ -284,9 +293,9 @@ In this step, we will create the FRP server on the same cluster we use for Clust
         " | kubectl apply -f -
     ```
 
-## Create Peer CRDs
+## Create Peer CRD
 
-1. Create Peer CRDs for each peer:
+1. Create a Peer CRD that points to the server cluster. The Peer CRD should connect to a Kubernetes service that points to the `visitor` port in the frpc client.
 
     *Client cluster*:
 
@@ -299,24 +308,8 @@ In this step, we will create the FRP server on the same cluster we use for Clust
         namespace: clusterlink-system
     spec:
         gateways:
-            - host: server-peer-clusterlink.clusterlink-system.svc.cluster.local
+            - host: server-peer-clusterlink.frp.svc.cluster.local
               port: 6002
-    " | kubectl apply -f -
-    ```
-
-    *Server cluster*:
-
-    ```sh
-    echo "
-    apiVersion: clusterlink.net/v1alpha1
-    kind: Peer
-    metadata:
-        name: client
-        namespace: clusterlink-system
-    spec:
-        gateways:
-            - host: client-peer-clusterlink.clusterlink-system.svc.cluster.local
-              port: 6001
     " | kubectl apply -f -
     ```
 
@@ -362,33 +355,24 @@ After creating the peer connectivity using FRP, continue to the next step of exp
 
 ## Cleanup
 
-To remove all FRP components:
+To remove all FRP components, delete the `frp` namespace:
 
-1. Delete FRP server deployment, config-map and ingress service :
+*Client cluster*:
 
-    ```sh
-    kubectl delete deployments -n clusterlink-system frps
-    kubectl delete services -n clusterlink-system clusterlink-frps
-    kubectl delete configmaps -n clusterlink-system frps-config
+```sh
+kubectl delete namespace frp
+```
 
-1. Delete FRP client deployment, config-map and ingress service  on each cluster:
+*Server cluster*:
 
-    *Client cluster*:
+```sh
+kubectl delete namespace frp
+```
 
-    ```sh
-    kubectl delete deployments -n clusterlink-system frpc
-    kubectl delete services -n clusterlink-system server-peer-clusterlink
-    kubectl delete configmaps -n clusterlink-system frpc-config
-    ```
-
-    *Server cluster*:
-
-    ```sh
-    kubectl delete deployments -n clusterlink-system frpc
-    kubectl delete services -n clusterlink-system client-peer-clusterlink
-    kubectl delete configmaps -n clusterlink-system frpc-config
-    ```
+This part remove only the FRP components. To remove all ClusterLink components, please refer to the full instructions in the tutorials.
 
 [Nginx tutorial]: {{< relref "../../tutorials/nginx/_index.md" >}}
 [iPerf3 tutorial]: {{< relref "../../tutorials/iperf/_index.md" >}}
 [Fast Reverse Proxy]: https://github.com/fatedier/frp
+[FRP configuration documentation]: https://github.com/fatedier/frp?tab=readme-ov-file#example-usage
+[ClusterLink FRP example]: https://github.com/clusterlink-net/clusterlink/tree/main/demos/frp

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frps
-  namespace: clusterlink-system
+  namespace: frp
 spec:
   replicas: 1
   selector:
@@ -17,6 +17,7 @@ spec:
       containers:
         - name: frps
           image: snowdreamtech/frps
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: frps-config-volume
               mountPath: /etc/frp/frps.toml
@@ -25,13 +26,12 @@ spec:
         - name: frps-config-volume
           configMap:
             name: frps-config
-      restartPolicy: Always
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: clusterlink-frps
-  namespace: clusterlink-system
+  namespace: frp
 spec:
   type: NodePort
   selector:

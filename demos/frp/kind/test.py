@@ -13,10 +13,11 @@
 # limitations under the License.
 
 ################################################################
-# Name: Simple iperf3  test
-# Desc: create 2 kind clusters :
-# 1) GW and iperf3 client
-# 2) GW and iperf3 server
+# Name: FRP demo that connect 3 Kind clusters using FRP:
+# Desc: create 3 kind clusters :
+# 1) GW, iPerf3 client, FRP client, and FRP server
+# 2) GW, iPerf3 server, and FRP client
+# 3) GW, iPerf3 client, and FRP client
 ###############################################################
 import os
 import sys
@@ -27,9 +28,9 @@ sys.path.insert(0,f'{projDir}')
 from demos.utils.common import printHeader
 from demos.utils.kind import Cluster
 from demos.iperf3.kind.iperf3_client_start import directTestIperf3,testIperf3Client
-from demos.frp.test import iperf3Test
+from demos.frp.test import frpTest
 
-testOutputFolder = f"{projDir}/bin/tests/iperf3"
+testOutputFolder = f"{projDir}/bin/tests/frp"
 
 ############################### MAIN ##########################
 if __name__ == "__main__":
@@ -46,7 +47,7 @@ if __name__ == "__main__":
     iperf3DirectPort = "30001"
 
     # Setup
-    iperf3Test(cl1, cl2, cl3, testOutputFolder)
+    frpTest(cl1, cl2, cl3, testOutputFolder)
     #Testing
     printHeader("\n\nStart Iperf3 testing")
     cl2.useCluster()

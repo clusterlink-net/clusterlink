@@ -5,7 +5,7 @@ metadata:
   namespace: clusterlink-system
 spec:
   gateways:
-    - host: frp-peer1-clusterlink.clusterlink-system.svc.cluster.local
+    - host: frp-peer1-clusterlink.frp.svc.cluster.local
       port: 6001
 
 ---
@@ -13,7 +13,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: frp-peer1-clusterlink
-  namespace: clusterlink-system
+  namespace: frp
 spec:
   type: ClusterIP
   selector:
@@ -29,7 +29,7 @@ metadata:
   namespace: clusterlink-system
 spec:
   gateways:
-    - host: frp-peer2-clusterlink.clusterlink-system.svc.cluster.local
+    - host: frp-peer2-clusterlink.frp.svc.cluster.local
       port: 6002
 
 ---
@@ -37,7 +37,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: frp-peer2-clusterlink
-  namespace: clusterlink-system
+  namespace: frp
 spec:
   type: ClusterIP
   selector:
