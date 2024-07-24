@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frps
+  namespace: frp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frps
+  template:
+    metadata:
+      labels:
+        app: frps
+    spec:
+      hostNetwork: true
+      containers:
+        - name: frps
+          image: snowdreamtech/frps
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: frps-config-volume
+              mountPath: /etc/frp/frps.toml
+              subPath: frps.toml
+      volumes:
+        - name: frps-config-volume
+          configMap:
+            name: frps-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clusterlink-frps
+  namespace: frp
+spec:
+  type: NodePort
+  selector:
+    app: frps
+  ports:
+    - port: 4443
+      targetPort: 4443
+      nodePort: 30444
