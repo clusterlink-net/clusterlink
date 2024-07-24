@@ -56,8 +56,8 @@ This is an extension of the basic [nginx toturial][]. Please run it first and se
     ```
 
     {{< notice note >}}
-      The relay cluster certificates should use the same Fabric CA files as the server and the client.
-    {{< /notice >}}
+   The relay cluster certificates should use the same Fabric CA files as the server and the client.
+   {{< /notice >}}
 
 1. Deploy ClusterLink on the relay cluster:
 
