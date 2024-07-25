@@ -125,6 +125,8 @@ type InstanceSpec struct {
 	// +kubebuilder:default="clusterlink-system"
 	// Namespace represents the namespace where the ClusterLink project components are deployed.
 	Namespace string `json:"namespace,omitempty"`
+	// PeerLabels holds peer attributes to be considered by access policies.
+	PeerLabels map[string]string `json:"peerLabels,omitempty"`
 }
 
 // +kubebuilder:object:root=true

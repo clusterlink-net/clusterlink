@@ -102,7 +102,7 @@ spec:
       containers:
         - name: {{.controlplaneName}}
           image: {{.containerRegistry}}{{.controlplaneName}}:{{.tag}}
-          args: ["--log-level", "{{.logLevel}}"]
+          args: ["--log-level", "{{.logLevel}}" {{range $key, $val := .peerLabels }},"--peer-label", "{{$key}}={{$val}}"{{end}}]
           imagePullPolicy: IfNotPresent
           readinessProbe:
             httpGet:
@@ -260,6 +260,7 @@ spec:
 {{ end }}
     annotations: {{.ingressAnnotations}}
   logLevel: {{.logLevel}}
+  peerLabels: {{.peerLabels}}
   containerRegistry: {{.containerRegistry}}
   namespace: {{.namespace}}
   tag: {{.tag}}
@@ -313,6 +314,7 @@ func K8SConfig(config *Config) ([]byte, error) {
 		"dataplanes":        dataplanes,
 		"dataplaneType":     dataplaneType,
 		"logLevel":          config.LogLevel,
+		"peerLabels":        config.PeerLabels,
 		"containerRegistry": containerRegistry,
 		"tag":               config.Tag,
 
@@ -400,6 +402,15 @@ func K8SCertificateConfig(config *Config) ([]byte, error) {
 	return certConfig.Bytes(), nil
 }
 
+// mapToStr dumps the key-value pairs in a map into a multi-line string.
+func mapToStr(m map[string]string, indentation string) string {
+	mapAsString := "\n"
+	for key, value := range m {
+		mapAsString += fmt.Sprintf("%s%s: %s\n", indentation, key, value)
+	}
+	return mapAsString
+}
+
 // K8SClusterLinkInstanceConfig returns a YAML file for the ClusterLink instance.
 func K8SClusterLinkInstanceConfig(config *Config, name string) ([]byte, error) {
 	containerRegistry := config.ContainerRegistry
@@ -407,11 +418,8 @@ func K8SClusterLinkInstanceConfig(config *Config, name string) ([]byte, error) {
 		containerRegistry = config.ContainerRegistry + "/"
 	}
 
-	// Convert ingress annotations map to string.
-	ingressAnnotationsStr := "\n"
-	for key, value := range config.IngressAnnotations {
-		ingressAnnotationsStr += fmt.Sprintf("      %s: %s\n", key, value)
-	}
+	ingressAnnotationsStr := mapToStr(config.IngressAnnotations, "      ")
+	peerLabelsStr := mapToStr(config.PeerLabels, "    ")
 
 	args := map[string]interface{}{
 		"name":               name,
@@ -419,6 +427,7 @@ func K8SClusterLinkInstanceConfig(config *Config, name string) ([]byte, error) {
 		"dataplanes":         config.Dataplanes,
 		"dataplaneType":      config.DataplaneType,
 		"logLevel":           config.LogLevel,
+		"peerLabels":         peerLabelsStr,
 		"containerRegistry":  containerRegistry,
 		"namespace":          config.Namespace,
 		"ingressType":        config.IngressType,
