@@ -237,6 +237,30 @@ func (s *TestSuite) TestPrivilegedPolicies() {
 	require.ErrorIs(s.T(), err, &services.ConnectionResetError{})
 }
 
+func (s *TestSuite) TestPeerLabels() {
+	cl, importedService := s.createTwoClustersWithEchoSvc()
+	require.Nil(s.T(), cl[0].CreatePolicy(util.PolicyAllowAll))
+	require.Nil(s.T(), cl[1].CreatePolicy(util.PolicyAllowAll))
+
+	// 1. Denying clients whose peer sits in a cluster with a given name
+	srcLabels := map[string]string{
+		authz.PeerLabelsPrefix + util.ClusterNameLabel: cl[1].Cluster().Name(),
+	}
+	denyCl1 := util.NewPolicy("deny-cl1-cluster", v1alpha1.AccessPolicyActionDeny, srcLabels, nil)
+	require.Nil(s.T(), cl[0].CreatePolicy(denyCl1))
+	_, err := cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
+	require.NotNil(s.T(), err)
+
+	// 2. Creating a privileged policy to override the deny in 1. and allow requests from cl[1], based on its ip
+	srcLabels = map[string]string{
+		authz.PeerLabelsPrefix + util.PeerIPLabel: cl[1].Cluster().IP(),
+	}
+	allowCl1 := util.NewPrivilegedPolicy("allow-cl1-cluster", v1alpha1.AccessPolicyActionAllow, srcLabels, nil)
+	require.Nil(s.T(), cl[0].CreatePrivilegedPolicy(allowCl1))
+	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
+	require.Nil(s.T(), err)
+}
+
 func (s *TestSuite) createTwoClustersWithEchoSvc() ([]*util.ClusterLink, *util.Service) {
 	cl, err := s.fabric.DeployClusterlinks(2, nil)
 	require.Nil(s.T(), err)
