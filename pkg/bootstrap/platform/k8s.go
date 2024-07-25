@@ -102,7 +102,7 @@ spec:
       containers:
         - name: {{.controlplaneName}}
           image: {{.containerRegistry}}{{.controlplaneName}}:{{.tag}}
-          args: ["--log-level", "{{.logLevel}}" {{range $key, $val := .peerLabels }},"--peer-label", "{{$key}}={{$val}}"{{end}}]
+          args: ["--log-level", "{{.logLevel}}" {{range $key, $val := .peerLabels }}, "--peer-label", "{{$key}}={{$val}}"{{end}}]
           imagePullPolicy: IfNotPresent
           readinessProbe:
             httpGet:
