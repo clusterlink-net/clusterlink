@@ -125,7 +125,7 @@ archived_version = false
 # point people to the main doc site.
 # url_latest_version = "https://clusterlink.net"
 
-latest_stable_version = "v0.3"
+latest_stable_version = "v0.4"
 
 # Repository configuration (URLs for in-page links to opening issues and suggesting changes)
 github_repo = "https://github.com/clusterlink-net/clusterlink"
@@ -234,6 +234,9 @@ path = "github.com/martignoni/hugo-notice"
 version = "main-DRAFT"
 url = "/docs/main"
 
+[[params.versions]]
+version = "v0.4"
+url = "/docs/v0.4/"
 
 [[params.versions]]
 version = "v0.3"

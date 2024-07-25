@@ -1,0 +1,47 @@
+apiVersion: clusterlink.net/v1alpha1
+kind: Peer
+metadata:
+  name: peer1
+  namespace: clusterlink-system
+spec:
+  gateways:
+    - host: frp-peer1-clusterlink.frp.svc.cluster.local
+      port: 6001
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frp-peer1-clusterlink
+  namespace: frp
+spec:
+  type: ClusterIP
+  selector:
+    app: frpc
+  ports:
+    - port: 6001
+      targetPort: 6001
+---
+apiVersion: clusterlink.net/v1alpha1
+kind: Peer
+metadata:
+  name: peer2
+  namespace: clusterlink-system
+spec:
+  gateways:
+    - host: frp-peer2-clusterlink.frp.svc.cluster.local
+      port: 6002
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frp-peer2-clusterlink
+  namespace: frp
+spec:
+  type: ClusterIP
+  selector:
+    app: frpc
+  ports:
+    - port: 6002
+      targetPort: 6002
