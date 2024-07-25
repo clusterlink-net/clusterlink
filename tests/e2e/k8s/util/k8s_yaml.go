@@ -75,8 +75,8 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 		Namespace:               f.namespace,
 		Tag:                     "latest",
 		PeerLabels: map[string]string{
-			"cluster": p.cluster.name,
-			"ip":      p.cluster.ip,
+			ClusterNameLabel: p.cluster.name,
+			PeerIPLabel:      p.cluster.ip,
 		},
 	})
 	if err != nil {
