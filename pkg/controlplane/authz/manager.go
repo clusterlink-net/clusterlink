@@ -412,6 +412,7 @@ func (m *Manager) authorizeIngress(
 
 	// do not allow requests from clients with no attributes if the PDP has attribute-dependent policies
 	if len(req.SrcAttributes) == 0 && m.connectivityPDP.DependsOnClientAttrs() {
+		m.logger.Infof("PDP not allowing connection: No client attributes")
 		resp.Allowed = false
 		return resp, nil
 	}
@@ -422,6 +423,7 @@ func (m *Manager) authorizeIngress(
 	}
 
 	if decision.Decision != connectivitypdp.DecisionAllow {
+		m.logger.Infof("PDP not allowing connection: src:%v, dst:%v, decision: %+v", req.SrcAttributes, dstAttributes, decision)
 		resp.Allowed = false
 		return resp, nil
 	}
