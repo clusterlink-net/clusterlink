@@ -378,9 +378,11 @@ func (c *KindCluster) CreateNamespace(name string) error {
 // DeleteNamespace deletes a namespace.
 func (c *KindCluster) DeleteNamespace(name string) error {
 	delete(c.nodeportServices, name)
-	return c.resources.Delete(
-		context.Background(),
-		&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+	obj := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}}
+	if err := c.resources.Delete(context.Background(), obj); err != nil {
+		return err
+	}
+	return c.WaitForDeletion(obj)
 }
 
 // CreateFromYAML creates k8s objects from a yaml string, in a given namespace.
