@@ -243,7 +243,7 @@ func (m *Manager) getSrcAttributes(req *egressAuthorizationRequest) connectivity
 		clientAttrs[PeerLabelsPrefix+k] = v
 	}
 
-	m.logger.Debugf("Client attributes: %v.", clientAttrs)
+	m.logger.Infof("Client attributes: %v.", clientAttrs)
 
 	return clientAttrs
 }
@@ -322,6 +322,7 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 			DstNamespace = req.ImportName.Namespace
 		}
 
+		m.logger.Infof("Egress authorized. Sending authorization request to %s", importSource.Peer)
 		accessToken, err := cl.Authorize(&cpapi.AuthorizationRequest{
 			ServiceName:      DstName,
 			ServiceNamespace: DstNamespace,
@@ -451,6 +452,7 @@ func (m *Manager) authorizeIngress(
 	}
 	resp.AccessToken = string(signed)
 
+	m.logger.Infof("Ingress authorized. Sending authorization response: %v", resp)
 	return resp, nil
 }
 
