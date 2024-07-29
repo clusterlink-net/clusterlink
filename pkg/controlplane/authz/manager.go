@@ -301,6 +301,7 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 		}
 
 		if decision.Decision != connectivitypdp.DecisionAllow {
+			m.logger.Infof("PDP not allowing connection: src:%v, dst:%v, decision: %+v", srcAttributes, dstAttributes, decision)
 			continue
 		}
 
