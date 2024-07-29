@@ -64,19 +64,7 @@ func (s *TestSuite) TestPeerMultipleGateways() {
 
 	// create an export of http-echo
 	require.Nil(s.T(), cl[0].CreateService(&httpEchoService))
-	export := &v1alpha1.Export{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      httpEchoService.Name,
-			Namespace: cl[0].Namespace(),
-			Labels:    httpEchoService.Labels,
-		},
-		Spec: v1alpha1.ExportSpec{
-			Port: httpEchoService.Port,
-		},
-	}
-
-	require.Nil(s.T(), cl[0].Cluster().Resources().Create(context.Background(), export))
-	require.Nil(s.T(), cl[0].WaitForExportCondition(export, v1alpha1.ExportValid, true))
+	require.Nil(s.T(), cl[0].CreateExport(&httpEchoService))
 
 	// create an import of the above export
 	importedService := &util.Service{
