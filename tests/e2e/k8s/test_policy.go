@@ -259,6 +259,9 @@ func (s *TestSuite) TestPeerLabels() {
 	require.Nil(s.T(), cl[0].CreatePrivilegedPolicy(allowCl1))
 	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
 	require.Nil(s.T(), err)
+
+	// privileged policies are not namespaced, so remain after the test's namespace is deleted
+	require.Nil(s.T(), cl[0].DeletePrivilegedPolicy(allowCl1.Name))
 }
 
 func (s *TestSuite) createTwoClustersWithEchoSvc() ([]*util.ClusterLink, *util.Service) {
