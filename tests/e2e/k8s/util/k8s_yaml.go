@@ -22,6 +22,11 @@ import (
 	"github.com/clusterlink-net/clusterlink/pkg/controlplane/api"
 )
 
+const (
+	ClusterNameLabel = "cluster"
+	PeerIPLabel      = "ip"
+)
+
 // replaceOnce replaces <search> exactly once.
 func replaceOnce(s, search, replace string) (string, error) {
 	searchCount := strings.Count(s, search)
@@ -69,6 +74,10 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 		ContainerRegistry:       "",
 		Namespace:               f.namespace,
 		Tag:                     "latest",
+		PeerLabels: map[string]string{
+			ClusterNameLabel: p.cluster.name,
+			PeerIPLabel:      p.cluster.ip,
+		},
 	})
 	if err != nil {
 		return "", err

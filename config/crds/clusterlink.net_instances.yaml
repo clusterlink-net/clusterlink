@@ -108,6 +108,12 @@ spec:
                 description: Namespace represents the namespace where the ClusterLink
                   project components are deployed.
                 type: string
+              peerLabels:
+                additionalProperties:
+                  type: string
+                description: PeerLabels holds peer attributes to be considered by
+                  access policies.
+                type: object
               tag:
                 default: latest
                 description: Tag represents the tag of the ClusterLink project images.

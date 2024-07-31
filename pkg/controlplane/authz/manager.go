@@ -47,6 +47,7 @@ const (
 	ServiceNamespaceLabel = "export.clusterlink.net/namespace"
 	ServiceLabelsPrefix   = "export.clusterlink.net/labels."
 	PeerNameLabel         = "peer.clusterlink.net/name"
+	PeerLabelsPrefix      = "peer.clusterlink.net/labels."
 )
 
 // egressAuthorizationRequest (from local dataplane)
@@ -104,6 +105,7 @@ type Manager struct {
 	selfPeerLock sync.RWMutex
 	peerTLS      *tls.ParsedCertData
 	peerName     string
+	peerLabels   map[string]string
 
 	peerClientLock sync.RWMutex
 	peerClient     map[string]*peer.Client
@@ -220,7 +222,7 @@ func (m *Manager) getPodInfoByIP(ip string) *podInfo {
 	return nil
 }
 
-func (m *Manager) getClientAttributes(req *egressAuthorizationRequest) connectivitypdp.WorkloadAttrs {
+func (m *Manager) getSrcAttributes(req *egressAuthorizationRequest) connectivitypdp.WorkloadAttrs {
 	podInfo := m.getPodInfoByIP(req.IP)
 	if podInfo == nil {
 		m.logger.Infof("Pod has no info: IP=%v.", req.IP)
@@ -237,7 +239,11 @@ func (m *Manager) getClientAttributes(req *egressAuthorizationRequest) connectiv
 		clientAttrs[ClientLabelsPrefix+k] = v
 	}
 
-	m.logger.Debugf("Client attributes: %v.", clientAttrs)
+	for k, v := range m.peerLabels {
+		clientAttrs[PeerLabelsPrefix+k] = v
+	}
+
+	m.logger.Infof("Client attributes: %v.", clientAttrs)
 
 	return clientAttrs
 }
@@ -246,7 +252,7 @@ func (m *Manager) getClientAttributes(req *egressAuthorizationRequest) connectiv
 func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationRequest) (*egressAuthorizationResponse, error) {
 	m.logger.Infof("Received egress authorization request: %v.", req)
 
-	srcAttributes := m.getClientAttributes(req)
+	srcAttributes := m.getSrcAttributes(req)
 	if len(srcAttributes) == 0 && m.connectivityPDP.DependsOnClientAttrs() {
 		return nil, fmt.Errorf("failed to extract client attributes, however, access policies depend on such attributes")
 	}
@@ -295,6 +301,7 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 		}
 
 		if decision.Decision != connectivitypdp.DecisionAllow {
+			m.logger.Infof("PDP not allowing connection: src:%v, dst:%v, decision: %+v", srcAttributes, dstAttributes, decision)
 			continue
 		}
 
@@ -316,6 +323,7 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 			DstNamespace = req.ImportName.Namespace
 		}
 
+		m.logger.Infof("Egress authorized. Sending authorization request to %s", importSource.Peer)
 		accessToken, err := cl.Authorize(&cpapi.AuthorizationRequest{
 			ServiceName:      DstName,
 			ServiceNamespace: DstNamespace,
@@ -404,6 +412,7 @@ func (m *Manager) authorizeIngress(
 
 	// do not allow requests from clients with no attributes if the PDP has attribute-dependent policies
 	if len(req.SrcAttributes) == 0 && m.connectivityPDP.DependsOnClientAttrs() {
+		m.logger.Infof("PDP not allowing connection: No client attributes")
 		resp.Allowed = false
 		return resp, nil
 	}
@@ -414,6 +423,7 @@ func (m *Manager) authorizeIngress(
 	}
 
 	if decision.Decision != connectivitypdp.DecisionAllow {
+		m.logger.Infof("PDP not allowing connection: src:%v, dst:%v, decision: %+v", req.SrcAttributes, dstAttributes, decision)
 		resp.Allowed = false
 		return resp, nil
 	}
@@ -445,6 +455,7 @@ func (m *Manager) authorizeIngress(
 	}
 	resp.AccessToken = string(signed)
 
+	m.logger.Infof("Ingress authorized. Sending authorization response: %v", resp)
 	return resp, nil
 }
 
@@ -486,10 +497,11 @@ func (m *Manager) IsReady() bool {
 }
 
 // NewManager returns a new authorization manager.
-func NewManager(cl client.Client, namespace string) *Manager {
+func NewManager(cl client.Client, namespace string, peerLabels map[string]string) *Manager {
 	return &Manager{
 		client:          cl,
 		namespace:       namespace,
+		peerLabels:      peerLabels,
 		connectivityPDP: connectivitypdp.NewPDP(),
 		loadBalancer:    NewLoadBalancer(),
 		peerClient:      make(map[string]*peer.Client),
