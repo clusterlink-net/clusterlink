@@ -211,6 +211,10 @@ func (r *InstanceReconciler) applyClusterLink(ctx context.Context, instance *clu
 // applyControlplane sets up the controlplane deployment.
 func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *clusterlink.Instance) error {
 	cpDeployment := r.setDeployment(cpapi.Name, instance.Spec.Namespace, 1)
+	containerArgs := []string{"--log-level", instance.Spec.LogLevel}
+	for key, val := range instance.Spec.PeerLabels {
+		containerArgs = append(containerArgs, "--peer-label", fmt.Sprintf("%s=%s", key, val))
+	}
 	cpDeployment.Spec.Template.Spec = corev1.PodSpec{
 		ServiceAccountName: cpapi.Name,
 		Volumes: []corev1.Volume{
@@ -244,7 +248,7 @@ func (r *InstanceReconciler) applyControlplane(ctx context.Context, instance *cl
 				Name:            cpapi.Name,
 				Image:           instance.Spec.ContainerRegistry + cpapi.Name + ":" + instance.Spec.Tag,
 				ImagePullPolicy: corev1.PullIfNotPresent,
-				Args:            []string{"--log-level", instance.Spec.LogLevel},
+				Args:            containerArgs,
 				ReadinessProbe: &corev1.Probe{
 					ProbeHandler: corev1.ProbeHandler{
 						HTTPGet: &corev1.HTTPGetAction{

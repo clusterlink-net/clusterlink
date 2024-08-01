@@ -44,6 +44,8 @@ type Config struct {
 	// DataplaneType is the type of dataplane to create (envoy or go-based)
 	DataplaneType string
 
+	// PeerLabels are the peer attributes to be considered by access policies
+	PeerLabels map[string]string
 	// LogLevel is the log level.
 	LogLevel string
 	// ContainerRegistry is the container registry to pull the project images.

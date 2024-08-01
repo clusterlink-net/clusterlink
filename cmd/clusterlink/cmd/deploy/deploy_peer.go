@@ -79,6 +79,8 @@ type PeerOptions struct {
 	DataplaneReplicas uint16
 	// DataplaneType is the type of dataplane to create (envoy or go-based)
 	DataplaneType string
+	// Labels hold the peer attributes to be considered by access policies
+	Labels map[string]string
 	// LogLevel is the log level.
 	LogLevel string
 }
@@ -122,18 +124,21 @@ func (o *PeerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.StartInstance, "start", StartAll,
 		"Represents which component to deploy and start in the cluster: "+
 			"`all` (clusterlink components and operator), `operator`, or `none`.")
-	fs.StringVar(&o.Ingress, "ingress", string(apis.IngressTypeLoadBalancer), "Represents the type of service used"+
+	fs.StringVar(&o.Ingress, "ingress", string(apis.IngressTypeLoadBalancer), "Represents the type of service used "+
 		"to expose the ClusterLink deployment (LoadBalancer/NodePort/none).")
 	fs.Uint16Var(&o.IngressPort, "ingress-port", apis.DefaultExternalPort,
 		"Represents the ingress port. By default it is set to 443 for LoadBalancer"+
 			" and a random port in range (30000 to 32767) for NodePort.")
-	fs.StringToStringVar(&o.IngressAnnotations, "ingress-annotations", nil, "Represents the annotations that"+
+	fs.StringToStringVar(&o.IngressAnnotations, "ingress-annotations", nil, "Represents the annotations that "+
 		"will be added to ingress services.\nThe flag can be repeated to add several annotations.\n"+
 		"For example: --ingress-annotations <key1>=<value1> --ingress-annotations <key2>=<value2>.")
 	fs.StringVar(&o.DataplaneType, "dataplane", platform.DataplaneTypeEnvoy,
 		"Type of dataplane, Supported values: \"envoy\", \"go\"")
 	fs.Uint16Var(&o.ControlplaneReplicas, "controlplane-replicas", 1, "Number of controlplanes.")
 	fs.Uint16Var(&o.DataplaneReplicas, "dataplane-replicas", 1, "Number of dataplanes.")
+	fs.StringToStringVar(&o.Labels, "label", nil, "Key-value attributes to assign to the peer. "+
+		"These attributes can be used in access policies.\nThe flag can be repeated to add several attributes.\n"+
+		"For example: --label <key1>=<value1> --label <key2>=<value2>.")
 	fs.StringVar(&o.LogLevel, "log-level", "info",
 		"The log level. One of fatal, error, warn, info, debug.")
 }
@@ -193,6 +198,7 @@ func (o *PeerOptions) Run() error {
 		DataplaneCertificate:    dataplaneCert,
 		Dataplanes:              o.DataplaneReplicas,
 		DataplaneType:           o.DataplaneType,
+		PeerLabels:              o.Labels,
 		LogLevel:                o.LogLevel,
 		ContainerRegistry:       o.ContainerRegistry,
 		Namespace:               o.Namespace,

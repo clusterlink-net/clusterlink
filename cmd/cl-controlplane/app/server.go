@@ -97,6 +97,8 @@ type Options struct {
 	LogFile string
 	// LogLevel is the log level.
 	LogLevel string
+	// PeerLabels hold the peer attributes (as "<key>:<value>" strings), to be used in access policies
+	PeerLabels map[string]string
 }
 
 // AddFlags adds flags to fs and binds them to options.
@@ -105,6 +107,8 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 		"Path to a file where logs will be written. If not specified, logs will be printed to stderr.")
 	fs.StringVar(&o.LogLevel, "log-level", logLevel,
 		"The log level. One of fatal, error, warn, info, debug.")
+	fs.StringToStringVar(&o.PeerLabels, "peer-label", nil,
+		`Peer attributes to be used in access policies. Values should have the form "<key>=<value>"`)
 }
 
 // Run the various controlplane servers.
@@ -189,7 +193,7 @@ func (o *Options) Run() error {
 	controlplaneServerListenAddress := fmt.Sprintf("0.0.0.0:%d", api.ListenPort)
 	grpcServer := grpc.NewServer("controlplane-grpc", controlplaneCertData.ServerConfig())
 
-	authzManager := authz.NewManager(mgr.GetClient(), namespace)
+	authzManager := authz.NewManager(mgr.GetClient(), namespace, o.PeerLabels)
 	peerCertsWatcher.AddConsumer(authzManager)
 
 	err = authz.CreateControllers(authzManager, mgr)
