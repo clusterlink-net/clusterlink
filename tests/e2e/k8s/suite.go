@@ -88,19 +88,19 @@ func (s *TestSuite) SetupSuite() {
 	}
 
 	// wait for clusters
-	for clusterNum := 0; clusterNum < clusterCount; clusterNum++ {
-		if err := s.clusters[clusterNum].Wait(); err != nil {
+	for cnum := 0; cnum < clusterCount; cnum++ {
+		if err := s.clusters[cnum].Wait(); err != nil {
 			s.T().Fatal(err)
 		}
 
 		// create http-echo service which echoes the cluster name
-		err := s.clusters[clusterNum].CreatePodAndService(httpecho.ServerPod(httpEchoService, s.clusters[clusterNum].Name()))
+		err := s.clusters[cnum].CreatePodAndService(httpecho.ServerPod(httpEchoService, s.clusters[cnum].Name()))
 		if err != nil {
 			s.T().Fatal(fmt.Errorf("cannot create http-echo service: %w", err))
 		}
 
 		// create iperf3 server service
-		err = s.clusters[clusterNum].CreatePodAndService(iperf3.ServerPod(iperf3Service))
+		err = s.clusters[cnum].CreatePodAndService(iperf3.ServerPod(iperf3Service))
 		if err != nil {
 			s.T().Fatal(fmt.Errorf("cannot create iperf3-server service: %w", err))
 		}
@@ -114,16 +114,16 @@ func (s *TestSuite) SetupSuite() {
 		localImage := "cl-operator:latest"
 		remoteImage := path.Join(config.DefaultRegistry, "cl-operator:latest")
 		managerModified := strings.ReplaceAll(string(managerFile), remoteImage, localImage)
-		if err := s.clusters[clusterNum].CreateFromYAML(managerModified, controller.OperatorNamespace); err != nil {
+		if err := s.clusters[cnum].CreateFromYAML(managerModified, controller.OperatorNamespace); err != nil {
 			s.T().Fatal(fmt.Errorf("cannot create k8s operator deployment files: %w", err))
 		}
 
-		if err := s.clusters[clusterNum].CreateFromPath("./../../../config/operator/rbac/"); err != nil {
+		if err := s.clusters[cnum].CreateFromPath("./../../../config/operator/rbac/"); err != nil {
 			s.T().Fatal(fmt.Errorf("cannot create k8s operator rbac files: %w", err))
 		}
 
 		// create the project CRDs.
-		if err := s.clusters[clusterNum].CreateFromPath("./../../../config/crds/"); err != nil {
+		if err := s.clusters[cnum].CreateFromPath("./../../../config/crds/"); err != nil {
 			s.T().Fatal(fmt.Errorf("cannot create project CRDs: %w", err))
 		}
 	}
