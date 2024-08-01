@@ -37,23 +37,6 @@ func replaceOnce(s, search, replace string) (string, error) {
 	return strings.ReplaceAll(s, search, replace), nil
 }
 
-// remove removes a substring starting with <from> until <to> (excluding).
-func remove(s, from, to string) (string, error) {
-	searchCount := strings.Count(s, from)
-	if searchCount != 1 {
-		return "", fmt.Errorf("found %d (!=1) occurrences of '%s'", searchCount, from)
-	}
-
-	startPos := strings.Index(s, from)
-	tmpPos := strings.Index(s[startPos+len(from):], to)
-	if tmpPos == -1 {
-		return "", fmt.Errorf("cannot found termination for '%s'", from)
-	}
-	endPos := startPos + len(from) + tmpPos
-
-	return s[:startPos] + s[endPos:], nil
-}
-
 func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 	logLevel := "info"
 	if os.Getenv("DEBUG") == "1" {

@@ -14,6 +14,7 @@
 package control
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -46,8 +47,8 @@ func (e conflictingTargetPortError) Error() string {
 }
 
 func (e conflictingTargetPortError) Is(target error) bool {
-	_, ok := target.(*conflictingTargetPortError)
-	return ok
+	var confPortErr *conflictingTargetPortError
+	return errors.As(target, &confPortErr)
 }
 
 // portManager leases ports for use by imported services.
@@ -98,31 +99,52 @@ func (m *portManager) Lease(name types.NamespacedName, port uint16) (uint16, err
 	defer m.lock.Unlock()
 
 	if port == 0 {
-		if len(m.leasesByPort) == int(portCount) {
-			return 0, fmt.Errorf("all ports are taken")
-		}
+		return m.leaseWithRandomPort(name)
+	}
+	return m.leaseWithSpecificPort(name, port)
+}
 
-		if port = m.leasesByName[name]; port != 0 {
-			m.logger.Infof("Leased existing: %d.", port)
-		} else {
-			port = m.getRandomFreePort()
-			m.logger.Infof("Generated port: %d.", port)
-		}
-	} else {
-		if leaseName, ok := m.leasesByPort[port]; ok && leaseName != name {
-			return 0, conflictingTargetPortError{
-				port:      port,
-				leaseName: leaseName,
-			}
+// Lease random port.
+func (m *portManager) leaseWithRandomPort(name types.NamespacedName) (uint16, error) {
+	if len(m.leasesByPort) == int(portCount) {
+		return 0, fmt.Errorf("all ports are taken")
+	}
+
+	if port := m.leasesByName[name]; port != 0 {
+		m.logger.Infof("Leased existing: %d.", port)
+		return port, nil
+	}
+
+	port := m.getRandomFreePort()
+	m.logger.Infof("Generated port: %d.", port)
+
+	// Mark previous port (if exists) as free
+	if oldPort, ok := m.leasesByName[name]; ok {
+		delete(m.leasesByPort, oldPort)
+	}
+
+	// Mark port as leased
+	m.leasesByPort[port] = name
+	m.leasesByName[name] = port
+
+	return port, nil
+}
+
+// Lease specific port.
+func (m *portManager) leaseWithSpecificPort(name types.NamespacedName, port uint16) (uint16, error) {
+	if leaseName, ok := m.leasesByPort[port]; ok && leaseName != name {
+		return 0, conflictingTargetPortError{
+			port:      port,
+			leaseName: leaseName,
 		}
 	}
 
-	// mark previous port (if exists) is free
-	if port, ok := m.leasesByName[name]; ok {
-		delete(m.leasesByPort, port)
+	// Mark previous port (if exists) as free
+	if oldPort, ok := m.leasesByName[name]; ok {
+		delete(m.leasesByPort, oldPort)
 	}
 
-	// mark port is leased
+	// Mark port as leased
 	m.leasesByPort[port] = name
 	m.leasesByName[name] = port
 
