@@ -92,7 +92,15 @@ func (o *Options) Run() error {
 		return fmt.Errorf("cannot listen for readiness: %w", err)
 	}
 	httpServer.Router().Get("/", func(w http.ResponseWriter, r *http.Request) {
-		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/ready", adminPort))
+		ctx := r.Context()
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/ready", adminPort), http.NoBody)
+		if err != nil {
+			logrus.Errorf("Error creating request: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		resp, err := http.DefaultClient.Do(req)
 		if err == nil && resp.Body.Close() != nil {
 			logrus.Infof("Cannot close readiness response body: %v", err)
 		}

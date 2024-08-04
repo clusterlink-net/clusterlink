@@ -324,11 +324,13 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 		}
 
 		m.logger.Infof("Egress authorized. Sending authorization request to %s", importSource.Peer)
-		accessToken, err := cl.Authorize(&cpapi.AuthorizationRequest{
-			ServiceName:      DstName,
-			ServiceNamespace: DstNamespace,
-			SrcAttributes:    srcAttributes,
-		})
+		accessToken, err := cl.Authorize(
+			ctx,
+			&cpapi.AuthorizationRequest{
+				ServiceName:      DstName,
+				ServiceNamespace: DstNamespace,
+				SrcAttributes:    srcAttributes,
+			})
 		if err != nil {
 			m.logger.Infof("Unable to get access token from peer: %v", err)
 			continue

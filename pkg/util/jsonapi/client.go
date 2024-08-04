@@ -15,6 +15,7 @@ package jsonapi
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -44,23 +45,23 @@ type Response struct {
 }
 
 // Get sends an HTTP GET request.
-func (c *Client) Get(path string) (*Response, error) {
-	return c.do(http.MethodGet, path, nil)
+func (c *Client) Get(ctx context.Context, path string) (*Response, error) {
+	return c.do(ctx, http.MethodGet, path, nil)
 }
 
 // Post sends an HTTP POST request.
-func (c *Client) Post(path string, body []byte) (*Response, error) {
-	return c.do(http.MethodPost, path, body)
+func (c *Client) Post(ctx context.Context, path string, body []byte) (*Response, error) {
+	return c.do(ctx, http.MethodPost, path, body)
 }
 
 // Put sends an HTTP PUT request.
-func (c *Client) Put(path string, body []byte) (*Response, error) {
-	return c.do(http.MethodPut, path, body)
+func (c *Client) Put(ctx context.Context, path string, body []byte) (*Response, error) {
+	return c.do(ctx, http.MethodPut, path, body)
 }
 
 // Delete sends an HTTP DELETE request.
-func (c *Client) Delete(path string, body []byte) (*Response, error) {
-	return c.do(http.MethodDelete, path, body)
+func (c *Client) Delete(ctx context.Context, path string, body []byte) (*Response, error) {
+	return c.do(ctx, http.MethodDelete, path, body)
 }
 
 // ServerURL returns the server URL configured for this client.
@@ -68,13 +69,13 @@ func (c *Client) ServerURL() string {
 	return c.serverURL
 }
 
-func (c *Client) do(method, path string, body []byte) (*Response, error) {
+func (c *Client) do(ctx context.Context, method, path string, body []byte) (*Response, error) {
 	requestLogger := c.logger.WithFields(logrus.Fields{"method": method, "path": path})
 
 	requestLogger.WithField("body-length", len(body)).Debugf("Issuing request.")
 	requestLogger.Debugf("Request body: %v.", body)
 
-	req, err := http.NewRequest(method, c.serverURL+path, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, method, c.serverURL+path, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, fmt.Errorf("unable to create http request: %w", err)
 	}

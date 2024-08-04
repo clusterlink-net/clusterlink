@@ -14,6 +14,7 @@
 package peer
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -94,14 +95,14 @@ func (c *Client) getResponse(
 }
 
 // Authorize a request for accessing a peer exported service, yielding an access token.
-func (c *Client) Authorize(req *api.AuthorizationRequest) (string, error) {
+func (c *Client) Authorize(ctx context.Context, req *api.AuthorizationRequest) (string, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return "", fmt.Errorf("unable to serialize authorization request: %w", err)
 	}
 
 	serverResp, err := c.getResponse(func(client *jsonapi.Client) (*jsonapi.Response, error) {
-		return client.Post(api.RemotePeerAuthorizationPath, body)
+		return client.Post(ctx, api.RemotePeerAuthorizationPath, body)
 	})
 	if err != nil {
 		return "", err
@@ -118,7 +119,7 @@ func (c *Client) Authorize(req *api.AuthorizationRequest) (string, error) {
 // GetHeartbeat get a heartbeat from other peers.
 func (c *Client) GetHeartbeat() error {
 	serverResp, err := c.getResponse(func(client *jsonapi.Client) (*jsonapi.Response, error) {
-		return client.Get(api.HeartbeatPath)
+		return client.Get(context.Background(), api.HeartbeatPath)
 	})
 	if err != nil {
 		return err
