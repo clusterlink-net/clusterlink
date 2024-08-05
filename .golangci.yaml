@@ -47,7 +47,7 @@ linters:
     - nestif
     - nilerr
     - nilnil
-    # - noctx
+    - noctx
     - nolintlint
     - nonamedreturns
     - nosprintfhostport

@@ -14,6 +14,7 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -60,8 +61,14 @@ func (d *Dataplane) StartDataplaneServer(dataplaneServerAddress string) error {
 	return server.ListenAndServeTLS("", "")
 }
 
-func (d *Dataplane) IsReady() bool {
-	resp, err := http.Get(fmt.Sprintf("https://127.0.0.1:%d", api.ListenPort))
+func (d *Dataplane) IsReady(ctx context.Context) bool {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://127.0.0.1:%d", api.ListenPort), http.NoBody)
+	if err != nil {
+		d.logger.Errorf("Error creating readiness request: %v", err)
+		return false
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err == nil && resp.Body.Close() != nil {
 		d.logger.Infof("Cannot close readiness response body: %v", err)
 	}
@@ -239,6 +246,8 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, ap
 		return err
 	}
 
+	ctx := context.Background()
+
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
@@ -246,7 +255,7 @@ func (d *Dataplane) initiateEgressConnection(targetCluster, authToken string, ap
 		},
 	}
 
-	egressReq, err := http.NewRequest(http.MethodConnect, url, http.NoBody)
+	egressReq, err := http.NewRequestWithContext(ctx, http.MethodConnect, url, http.NoBody)
 	if err != nil {
 		return err
 	}
