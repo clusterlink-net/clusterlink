@@ -37,37 +37,20 @@ func replaceOnce(s, search, replace string) (string, error) {
 	return strings.ReplaceAll(s, search, replace), nil
 }
 
-// remove removes a substring starting with <from> until <to> (excluding).
-func remove(s, from, to string) (string, error) {
-	searchCount := strings.Count(s, from)
-	if searchCount != 1 {
-		return "", fmt.Errorf("found %d (!=1) occurrences of '%s'", searchCount, from)
-	}
-
-	startPos := strings.Index(s, from)
-	tmpPos := strings.Index(s[startPos+len(from):], to)
-	if tmpPos == -1 {
-		return "", fmt.Errorf("cannot found termination for '%s'", from)
-	}
-	endPos := startPos + len(from) + tmpPos
-
-	return s[:startPos] + s[endPos:], nil
-}
-
-func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
+func (f *Fabric) generateK8SYAML(pr *peer, cfg *PeerConfig) (string, error) {
 	logLevel := "info"
 	if os.Getenv("DEBUG") == "1" {
 		logLevel = "debug"
 	}
 
 	k8sYAMLBytes, err := platform.K8SConfig(&platform.Config{
-		Peer:                    p.cluster.Name(),
+		Peer:                    pr.cluster.Name(),
 		FabricCertificate:       f.cert,
-		PeerCertificate:         p.peerCert,
-		CACertificate:           p.caCert,
+		PeerCertificate:         pr.peerCert,
+		CACertificate:           pr.caCert,
 		Controlplanes:           cfg.Controlplanes,
-		ControlplaneCertificate: p.controlplaneCert,
-		DataplaneCertificate:    p.dataplaneCert,
+		ControlplaneCertificate: pr.controlplaneCert,
+		DataplaneCertificate:    pr.dataplaneCert,
 		Dataplanes:              cfg.Dataplanes,
 		DataplaneType:           cfg.DataplaneType,
 		LogLevel:                logLevel,
@@ -75,8 +58,8 @@ func (f *Fabric) generateK8SYAML(p *peer, cfg *PeerConfig) (string, error) {
 		Namespace:               f.namespace,
 		Tag:                     "latest",
 		PeerLabels: map[string]string{
-			ClusterNameLabel: p.cluster.name,
-			PeerIPLabel:      p.cluster.ip,
+			ClusterNameLabel: pr.cluster.name,
+			PeerIPLabel:      pr.cluster.ip,
 		},
 	})
 	if err != nil {

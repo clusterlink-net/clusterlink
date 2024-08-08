@@ -14,6 +14,7 @@
 package httpecho
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -48,7 +49,14 @@ func GetEchoValue(cluster *util.KindCluster, server *util.Service) (string, erro
 	}
 
 	url := fmt.Sprintf("http://%s", net.JoinHostPort(cluster.IP(), strconv.Itoa(int(port))))
-	resp, err := client.Get(url)
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+	if err != nil {
+		// handle error
+		return "", fmt.Errorf("cannot create request: %w", err)
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		if errors.Is(err, syscall.ECONNREFUSED) {
 			return "", &services.ConnectionRefusedError{}

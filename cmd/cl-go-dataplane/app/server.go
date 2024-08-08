@@ -111,7 +111,7 @@ func (o *Options) runGoDataplane(dataplaneID string, parsedCertData *tls.ParsedC
 		return fmt.Errorf("cannot listen for readiness: %w", err)
 	}
 	httpServer.Router().Get("/", func(w http.ResponseWriter, r *http.Request) {
-		if !xdsClient.IsReady() || !dataplane.IsReady() {
+		if !xdsClient.IsReady() || !dataplane.IsReady(r.Context()) {
 			w.WriteHeader(http.StatusServiceUnavailable)
 		}
 	})

@@ -71,8 +71,8 @@ func (e exportServiceNotExistError) Error() string {
 }
 
 func (e exportServiceNotExistError) Is(target error) bool {
-	_, ok := target.(*exportServiceNotExistError)
-	return ok
+	var expServErr *exportServiceNotExistError
+	return errors.As(target, &expServErr)
 }
 
 type importServiceNotExistError struct {
@@ -86,8 +86,8 @@ func (e importServiceNotExistError) Error() string {
 }
 
 func (e importServiceNotExistError) Is(target error) bool {
-	_, ok := target.(*importServiceNotExistError)
-	return ok
+	var impServErr *importServiceNotExistError
+	return errors.As(target, &impServErr)
 }
 
 type conflictingServiceError struct {
@@ -102,8 +102,8 @@ func (e conflictingServiceError) Error() string {
 }
 
 func (e conflictingServiceError) Is(target error) bool {
-	_, ok := target.(*conflictingServiceError)
-	return ok
+	var confServErr *conflictingServiceError
+	return errors.As(target, &confServErr)
 }
 
 type importEndpointSliceName struct {
