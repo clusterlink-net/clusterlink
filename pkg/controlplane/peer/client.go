@@ -130,6 +130,12 @@ func (c *Client) GetHeartbeat() error {
 			serverResp.Status, serverResp.Body)
 	}
 
+	peerLabels := map[string]string{}
+	for key := range *serverResp.Headers {
+		peerLabels[key] = serverResp.Headers.Get(key)
+	}
+	c.Peer().Labels = peerLabels
+
 	return nil
 }
 

@@ -122,7 +122,13 @@ func (s *server) checkIngress(ctx context.Context, req *authv3.CheckRequest) *au
 	switch {
 	case httpReq.Method == http.MethodGet && httpReq.Path == api.HeartbeatPath:
 		// heartbeat request always simply allowed
-		return buildAllowedResponse(&authv3.OkHttpResponse{})
+		labels := s.manager.peerLabels
+		respHeader := []*corev3.HeaderValueOption{}
+		for key, val := range labels {
+			hvo := &corev3.HeaderValueOption{Header: &corev3.HeaderValue{Key: key, Value: val}, AppendAction: corev3.HeaderValueOption_APPEND_IF_EXISTS_OR_ADD}
+			respHeader = append(respHeader, hvo)
+		}
+		return buildAllowedResponse(&authv3.OkHttpResponse{ResponseHeadersToAdd: respHeader})
 	case httpReq.Method == http.MethodPost && httpReq.Path == api.RemotePeerAuthorizationPath:
 		return s.checkAuthorizationRequest(ctx, httpReq)
 	case httpReq.Method == http.MethodConnect:
