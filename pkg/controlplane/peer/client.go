@@ -16,6 +16,7 @@ package peer
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -117,26 +118,31 @@ func (c *Client) Authorize(ctx context.Context, req *api.AuthorizationRequest) (
 }
 
 // GetHeartbeat get a heartbeat from other peers.
-func (c *Client) GetHeartbeat() error {
+// If check is successful, also return the labels of the remote peer.
+func (c *Client) GetHeartbeat() (map[string]string, error) {
 	serverResp, err := c.getResponse(func(client *jsonapi.Client) (*jsonapi.Response, error) {
 		return client.Get(context.Background(), api.HeartbeatPath)
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if serverResp.Status != http.StatusOK {
-		return fmt.Errorf("unable to get heartbeat (%d), server returned: %s",
+		return nil, fmt.Errorf("unable to get heartbeat (%d), server returned: %s",
 			serverResp.Status, serverResp.Body)
 	}
 
-	peerLabels := map[string]string{}
-	for key := range *serverResp.Headers {
-		peerLabels[key] = serverResp.Headers.Get(key)
+	peerLabelsHeader := serverResp.Headers.Get(api.PeerLabelsCustomHeader)
+	sDec, err := base64.StdEncoding.DecodeString(peerLabelsHeader)
+	if err != nil {
+		return nil, err
 	}
-	c.Peer().Labels = peerLabels
+	var peerLabels map[string]string
+	if err := json.Unmarshal(sDec, &peerLabels); err != nil {
+		return nil, err
+	}
 
-	return nil
+	return peerLabels, nil
 }
 
 // Peer object this client corresponds to.

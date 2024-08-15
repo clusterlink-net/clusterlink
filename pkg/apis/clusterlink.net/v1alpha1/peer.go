@@ -54,6 +54,8 @@ const (
 type PeerStatus struct {
 	// Conditions of the peer.
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// Labels holds peer labels, as reported by the remote peer
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // +kubebuilder:object:root=true
