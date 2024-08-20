@@ -4,7 +4,7 @@ go 1.22.3
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
-	github.com/envoyproxy/go-control-plane v0.12.0
+	github.com/envoyproxy/go-control-plane v0.13.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.6.0
@@ -67,9 +67,10 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.18.0 // indirect
-	github.com/prometheus/client_model v0.5.0 // indirect
+	github.com/prometheus/client_model v0.6.0 // indirect
 	github.com/prometheus/common v0.45.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/vladimirvivien/gexe v0.2.0 // indirect
