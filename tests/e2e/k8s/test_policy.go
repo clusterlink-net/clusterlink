@@ -260,6 +260,24 @@ func (s *TestSuite) TestPeerLabels() {
 	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
 	require.Nil(s.T(), err)
 
+	// 3. Creating a deny policy in cl[1] that doesn't have cl[0] label - should have no effect on connection to cl[0]
+	dstLabels := map[string]string{
+		authz.PeerLabelsPrefix + util.PeerIPLabel: "not.cl.0.ip",
+	}
+	denyNotCl0 := util.NewPolicy("deny-other-cluster", v1alpha1.AccessPolicyActionDeny, nil, dstLabels)
+	require.Nil(s.T(), cl[1].CreatePolicy(denyNotCl0))
+	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
+	require.Nil(s.T(), err)
+
+	// 4. Creating a deny policy in cl[1] to block connections to cl[0]
+	dstLabels = map[string]string{
+		authz.PeerLabelsPrefix + util.PeerIPLabel: cl[0].Cluster().IP(),
+	}
+	denyCl0 := util.NewPolicy("deny-cl0-cluster", v1alpha1.AccessPolicyActionDeny, nil, dstLabels)
+	require.Nil(s.T(), cl[1].CreatePolicy(denyCl0))
+	_, err = cl[1].AccessService(httpecho.RunClientInPod, importedService, false, nil)
+	require.NotNil(s.T(), err)
+
 	// privileged policies are not namespaced, so remain after the test's namespace is deleted
 	require.Nil(s.T(), cl[0].DeletePrivilegedPolicy(allowCl1.Name))
 }
