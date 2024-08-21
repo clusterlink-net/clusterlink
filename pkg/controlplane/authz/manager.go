@@ -263,7 +263,7 @@ func (m *Manager) getDstAttributes(svcName, svcNS, peerName string,
 		dstAttributes[PeerLabelsPrefix+k] = v
 	}
 
-	m.logger.Infof("dstAttributes: %v", dstAttributes)
+	m.logger.Debugf("dstAttributes: %v", dstAttributes)
 
 	return dstAttributes
 }
