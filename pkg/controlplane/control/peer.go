@@ -121,7 +121,7 @@ func (m *peerMonitor) Start() {
 			break
 		}
 
-		heartbeatErr := m.getClient().GetHeartbeat()
+		peerLabels, heartbeatErr := m.getClient().GetHeartbeat()
 		heartbeatOK := heartbeatErr == nil
 		if healthy == heartbeatOK {
 			if !healthy {
@@ -159,6 +159,7 @@ func (m *peerMonitor) Start() {
 
 		m.lock.Lock()
 		meta.SetStatusCondition(&m.pr.Status.Conditions, reachableCond)
+		m.pr.Status.Labels = peerLabels
 		m.lock.Unlock()
 
 		m.statusCallback(m.pr)
@@ -288,6 +289,16 @@ func peerChanged(pr1, pr2 *v1alpha1.Peer) bool {
 
 	for i := 0; i < len(pr1.Status.Conditions); i++ {
 		if pr1.Status.Conditions[i] != pr2.Status.Conditions[i] {
+			return true
+		}
+	}
+
+	if len(pr1.Status.Labels) != len(pr2.Status.Labels) {
+		return true
+	}
+
+	for key, val := range pr1.Status.Labels {
+		if val != pr2.Status.Labels[key] {
 			return true
 		}
 	}

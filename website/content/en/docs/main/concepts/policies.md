@@ -164,7 +164,8 @@ More examples are available on our repo under [examples/policies][].
 ### Available attributes
 The following attributes (labels) are set by ClusterLink on each connection request, and can be used in access policies within a `workloadSelector`.
 #### Peer attributes - set when running `clusterlink deploy peer`
-* `peer.clusterlink.net/name` - Peer name
+* `peer.clusterlink.net/name` - Peer name as set by the `--name` flag
+* `peer.clusterlink.net/labels.<label-key>` - Peer's labels, set by using `--label` flags
 #### Client attributes - derived from Pod info, as retrieved from Kubernetes API. Only relevant in the `from` section of access policies
 * `client.clusterlink.net/namespace` - Pod's Namespace
 * `client.clusterlink.net/service-account` - Pod's Service Account

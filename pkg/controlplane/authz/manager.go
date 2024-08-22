@@ -243,9 +243,29 @@ func (m *Manager) getSrcAttributes(req *egressAuthorizationRequest) connectivity
 		clientAttrs[PeerLabelsPrefix+k] = v
 	}
 
-	m.logger.Infof("Client attributes: %v.", clientAttrs)
+	m.logger.Debugf("Client attributes: %v.", clientAttrs)
 
 	return clientAttrs
+}
+
+func (m *Manager) getDstAttributes(svcName, svcNS, peerName string,
+	svcLabels, peerLabels map[string]string,
+) connectivitypdp.WorkloadAttrs {
+	dstAttributes := connectivitypdp.WorkloadAttrs{
+		ServiceNameLabel:      svcName,
+		ServiceNamespaceLabel: svcNS,
+		PeerNameLabel:         peerName,
+	}
+	for k, v := range svcLabels {
+		dstAttributes[ServiceLabelsPrefix+k] = v
+	}
+	for k, v := range peerLabels {
+		dstAttributes[PeerLabelsPrefix+k] = v
+	}
+
+	m.logger.Debugf("dstAttributes: %v", dstAttributes)
+
+	return dstAttributes
 }
 
 // authorizeEgress authorizes a request for accessing an imported service.
@@ -260,11 +280,6 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 	var imp v1alpha1.Import
 	if err := m.client.Get(ctx, req.ImportName, &imp); err != nil {
 		return nil, fmt.Errorf("cannot get import %v: %w", req.ImportName, err)
-	}
-
-	dstAttributes := connectivitypdp.WorkloadAttrs{}
-	for k, v := range imp.Labels { // add import labels to destination attributes
-		dstAttributes[ServiceLabelsPrefix+k] = v
 	}
 
 	lbResult := NewLoadBalancingResult(&imp)
@@ -291,10 +306,10 @@ func (m *Manager) authorizeEgress(ctx context.Context, req *egressAuthorizationR
 			}
 		}
 
-		dstAttributes[ServiceNameLabel] = importSource.ExportName
-		dstAttributes[ServiceNamespaceLabel] = importSource.ExportNamespace
-		dstAttributes[PeerNameLabel] = importSource.Peer
-
+		dstAttributes := m.getDstAttributes(
+			importSource.ExportName, importSource.ExportNamespace,
+			importSource.Peer, imp.Labels, pr.Status.Labels,
+		)
 		decision, err := m.connectivityPDP.Decide(srcAttributes, dstAttributes, req.ImportName.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error deciding on an egress connection: %w", err)
@@ -403,15 +418,6 @@ func (m *Manager) authorizeIngress(
 
 	resp.ServiceExists = true
 
-	dstAttributes := connectivitypdp.WorkloadAttrs{
-		ServiceNameLabel:      export.Name,
-		ServiceNamespaceLabel: export.Namespace,
-		PeerNameLabel:         m.getPeerName(),
-	}
-	for k, v := range export.Labels { // add export labels to destination attributes
-		dstAttributes[ServiceLabelsPrefix+k] = v
-	}
-
 	// do not allow requests from clients with no attributes if the PDP has attribute-dependent policies
 	if len(req.SrcAttributes) == 0 && m.connectivityPDP.DependsOnClientAttrs() {
 		m.logger.Infof("PDP not allowing connection: No client attributes")
@@ -419,6 +425,7 @@ func (m *Manager) authorizeIngress(
 		return resp, nil
 	}
 
+	dstAttributes := m.getDstAttributes(export.Name, export.Namespace, m.getPeerName(), export.Labels, m.peerLabels)
 	decision, err := m.connectivityPDP.Decide(req.SrcAttributes, dstAttributes, req.ServiceName.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error deciding on an ingress connection: %w", err)

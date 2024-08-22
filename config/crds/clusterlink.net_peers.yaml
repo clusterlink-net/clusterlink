@@ -133,6 +133,11 @@ spec:
                   - type
                   type: object
                 type: array
+              labels:
+                additionalProperties:
+                  type: string
+                description: Labels holds peer labels, as reported by the remote peer
+                type: object
             type: object
         required:
         - spec

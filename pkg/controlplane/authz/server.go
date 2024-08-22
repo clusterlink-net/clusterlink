@@ -15,6 +15,7 @@ package authz
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -116,13 +117,23 @@ func (s *server) checkEgress(ctx context.Context, req *authv3.CheckRequest) *aut
 	})
 }
 
+func (s *server) encodePeerLabels() string {
+	data, err := json.Marshal(&s.manager.peerLabels)
+	if err != nil {
+		data = []byte{'{', '}'} // empty map
+	}
+	return base64.StdEncoding.EncodeToString(data)
+}
+
 // check an ingress dataplane connection.
 func (s *server) checkIngress(ctx context.Context, req *authv3.CheckRequest) *authv3.CheckResponse {
 	httpReq := req.Attributes.Request.Http
 	switch {
 	case httpReq.Method == http.MethodGet && httpReq.Path == api.HeartbeatPath:
-		// heartbeat request always simply allowed
-		return buildAllowedResponse(&authv3.OkHttpResponse{})
+		// heartbeat request always simply allowed. Peer labels are added to the OK response.
+		hv := &corev3.HeaderValue{Key: api.PeerLabelsCustomHeader, Value: s.encodePeerLabels()}
+		hvo := &corev3.HeaderValueOption{Header: hv, AppendAction: corev3.HeaderValueOption_APPEND_IF_EXISTS_OR_ADD}
+		return buildAllowedResponse(&authv3.OkHttpResponse{ResponseHeadersToAdd: []*corev3.HeaderValueOption{hvo}})
 	case httpReq.Method == http.MethodPost && httpReq.Path == api.RemotePeerAuthorizationPath:
 		return s.checkAuthorizationRequest(ctx, httpReq)
 	case httpReq.Method == http.MethodConnect:

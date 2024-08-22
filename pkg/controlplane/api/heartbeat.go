@@ -16,4 +16,6 @@ package api
 const (
 	// HeartbeatPath is the path for Heartbeat requests from remote peers.
 	HeartbeatPath = "/healthz"
+	// PeerLabelsCustomHeader is a custom HTTP response header for reporting peer labels.
+	PeerLabelsCustomHeader = "ClusterLinkPeerLabels"
 )
