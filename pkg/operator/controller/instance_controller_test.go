@@ -148,7 +148,7 @@ func TestClusterLinkController(t *testing.T) {
 	cpID := types.NamespacedName{Name: cpapi.Name, Namespace: controller.InstanceNamespace}
 	cpResource := []client.Object{&appsv1.Deployment{}, &corev1.Service{}}
 	roleID := types.NamespacedName{
-		Name:      cpapi.Name + controller.InstanceNamespace,
+		Name:      controller.ClusterRoleName,
 		Namespace: controller.InstanceNamespace,
 	}
 	roleResource := []client.Object{&rbacv1.ClusterRole{}, &rbacv1.ClusterRoleBinding{}}
