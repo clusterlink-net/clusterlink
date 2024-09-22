@@ -48,6 +48,7 @@ const (
 	StatusModeNotExist    = "NotExist"
 	StatusModeProgressing = "ProgressingMode"
 	StatusModeReady       = "Ready"
+	ClusterRoleName       = InstanceNamespace + ":" + cpapi.Name
 )
 
 // InstanceReconciler reconciles a ClusterLink instance object.
@@ -431,7 +432,7 @@ func (r *InstanceReconciler) createAccessControl(ctx context.Context, name, name
 	// Create the ClusterRole for the controlplane.
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name + namespace,
+			Name: ClusterRoleName,
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -499,12 +500,12 @@ func (r *InstanceReconciler) createAccessControl(ctx context.Context, name, name
 	// Create ClusterRoleBinding for the controlplane.
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name + namespace,
+			Name: ClusterRoleName,
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "ClusterRole",
-			Name:     name + namespace,
+			Name:     ClusterRoleName,
 		},
 		Subjects: []rbacv1.Subject{
 			{
@@ -615,6 +616,8 @@ func (r *InstanceReconciler) createResource(ctx context.Context, object client.O
 func (r *InstanceReconciler) deleteClusterLink(ctx context.Context, namespace string) error {
 	// Delete controlPlane Resources
 	cpObj := metav1.ObjectMeta{Name: cpapi.Name, Namespace: namespace}
+	cprRuleObj := metav1.ObjectMeta{Name: ClusterRoleName, Namespace: namespace}
+
 	if err := r.deleteResource(ctx, &appsv1.Deployment{ObjectMeta: cpObj}); err != nil {
 		return err
 	}
@@ -623,11 +626,11 @@ func (r *InstanceReconciler) deleteClusterLink(ctx context.Context, namespace st
 		return err
 	}
 
-	if err := r.deleteResource(ctx, &rbacv1.ClusterRole{ObjectMeta: cpObj}); err != nil {
+	if err := r.deleteResource(ctx, &rbacv1.ClusterRole{ObjectMeta: cprRuleObj}); err != nil {
 		return err
 	}
 
-	if err := r.deleteResource(ctx, &rbacv1.ClusterRoleBinding{ObjectMeta: cpObj}); err != nil {
+	if err := r.deleteResource(ctx, &rbacv1.ClusterRoleBinding{ObjectMeta: cprRuleObj}); err != nil {
 		return err
 	}
 
