@@ -6,8 +6,8 @@ toolchain go1.22.9
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
-	github.com/envoyproxy/go-control-plane v0.13.3
-	github.com/envoyproxy/go-control-plane/envoy v1.32.2
+	github.com/envoyproxy/go-control-plane v0.13.4
+	github.com/envoyproxy/go-control-plane/envoy v1.32.3
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.6.0
