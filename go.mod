@@ -1,8 +1,7 @@
 module github.com/clusterlink-net/clusterlink
 
 go 1.22.8
-
-toolchain go1.22.9
+toolchain go1.24.1
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
@@ -19,7 +18,7 @@ require (
 	golang.org/x/net v0.35.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f
 	google.golang.org/grpc v1.71.0
-	google.golang.org/protobuf v1.36.5
+	google.golang.org/protobuf v1.36.6
 	k8s.io/api v0.30.3
 	k8s.io/apimachinery v0.30.3
 	k8s.io/client-go v0.30.3
