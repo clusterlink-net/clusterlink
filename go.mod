@@ -1,6 +1,7 @@
 module github.com/clusterlink-net/clusterlink
 
 go 1.22.8
+
 toolchain go1.24.1
 
 require (
