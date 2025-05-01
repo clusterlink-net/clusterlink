@@ -1,4 +1,4 @@
-FROM envoyproxy/envoy:v1.33.2
+FROM envoyproxy/envoy:v1.34.0
 
 # Populated during the build process, for example, with 'arm64' or 'amd64'.
 ARG TARGETARCH
