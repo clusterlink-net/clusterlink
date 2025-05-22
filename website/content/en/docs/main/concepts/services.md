@@ -220,7 +220,7 @@ metadata:
   name: iperf3-server
   namespace: default
   labels:
-    import.clusterlink.net/merge: true
+    import.clusterlink.net/merge: "true"
 spec:
   port:       5000
   sources:
