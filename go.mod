@@ -14,7 +14,7 @@ require (
 	github.com/lestrrat-go/jwx v1.2.31
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.6
+	github.com/spf13/pflag v1.0.7
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.41.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463
