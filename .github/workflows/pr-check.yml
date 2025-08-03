@@ -31,7 +31,7 @@ jobs:
       - name: Run vet check
         run: go vet ./...
       - name: Run linters
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
           version: v1.54.2
           skip-pkg-cache: true
