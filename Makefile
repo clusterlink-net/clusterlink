@@ -53,7 +53,7 @@ fmt: gofumpt format-go tidy-go vet-go
 vet: vet-go
 
 lint:  ; $(info running linters...)
-	@golangci-lint run --config=./.golangci.yaml ./...
+	@golangci-lint run --timeout 5m --config=./.golangci.yaml ./...
 
 tidy-go: ; $(info tidying up go.mod...)
 	@go mod tidy
