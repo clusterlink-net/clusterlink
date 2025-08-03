@@ -60,10 +60,10 @@ if [ -z "$(which kind)" ] || [ "$1" = "--force" ]; then
 fi
 
 #-- golangci-lint
-VERSION=v1.54.2
+VERSION=v2.3.1
 if [ -z "$(which golangci-lint)" ] || [ "$1" = "--force" ]; then
   echo installing golangci-lint "($VERSION)"
-  go install "github.com/golangci/golangci-lint/cmd/golangci-lint@$VERSION"
+  go install "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$VERSION"
 fi
 
 #-- goimports
