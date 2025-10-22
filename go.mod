@@ -13,8 +13,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lestrrat-go/jwx v1.2.31
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.7
+	github.com/spf13/cobra v1.10.1
+	github.com/spf13/pflag v1.0.9
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.43.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7
