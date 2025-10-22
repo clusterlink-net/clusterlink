@@ -17,7 +17,7 @@ jobs:
       - name: Check License Header
         uses: apache/skywalking-eyes/header@main
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: ./go.mod
       - name: Setup goimports
@@ -44,7 +44,7 @@ jobs:
       with:
         fetch-tags: true
     - name: set up go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: ./go.mod
     - name: setup tparse
