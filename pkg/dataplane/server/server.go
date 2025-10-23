@@ -109,7 +109,7 @@ func (d *Dataplane) dataplaneIngressAuthorize(w http.ResponseWriter, r *http.Req
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		errorString := fmt.Sprintf("Unable to read response body: %v.", err)
-		d.logger.Errorf(errorString)
+		d.logger.Error(errorString)
 		http.Error(w, errorString, http.StatusInternalServerError)
 		return
 	}
