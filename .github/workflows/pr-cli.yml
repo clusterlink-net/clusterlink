@@ -32,7 +32,7 @@ jobs:
     - name: Run installation test using CLI
       run: ./tests/cli/basic_test.sh
     - name: upload e2e k8s test logs
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: failure()
       with:
         name: tests-cli
