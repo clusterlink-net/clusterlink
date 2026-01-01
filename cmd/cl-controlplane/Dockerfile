@@ -1,4 +1,4 @@
-FROM alpine:3.22
+FROM alpine:3.23
 
 # Populated during the build process, for example, with 'arm64' or 'amd64'.
 ARG TARGETARCH
