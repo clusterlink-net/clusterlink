@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Check
-      uses: ruzickap/action-my-broken-link-checker@v2
+      uses: ruzickap/action-my-broken-link-checker@v3
       with:
         url: https://clusterlink.net
         cmd_params: '--buffer-size=65536 --max-connections=2 --rate-limit=4 --timeout=20'  # muffet parameters
