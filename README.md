@@ -5,6 +5,9 @@ ClusterLink simplifies the connection between application services that are
 
 ## Disclaimers and warnings
 
+> [!WARNING]
+> Work on the ClusterLink project is complete and the repository is archived and shall not be maintained.
+
 This is an incomplete work in progress, provided in the interest of sharing experience
  and gathering feedback.
  The code is pre-alpha quality right now. This means that it shouldn't be used in
